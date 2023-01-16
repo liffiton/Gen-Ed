@@ -8,6 +8,23 @@
 
   <div class="field is-horizontal">
     <div class="field-label is-normal">
+      <label class="label" for="language">Language:</label>
+    </div>
+    <div class="field-body">
+      <div class="field">
+        <div class="control">
+          <div class="select">
+            <select x-bind:disabled="loading">
+              <option>Python</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="field is-horizontal">
+    <div class="field-label is-normal">
       <label class="label" for="code">Code:</label>
       <p class="has-text-grey">Copy just the <i>most relevant</i> part of your code here.  Responses will be more helpful when you include only code relevant to your issue.</p>
     </div>
