@@ -1,9 +1,12 @@
-import openai
+import json
 import random
+import re
 
-from flask import Blueprint, current_app, render_template, request
+import openai
 
-bp = Blueprint('helper', __name__, template_folder='templates')
+from flask import Blueprint, current_app, redirect, render_template, request, url_for
+
+from .db import get_db
 
 
 def generate_prompt(language, code, error, issue):
@@ -74,17 +77,58 @@ System response:
     return prompt, stop_seq
 
 
-@bp.route('/')
-def index():
-    return render_template("index.html")
+bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='templates')
 
 
-@bp.route("/help")
-def help_form():
-    return render_template("help_form.html")
+def parse_response(query_row):
+    text = query_row['response_text']
+    # We're passing this to Jinja's "safe" filter, so we need to make sure tags in the text remain displayed as tags
+    text = re.sub("<", "&lt;", text)
+    # Assume '[whatever]' is code.  (TODO: prompt engineering to guarantee the response uses a particular format)
+    text = re.sub(r"'(\S+)'", r"<code>\1</code>", text)
+    # Break up lines as paragraphs.
+    paras = re.split(r"\n+", text)
+    return paras
 
 
-@bp.route("/help_request", methods=["POST"])
+@bp.route("/")
+@bp.route("/<int:query_id>")
+def help_form(query_id=None):
+    if query_id is not None:
+        db = get_db()
+        cur = db.execute("SELECT * FROM queries WHERE id=?", [query_id])
+        query_row = cur.fetchone()
+        response_parsed = parse_response(query_row)
+    else:
+        query_row = None
+
+    return render_template("help_form.html", query=query_row, response_parsed=response_parsed)
+
+
+def record_query(language, code, error, issue):
+    db = get_db()
+
+    cur = db.execute(
+        "INSERT INTO queries (language, code, error, issue) VALUES (?, ?, ?, ?)",
+        [language, code, error, issue]
+    )
+    new_row_id = cur.lastrowid
+    db.commit()
+
+    return new_row_id
+
+
+def record_response(query_id, response, response_txt):
+    db = get_db()
+
+    db.execute(
+        "UPDATE queries SET response_json=?, response_text=? WHERE id=?",
+        [json.dumps(response), response_txt, query_id]
+    )
+    db.commit()
+
+
+@bp.route("/request", methods=["POST"])
 def help_request():
     language = "Python 3"
     code = request.form["code"]
@@ -94,6 +138,11 @@ def help_request():
     # TODO: limit length of code/error/issue
 
     prompt, stop_seq = generate_prompt(language, code, error, issue)
+
+    # TODO: store prompt template in database for internal reference, esp. if it changes over time
+    #       (could just automatically add to a table if not present and get the autoID for it as foreign key)
+
+    query_id = record_query(language, code, error, issue)
 
     openai.api_key = current_app.config["OPENAI_API_KEY"]
     response = openai.Completion.create(
@@ -105,11 +154,12 @@ def help_request():
         # TODO: add user= parameter w/ unique ID of user (e.g., hash of username+email or similar)
     )
 
-    result_txt = response.choices[0].text
-    result_reason = response.choices[0].finish_reason  # e.g. "length" if max_tokens reached
+    response_txt = response.choices[0].text
+    response_reason = response.choices[0].finish_reason  # e.g. "length" if max_tokens reached
 
-    if result_reason == "length":
-        result_txt += "\n[error: maximum length exceeded]"
+    if response_reason == "length":
+        response_txt += "\n[error: maximum length exceeded]"
 
-    # TODO: store result in database w/ id, redirect to GET page w/ id as arg
-    return render_template("response.html", txt=result_txt)
+    record_response(query_id, response, response_txt)
+
+    return redirect(url_for(".help_form", query_id=query_id))
