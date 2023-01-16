@@ -1,20 +1,62 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CodeHelp</title>
-  </head>
-  <body>
-    <h1>CodeHelp</h1>
-    <form action="/help_request" method="post">
-      <label for="code">Code:</label>
-      <textarea name="code"></textarea>
-      <label for="err">Error:</label>
-      <textarea name="err"></textarea>
-      <label for="issue">Issue:</label>
-      <textarea name="issue"></textarea>
-      <input type="submit">
-    </form>
-  </body>
-</html>
+{% extends "base.html" %}
+
+{% block body %}
+<div class="container">
+<form action="/help_request" method="post">
+
+  <div class="field is-horizontal">
+    <div class="field-label is-normal">
+      <label class="label" for="code">Code:</label>
+      <p class="has-text-grey">Copy just the <i>most relevant</i> part of your code here.  Responses will be more helpful when you include only code relevant to your issue.</p>
+    </div>
+    <div class="field-body">
+      <div class="field">
+        <div class="control">
+          <textarea class="textarea is-family-monospace" name="code" rows=10></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="field is-horizontal">
+    <div class="field-label is-normal">
+      <label class="label" for="error">Error Message:</label>
+      <p class="has-text-grey">If your issue relates to an error message, copy the message here.  Do not provide a full stack trace.  Only copy the line or two with the specific error.</p>
+    </div>
+    <div class="field-body">
+      <div class="field">
+        <div class="control">
+          <textarea class="textarea" name="error" rows=4></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="field is-horizontal">
+    <div class="field-label is-normal">
+      <label class="label" for="issue">Issue:</label>
+      <p class="has-text-grey">Clearly describe your issue.  Include as relevant: what you are trying to do, what you expect the code to do, what the code actually does, and what you need help understanding.</p>
+    </div>
+    <div class="field-body">
+      <div class="field">
+        <div class="control">
+          <textarea class="textarea" name="issue" rows=6></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="field is-horizontal">
+    <div class="field-label is-normal"><!-- spacing --></div>
+    <div class="field-body">
+      <div class="field">
+        <div class="control">
+          <input class="button is-link" type="submit" value="Submit Request">
+        </div>
+      </div>
+    </div>
+  </div>
+
+</form>
+</div>
+{% endblock %}
