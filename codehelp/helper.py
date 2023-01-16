@@ -6,7 +6,7 @@ from flask import Blueprint, current_app, render_template, request
 bp = Blueprint('helper', __name__, template_folder='templates')
 
 
-def generate_prompt(language, code, err, issue):
+def generate_prompt(language, code, error, issue):
     nonce = random.randint(1000000, 9999999)
     stop_seq = f"</response_{nonce}>"
     prompt = f"""This is a system for assisting students with programming.
@@ -62,7 +62,7 @@ Student inputs:
 {code}
 </code_{nonce}>
 <error_{nonce}>
-{err}
+{error}
 </error_{nonce}>
 <issue_{nonce}>
 {issue}
@@ -88,12 +88,12 @@ def help_form():
 def help_request():
     language = "Python 3"
     code = request.form["code"]
-    err = request.form["err"]
+    error = request.form["error"]
     issue = request.form["issue"]
 
-    # TODO: limit length of code/err/issue
+    # TODO: limit length of code/error/issue
 
-    prompt, stop_seq = generate_prompt(language, code, err, issue)
+    prompt, stop_seq = generate_prompt(language, code, error, issue)
 
     openai.api_key = current_app.config["OPENAI_API_KEY"]
     response = openai.Completion.create(
