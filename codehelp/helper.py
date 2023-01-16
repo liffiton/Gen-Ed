@@ -101,6 +101,7 @@ def help_form(query_id=None):
         response_parsed = parse_response(query_row)
     else:
         query_row = None
+        response_parsed = None
 
     return render_template("help_form.html", query=query_row, response_parsed=response_parsed)
 
