@@ -88,10 +88,8 @@
 {% if query %}
 <section class="section">
   <div class="container">
-    <h1 class="title">Response</h1>
-    {% for para in response_parsed %}
-      <p>{{ para | safe }}</p>
-    {% endfor %}
+    <p><span class="title">Response</span> <span class="subtitle ml-5 is-italic">Remember: It will not always be correct!</span></p>
+    {{ response_html | safe }}
   </div>
 </section>
 {% endif %}
