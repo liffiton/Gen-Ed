@@ -1,4 +1,5 @@
 flask
 markdown
 openai
+pylti
 python-dotenv
