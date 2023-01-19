@@ -27,7 +27,7 @@ table.datatable-table tbody tr:hover {
         Queries
       <div class="tags is-inline are-medium">
         {% if username %}
-        <span class="tag is-info">
+        <span class="tag is-info mb-0">
           user={{username}}
           <a class="delete is-small is-link" href="?"></a>
         </span>
@@ -76,7 +76,7 @@ table.datatable-table tbody tr:hover {
       return;
     }
     query_id = querytable.data.data[row][0].data;
-    window.location = `/help/${query_id}`;
+    window.open(`/help/${query_id}`, '_blank');  // open query in a new tab
   });
 </script>
 {% endblock %}
