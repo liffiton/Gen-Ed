@@ -1,8 +1,21 @@
-To run:
+CodeHelp
+========
+
+Setup & Running
+---------------
+
+1. Populate .env (OpenAI key, initial password(s)).
+2. Install dependencies
+
+  pip install -r requirements.txt
+
+3. Initialize database
+
+  flask --app codehelp initdb
+
+4. Start the application
 
   flask --app codehelp run
-
-or:
-
+  # or
   flask --app codehelp --debug run
 
