@@ -4,6 +4,7 @@ import sys
 from dotenv import load_dotenv
 from flask import Flask, render_template
 
+from . import admin
 from . import auth
 from . import db
 from . import helper
@@ -43,6 +44,7 @@ def create_app():
 
     db.init_app(app)
 
+    app.register_blueprint(admin.bp)
     app.register_blueprint(auth.bp)
     app.register_blueprint(helper.bp)
     app.register_blueprint(lti.bp)

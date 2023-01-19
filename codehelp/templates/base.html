@@ -7,7 +7,9 @@
     <style type="text/css">
       p { margin-bottom: 1em; margin-top: 1em; }
     </style>
-    <script src="https://unpkg.com/alpinejs" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3" defer type="text/javascript"></script>
+    <link href="https://cdn.jsdelivr.net/npm/simple-datatables@6/dist/style.css" rel="stylesheet" type="text/css">
+    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@6" type="text/javascript"></script>
     <title>CodeHelp</title>
   </head>
   <body>
@@ -17,18 +19,25 @@
           CodeHelp
         </a>
       </div>
-      <div class="navbar-end">
-        <div class="navbar-item">
-          {% if session["__codehelp_logged_in_user"] %}
-          <span class="is-italic mr-3">User: {{ session["__codehelp_logged_in_user"] }}</span>
-          <form action="/auth/logout" method="post">
-            <button class="button is-link is-small" type="submit">Logout</button>
-          </form>
-          {% else %}
-          <form action="/auth/login" method="get">
-            <button class="button is-link is-small" type="submit">Login</button>
-          </form>
+      <div class="navbar-menu">
+        <div class="navbar-start">
+        </div>
+        <div class="navbar-end">
+          {% if session["__codehelp_logged_in_role"] == "admin" %}
+            <a class="navbar-item has-text-danger" href="/admin/">Admin</a>
           {% endif %}
+          <div class="navbar-item">
+            {% if session["__codehelp_logged_in_user"] %}
+              <span class="is-italic mr-3">User: {{ session["__codehelp_logged_in_user"] }}</span>
+              <form action="/auth/logout" method="post">
+                <button class="button is-link is-small" type="submit">Logout</button>
+              </form>
+            {% else %}
+              <form action="/auth/login" method="get">
+                <button class="button is-link is-small" type="submit">Login</button>
+              </form>
+            {% endif %}
+          </div>
         </div>
       </div>
     </nav>

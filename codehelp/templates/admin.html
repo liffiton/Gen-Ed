@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block body %}
+<style type="text/css">
+table.datatable-table tbody tr {
+  cursor: pointer;
+}
+table.datatable-table tbody tr:hover {
+  background: #def;
+}
+</style>
+<section class="section">
+  <div class="columns is-desktop">
+    <div class="column">
+      <h1 class="title">Users</h1>
+      <table class="table" id="tbl_users">
+        <thead><th>id</th><th>username</th><th>role</th><th>lti_consumer</th><th>#queries</th></thead>
+        <tbody>
+          {% for user in users %}
+          <tr><td>{{ user.id }}</td><td>{{ user.username }}</td><td>{{ user.role }}</td><td>{{ user.lti_consumer }}</td><td>{{ user.num_queries }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="column">
+      <h1 class="title">
+        Queries
+      <div class="tags is-inline are-medium">
+        {% if username %}
+        <span class="tag is-info">
+          user={{username}}
+          <a class="delete is-small is-link" href="?"></a>
+        </span>
+        {% endif %}
+      </div>
+      </h1>
+      <table class="table" id="tbl_queries">
+        <thead><th>id</th><th>user</th><th>time</th><th>language</th><th>len(code)</th><th>len(error)</th><th>len(issue)</th><th>head(response)</th></thead>
+        <tbody>
+          {% for query in queries %}
+          <tr>
+            <td>{{ query.id }}</td>
+            <td>{{ query.username }}</td>
+            <td>{{ query.query_time }}</td>
+            <td>{{ query.language }}</td>
+            <td>{{ query.code | length }}</td>
+            <td>{{ query.error | length }}</td>
+            <td>{{ query.issue | length }}</td>
+            <td>{{ query.response_text | truncate(50) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<script>
+  const usertable = new simpleDatatables.DataTable("table#tbl_users", {
+    perPageSelect: [[10, 10], [20, 20], ["All", 0]],
+  });
+  const querytable = new simpleDatatables.DataTable("table#tbl_queries", {
+    perPageSelect: [[10, 10], [20, 20], ["All", 0]],
+  });
+  usertable.on("datatable.selectrow", (row, event) => {
+    if (event.button == 2) {
+      // right click -- don't trigger anything
+      return;
+    }
+    username = usertable.data.data[row][1].data;
+    window.location = `?username=${username}`;
+  });
+  querytable.on("datatable.selectrow", (row, event) => {
+    if (event.button == 2) {
+      // right click -- don't trigger anything
+      return;
+    }
+    query_id = querytable.data.data[row][0].data;
+    window.location = `/help/${query_id}`;
+  });
+</script>
+{% endblock %}
