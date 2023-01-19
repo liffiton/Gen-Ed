@@ -21,6 +21,9 @@
       </div>
       <div class="navbar-menu">
         <div class="navbar-start">
+          {% if session["__codehelp_logged_in_user"] %}
+            <a class="navbar-item has-text-success" href="/help/">Request Help</a>
+          {% endif %}
         </div>
         <div class="navbar-end">
           {% if session["__codehelp_logged_in_role"] == "admin" %}
