@@ -101,9 +101,11 @@ def help_form(query_id=None):
             output_format="html5",
             extensions=['fenced_code', 'sane_lists', 'smarty'],
         )
-        return render_template("help_form.html", query=query_row, response_html=response_html)
     else:
-        return render_template("help_form.html")
+        query_row = None
+        response_html = None
+
+    return render_template("help_form.html", query=query_row, response_html=response_html)
 
 
 def run_query(language, code, error, issue):
