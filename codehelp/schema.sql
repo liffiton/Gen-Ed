@@ -1,6 +1,8 @@
 PRAGMA foreign_keys = ON;
 
+DROP TABLE IF EXISTS queries;
 DROP TABLE IF EXISTS users;
+
 CREATE TABLE users (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,  -- ideally email
@@ -9,7 +11,6 @@ CREATE TABLE users (
     lti_consumer  TEXT  -- the LTI consumer that registered this user, if applicable
 );
 
-DROP TABLE IF EXISTS queries;
 CREATE TABLE queries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     query_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,

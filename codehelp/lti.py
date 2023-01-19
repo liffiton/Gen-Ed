@@ -3,7 +3,7 @@ from flask import Blueprint, abort, flash, redirect, session, url_for
 from pylti.flask import lti
 
 from .db import get_db
-from .login import KEY_AUTH_USER, KEY_AUTH_USERID, KEY_AUTH_ROLE
+from .auth import KEY_AUTH_USER, KEY_AUTH_USERID, KEY_AUTH_ROLE
 
 
 bp = Blueprint('lti', __name__, url_prefix="/lti", template_folder='templates')

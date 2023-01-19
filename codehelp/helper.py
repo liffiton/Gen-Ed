@@ -6,7 +6,7 @@ from flask import Blueprint, current_app, redirect, render_template, request, se
 
 from . import prompts
 from .db import get_db
-from .login import KEY_AUTH_USERID, login_required
+from .auth import KEY_AUTH_USERID, KEY_AUTH_ROLE, login_required
 
 
 bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='templates')
@@ -16,18 +16,22 @@ bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='template
 @bp.route("/<int:query_id>")
 @login_required
 def help_form(query_id=None):
+    query_row = None
+    response_html = None
+
     if query_id is not None:
         db = get_db()
-        cur = db.execute("SELECT * FROM queries WHERE queries.user_id=? AND queries.id=?", [session[KEY_AUTH_USERID], query_id])
+        if session[KEY_AUTH_ROLE] == "admin":
+            cur = db.execute("SELECT * FROM queries WHERE queries.id=?", [query_id])
+        else:
+            cur = db.execute("SELECT * FROM queries WHERE queries.user_id=? AND queries.id=?", [session[KEY_AUTH_USERID], query_id])
         query_row = cur.fetchone()
-        response_html = markdown.markdown(
-            query_row['response_text'],
-            output_format="html5",
-            extensions=['fenced_code', 'sane_lists', 'smarty'],
-        )
-    else:
-        query_row = None
-        response_html = None
+        if query_row:
+            response_html = markdown.markdown(
+                query_row['response_text'],
+                output_format="html5",
+                extensions=['fenced_code', 'sane_lists', 'smarty'],
+            )
 
     return render_template("help_form.html", query=query_row, response_html=response_html)
 

@@ -1,6 +1,9 @@
+import os
 import sqlite3
+import sys
 
 import click
+from dotenv import load_dotenv
 from flask import current_app, g
 
 
@@ -27,6 +30,18 @@ def init_db():
 
     with current_app.open_resource('schema.sql') as f:
         db.executescript(f.read().decode('utf8'))
+
+    load_dotenv()
+    try:
+        init_pw_mark = os.environ["INIT_PW_MARK"]
+        init_pw_brad = os.environ["INIT_PW_BRAD"]
+    except KeyError:
+        print("Error:  INIT_PW_{MARK,BRAD} environment variable not set.", file=sys.stderr)
+        sys.exit(1)
+
+    db.execute("INSERT INTO users(username, password, role) VALUES(?, ?, ?)", ["mark", init_pw_mark, "admin"])
+    db.execute("INSERT INTO users(username, password, role) VALUES(?, ?, ?)", ["brad", init_pw_brad, "instructor"])
+    db.commit()
 
 
 @click.command('initdb')

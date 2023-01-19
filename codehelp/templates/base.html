@@ -17,13 +17,27 @@
           CodeHelp
         </a>
       </div>
+      <div class="navbar-end">
+        <div class="navbar-item">
+          {% if session["__codehelp_logged_in_user"] %}
+          <span class="is-italic mr-3">User: {{ session["__codehelp_logged_in_user"] }}</span>
+          <form action="/auth/logout" method="post">
+            <button class="button is-link is-small" type="submit">Logout</button>
+          </form>
+          {% else %}
+          <form action="/auth/login" method="get">
+            <button class="button is-link is-small" type="submit">Login</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
     </nav>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <section class="section">
         {% for category, message in messages %}
-          <div class="notification is-primary is-light">
+          <div class="notification {% if category == "message" %}is-primary{% else %}is-{{category}}{% endif %}">
             {{ message }}
           </div>
         {% endfor %}
