@@ -33,6 +33,15 @@ def create_app():
                 }
             }
         },
+        LANGUAGES=[
+            "c",
+            "c++",
+            "java",
+            "javascript",
+            "ocaml",
+            "python",
+            "rust",
+        ],
         DATABASE=os.path.join(app.instance_path, 'codehelp.db'),
     )
 

@@ -16,24 +16,32 @@ bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='template
 @bp.route("/<int:query_id>")
 @login_required
 def help_form(query_id=None):
+    db = get_db()
+
     query_row = None
     response_html = None
+    selected_lang = None
+
+    # default to most recently submitted language, if available (overridden if viewing a result)
+    lang_row = db.execute("SELECT language FROM queries WHere queries.user_id=? ORDER BY query_time DESC LIMIT 1", [session[KEY_AUTH_USERID]]).fetchone()
+    if lang_row:
+        selected_lang = lang_row['language']
 
     if query_id is not None:
-        db = get_db()
         if session[KEY_AUTH_ROLE] == "admin":
             cur = db.execute("SELECT * FROM queries WHERE queries.id=?", [query_id])
         else:
             cur = db.execute("SELECT * FROM queries WHERE queries.user_id=? AND queries.id=?", [session[KEY_AUTH_USERID], query_id])
         query_row = cur.fetchone()
         if query_row:
+            selected_lang = query_row['language']
             response_html = markdown.markdown(
                 query_row['response_text'],
                 output_format="html5",
                 extensions=['fenced_code', 'sane_lists', 'smarty'],
             )
 
-    return render_template("help_form.html", query=query_row, response_html=response_html)
+    return render_template("help_form.html", query=query_row, response_html=response_html, languages=current_app.config["LANGUAGES"], selected_lang=selected_lang)
 
 
 def run_query(language, code, error, issue):
@@ -103,7 +111,8 @@ def record_response(query_id, response, response_txt):
 @bp.route("/request", methods=["POST"])
 @login_required
 def help_request():
-    language = "python"
+    lang_id = int(request.form["lang_id"])
+    language = current_app.config["LANGUAGES"][lang_id]
     code = request.form["code"]
     error = request.form["error"]
     issue = request.form["issue"]
