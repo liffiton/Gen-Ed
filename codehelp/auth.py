@@ -49,6 +49,7 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if session.get(KEY_AUTH_USER, "") == "":
+            flash("Login required.", "warning")
             return redirect(url_for('auth.login', next=request.url))
         return f(*args, **kwargs)
     return decorated_function
@@ -58,6 +59,7 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if session.get(KEY_AUTH_ROLE, "") != "admin":
+            flash("Login required.", "warning")
             return redirect(url_for('auth.login', next=request.url))
         return f(*args, **kwargs)
     return decorated_function
