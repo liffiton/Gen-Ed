@@ -6,41 +6,74 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <style type="text/css">
       p { margin-bottom: 1em; margin-top: 1em; }
+      .icon svg, svg.icon { width: 1em; height: 1em; }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3" defer type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer type="text/javascript"></script>
     <link href="https://cdn.jsdelivr.net/npm/simple-datatables@6/dist/style.css" rel="stylesheet" type="text/css">
     <script src="https://cdn.jsdelivr.net/npm/simple-datatables@6" type="text/javascript"></script>
     <title>CodeHelp</title>
   </head>
   <body>
-    <nav class="navbar is-dark" role="navigation" aria-label="main navigation">
+    <nav class="navbar is-dark is-size-5" role="navigation" aria-label="main navigation" x-data="{menu_open: false}">
       <div class="navbar-brand">
-        <a class="navbar-item title" href="/">
+        <a class="navbar-item is-size-3" href="/">
           CodeHelp
         </a>
+        {% if session["__codehelp_logged_in_user"] %}
+          <a class="navbar-item has-text-success" href="/help/">
+            <span class="icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </span>
+            <span>Request Help</span>
+          </a>
+        {% endif %}
+        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample" x-bind:class="menu_open ? 'is-active' : ''" x-on:click="menu_open = ! menu_open">
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+        </a>
       </div>
-      <div class="navbar-menu">
+      <div class="navbar-menu" x-bind:class="menu_open ? 'is-active' : ''">
         <div class="navbar-start">
-          {% if session["__codehelp_logged_in_user"] %}
-            <a class="navbar-item has-text-success" href="/help/">Request Help</a>
-          {% endif %}
         </div>
         <div class="navbar-end">
           {% if session["__codehelp_logged_in_role"] == "admin" %}
-            <a class="navbar-item has-text-danger" href="/admin/">Admin</a>
+            <a class="navbar-item has-text-danger" href="/admin/">
+              <span class="icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+              </span>
+              <span>Admin</span>
+            </a>
           {% endif %}
-          <div class="navbar-item">
-            {% if session["__codehelp_logged_in_user"] %}
-              <span class="is-italic mr-3">User: {{ session["__codehelp_logged_in_user"] }}</span>
+          {% if session["__codehelp_logged_in_user"] %}
+            <div class="navbar-item">
+              <span class="icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              </span>
+              <span class="is-italic">{{ session["__codehelp_logged_in_user"] }}</span>
+            </div>
+            <div class="navbar-item">
               <form action="/auth/logout" method="post">
-                <button class="button is-link is-small" type="submit">Logout</button>
+                <button class="button is-link" type="submit">
+                  <span class="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                  </span>
+                  <span>Logout</span>
+                </button>
               </form>
-            {% else %}
+            </div>
+          {% else %}
+            <div class="navbar-item">
               <form action="/auth/login" method="get">
-                <button class="button is-link is-small" type="submit">Login</button>
+                <button class="button is-link" type="submit">
+                  <span class="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+                  </span>
+                  <span>Login</span>
+                </button>
               </form>
-            {% endif %}
-          </div>
+            </div>
+          {% endif %}
         </div>
       </div>
     </nav>
