@@ -1,99 +1,120 @@
 {% extends "base.html" %}
 
 {% block body %}
-<section class="section">
-<div class="container">
-  {# debounce on the submit handler so that the form's actual submit fires *before* the form elements are disabled #}
-  <form action="/help/request" method="post" x-data="{loading: false}" x-on:submit.debounce.10ms="loading = true">
+<div class="columns is-desktop is-gapless">
+  <div class="column is-three-quarters-desktop">
+    <section class="section">
 
-  <div class="field is-horizontal">
-    <div class="field-label is-normal">
-      <label class="label" for="language">Language:</label>
-    </div>
-    <div class="field-body">
-      <div class="field">
-        <div class="control">
-          <div class="select">
-            <select name="lang_id" x-bind:disabled="loading">
-              {% for lang in languages %}
-              <option value="{{loop.index0}}" {% if lang == selected_lang %}selected{% endif %}>{{lang | capitalize}}</option>
-              {% endfor %}
-            </select>
+    <div class="container">
+      {# debounce on the submit handler so that the form's actual submit fires *before* the form elements are disabled #}
+      <form action="/help/request" method="post" x-data="{loading: false}" x-on:submit.debounce.10ms="loading = true">
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="language">Language:</label>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <div class="select">
+                <select name="lang_id" x-bind:disabled="loading">
+                  {% for lang in languages %}
+                  <option value="{{loop.index0}}" {% if lang == selected_lang %}selected{% endif %}>{{lang | capitalize}}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <div class="field is-horizontal">
-    <div class="field-label is-normal">
-      <label class="label" for="code">Code:</label>
-      <p class="has-text-grey">Copy just the <i>most relevant</i> part of your code here.  Responses will be more helpful when you include only code relevant to your issue.</p>
-    </div>
-    <div class="field-body">
-      <div class="field">
-        <div class="control">
-          <textarea class="textarea is-family-monospace" name="code" x-bind:disabled="loading" rows=10>{{ query.code }}</textarea>
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="code">Code:</label>
+          <p class="has-text-grey">Copy just the <i>most relevant</i> part of your code here.  Responses will be more helpful when you include only code relevant to your issue.</p>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <textarea class="textarea is-family-monospace" name="code" x-bind:disabled="loading" rows=10>{{ query.code }}</textarea>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <div class="field is-horizontal">
-    <div class="field-label is-normal">
-      <label class="label" for="error">Error Message:</label>
-      <p class="has-text-grey">If your issue relates to an error message, copy the message here.  Do not provide a full stack trace.  Only copy the line or two with the specific error.</p>
-    </div>
-    <div class="field-body">
-      <div class="field">
-        <div class="control">
-          <textarea class="textarea" name="error" x-bind:disabled="loading" rows=4>{{ query.error }}</textarea>
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="error">Error Message:</label>
+          <p class="has-text-grey">If your issue relates to an error message, copy the message here.  Do not provide a full stack trace.  Only copy the line or two with the specific error.</p>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <textarea class="textarea" name="error" x-bind:disabled="loading" rows=4>{{ query.error }}</textarea>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <div class="field is-horizontal">
-    <div class="field-label is-normal">
-      <label class="label" for="issue">Issue:</label>
-      <p class="has-text-grey">Clearly describe your issue.  Include as relevant: what you are trying to do, what you expect the code to do, what the code actually does, and/or what you need help understanding.</p>
-    </div>
-    <div class="field-body">
-      <div class="field">
-        <div class="control">
-          <textarea class="textarea" name="issue" x-bind:disabled="loading" rows=6>{{ query.issue }}</textarea>
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="issue">Issue:</label>
+          <p class="has-text-grey">Clearly describe your issue.  Include as relevant: what you are trying to do, what you expect the code to do, what the code actually does, and/or what you need help understanding.</p>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <textarea class="textarea" name="issue" x-bind:disabled="loading" rows=6>{{ query.issue }}</textarea>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <div class="field is-horizontal">
-    <div class="field-label is-normal"><!-- spacing --></div>
-    <div class="field-body">
-      <div class="field">
-        <div class="control">
-          <button
-            class="button is-link"
-            x-bind:class="loading ? 'is-loading' : ''"
-            type="submit" >
-           Submit Request
-          </button>
+      <div class="field is-horizontal">
+        <div class="field-label is-normal"><!-- spacing --></div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <button
+                class="button is-link"
+                x-bind:class="loading ? 'is-loading' : ''"
+                type="submit" >
+              Submit Request
+              </button>
+            </div>
+          </div>
         </div>
       </div>
+
+    </form>
+    </div>
+
+    {% if query %}
+    <div class="box mt-3">
+      <p><span class="title">Response</span> <span class="subtitle ml-5 is-italic">Remember: It will not always be correct!</span></p>
+      {{ response_html | safe }}
+    </div>
+    {% endif %}
+
+    </section>
+
+  </div>
+
+  <div class="column has-background-light">
+    <div class="p-4">
+      <h2 class="is-size-4">Recent:</h2>
+      {% for prev in history %}
+        <a class="box" href='{{prev.id}}'">
+          {{prev.language | capitalize}}: <code>{{prev.code | truncate(50)}}</code> | <code>{{prev.error | truncate(50)}}</code>
+          <br>
+          {{prev.issue | truncate(100)}}
+        </a>
+      {% else %}
+        <p class="is-italic">No previous queries...</p>
+      {% endfor %}
     </div>
   </div>
 
-</form>
 </div>
-</section>
-
-{% if query %}
-<section class="section">
-  <div class="container">
-    <p><span class="title">Response</span> <span class="subtitle ml-5 is-italic">Remember: It will not always be correct!</span></p>
-    {{ response_html | safe }}
-  </div>
-</section>
-{% endif %}
 
 {% endblock %}

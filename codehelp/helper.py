@@ -27,6 +27,7 @@ def help_form(query_id=None):
     if lang_row:
         selected_lang = lang_row['language']
 
+    # populate with a query+response if one is specified in the query string
     if query_id is not None:
         if session[KEY_AUTH_ROLE] == "admin":
             cur = db.execute("SELECT * FROM queries WHERE queries.id=?", [query_id])
@@ -41,7 +42,11 @@ def help_form(query_id=None):
                 extensions=['fenced_code', 'sane_lists', 'smarty'],
             )
 
-    return render_template("help_form.html", query=query_row, response_html=response_html, languages=current_app.config["LANGUAGES"], selected_lang=selected_lang)
+    # fetch current user's query history
+    cur = db.execute("SELECT * FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT 10", [session[KEY_AUTH_USERID]])
+    history = cur.fetchall()
+
+    return render_template("help_form.html", query=query_row, response_html=response_html, history=history, languages=current_app.config["LANGUAGES"], selected_lang=selected_lang)
 
 
 def run_query(language, code, error, issue):

@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <style type="text/css">
-      p { margin-bottom: 1em; margin-top: 1em; }
-      .icon svg, svg.icon { width: 1em; height: 1em; }
+      p:not(:last-child) { margin-bottom: 1rem; }
+      .icon svg, svg.icon { width: 1.2rem; height: 1.2rem; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer type="text/javascript"></script>
     <link href="https://cdn.jsdelivr.net/npm/simple-datatables@6/dist/style.css" rel="stylesheet" type="text/css">
@@ -80,7 +80,7 @@
 
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-      <section class="section">
+      <section class="section p-3">
         {% for category, message in messages %}
           <div class="notification {% if category == "message" %}is-primary{% else %}is-{{category}}{% endif %}">
             {{ message }}
