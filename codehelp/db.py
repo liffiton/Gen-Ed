@@ -35,12 +35,15 @@ def init_db():
     try:
         init_pw_mark = os.environ["INIT_PW_MARK"]
         init_pw_brad = os.environ["INIT_PW_BRAD"]
+        init_pw_andrew = os.environ["INIT_PW_ANDREW"]
     except KeyError:
         print("Error:  INIT_PW_{MARK,BRAD} environment variable not set.", file=sys.stderr)
         sys.exit(1)
 
-    db.execute("INSERT INTO users(username, password, role) VALUES(?, ?, ?)", ["mark", init_pw_mark, "admin"])
-    db.execute("INSERT INTO users(username, password, role) VALUES(?, ?, ?)", ["brad", init_pw_brad, "instructor"])
+    db.execute("INSERT INTO users(username, password, is_admin) VALUES(?, ?, True)", ["mark", init_pw_mark])
+    db.execute("INSERT INTO users(username, password) VALUES(?, ?)", ["brad", init_pw_brad])
+    db.execute("INSERT INTO users(username, password) VALUES(?, ?)", ["andrew", init_pw_andrew])
+
     db.commit()
 
 

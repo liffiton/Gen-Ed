@@ -2,11 +2,11 @@ import json
 import markdown
 import openai
 
-from flask import Blueprint, current_app, redirect, render_template, request, session, url_for
+from flask import Blueprint, current_app, redirect, render_template, request, url_for
 
 from . import prompts
 from .db import get_db
-from .auth import KEY_AUTH_USERID, KEY_AUTH_ROLE, login_required
+from .auth import get_session_auth, login_required
 
 
 bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='templates')
@@ -17,22 +17,23 @@ bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='template
 @login_required
 def help_form(query_id=None):
     db = get_db()
+    auth = get_session_auth()
 
     query_row = None
     response_html = None
     selected_lang = None
 
     # default to most recently submitted language, if available (overridden if viewing a result)
-    lang_row = db.execute("SELECT language FROM queries WHere queries.user_id=? ORDER BY query_time DESC LIMIT 1", [session[KEY_AUTH_USERID]]).fetchone()
+    lang_row = db.execute("SELECT language FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT 1", [auth['user_id']]).fetchone()
     if lang_row:
         selected_lang = lang_row['language']
 
     # populate with a query+response if one is specified in the query string
     if query_id is not None:
-        if session[KEY_AUTH_ROLE] == "admin":
+        if auth['is_admin']:
             cur = db.execute("SELECT * FROM queries WHERE queries.id=?", [query_id])
         else:
-            cur = db.execute("SELECT * FROM queries WHERE queries.user_id=? AND queries.id=?", [session[KEY_AUTH_USERID], query_id])
+            cur = db.execute("SELECT * FROM queries WHERE queries.user_id=? AND queries.id=?", [auth['user_id'], query_id])
         query_row = cur.fetchone()
         if query_row:
             selected_lang = query_row['language']
@@ -43,19 +44,23 @@ def help_form(query_id=None):
             )
 
     # fetch current user's query history
-    cur = db.execute("SELECT * FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT 10", [session[KEY_AUTH_USERID]])
+    cur = db.execute("SELECT * FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT 10", [auth['user_id']])
     history = cur.fetchall()
 
     return render_template("help_form.html", query=query_row, response_html=response_html, history=history, languages=current_app.config["LANGUAGES"], selected_lang=selected_lang)
 
 
 def run_query(language, code, error, issue):
-    prompt, stop_seq = prompts.make_main_prompt(language, code, error, issue)
+    query_id = record_query(language, code, error, issue)
 
+    # short circuit for testing w/o using GPT credits
+    if issue == "test":
+        record_response(query_id, "test response", "test response")
+        return query_id
+
+    prompt, stop_seq = prompts.make_main_prompt(language, code, error, issue)
     # TODO: store prompt template in database for internal reference, esp. if it changes over time
     #       (could just automatically add to a table if not present and get the autoID for it as foreign key)
-
-    query_id = record_query(language, code, error, issue)
 
     openai.api_key = current_app.config["OPENAI_API_KEY"]
     response = openai.Completion.create(
@@ -92,10 +97,12 @@ def run_query(language, code, error, issue):
 
 def record_query(language, code, error, issue):
     db = get_db()
+    auth = get_session_auth()
+    role_id = auth['role']['id'] if auth['role'] else None
 
     cur = db.execute(
-        "INSERT INTO queries (language, code, error, issue, user_id) VALUES (?, ?, ?, ?, ?)",
-        [language, code, error, issue, session[KEY_AUTH_USERID]]
+        "INSERT INTO queries (language, code, error, issue, user_id, role_id) VALUES (?, ?, ?, ?, ?, ?)",
+        [language, code, error, issue, auth['user_id'], role_id]
     )
     new_row_id = cur.lastrowid
     db.commit()

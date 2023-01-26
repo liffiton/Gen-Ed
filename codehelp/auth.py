@@ -5,9 +5,28 @@ from werkzeug.security import check_password_hash
 from .db import get_db
 
 # Constants for use in session dictionary
-KEY_AUTH_USER = "__codehelp_logged_in_user"
-KEY_AUTH_USERID = "__codehelp_logged_in_userid"
-KEY_AUTH_ROLE = "__codehelp_logged_in_role"
+KEY_AUTH_USER = "__codehelp_auth_user"
+KEY_AUTH_USERID = "__codehelp_auth_user_id"
+KEY_AUTH_IS_ADMIN = "__codehelp_auth_is_admin"
+KEY_AUTH_ROLE = "__codehelp_auth_role"
+
+
+def set_session_auth(username, user_id, is_admin, role=None, clear_session=True):
+    if clear_session:
+        session.clear()
+    session[KEY_AUTH_USER] = username
+    session[KEY_AUTH_USERID] = user_id
+    session[KEY_AUTH_IS_ADMIN] = is_admin
+    session[KEY_AUTH_ROLE] = role
+
+
+def get_session_auth():
+    return {
+        'username': session.get(KEY_AUTH_USER, ""),
+        'user_id': session.get(KEY_AUTH_USERID, ""),
+        'is_admin': session.get(KEY_AUTH_IS_ADMIN, False),
+        'role': session.get(KEY_AUTH_ROLE, None),
+    }
 
 
 bp = Blueprint('auth', __name__, url_prefix="/auth", template_folder='templates')
@@ -27,12 +46,9 @@ def login():
             flash("Invalid username or password.", "warning")
         else:
             # Success!
-            session.clear()
-            session[KEY_AUTH_USER] = username
-            session[KEY_AUTH_USERID] = user_row['id']
-            session[KEY_AUTH_ROLE] = user_row['role']
+            set_session_auth(username, user_row['id'], user_row['is_admin'])
             next_url = request.form['next'] or url_for("helper.help_form")
-            flash(f"Welcome, {username}! [{user_row['role']}]")
+            flash(f"Welcome, {username}!")
             return redirect(next_url)
 
     # we either have a GET request or we fell through the POST login attempt with a failer
@@ -58,7 +74,7 @@ def login_required(f):
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if session.get(KEY_AUTH_ROLE, "") != "admin":
+        if not session.get(KEY_AUTH_IS_ADMIN, False):
             flash("Login required.", "warning")
             return redirect(url_for('auth.login', next=request.url))
         return f(*args, **kwargs)

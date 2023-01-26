@@ -58,6 +58,11 @@ def create_app():
     app.register_blueprint(helper.bp)
     app.register_blueprint(lti.bp)
 
+    # Inject auth data into template contexts
+    @app.context_processor
+    def inject_auth_data():
+        return dict(auth=auth.get_session_auth())
+
     @app.route('/')
     def index():
         return render_template("index.html")

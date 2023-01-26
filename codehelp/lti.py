@@ -1,9 +1,9 @@
-from flask import Blueprint, abort, flash, redirect, session, url_for
+from flask import Blueprint, abort, redirect, session, url_for
 
 from pylti.flask import lti
 
 from .db import get_db
-from .auth import KEY_AUTH_USER, KEY_AUTH_USERID, KEY_AUTH_ROLE
+from .auth import set_session_auth
 
 
 bp = Blueprint('lti', __name__, url_prefix="/lti", template_folder='templates')
@@ -15,44 +15,71 @@ bp = Blueprint('lti', __name__, url_prefix="/lti", template_folder='templates')
 @bp.route("/", methods=['GET', 'POST'])
 @lti(request='initial')
 def lti_login(lti=lti):
-    # sanity checks
     authenticated = session.get("lti_authenticated", False)
-    role = session.get("roles", None).lower()
-    email = session.get("lis_person_contact_email_primary", None)
-    lti_consumer = session.get("oauth_consumer_key", None)
+    role = session.get("roles", "").lower()
+    email = session.get("lis_person_contact_email_primary", "")
+    lti_user_id = session.get("user_id", "")
+    lti_consumer = session.get("oauth_consumer_key", "")
+    lti_context_id = session.get("context_id", "")
+    lti_context_label = session.get("context_label", "")
+
+    # sanity checks
     if not authenticated:
+        session.clear()
         return abort(403)
     if role not in ["instructor", "student"]:
+        session.clear()
         return abort(403)
-    if email is None or '@' not in email:
+    if '@' not in email or lti_user_id == "" or lti_consumer == "" or lti_context_id == "" or lti_context_label == "":
+        session.clear()
         return abort(400)
 
     # check for and create user if needed
+    lti_id = f"{lti_consumer}_{lti_user_id}_{email}"
     db = get_db()
     user_row = db.execute(
-        "SELECT * FROM users WHERE username=?", [email]
+        "SELECT * FROM users WHERE lti_id=?", [lti_id]
     ).fetchone()
 
     if not user_row:
         # Register this user
-        cur = db.execute("INSERT INTO users(username, role, lti_consumer) VALUES(?, ?, ?)", [email, role, lti_consumer])
+        cur = db.execute("INSERT INTO users(username, lti_id, lti_consumer) VALUES(?, ?, ?)", [email, lti_id, lti_consumer])
         db.commit()
         user_id = cur.lastrowid
     else:
-        # Verify the user is coming from the same LTI consumer as when it registered
-        if lti_consumer != user_row['lti_consumer']:
-            return abort(400)
-        # Verify the role is the same
-        if role != user_row['role']:
-            return abort(400)
-        # If all good, fall through
         user_id = user_row['id']
 
+    # TODO: add role to DB if not present, set role in session
+    # check for and create role if needed
+    db = get_db()
+    role_row = db.execute(
+        "SELECT * FROM roles WHERE user_id=? AND lti_context=?", [user_id, lti_context_label]
+    ).fetchone()
+
+    if not role_row:
+        # Register this user
+        cur = db.execute("INSERT INTO roles(user_id, lti_context, role) VALUES(?, ?, ?)", [user_id, lti_context_label, role])
+        db.commit()
+        role_id = cur.lastrowid
+    else:
+        # Role exists in db already.
+        # TODO: it's possible the role given via LTI could not match the role saved in the db...
+        role_id = role_row['id']
+
     # Record them as logged in in the session
-    session[KEY_AUTH_USER] = email
-    session[KEY_AUTH_USERID] = user_id
-    session[KEY_AUTH_ROLE] = role
+    role_dict = {
+        'id': role_id,
+        'context': lti_context_label,
+        'role': role,
+    }
+    set_session_auth(email, user_id, is_admin=False, role=role_dict, clear_session=False)  # don't clear session, contains LTI params
 
     # Redirect to the app
-    flash(f"Welcome, {email}! [{role}]")
+    #flash(f"Welcome, {email}!")
     return redirect(url_for("helper.help_form"))
+
+
+@bp.route("debug", methods=['GET'])
+@lti(request='session')
+def lti_debug(lti=lti):
+    return {var: session[var] for var in session}
