@@ -7,6 +7,7 @@
     <style type="text/css">
       p:not(:last-child) { margin-bottom: 1rem; }
       .icon svg, svg.icon { width: 1.2rem; height: 1.2rem; }
+      span[title] { text-decoration:underline; text-decoration-style: dotted; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer type="text/javascript"></script>
     <link href="https://cdn.jsdelivr.net/npm/simple-datatables@6/dist/style.css" rel="stylesheet" type="text/css">
@@ -46,8 +47,9 @@
                 <span class="is-italic">{{ auth['username'] }}</span>
               </div>
               {% if auth['role'] %}
+              {% set lti_context=auth['role']['context'] %}
               <div>
-                <span class="is-italic">{{ auth['role']['context'] | truncate(20) }}</span>
+                <span class="is-italic" {% if lti_context | length > 20 %}title="{{ lti_context }}"{% endif %}>{{ lti_context | truncate(20) }}</span>
               </div>
               {% endif %}
             </div>

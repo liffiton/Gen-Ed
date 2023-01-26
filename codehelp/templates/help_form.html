@@ -107,7 +107,7 @@
         <a class="box" href='{{prev.id}}'">
           {{prev.language | capitalize}}: <code>{{prev.code | truncate(50)}}</code> | <code>{{prev.error | truncate(50)}}</code>
           <br>
-          {{prev.issue | truncate(100)}}
+          <span {% if prev.issue | length > 100 %}title="{{prev.issue}}"{% endif %}>{{prev.issue | truncate(100)}}</span>
         </a>
       {% else %}
         <p class="is-italic">No previous queries...</p>
