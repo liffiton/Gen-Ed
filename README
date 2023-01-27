@@ -12,6 +12,7 @@ Setup & Running
 3. Initialize database
 
   flask --app codehelp initdb
+  flask --app codehelp newuser [username]  # will prompt for password
 
 4. Start the application
 
