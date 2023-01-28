@@ -70,7 +70,7 @@
 
   <div class="column has-background-light">
     <div class="p-4">
-      <h2 class="is-size-5">Recent queries:</h2>
+      <h2 class="is-size-5">Your recent queries:</h2>
       {% for prev in history %}
         <a class="box p-3" href='{{prev.id}}'">
           {{prev.language | capitalize}}: <code>{{prev.code | truncate(50)}}</code> | <code>{{prev.error | truncate(50)}}</code>
