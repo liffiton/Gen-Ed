@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "tables.html" import datatable %}
+
+{% block body %}
+<section class="section">
+  <h1 class="title">{{ auth['role']['context'] }}</h1>
+  <div class="columns is-desktop">
+    <div class="column is-4">
+      <h2 class="is-size-3">Users</h2>
+      {{ datatable('users', [('id', 'id'), ('username', 'username'), ('#queries', 'num_queries')], users, link_col=1, link_template="?username=${value}") }}
+    </div>
+    <div class="column is-8">
+      <h2 class="is-size-3">
+        Queries
+      <div class="tags is-inline are-medium">
+        {% if username %}
+        <span class="tag is-info mb-0">
+          user={{username}}
+          <a class="delete is-small is-link" href="?"></a>
+        </span>
+        {% endif %}
+      </div>
+      </h2>
+      {{ datatable('queries', [('id', 'id'), ('user', 'username'), ('time', 'query_time'), ('language', 'language'), ('issue', 'issue'), ('response', 'response_text')], queries, link_col=0, link_template="/help/${value}") }}
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -8,6 +8,7 @@ from . import admin
 from . import auth
 from . import db
 from . import helper
+from . import instructor
 from . import lti
 
 
@@ -56,6 +57,7 @@ def create_app():
     app.register_blueprint(admin.bp)
     app.register_blueprint(auth.bp)
     app.register_blueprint(helper.bp)
+    app.register_blueprint(instructor.bp)
     app.register_blueprint(lti.bp)
 
     # Inject auth data into template contexts

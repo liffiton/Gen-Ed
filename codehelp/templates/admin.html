@@ -1,38 +1,17 @@
 {% extends "base.html" %}
+{% from "tables.html" import datatable %}
 
 {% block body %}
-<style type="text/css">
-table.datatable-table tbody tr {
-  cursor: pointer;
-}
-table.datatable-table tbody tr:hover {
-  background: #def;
-}
-</style>
 <section class="section">
   <div class="columns is-desktop">
     <div class="column is-5">
-      <h1 class="title">Users</h1>
-      <table class="table" id="tbl_users">
-        <thead><th>id</th><th>username</th><th>lti_id</th><th>#queries</th></thead>
-        <tbody>
-          {% for user in users %}
-          <tr><td>{{ user.id }}</td><td>{{ user.username }}</td><td>{{ user.lti_id }}</td><td>{{ user.num_queries }}</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      <h1 class="title">Roles</h1>
-      <table class="table" id="tbl_roles">
-        <thead><th>id</th><th>username</th><th>lti_context</th><th>role</th><th>#queries</th></thead>
-        <tbody>
-          {% for role in roles %}
-          <tr><td>{{ role.id }}</td><td>{{ role.username }}</td><td>{{ role.lti_context }}</td><td>{{ role.role }}</td><td>{{ role.num_queries }}</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <h1 class="is-size-3">Users</h1>
+      {{ datatable('users', [('id', 'id'), ('username', 'username'), ('lti_id', 'lti_id'), ('#queries', 'num_queries')], users, link_col=1, link_template="?username=${value}") }}
+      <h1 class="is-size-3">Roles</h1>
+      {{ datatable('roles', [('id', 'id'), ('username', 'username'), ('lti_context', 'lti_context'), ('role', 'role'), ('#queries', 'num_queries')], roles, link_col=0, link_template="?role=${value}") }}
     </div>
     <div class="column is-7">
-      <h1 class="title">
+      <h1 class="is-size-3">
         Queries
       <div class="tags is-inline are-medium">
         {% if username %}
@@ -49,61 +28,8 @@ table.datatable-table tbody tr:hover {
         {% endif %}
       </div>
       </h1>
-      <table class="table" id="tbl_queries">
-        <thead><th>id</th><th>user</th><th>role</th><th>time</th><th>language</th><th>len(code)</th><th>len(error)</th><th>len(issue)</th><th>head(response)</th></thead>
-        <tbody>
-          {% for query in queries %}
-          <tr>
-            <td>{{ query.id }}</td>
-            <td>{{ query.username }}</td>
-            <td>{{ query.role_id }}</td>
-            <td>{{ query.query_time }}</td>
-            <td>{{ query.language }}</td>
-            <td>{{ query.code | length }}</td>
-            <td>{{ query.error | length }}</td>
-            <td>{{ query.issue | length }}</td>
-            <td>{{ query.response_text | truncate(50) }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      {{ datatable('queries', [('id', 'id'), ('user', 'username'), ('role', 'role_id'), ('time', 'query_time'), ('language', 'language'), ('code', 'code'), ('error', 'error'), ('issue', 'issue'), ('response', 'response_text')], queries, link_col=0, link_template="/help/${value}") }}
     </div>
   </div>
 </section>
-
-<script>
-  const usertable = new simpleDatatables.DataTable("table#tbl_users", {
-    perPageSelect: [[10, 10], [20, 20], ["All", 0]],
-  });
-  const roletable = new simpleDatatables.DataTable("table#tbl_roles", {
-    perPageSelect: [[10, 10], [20, 20], ["All", 0]],
-  });
-  const querytable = new simpleDatatables.DataTable("table#tbl_queries", {
-    perPageSelect: [[10, 10], [20, 20], ["All", 0]],
-  });
-  usertable.on("datatable.selectrow", (row, event) => {
-    if (event.button == 2) {
-      // right click -- don't trigger anything
-      return;
-    }
-    username = usertable.data.data[row][1].data;
-    window.location = `?username=${username}`;
-  });
-  roletable.on("datatable.selectrow", (row, event) => {
-    if (event.button == 2) {
-      // right click -- don't trigger anything
-      return;
-    }
-    role_id = usertable.data.data[row][0].data;
-    window.location = `?role=${role_id}`;
-  });
-  querytable.on("datatable.selectrow", (row, event) => {
-    if (event.button == 2) {
-      // right click -- don't trigger anything
-      return;
-    }
-    query_id = querytable.data.data[row][0].data;
-    window.open(`/help/${query_id}`, '_blank');  // open query in a new tab
-  });
-</script>
 {% endblock %}

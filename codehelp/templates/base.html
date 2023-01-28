@@ -8,6 +8,8 @@
       p:not(:last-child) { margin-bottom: 1rem; }
       .icon svg, svg.icon { width: 1.2rem; height: 1.2rem; }
       span[title] { text-decoration:underline; text-decoration-style: dotted; }
+      table.datatable-table tbody tr { cursor: pointer; }
+      table.datatable-table tbody tr:hover { background: #def; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer type="text/javascript"></script>
     <link href="https://cdn.jsdelivr.net/npm/simple-datatables@6/dist/style.css" rel="stylesheet" type="text/css">
@@ -53,6 +55,14 @@
               </div>
               {% endif %}
             </div>
+            {% if auth['role']['role'] == 'instructor' %}
+              <a class="navbar-item is-size-6 has-text-warning" href="/instructor/">
+                <span class="icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="12" y1="3" x2="12" y2="21"></line></svg>
+                </span>
+                <span>Instructor View</span>
+              </a>
+            {% endif %}
             {% if auth['is_admin'] %}
               <a class="navbar-item is-size-6 has-text-danger" href="/admin/">
                 <span class="icon">

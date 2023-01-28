@@ -1,0 +1,35 @@
+{% macro datatable(name, columns, data, link_col=None, link_template=None) -%}
+  <table class="table" id="tbl_{{name}}">
+    <thead>
+      {% for col in columns %}
+        <th>{{ col[0] }}</th>
+      {% endfor %}
+    </thead>
+    <tbody>
+      {% for row in data %}
+        <tr>
+          {% for col in columns %}
+            {% set value=row[col[1]] %}
+            {% if value | string | length > 30 %}
+              <td><span title="{{value}}">{{ value | truncate(30) }}</span></td>
+            {% else %}
+              <td>{{ row[col[1]] }}</td>
+            {% endif %}
+          {% endfor %}
+      {% endfor %}
+    </tbody>
+  </table>
+  <script>
+    const {{name}}table = new simpleDatatables.DataTable("table#tbl_{{name}}", {
+      perPageSelect: [[10, 10], [20, 20], [50, 50], ["All", 0]],
+    });
+    {{name}}table.on("datatable.selectrow", (row, event) => {
+      if (event.button == 2) {
+        // right click -- don't trigger anything
+        return;
+      }
+      value = {{name}}table.data.data[row][{{link_col}}].data;
+      window.location = `{{link_template}}`;
+    });
+  </script>
+{%- endmacro %}
