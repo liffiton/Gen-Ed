@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block body %}
+<div class="columns is-desktop is-gapless">
+  <div class="column is-three-quarters-desktop">
+    <section class="section">
+    {% if query %}
+
+    <div class="container">
+      <div class="field is-horizontal">
+        <div class="field-label">
+          <label class="label">When:</label>
+        </div>
+        <div class="field-body">
+          {{ (query.query_time | localtime).strftime("%Y-%m-%d %-I:%M%P") }}
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
+        <div class="field-label">
+          <label class="label">Language:</label>
+        </div>
+        <div class="field-body">
+          {{ query.language | capitalize }}
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label">Code:</label>
+        </div>
+        <div class="field-body">
+          <pre>
+            {{- query.code -}}
+          </pre>
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label">Error Message:</label>
+        </div>
+        <div class="field-body">
+          <pre>
+            {{- query.error -}}
+          </pre>
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
+        <div class="field-label">
+          <label class="label">Issue / Question:</label>
+        </div>
+        <div class="field-body">
+          {{ query.issue }}
+        </div>
+      </div>
+
+    </div>
+
+    <div class="box mt-5">
+      <p><span class="title">Response</span> <span class="subtitle ml-5 is-italic">Remember: It will not always be correct!</span></p>
+      {{ response_html | safe }}
+    </div>
+
+    {% endif %}
+    </section>
+
+  </div>
+
+  <div class="column has-background-light">
+    <div class="p-4">
+      <h2 class="is-size-5">Recent queries:</h2>
+      {% for prev in history %}
+        <a class="box p-3" href='{{prev.id}}'">
+          {{prev.language | capitalize}}: <code>{{prev.code | truncate(50)}}</code> | <code>{{prev.error | truncate(50)}}</code>
+          <br>
+          <span {% if prev.issue | length > 100 %}title="{{prev.issue}}"{% endif %}>{{prev.issue | truncate(100)}}</span>
+        </a>
+      {% else %}
+        <p class="is-italic">No previous queries...</p>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

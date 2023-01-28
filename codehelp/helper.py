@@ -2,11 +2,46 @@ import json
 import markdown
 import openai
 
-from flask import Blueprint, current_app, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 
 from . import prompts
 from .db import get_db
 from .auth import get_session_auth, login_required
+
+
+def get_query(query_id):
+    db = get_db()
+    auth = get_session_auth()
+
+    query_row = None
+    response_html = None
+
+    if auth['is_admin']:
+        cur = db.execute("SELECT * FROM queries WHERE queries.id=?", [query_id])
+    else:
+        cur = db.execute("SELECT * FROM queries WHERE queries.user_id=? AND queries.id=?", [auth['user_id'], query_id])
+    query_row = cur.fetchone()
+
+    if query_row:
+        response_html = markdown.markdown(
+            query_row['response_text'],
+            output_format="html5",
+            extensions=['fenced_code', 'sane_lists', 'smarty'],
+        )
+    else:
+        flash("Invalid id.", "warning")
+
+    return query_row, response_html
+
+
+def get_history():
+    '''Fetch current user's query history.'''
+    db = get_db()
+    auth = get_session_auth()
+
+    cur = db.execute("SELECT * FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT 10", [auth['user_id']])
+    history = cur.fetchall()
+    return history
 
 
 bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='templates')
@@ -19,35 +54,31 @@ def help_form(query_id=None):
     db = get_db()
     auth = get_session_auth()
 
-    query_row = None
-    response_html = None
-    selected_lang = None
-
     # default to most recently submitted language, if available (overridden if viewing a result)
+    selected_lang = None
     lang_row = db.execute("SELECT language FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT 1", [auth['user_id']]).fetchone()
     if lang_row:
         selected_lang = lang_row['language']
 
+    query_row = None
+    response_html = None
+
     # populate with a query+response if one is specified in the query string
     if query_id is not None:
-        if auth['is_admin']:
-            cur = db.execute("SELECT * FROM queries WHERE queries.id=?", [query_id])
-        else:
-            cur = db.execute("SELECT * FROM queries WHERE queries.user_id=? AND queries.id=?", [auth['user_id'], query_id])
-        query_row = cur.fetchone()
-        if query_row:
-            selected_lang = query_row['language']
-            response_html = markdown.markdown(
-                query_row['response_text'],
-                output_format="html5",
-                extensions=['fenced_code', 'sane_lists', 'smarty'],
-            )
+        query_row, response_html = get_query(query_id)
 
-    # fetch current user's query history
-    cur = db.execute("SELECT * FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT 10", [auth['user_id']])
-    history = cur.fetchall()
+    history = get_history()
 
     return render_template("help_form.html", query=query_row, response_html=response_html, history=history, languages=current_app.config["LANGUAGES"], selected_lang=selected_lang)
+
+
+@bp.route("/view/<int:query_id>")
+@login_required
+def help_view(query_id):
+    query_row, response_html = get_query(query_id)
+    history = get_history()
+
+    return render_template("help_view.html", query=query_row, response_html=response_html, history=history)
 
 
 def run_query(language, code, error, issue):
@@ -133,4 +164,4 @@ def help_request():
 
     query_id = run_query(language, code, error, issue)
 
-    return redirect(url_for(".help_form", query_id=query_id))
+    return redirect(url_for(".help_view", query_id=query_id))

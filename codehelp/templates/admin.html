@@ -28,7 +28,7 @@
         {% endif %}
       </div>
       </h1>
-      {{ datatable('queries', [('id', 'id'), ('user', 'username'), ('role', 'role_id'), ('time', 'query_time'), ('language', 'language'), ('code', 'code'), ('error', 'error'), ('issue', 'issue'), ('response', 'response_text')], queries, link_col=0, link_template="/help/${value}") }}
+      {{ datatable('queries', [('id', 'id'), ('user', 'username'), ('role', 'role_id'), ('time', 'query_time'), ('language', 'language'), ('code', 'code'), ('error', 'error'), ('issue', 'issue'), ('response', 'response_text')], queries, link_col=0, link_template="/help/view/${value}") }}
     </div>
   </div>
 </section>
