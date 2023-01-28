@@ -9,9 +9,10 @@
       {% for row in data %}
         <tr>
           {% for col in columns %}
-            {% set value=row[col[1]] %}
+            {% set value = row[col[1]] %}
             {% if 'time' in col[1] %}
-              <td>{{ row[col[1]] | localtime }}</td>
+              {% set value = value | localtime %}
+              <td>{{ value.strftime("%Y-%m-%d %-I:%M%P") }}</td>
             {% elif value | string | length > 30 %}
               <td><span title="{{value}}">{{ value | truncate(30) }}</span></td>
             {% else %}
