@@ -22,7 +22,7 @@
       {% endfor %}
     </tbody>
   </table>
-  <script>
+  <script type="text/javascript">
     const {{name}}table = new simpleDatatables.DataTable("table#tbl_{{name}}", {
       perPageSelect: [[10, 10], [20, 20], [50, 50], ["All", 0]],
     });
@@ -31,7 +31,7 @@
         // right click -- don't trigger anything
         return;
       }
-      value = {{name}}table.data.data[row][{{link_col}}].data;
+      const value = {{name}}table.data.data[row][{{link_col}}].data;
       window.location = `{{link_template}}`;
     });
   </script>
