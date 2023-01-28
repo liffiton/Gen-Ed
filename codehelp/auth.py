@@ -58,6 +58,7 @@ def login():
 @bp.route("/logout", methods=['POST'])
 def logout():
     session.clear()
+    flash("You have been logged out.")
     return redirect(url_for(".login"))
 
 
