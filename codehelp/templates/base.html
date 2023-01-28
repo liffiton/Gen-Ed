@@ -14,6 +14,13 @@
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer type="text/javascript"></script>
     <link href="https://cdn.jsdelivr.net/npm/simple-datatables@6/dist/style.css" rel="stylesheet" type="text/css">
     <script src="https://cdn.jsdelivr.net/npm/simple-datatables@6" type="text/javascript"></script>
+    {% if 'timezone' not in session %}
+    <script type="text/javascript">
+      // Send browser's timezone to server for displaying dates/times in local timezone.
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      fetch("/set_timezone", {method: 'POST', body: timezone});
+    </script>
+    {% endif %}
     <title>CodeHelp</title>
   </head>
   <body>

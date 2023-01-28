@@ -10,6 +10,7 @@ from . import db
 from . import helper
 from . import instructor
 from . import lti
+from . import tz
 
 
 def create_app():
@@ -53,6 +54,7 @@ def create_app():
         pass
 
     db.init_app(app)
+    tz.init_app(app)
 
     app.register_blueprint(admin.bp)
     app.register_blueprint(auth.bp)

@@ -10,7 +10,9 @@
         <tr>
           {% for col in columns %}
             {% set value=row[col[1]] %}
-            {% if value | string | length > 30 %}
+            {% if 'time' in col[1] %}
+              <td>{{ row[col[1]] | localtime }}</td>
+            {% elif value | string | length > 30 %}
               <td><span title="{{value}}">{{ value | truncate(30) }}</span></td>
             {% else %}
               <td>{{ row[col[1]] }}</td>
