@@ -14,9 +14,9 @@
               {% set value = value | localtime %}
               <td>{{ value.strftime("%Y-%m-%d %-I:%M%P") }}</td>
             {% elif value | string | length > 30 %}
-              <td><span title="{{value}}">{{ value | truncate(30) }}</span></td>
+              <td><span title="{{value.replace('\n', ' ')}}">{{ value | truncate(30) }}</span></td>
             {% else %}
-              <td>{{ row[col[1]] }}</td>
+              <td>{{ value }}</td>
             {% endif %}
           {% endfor %}
       {% endfor %}
