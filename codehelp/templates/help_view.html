@@ -8,6 +8,17 @@
     {% if query %}
 
     <div class="container">
+      {% if query.username != auth['username'] %}
+      <div class="field is-horizontal">
+        <div class="field-label">
+          <label class="label">User:</label>
+        </div>
+        <div class="field-body">
+          {{ query.username }}
+        </div>
+      </div>
+      {% endif %}
+
       <div class="field is-horizontal">
         <div class="field-label">
           <label class="label">When:</label>
