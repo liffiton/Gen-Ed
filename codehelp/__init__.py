@@ -17,6 +17,11 @@ def create_app():
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
 
+    # strip whitespace before and after {% ... %} template statements
+    app.jinja_env.lstrip_blocks = True
+    app.jinja_env.trim_blocks = True
+
+    # load config values from .env file
     load_dotenv()
     try:
         openai_key = os.environ["OPENAI_API_KEY"]
