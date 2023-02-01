@@ -14,7 +14,9 @@
               {% set value = value | localtime %}
               <td>{{ value.strftime("%Y-%m-%d %-I:%M%P") }}</td>
             {% elif value | string | length > 30 %}
-              <td><span title="{{value.replace('\n', ' ')}}">{{ value | truncate(30) }}</span></td>
+              {# TODO: Replace \n with &#13; once simple-datatables can handle it... #}
+              {% set title_value = value.strip() | replace("\r", "") | replace("\n", "" | safe) %}
+              <td><span title="{{ title_value }}">{{ value | truncate(30) }}</span></td>
             {% else %}
               <td>{{ value }}</td>
             {% endif %}
