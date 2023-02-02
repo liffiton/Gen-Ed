@@ -1,4 +1,4 @@
-from flask import Blueprint, abort, redirect, session, url_for
+from flask import Blueprint, abort, current_app, redirect, session, url_for
 
 from pylti.flask import lti
 
@@ -23,16 +23,21 @@ def lti_login(lti=lti):
     lti_context_id = session.get("context_id", "")
     lti_context_label = session.get("context_label", "")
 
+    current_app.logger.info(f"LTI login: {lti_consumer=} {email=} {lti_user_id=} {role=} {lti_context_id=} {lti_context_label=}")
+
     # sanity checks
     if not authenticated:
-        session.clear()
-        return abort(403)
-    if role not in ["instructor", "student"]:
         session.clear()
         return abort(403)
     if '@' not in email or lti_user_id == "" or lti_consumer == "" or lti_context_id == "" or lti_context_label == "":
         session.clear()
         return abort(400)
+
+    current_app.logger.info(f"LTI login: {email=} connected.")
+
+    # Anything that isn't "instructor" becomes "student"
+    if role not in ["instructor"]:
+        role = "student"
 
     # check for and create user if needed
     lti_id = f"{lti_consumer}_{lti_user_id}_{email}"
@@ -49,7 +54,6 @@ def lti_login(lti=lti):
     else:
         user_id = user_row['id']
 
-    # TODO: add role to DB if not present, set role in session
     # check for and create role if needed
     db = get_db()
     role_row = db.execute(
