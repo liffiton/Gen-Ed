@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, current_app, render_template, request, send_file
 
 from .db import get_db
 from .auth import admin_required
@@ -26,3 +26,9 @@ def main():
         queries = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id ORDER BY query_time DESC").fetchall()
 
     return render_template("admin.html", users=users, roles=roles, queries=queries, username=username, role=role)
+
+
+@bp.route("/get_db")
+@admin_required
+def get_db_file():
+    return send_file(current_app.config['DATABASE'], as_attachment=True)
