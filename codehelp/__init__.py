@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 
@@ -16,6 +17,10 @@ from . import tz
 def create_app():
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
+
+    # set logging level
+    if not app.debug:
+        app.logger.set_level(logging.INFO)
 
     # strip whitespace before and after {% ... %} template statements
     app.jinja_env.lstrip_blocks = True
