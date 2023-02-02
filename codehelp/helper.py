@@ -25,11 +25,14 @@ def get_query(query_id):
     query_row = cur.fetchone()
 
     if query_row:
-        response_html = markdown.markdown(
-            query_row['response_text'],
-            output_format="html5",
-            extensions=['fenced_code', 'sane_lists', 'smarty'],
-        )
+        if query_row['response_text']:
+            response_html = markdown.markdown(
+                query_row['response_text'],
+                output_format="html5",
+                extensions=['fenced_code', 'sane_lists', 'smarty'],
+            )
+        else:
+            response_html = "<i>No response -- an error occurred.  Please try again.</i>"
     else:
         flash("Invalid id.", "warning")
 
@@ -96,20 +99,34 @@ def run_query(language, code, error, issue):
     #       (could just automatically add to a table if not present and get the autoID for it as foreign key)
 
     openai.api_key = current_app.config["OPENAI_API_KEY"]
-    response = openai.Completion.create(
-        model="text-davinci-003",
-        prompt=prompt,
-        temperature=0.25,
-        max_tokens=1000,
-        stop=stop_seq,
-        # TODO: add user= parameter w/ unique ID of user (e.g., hash of username+email or similar)
-    )
+    try:
+        response = openai.Completion.create(
+            model="text-davinci-003",
+            prompt=prompt,
+            temperature=0.25,
+            max_tokens=1000,
+            stop=stop_seq,
+            # TODO: add user= parameter w/ unique ID of user (e.g., hash of username+email or similar)
+        )
 
-    response_txt = response.choices[0].text
-    response_reason = response.choices[0].finish_reason  # e.g. "length" if max_tokens reached
+        response_txt = response.choices[0].text
+        response_reason = response.choices[0].finish_reason  # e.g. "length" if max_tokens reached
 
-    if response_reason == "length":
-        response_txt += "\n[error: maximum length exceeded]"
+        if response_reason == "length":
+            response_txt += "\n[error: maximum length exceeded]"
+
+    except openai.error.APIError as e:
+        response = e
+        response_txt = "Error (APIError).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
+    except openai.error.Timeout as e:
+        response = e
+        response_txt = "Error (Timeout).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
+    except openai.error.ServiceUnavailableError as e:
+        response = e
+        response_txt = "Error (ServiceUnavailableError).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
+    except Exception as e:
+        response = e
+        response_txt = "Error (Exception).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
 
     if "```" in response_txt:
         # That's probably too much code.  Let's clean it up...
