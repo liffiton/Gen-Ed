@@ -20,7 +20,7 @@ def create_app():
 
     # set logging level
     if not app.debug:
-        app.logger.set_level(logging.INFO)
+        app.logger.setLevel(logging.INFO)
 
     # strip whitespace before and after {% ... %} template statements
     app.jinja_env.lstrip_blocks = True
