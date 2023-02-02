@@ -1,21 +1,17 @@
-from flask import Blueprint, abort, render_template, request
+from flask import Blueprint, render_template, request
 
 from .db import get_db
-from .auth import login_required, get_session_auth
+from .auth import get_session_auth, instructor_required
 
 
 bp = Blueprint('instructor', __name__, url_prefix="/instructor", template_folder='templates')
 
 
 @bp.route("/")
-@login_required
+@instructor_required
 def main():
     db = get_db()
-
     auth = get_session_auth()
-
-    if auth['role'] is None:
-        return abort(401)
 
     lti_context = auth['role']['context']
 

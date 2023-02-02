@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import Blueprint, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
 
 from .db import get_db
@@ -65,9 +65,19 @@ def logout():
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if session.get(KEY_AUTH_USER, "") == "":
-            flash("Login required.", "warning")
-            return redirect(url_for('auth.login', next=request.url))
+        auth = get_session_auth()
+        if not auth['username']:
+            return abort(401)
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def instructor_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        auth = get_session_auth()
+        if not auth['role'] or auth['role']['role'] != "instructor":
+            return abort(403)
         return f(*args, **kwargs)
     return decorated_function
 
@@ -75,7 +85,8 @@ def login_required(f):
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not session.get(KEY_AUTH_IS_ADMIN, False):
+        auth = get_session_auth()
+        if not auth['is_admin']:
             flash("Login required.", "warning")
             return redirect(url_for('auth.login', next=request.url))
         return f(*args, **kwargs)
