@@ -18,8 +18,9 @@
           <div class="field">
             <div class="control">
               <div class="select">
-                <select name="lang_id" x-bind:disabled="loading">
-                  {% for lang in languages %}
+                <select name="lang_id" required x-bind:disabled="loading">
+                  <option value="">Please select</option>
+                  {% for lang in config['LANGUAGES'] %}
                   <option value="{{loop.index0}}" {% if lang == selected_lang %}selected{% endif %}>{{lang | capitalize}}</option>
                   {% endfor %}
                 </select>
