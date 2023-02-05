@@ -19,7 +19,7 @@ def get_query(query_id):
     if auth['is_admin']:
         cur = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id WHERE queries.id=?", [query_id])
     elif auth['role'] is not None and auth['role']['role'] == 'instructor':
-        cur = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id JOIN roles ON queries.role_id=roles.id WHERE roles.lti_context=? AND queries.id=?", [auth['role']['context'], query_id])
+        cur = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id JOIN roles ON queries.role_id=roles.id WHERE roles.class_id=? AND queries.id=?", [auth['role']['class_id'], query_id])
     else:
         cur = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id WHERE queries.user_id=? AND queries.id=?", [auth['user_id'], query_id])
     query_row = cur.fetchone()

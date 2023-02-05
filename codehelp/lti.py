@@ -39,9 +39,10 @@ def lti_login(lti=lti):
     if role not in ["instructor"]:
         role = "student"
 
+    db = get_db()
+
     # check for and create user if needed
     lti_id = f"{lti_consumer}_{lti_user_id}_{email}"
-    db = get_db()
     user_row = db.execute(
         "SELECT * FROM users WHERE lti_id=?", [lti_id]
     ).fetchone()
@@ -54,26 +55,37 @@ def lti_login(lti=lti):
     else:
         user_id = user_row['id']
 
+    # check for class
+    class_row = db.execute(
+        "SELECT * FROM classes WHERE lti_consumer=? AND lti_context_id=? AND lti_context_label=?", [lti_consumer, lti_context_id, lti_context_label]
+    ).fetchone()
+
+    if not class_row:
+        # Add the class -- will not be usable until an instructor configures it, though.
+        cur = db.execute("INSERT INTO classes(lti_consumer, lti_context_id, lti_context_label) VALUES(?, ?, ?)", [lti_consumer, lti_context_id, lti_context_label])
+        db.commit()
+        class_id = cur.lastrowid
+    else:
+        class_id = class_row['id']
+
     # check for and create role if needed
-    db = get_db()
     role_row = db.execute(
-        "SELECT * FROM roles WHERE user_id=? AND lti_context=?", [user_id, lti_context_label]
+        "SELECT * FROM roles WHERE user_id=? AND class_id=?", [user_id, class_id]
     ).fetchone()
 
     if not role_row:
         # Register this user
-        cur = db.execute("INSERT INTO roles(user_id, lti_context, role) VALUES(?, ?, ?)", [user_id, lti_context_label, role])
+        cur = db.execute("INSERT INTO roles(user_id, class_id, role) VALUES(?, ?, ?)", [user_id, class_id, role])
         db.commit()
         role_id = cur.lastrowid
     else:
-        # Role exists in db already.
-        # TODO: it's possible the role given via LTI could not match the role saved in the db...
         role_id = role_row['id']
 
     # Record them as logged in in the session
     role_dict = {
         'id': role_id,
-        'context': lti_context_label,
+        'class_id': class_id,
+        'class_name': lti_context_label,
         'role': role,
     }
     set_session_auth(email, user_id, is_admin=False, role=role_dict, clear_session=False)  # don't clear session, contains LTI params

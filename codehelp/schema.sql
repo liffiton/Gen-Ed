@@ -3,6 +3,7 @@ PRAGMA foreign_keys = ON;
 DROP TABLE IF EXISTS queries;
 DROP TABLE IF EXISTS roles;
 DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS classes;
 
 CREATE TABLE users (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -13,13 +14,24 @@ CREATE TABLE users (
     lti_consumer  TEXT  -- the LTI consumer that registered this user, if applicable
 );
 
+-- Record LTI contexts (classes) and their config
+-- Config stored as JSON for flexibility, esp. during development
+CREATE TABLE classes {
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lti_consumer      TEXT NOT NULL,
+    lti_context_id    TEXT NOT NULL,
+    lti_context_label TEXT NOT NULL,  -- name of the class
+    config            TEXT NOT NULL DEFAULT "{}"   -- JSON containing class config options
+};
+
 -- Record the LTI contexts and roles with which any user has connected to the service.
 CREATE TABLE roles (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id  INTEGER NOT NULL,
-    lti_context  STRING NOT NULL,
+    class_id INTEGER NOT NULL,
     role     TEXT NOT NULL CHECK( role IN ('instructor', 'student') ),
-    FOREIGN KEY(user_id) REFERENCES users(id)
+    FOREIGN KEY(user_id) REFERENCES users(id),
+    FOREIGN KEY(class_id) REFERENCES classes(id)
 );
 
 CREATE TABLE queries (
@@ -36,4 +48,3 @@ CREATE TABLE queries (
     FOREIGN KEY(user_id) REFERENCES users(id),
     FOREIGN KEY(role_id) REFERENCES roles(id)
 );
-

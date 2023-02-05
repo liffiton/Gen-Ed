@@ -56,9 +56,9 @@
                 <span class="is-italic">{{ auth['username'] }}</span>
               </div>
               {% if auth['role'] %}
-              {% set lti_context=auth['role']['context'] %}
+              {% set class_name=auth['role']['class_name'] %}
               <div>
-                <span class="is-italic" {% if lti_context | length > 20 %}title="{{ lti_context }}"{% endif %}>{{ lti_context | truncate(20) }}</span>
+                <span class="is-italic" {% if class_name | length > 20 %}title="{{ class_name }}"{% endif %}>{{ class_name | truncate(20) }}</span>
               </div>
               {% endif %}
             </div>

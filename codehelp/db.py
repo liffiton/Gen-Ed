@@ -1,4 +1,6 @@
+from datetime import datetime
 import os
+import shutil
 import sqlite3
 import sys
 
@@ -36,7 +38,7 @@ def init_db():
     try:
         init_pw_mark = os.environ["INIT_PW_MARK"]
     except KeyError:
-        print("Error:  INIT_PW_{MARK,BRAD} environment variable not set.", file=sys.stderr)
+        print("Error:  INIT_PW_MARK environment variable not set.", file=sys.stderr)
         sys.exit(1)
 
     db.execute("INSERT INTO users(username, password, is_admin) VALUES(?, ?, True)", ["mark", init_pw_mark])
@@ -48,6 +50,31 @@ def init_db_command():
     """Clear the existing data and create new tables."""
     init_db()
     click.echo('Initialized the database.')
+
+
+@click.command('migrate')
+@click.argument('migration_script', type=click.File('r'))
+def migrate_command(migration_script):
+    """Run a migration script against the instance database."""
+    # Make a backup of the old database
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    backup_dir = os.path.join(current_app.instance_path, "backups")
+    os.makedirs(backup_dir, exist_ok=True)
+    backup_dest = os.path.join(backup_dir, f"codehelp.db.{timestamp}.bak")
+    shutil.copy2(current_app.config['DATABASE'], backup_dest)
+    click.echo(f"Backup saved in [33m{backup_dest}[m.")
+
+    # Run the script
+    db = get_db()
+    script = migration_script.read()
+    indented = '\n'.join(f"  {x}" for x in script.split('\n'))
+    print(f"Script:\n[35m{indented}[m")
+    try:
+        db.executescript(script)
+        db.commit()
+        click.echo("Migration complete.")
+    except Exception as e:
+        print(f"Migration failed: [31m{e}[m")
 
 
 @click.command('newuser')
@@ -64,4 +91,5 @@ def newuser_command(username):
 def init_app(app):
     app.teardown_appcontext(close_db)
     app.cli.add_command(init_db_command)
+    app.cli.add_command(migrate_command)
     app.cli.add_command(newuser_command)
