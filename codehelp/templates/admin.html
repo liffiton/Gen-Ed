@@ -14,7 +14,7 @@
   <div class="columns is-multiline is-desktop">
     <div class="column is-7-desktop is-5-fullhd">
       <h1 class="is-size-3">Classes</h1>
-      {{ datatable('classes', [('id', 'id'), ('name', 'lti_context_label'), ('#queries', 'num_queries')], classes, link_col=0, link_template="?class=${value}") }}
+      {{ datatable('classes', [('id', 'id'), ('name', 'lti_context_label'), ('consumer', 'lti_consumer'), ('lti_id', 'lti_context_id'), ('#queries', 'num_queries')], classes, link_col=0, link_template="?class=${value}") }}
       <h1 class="is-size-3">Users</h1>
       {{ datatable('users', [('id', 'id'), ('username', 'username'), ('lti_id', 'lti_id'), ('#queries', 'num_queries')], users, link_col=1, link_template="?username=${value}") }}
       <h1 class="is-size-3">Roles</h1>
