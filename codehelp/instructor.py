@@ -1,4 +1,6 @@
-from flask import Blueprint, render_template, request
+import json
+
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from .db import get_db
 from .auth import get_session_auth, instructor_required
@@ -25,3 +27,36 @@ def main():
         queries = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id JOIN roles ON queries.role_id=roles.id WHERE roles.class_id=? ORDER BY query_time DESC", [auth['role']['class_id']]).fetchall()
 
     return render_template("instructor.html", users=users, queries=queries, username=username)
+
+
+@bp.route("/config")
+@instructor_required
+def config_form(query_id=None):
+    db = get_db()
+    auth = get_session_auth()
+
+    class_id = auth['role']['class_id']
+
+    class_row = db.execute("SELECT * FROM classes WHERE id=?", [class_id]).fetchone()
+    class_config = json.loads(class_row['config'])
+
+    return render_template("class_config_form.html", class_id=class_id, class_config=class_config)
+
+
+@bp.route("/config/set", methods=["POST"])
+@instructor_required
+def set_config():
+    db = get_db()
+
+    class_id = request.form['class_id']
+    class_config = {
+        'default_lang': request.form['default_lang'],
+        'avoid': request.form['avoid'],
+    }
+    class_config_json = json.dumps(class_config)
+
+    db.execute("UPDATE classes SET config=? WHERE id=?", [class_config_json, class_id])
+    db.commit()
+
+    flash("Configuration set!", "success")
+    return redirect(url_for(".config_form"))

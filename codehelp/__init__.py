@@ -81,4 +81,8 @@ def create_app():
     def index():
         return render_template("index.html")
 
+    @app.route('/error')
+    def error_page():
+        return render_template("error.html")
+
     return app

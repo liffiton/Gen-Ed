@@ -82,6 +82,32 @@ def instructor_required(f):
     return decorated_function
 
 
+def class_config_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        auth = get_session_auth()
+        assert 'role' in auth   # this requires login, so @login_required must be used before it
+
+        if auth['role'] is None:
+            # Non-class user
+            return f(*args, **kwargs)
+
+        db = get_db()
+        class_row = db.execute("SELECT * FROM classes WHERE id=?", [auth['role']['class_id']]).fetchone()
+        if class_row['config'] == '{}':
+            # Not yet configured
+            if auth['role']['role'] == 'instructor':
+                flash("This class is not yet configured.  Please configure it so that you and your students can use the tool.", "danger")
+                return redirect(url_for("instructor.config_form"))
+            else:
+                flash("This class is not yet configured.  Your instructor must configure it before you can use this tool.", "danger")
+                return redirect(url_for("error_page"))
+
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):

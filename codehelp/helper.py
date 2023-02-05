@@ -6,7 +6,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 
 from . import prompts
 from .db import get_db
-from .auth import get_session_auth, login_required
+from .auth import get_session_auth, login_required, class_config_required
 
 
 def get_query(query_id):
@@ -55,30 +55,36 @@ bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='template
 @bp.route("/")
 @bp.route("/<int:query_id>")
 @login_required
+@class_config_required
 def help_form(query_id=None):
     db = get_db()
     auth = get_session_auth()
 
-    # default to most recently submitted language, if available (overridden if viewing a result)
+    # default to most recently submitted language, if available, else the default language for the current class, if available
     selected_lang = None
     lang_row = db.execute("SELECT language FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT 1", [auth['user_id']]).fetchone()
     if lang_row:
         selected_lang = lang_row['language']
+    elif auth['role'] is not None:
+        config_row = db.execute("SELECT config FROM classes WHERE id=?", [auth['role']['class_id']]).fetchone()
+        class_config = json.loads(config_row['config'])
+        selected_lang = class_config['default_lang']
 
     query_row = None
-    response_html = None
 
     # populate with a query+response if one is specified in the query string
     if query_id is not None:
-        query_row, response_html = get_query(query_id)
+        query_row, _ = get_query(query_id)   # _ because we don't need response_html here
+        selected_lang = query_row['language']
 
     history = get_history()
 
-    return render_template("help_form.html", query=query_row, response_html=response_html, history=history, languages=current_app.config["LANGUAGES"], selected_lang=selected_lang)
+    return render_template("help_form.html", query=query_row, history=history, selected_lang=selected_lang)
 
 
 @bp.route("/view/<int:query_id>")
 @login_required
+@class_config_required
 def help_view(query_id):
     query_row, response_html = get_query(query_id)
     history = get_history()
@@ -172,6 +178,7 @@ def record_response(query_id, response, response_txt):
 
 @bp.route("/request", methods=["POST"])
 @login_required
+@class_config_required
 def help_request():
     lang_id = int(request.form["lang_id"])
     language = current_app.config["LANGUAGES"][lang_id]
