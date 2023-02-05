@@ -11,6 +11,7 @@ bp = Blueprint('admin', __name__, url_prefix="/admin", template_folder='template
 @admin_required
 def main():
     db = get_db()
+    classes = db.execute("SELECT classes.*, COUNT(queries.id) AS num_queries FROM classes LEFT JOIN roles ON roles.class_id=classes.id LEFT JOIN queries ON queries.role_id=roles.id GROUP BY classes.id").fetchall()
     users = db.execute("SELECT users.*, COUNT(queries.id) AS num_queries FROM users LEFT JOIN queries ON users.id=queries.user_id GROUP BY users.id").fetchall()
     roles = db.execute("SELECT roles.*, users.username, COUNT(queries.id) AS num_queries FROM roles LEFT JOIN users ON users.id=roles.user_id LEFT JOIN queries ON roles.id=queries.role_id GROUP BY roles.id").fetchall()
 
@@ -25,7 +26,7 @@ def main():
     else:
         queries = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id ORDER BY query_time DESC").fetchall()
 
-    return render_template("admin.html", users=users, roles=roles, queries=queries, username=username, role=role)
+    return render_template("admin.html", classes=classes, users=users, roles=roles, queries=queries, username=username, role=role)
 
 
 @bp.route("/get_db")
