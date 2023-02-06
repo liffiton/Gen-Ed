@@ -88,7 +88,7 @@ def lti_login(lti=lti):
         'class_name': lti_context_label,
         'role': role,
     }
-    set_session_auth(email, user_id, is_admin=False, role=role_dict, clear_session=False)  # don't clear session, contains LTI params
+    set_session_auth(email, user_id, is_admin=False, role=role_dict)
 
     # Redirect to the app
     #flash(f"Welcome, {email}!")

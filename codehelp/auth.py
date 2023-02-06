@@ -11,9 +11,7 @@ KEY_AUTH_IS_ADMIN = "__codehelp_auth_is_admin"
 KEY_AUTH_ROLE = "__codehelp_auth_role"
 
 
-def set_session_auth(username, user_id, is_admin, role=None, clear_session=True):
-    if clear_session:
-        session.clear()
+def set_session_auth(username, user_id, is_admin, role=None):
     session[KEY_AUTH_USER] = username
     session[KEY_AUTH_USERID] = user_id
     session[KEY_AUTH_IS_ADMIN] = is_admin
@@ -57,7 +55,7 @@ def login():
 
 @bp.route("/logout", methods=['POST'])
 def logout():
-    session.clear()
+    session.clear()  # clear the entire session to be safest here.
     flash("You have been logged out.")
     return redirect(url_for(".login"))
 
