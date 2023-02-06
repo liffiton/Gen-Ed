@@ -16,13 +16,13 @@ CREATE TABLE users (
 
 -- Record LTI contexts (classes) and their config
 -- Config stored as JSON for flexibility, esp. during development
-CREATE TABLE classes {
+CREATE TABLE classes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     lti_consumer      TEXT NOT NULL,
     lti_context_id    TEXT NOT NULL,
     lti_context_label TEXT NOT NULL,  -- name of the class
     config            TEXT NOT NULL DEFAULT "{}"   -- JSON containing class config options
-};
+);
 
 -- Record the LTI contexts and roles with which any user has connected to the service.
 CREATE TABLE roles (
