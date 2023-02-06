@@ -14,7 +14,7 @@ from . import lti
 from . import tz
 
 
-def create_app():
+def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
 
@@ -56,6 +56,10 @@ def create_app():
         ],
         DATABASE=os.path.join(app.instance_path, 'codehelp.db'),
     )
+
+    # load test config if provided
+    if test_config is not None:
+        app.config.from_mapping(test_config)
 
     # ensure the instance folder exists
     try:

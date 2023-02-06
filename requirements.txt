@@ -3,4 +3,5 @@ markdown
 openai
 pylti
 python-dotenv
+pytest
 pytz
