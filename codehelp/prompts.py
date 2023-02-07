@@ -2,10 +2,11 @@ import random
 
 
 def make_main_prompt(language, code, error, issue, avoid_set):
-    # generate the avoidance text
-    avoid_text = "Please do not suggest any unsafe coding practices.\n"
-    avoid_text += "".join(f"I cannot use {keyword}.  " for keyword in avoid_set)
-    avoid_text += "Please do not suggest any of those."
+    # generate the extra / avoidance instructions
+    extra_list = ["I cannot use any unsafe coding practices."]
+    extra_list.extend(f"I cannot use {keyword}." for keyword in avoid_set)
+    extra_list.append("Please do not suggest any of those.")
+    extra_text = "  ".join(extra_list)
 
     nonce = random.randint(1000, 9999)
     stop_seq = f"</response_{nonce}>"
@@ -75,7 +76,7 @@ Student inputs:
 {issue}
 </issue_{nonce}>
 <extra_{nonce}>
-{avoid_text}
+{extra_text}
 </extra_{nonce}>
 
 System response:

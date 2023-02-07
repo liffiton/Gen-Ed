@@ -95,11 +95,6 @@ def help_view(query_id):
 def run_query(language, code, error, issue):
     query_id = record_query(language, code, error, issue)
 
-    # short circuit for testing w/o using GPT credits
-    if issue == "test":
-        record_response(query_id, "test response", "test response")
-        return query_id
-
     db = get_db()
     auth = get_session_auth()
     class_id = auth['role']['class_id']
@@ -110,6 +105,12 @@ def run_query(language, code, error, issue):
     prompt, stop_seq = prompts.make_main_prompt(language, code, error, issue, avoid_set)
     # TODO: store prompt template in database for internal reference, esp. if it changes over time
     #       (could just automatically add to a table if not present and get the autoID for it as foreign key)
+
+    # short circuit for testing w/o using GPT credits
+    if issue == "test":
+        current_app.logger.info(prompt)
+        record_response(query_id, "test response", "test response")
+        return query_id
 
     openai.api_key = current_app.config["OPENAI_API_KEY"]
     try:
