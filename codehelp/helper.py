@@ -134,7 +134,7 @@ def run_query(language, code, error, issue):
         response = e
         response_txt = "Error (Exception).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
 
-    if "```" in response_txt or "should look like" in response_txt:
+    if "```" in response_txt or "should look like" in response_txt or "should look something like" in response_txt:
         # That's probably too much code.  Let's clean it up...
         cleanup_prompt = prompts.make_cleanup_prompt(language, code, error, issue, orig_response_txt=response_txt)
         cleanup_response = openai.Completion.create(
