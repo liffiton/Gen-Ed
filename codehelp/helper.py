@@ -100,7 +100,14 @@ def run_query(language, code, error, issue):
         record_response(query_id, "test response", "test response")
         return query_id
 
-    prompt, stop_seq = prompts.make_main_prompt(language, code, error, issue)
+    db = get_db()
+    auth = get_session_auth()
+    class_id = auth['role']['class_id']
+    class_row = db.execute("SELECT * FROM classes WHERE id=?", [class_id]).fetchone()
+    class_config = json.loads(class_row['config'])
+    avoid_set = set(x.strip() for x in class_config.get('avoid', '').split('\n'))
+
+    prompt, stop_seq = prompts.make_main_prompt(language, code, error, issue, avoid_set)
     # TODO: store prompt template in database for internal reference, esp. if it changes over time
     #       (could just automatically add to a table if not present and get the autoID for it as foreign key)
 
@@ -122,17 +129,25 @@ def run_query(language, code, error, issue):
             response_txt += "\n[error: maximum length exceeded]"
 
     except openai.error.APIError as e:
-        response = e
+        response = str(e)
         response_txt = "Error (APIError).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
+        pass
     except openai.error.Timeout as e:
-        response = e
+        response = str(e)
         response_txt = "Error (Timeout).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
+        pass
     except openai.error.ServiceUnavailableError as e:
-        response = e
+        response = str(e)
         response_txt = "Error (ServiceUnavailableError).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
+        pass
+    except openai.error.RateLimitError as e:
+        response = str(e)
+        response_txt = "Error (RateLimitError).  The system is receiving too many requests right now.  Please try again in one minute.  If it does not resolve, please let me know at mliffito@iwu.edu."
+        pass
     except Exception as e:
-        response = e
+        response = str(e)
         response_txt = "Error (Exception).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
+        pass
 
     if "```" in response_txt or "should look like" in response_txt or "should look something like" in response_txt:
         # That's probably too much code.  Let's clean it up...
