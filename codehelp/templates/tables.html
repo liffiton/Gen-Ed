@@ -24,41 +24,6 @@
     </tbody>
   </table>
   <script type="text/javascript">
-    const {{name}}table = new simpleDatatables.DataTable("table#tbl_{{name}}", {
-      perPage: 20,
-      perPageSelect: [[10, 10], [20, 20], [50, 50], ["All", 0]],
-      template: options => `
-<div class='${options.classes.container}'${options.scrollY.length ? ` style='height: ${options.scrollY}; overflow-Y: auto;'` : ""}></div>
-<div class='${options.classes.bottom}'>
-${ options.paging && options.perPageSelect ?
-    `<div class='${options.classes.dropdown}'>
-        <label>
-            <select class='${options.classes.selector}'></select> ${options.labels.perPage}
-        </label>
-    </div>` :
-    ""
-}
-${ options.paging ? `<div class='${options.classes.info}'></div>` : "" }
-<nav class='${options.classes.pagination}'></nav>
-${ options.searchable ?
-    `<div class='${options.classes.search}'>
-        <button class="button is-small" id="csv_{{name}}">Export CSV</button>
-        <input class='${options.classes.input}' placeholder='${options.labels.placeholder}' type='text' size='7'>
-    </div>` :
-    ""
-}
-</div>`,
-    });
-    {{name}}table.on("datatable.selectrow", (row, event) => {
-      if (event.button == 2) {
-        // right click -- don't trigger anything
-        return;
-      }
-      const value = {{name}}table.data.data[row][{{link_col}}].text;
-      window.location = `{{link_template}}`;
-    });
-    document.querySelector("button#csv_{{name}}").addEventListener('click', event => {
-      simpleDatatables.exportCSV({{name}}table);
-    });
+    initTable("tbl_{{name}}", {{link_col}}, value => `{{link_template}}`);
   </script>
 {%- endmacro %}
