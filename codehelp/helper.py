@@ -105,7 +105,7 @@ def run_query(language, code, error, issue):
     class_id = auth['role']['class_id']
     class_row = db.execute("SELECT * FROM classes WHERE id=?", [class_id]).fetchone()
     class_config = json.loads(class_row['config'])
-    avoid_set = set(x.strip() for x in class_config.get('avoid', '').split('\n'))
+    avoid_set = set(x.strip() for x in class_config.get('avoid', '').split('\n') if x.strip() != '')
 
     prompt, stop_seq = prompts.make_main_prompt(language, code, error, issue, avoid_set)
     # TODO: store prompt template in database for internal reference, esp. if it changes over time
