@@ -1,3 +1,8 @@
+/* For clickable rows */
+table.datatable-table tbody tr { cursor: pointer; }
+table.datatable-table tbody tr:hover { background: #def; }
+/**/
+
 .datatable-wrapper.no-header .datatable-container {
 	border-top: 1px solid #d9d9d9;
 }
