@@ -3,17 +3,16 @@ import random
 
 def make_main_prompt(language, code, error, issue, avoid_set):
     # generate the extra / avoidance instructions
-    extra_list = ["Students in this class cannot use any unsafe coding practices."]
-    extra_list.extend(f"Students cannot use {keyword}." for keyword in avoid_set)
-    extra_list.append("Please do not suggest any of those.")
-    extra_text = "  ".join(extra_list)
+    extra_list = ["any commonly-known unsafe coding practices"]
+    extra_list.extend(avoid_set)
+    extra_text = f"Students in this class cannot use: {', '.join(extra_list)}.  If any of those might be relevant, please do not suggest them.  Instead offer solutions using other approaches.  You do not need to reference these in your response if they are not relevant to this query."
 
     nonce = random.randint(1000, 9999)
     stop_seq = f"</response_{nonce}>"
     prompt = f"""You are a system for assisting a student with programming.
 The student inputs provide:
  1) the programming language (in "<lang>" delimiters)
- 2) a snippet of their code that they believe to be most relevant to their question (in "<code_{nonce}>")
+ 2) a snippet of their code that they think is relevant to their question (in "<code_{nonce}>")
  3) an error message they are seeing (in "<error_{nonce}>")
  4) a description of the issue and how they want assistance (in "<issue_{nonce}>")
  5) extra context about the class they are in (in "<extra_{nonce}>")
