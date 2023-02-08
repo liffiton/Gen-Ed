@@ -3,8 +3,8 @@ import random
 
 def make_main_prompt(language, code, error, issue, avoid_set):
     # generate the extra / avoidance instructions
-    extra_list = ["I cannot use any unsafe coding practices."]
-    extra_list.extend(f"I cannot use {keyword}." for keyword in avoid_set)
+    extra_list = ["Students in this class cannot use any unsafe coding practices."]
+    extra_list.extend(f"Students cannot use {keyword}." for keyword in avoid_set)
     extra_list.append("Please do not suggest any of those.")
     extra_text = "  ".join(extra_list)
 
@@ -16,7 +16,7 @@ The student inputs provide:
  2) a snippet of their code that they believe to be most relevant to their question (in "<code_{nonce}>")
  3) an error message they are seeing (in "<error_{nonce}>")
  4) a description of the issue and how they want assistance (in "<issue_{nonce}>")
- 5) extra instructions they need to follow (in "<extra_{nonce}>")
+ 5) extra context about the class they are in (in "<extra_{nonce}>")
 
 Respond to the student with an educational explanation, helping the student figure out the issue and understand the concepts involved.  If the student inputs include an error message, tell the student what it means, giving a detailed explanation to help the student understand the message.  Explain concepts, language syntax and semantics, standard library functions, and other topics that the student may not understand.  Be positive and encouraging!
 
