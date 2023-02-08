@@ -92,26 +92,7 @@ def help_view(query_id):
     return render_template("help_view.html", query=query_row, response_html=response_html, history=history)
 
 
-def run_query(language, code, error, issue):
-    query_id = record_query(language, code, error, issue)
-
-    db = get_db()
-    auth = get_session_auth()
-    class_id = auth['role']['class_id']
-    class_row = db.execute("SELECT * FROM classes WHERE id=?", [class_id]).fetchone()
-    class_config = json.loads(class_row['config'])
-    avoid_set = set(x.strip() for x in class_config.get('avoid', '').split('\n') if x.strip() != '')
-
-    prompt, stop_seq = prompts.make_main_prompt(language, code, error, issue, avoid_set)
-    # TODO: store prompt template in database for internal reference, esp. if it changes over time
-    #       (could just automatically add to a table if not present and get the autoID for it as foreign key)
-
-    # short circuit for testing w/o using GPT credits
-    if issue == "test":
-        current_app.logger.info(prompt)
-        record_response(query_id, "test response", "test response")
-        return query_id
-
+def get_completion(prompt, stop_seq=None):
     openai.api_key = current_app.config["OPENAI_API_KEY"]
     try:
         response = openai.Completion.create(
@@ -127,7 +108,7 @@ def run_query(language, code, error, issue):
         response_reason = response.choices[0].finish_reason  # e.g. "length" if max_tokens reached
 
         if response_reason == "length":
-            response_txt += "\n[error: maximum length exceeded]"
+            response_txt += "\n\n[error: maximum length exceeded]"
 
     except openai.error.APIError as e:
         response = str(e)
@@ -150,17 +131,35 @@ def run_query(language, code, error, issue):
         response_txt = "Error (Exception).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
         pass
 
+    return response, response_txt
+
+
+def run_query(language, code, error, issue):
+    query_id = record_query(language, code, error, issue)
+
+    db = get_db()
+    auth = get_session_auth()
+    class_id = auth['role']['class_id']
+    class_row = db.execute("SELECT * FROM classes WHERE id=?", [class_id]).fetchone()
+    class_config = json.loads(class_row['config'])
+    avoid_set = set(x.strip() for x in class_config.get('avoid', '').split('\n') if x.strip() != '')
+
+    prompt, stop_seq = prompts.make_main_prompt(language, code, error, issue, avoid_set)
+    # TODO: store prompt template in database for internal reference, esp. if it changes over time
+    #       (could just automatically add to a table if not present and get the autoID for it as foreign key)
+
+    # short circuit for testing w/o using GPT credits
+    if issue == "test":
+        current_app.logger.info(prompt)
+        record_response(query_id, "test response", "test response")
+        return query_id
+
+    response, response_txt = get_completion(prompt, stop_seq)
+
     if "```" in response_txt or "should look like" in response_txt or "should look something like" in response_txt:
         # That's probably too much code.  Let's clean it up...
         cleanup_prompt = prompts.make_cleanup_prompt(language, code, error, issue, orig_response_txt=response_txt)
-        cleanup_response = openai.Completion.create(
-            model="text-davinci-003",
-            prompt=cleanup_prompt,
-            temperature=0.25,
-            max_tokens=1000,
-            # TODO: add user= parameter w/ unique ID of user (e.g., hash of username+email or similar)
-        )
-        response_txt = cleanup_response.choices[0].text
+        _, response_txt = get_completion(cleanup_prompt, stop_seq=None)
 
     record_response(query_id, response, response_txt)
 
