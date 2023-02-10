@@ -1,9 +1,20 @@
 PRAGMA foreign_keys = ON;
 
 DROP TABLE IF EXISTS queries;
+DROP TABLE IF EXISTS consumers;
+DROP INDEX IF EXISTS consumers_idx;
 DROP TABLE IF EXISTS roles;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS classes;
+
+CREATE TABLE consumers (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    lti_consumer  TEXT NOT NULL UNIQUE,
+    lti_secret    TEXT,
+    openai_key    TEXT
+);
+
+CREATE UNIQUE INDEX consumers_idx ON consumers(lti_consumer);
 
 CREATE TABLE users (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,

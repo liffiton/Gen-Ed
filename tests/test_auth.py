@@ -27,14 +27,14 @@ def test_login(client, auth, username, password, status, message, is_admin):
             sessauth = get_session_auth()
             assert sessauth['username'] == username
             assert sessauth['is_admin'] == is_admin
-            assert sessauth['role'] is None
+            assert sessauth['lti'] is None
 
         else:
             # Verify session auth contains correct values for non-logged-in user
             sessauth = get_session_auth()
             assert sessauth['username'] == ''
             assert sessauth['is_admin'] is False
-            assert sessauth['role'] is None
+            assert sessauth['lti'] is None
 
         assert message in response.data
 
@@ -49,14 +49,15 @@ def test_logout(client, auth):
         sessauth = get_session_auth()
         assert sessauth['username'] == ''
         assert sessauth['is_admin'] is False
-        assert sessauth['role'] is None
+        assert sessauth['lti'] is None
 
 
 @pytest.mark.parametrize(('path', 'nologin', 'withlogin', 'withadmin'), (
     ('/', 200, 200, 200),
     ('/help/', 401, 200, 200),
     ('/help/view/1', 401, 200, 200),
-    ('/admin/', 302, 302, 200),   # admin_required redirects to login
+    ('/admin/', 302, 302, 200),         # admin_required redirects to login
+    ('/admin/get_db', 302, 302, 200),   # admin_required redirects to login
 ))
 def test_auth_required(client, auth, path, nologin, withlogin, withadmin):
     response = client.get(path)

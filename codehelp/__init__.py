@@ -18,6 +18,9 @@ def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
 
+    #from werkzeug.middleware.profiler import ProfilerMiddleware
+    #app.wsgi_app = ProfilerMiddleware(app.wsgi_app)
+
     # set logging level
     if not app.debug:
         app.logger.setLevel(logging.INFO)
@@ -35,15 +38,11 @@ def create_app(test_config=None):
         sys.exit(1)
 
     app.config.from_mapping(
-        SECRET_KEY='thisisaverysupersecretkeyjustthebestest',
+        SECRET_KEY='_oeofMFVOeT-Z730Ksz44Q',
         OPENAI_API_KEY=openai_key,
         PYLTI_CONFIG={
-            # TODO: load this from / store this in the database for each registered consumer?
-            "consumers": {
-                "courses.iwu.edu": {
-                    "secret": "MyMoodleoodleTest"
-                }
-            }
+            # will be loaded from the consumers table in the database
+            "consumers": { }
         },
         LANGUAGES=[
             "c",
@@ -56,6 +55,9 @@ def create_app(test_config=None):
         ],
         DATABASE=os.path.join(app.instance_path, 'codehelp.db'),
     )
+
+    with app.app_context():
+        admin.reload_consumers()
 
     # load test config if provided
     if test_config is not None:

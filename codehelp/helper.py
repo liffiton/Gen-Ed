@@ -18,8 +18,8 @@ def get_query(query_id):
 
     if auth['is_admin']:
         cur = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id WHERE queries.id=?", [query_id])
-    elif auth['role'] is not None and auth['role']['role'] == 'instructor':
-        cur = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id JOIN roles ON queries.role_id=roles.id WHERE roles.class_id=? AND queries.id=?", [auth['role']['class_id'], query_id])
+    elif auth['lti'] is not None and auth['lti']['role'] == 'instructor':
+        cur = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id JOIN roles ON queries.role_id=roles.id WHERE roles.class_id=? AND queries.id=?", [auth['lti']['class_id'], query_id])
     else:
         cur = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id WHERE queries.user_id=? AND queries.id=?", [auth['user_id'], query_id])
     query_row = cur.fetchone()
@@ -65,8 +65,8 @@ def help_form(query_id=None):
     lang_row = db.execute("SELECT language FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT 1", [auth['user_id']]).fetchone()
     if lang_row:
         selected_lang = lang_row['language']
-    elif auth['role'] is not None:
-        config_row = db.execute("SELECT config FROM classes WHERE id=?", [auth['role']['class_id']]).fetchone()
+    elif auth['lti'] is not None:
+        config_row = db.execute("SELECT config FROM classes WHERE id=?", [auth['lti']['class_id']]).fetchone()
         class_config = json.loads(config_row['config'])
         selected_lang = class_config['default_lang']
 
@@ -92,9 +92,28 @@ def help_view(query_id):
     return render_template("help_view.html", query=query_row, response_html=response_html, history=history)
 
 
+def get_openai_key():
+    '''Get the openai API key for the current consumer,
+       or else use the default key in the config for non-LTI users.'''
+    db = get_db()
+    auth = get_session_auth()
+    if auth['lti'] is None:
+        # default key for non-LTI users
+        return current_app.config["OPENAI_API_KEY"]
+    else:
+        consumer_row = db.execute("SELECT openai_key FROM consumers WHERE lti_consumer=?", [auth['lti']['consumer']]).fetchone()
+        return consumer_row['openai_key']
+
+
 def get_completion(prompt, stop_seq=None):
-    openai.api_key = current_app.config["OPENAI_API_KEY"]
+    api_key = get_openai_key()
+
+    if not api_key:
+        msg = "Error: API key not set.  Request cannot be submitted."
+        return msg, msg
+
     try:
+        openai.api_key = api_key
         response = openai.Completion.create(
             model="text-davinci-003",
             prompt=prompt,
@@ -111,22 +130,27 @@ def get_completion(prompt, stop_seq=None):
             response_txt += "\n\n[error: maximum length exceeded]"
 
     except openai.error.APIError as e:
+        current_app.logger.error(e)
         response = str(e)
         response_txt = "Error (APIError).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
         pass
     except openai.error.Timeout as e:
+        current_app.logger.error(e)
         response = str(e)
         response_txt = "Error (Timeout).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
         pass
     except openai.error.ServiceUnavailableError as e:
+        current_app.logger.error(e)
         response = str(e)
         response_txt = "Error (ServiceUnavailableError).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
         pass
     except openai.error.RateLimitError as e:
+        current_app.logger.error(e)
         response = str(e)
         response_txt = "Error (RateLimitError).  The system is receiving too many requests right now.  Please try again in one minute.  If it does not resolve, please let me know at mliffito@iwu.edu."
         pass
     except Exception as e:
+        current_app.logger.error(e)
         response = str(e)
         response_txt = "Error (Exception).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
         pass
@@ -139,7 +163,7 @@ def run_query(language, code, error, issue):
 
     db = get_db()
     auth = get_session_auth()
-    class_id = auth['role']['class_id']
+    class_id = auth['lti']['class_id']
     class_row = db.execute("SELECT * FROM classes WHERE id=?", [class_id]).fetchone()
     class_config = json.loads(class_row['config'])
     avoid_set = set(x.strip() for x in class_config.get('avoid', '').split('\n') if x.strip() != '')
@@ -169,7 +193,7 @@ def run_query(language, code, error, issue):
 def record_query(language, code, error, issue):
     db = get_db()
     auth = get_session_auth()
-    role_id = auth['role']['id'] if auth['role'] else None
+    role_id = auth['lti']['role_id'] if auth['lti'] else None
 
     cur = db.execute(
         "INSERT INTO queries (language, code, error, issue, user_id, role_id) VALUES (?, ?, ?, ?, ?, ?)",

@@ -3,7 +3,7 @@
 {% block body %}
 <section class="section">
   <div class="container">
-    <h1 class="title">{{ auth['role']['class_name'] }}</h1>
+    <h1 class="title">{{ auth['lti']['class_name'] }}</h1>
 
     <form action="{{ url_for("instructor.set_config") }}" method="post">
       <input type="hidden" name="class_id" value="{{class_id}}">

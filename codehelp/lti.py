@@ -82,13 +82,14 @@ def lti_login(lti=lti):
         role_id = role_row['id']
 
     # Record them as logged in in the session
-    role_dict = {
-        'id': role_id,
+    lti_dict = {
+        'role_id': role_id,
+        'role': role,
         'class_id': class_id,
         'class_name': lti_context_label,
-        'role': role,
+        'consumer': lti_consumer,
     }
-    set_session_auth(email, user_id, is_admin=False, role=role_dict)
+    set_session_auth(email, user_id, is_admin=False, lti=lti_dict)
 
     # Redirect to the app
     #flash(f"Welcome, {email}!")

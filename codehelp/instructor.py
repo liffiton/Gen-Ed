@@ -15,7 +15,7 @@ def main():
     db = get_db()
     auth = get_session_auth()
 
-    class_id = auth['role']['class_id']
+    class_id = auth['lti']['class_id']
 
     users = db.execute("SELECT users.*, COUNT(queries.id) AS num_queries FROM users LEFT JOIN queries ON users.id=queries.user_id JOIN roles ON users.id=roles.user_id WHERE roles.class_id=? GROUP BY users.id", [class_id]).fetchall()
 
@@ -24,7 +24,7 @@ def main():
         username = request.args['username']
         queries = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id JOIN roles ON queries.role_id=roles.id WHERE users.username=? AND roles.class_id=? ORDER BY query_time DESC", [username, class_id]).fetchall()
     else:
-        queries = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id JOIN roles ON queries.role_id=roles.id WHERE roles.class_id=? ORDER BY query_time DESC", [auth['role']['class_id']]).fetchall()
+        queries = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id JOIN roles ON queries.role_id=roles.id WHERE roles.class_id=? ORDER BY query_time DESC", [auth['lti']['class_id']]).fetchall()
 
     return render_template("instructor.html", users=users, queries=queries, username=username)
 
@@ -35,7 +35,7 @@ def config_form(query_id=None):
     db = get_db()
     auth = get_session_auth()
 
-    class_id = auth['role']['class_id']
+    class_id = auth['lti']['class_id']
 
     class_row = db.execute("SELECT * FROM classes WHERE id=?", [class_id]).fetchone()
     class_config = json.loads(class_row['config'])

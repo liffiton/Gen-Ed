@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block body %}
+<section class="section">
+  <div class="container">
+    <form action="{{url_for('admin.consumer_update')}}" method="post">
+      {% if consumer: %}
+        {# We're editing an existing consumer.  Provide its ID. #}
+        <input type="hidden" name="consumer_id" value="{{consumer.id}}">
+      {% endif %}
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="lti_consumer">lti_consumer:</label>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              {% if consumer %}
+                {{consumer.lti_consumer}}
+              {% else %}
+                <input class="input" required name="lti_consumer">
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="lti_secret">lti_secret:</label>
+          <p class="has-text-grey">A shared secret used by the LTI consumer to authenticate itself with CodeHelp.  If blank, users from this consumer will not be able to connect.</p>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              {% if consumer and consumer.lti_secret %}
+                {{consumer.lti_secret}}
+                <button class="button is-danger is-small" type="submit" name="clear_lti_secret"><span class="delete mr-2"></span> Clear lti_secret</button>
+              {% else %}
+                <input class="input" name="lti_secret">
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="openai_key">openai_key:</label>
+          <p class="has-text-grey">A shared secret used by CodeHelp to authenticate itself with the OpenAI API.  If blank, users from this consumer will not be able to submit queries.</p>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              {% if consumer and consumer.openai_key %}
+                {{ "*" * 20 }}
+                <button class="button is-danger is-small" type="submit" name="clear_openai_key"><span class="delete mr-2"></span> Clear openai_key</button>
+              {% else %}
+                <input class="input" name="openai_key">
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal"><!-- spacing --></div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <button class="button is-link" type="submit" >Submit</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </form>
+
+  </section>
+
+</div>
+
+{% endblock %}

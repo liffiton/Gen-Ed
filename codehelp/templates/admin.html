@@ -12,7 +12,9 @@
     {% endfor %}
   </div>
   <div class="columns is-multiline is-desktop">
-    <div class="column is-7-desktop is-5-fullhd">
+    <div class="column is-7-desktop is-4-fullhd">
+      <h1 class="is-size-3">Consumers <a class="button" href="{{url_for('admin.consumer_form')}}">Edit</a></h1>
+      {{ datatable('consumers', [('id', 'id'), ('consumer', 'lti_consumer'), ('#queries', 'num_queries')], consumers, link_col=0, link_template="?consumer=${value}") }}
       <h1 class="is-size-3">Classes</h1>
       {{ datatable('classes', [('id', 'id'), ('name', 'lti_context_label'), ('consumer', 'lti_consumer'), ('lti_id', 'lti_context_id'), ('#queries', 'num_queries')], classes, link_col=0, link_template="?class=${value}") }}
       <h1 class="is-size-3">Users</h1>
@@ -20,7 +22,7 @@
       <h1 class="is-size-3">Roles</h1>
       {{ datatable('roles', [('id', 'id'), ('username', 'username'), ('class_id', 'class_id'), ('role', 'role'), ('#queries', 'num_queries')], roles, link_col=0, link_template="?role=${value}") }}
     </div>
-    <div class="column is-full-widescreen is-7-fullhd">
+    <div class="column is-full-widescreen is-8-fullhd">
       <h1 class="is-size-3">
         Queries
       </h1>

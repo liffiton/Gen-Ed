@@ -8,14 +8,14 @@ from .db import get_db
 KEY_AUTH_USER = "__codehelp_auth_user"
 KEY_AUTH_USERID = "__codehelp_auth_user_id"
 KEY_AUTH_IS_ADMIN = "__codehelp_auth_is_admin"
-KEY_AUTH_ROLE = "__codehelp_auth_role"
+KEY_AUTH_LTI = "__codehelp_auth_lti"
 
 
-def set_session_auth(username, user_id, is_admin, role=None):
+def set_session_auth(username, user_id, is_admin, lti=None):
     session[KEY_AUTH_USER] = username
     session[KEY_AUTH_USERID] = user_id
     session[KEY_AUTH_IS_ADMIN] = is_admin
-    session[KEY_AUTH_ROLE] = role
+    session[KEY_AUTH_LTI] = lti
 
 
 def get_session_auth():
@@ -23,7 +23,7 @@ def get_session_auth():
         'username': session.get(KEY_AUTH_USER, ""),
         'user_id': session.get(KEY_AUTH_USERID, ""),
         'is_admin': session.get(KEY_AUTH_IS_ADMIN, False),
-        'role': session.get(KEY_AUTH_ROLE, None),
+        'lti': session.get(KEY_AUTH_LTI, None),
     }
 
 
@@ -74,7 +74,7 @@ def instructor_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         auth = get_session_auth()
-        if not auth['role'] or auth['role']['role'] != "instructor":
+        if not auth['lti'] or auth['lti']['role'] != "instructor":
             return abort(403)
         return f(*args, **kwargs)
     return decorated_function
@@ -84,17 +84,17 @@ def class_config_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         auth = get_session_auth()
-        assert 'role' in auth   # this requires login, so @login_required must be used before it
+        assert 'lti' in auth   # this requires login, so @login_required must be used before it
 
-        if auth['role'] is None:
+        if auth['lti'] is None:
             # Non-class user
             return f(*args, **kwargs)
 
         db = get_db()
-        class_row = db.execute("SELECT * FROM classes WHERE id=?", [auth['role']['class_id']]).fetchone()
+        class_row = db.execute("SELECT * FROM classes WHERE id=?", [auth['lti']['class_id']]).fetchone()
         if class_row['config'] == '{}':
             # Not yet configured
-            if auth['role']['role'] == 'instructor':
+            if auth['lti']['role'] == 'instructor':
                 flash("This class is not yet configured.  Please configure it so that you and your students can use the tool.", "danger")
                 return redirect(url_for("instructor.config_form"))
             else:
