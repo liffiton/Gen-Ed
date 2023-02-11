@@ -54,6 +54,7 @@ CREATE TABLE queries (
     issue TEXT NOT NULL,
     response_json TEXT,
     response_text TEXT,
+    helpful BOOLEAN CHECK (helpful in (0, 1)),
     user_id INTEGER NOT NULL,
     role_id INTEGER,
     FOREIGN KEY(user_id) REFERENCES users(id),

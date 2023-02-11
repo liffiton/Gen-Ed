@@ -230,3 +230,16 @@ def help_request():
     query_id = run_query(language, code, error, issue)
 
     return redirect(url_for(".help_view", query_id=query_id))
+
+
+@bp.route("/post_helpful", methods=["POST"])
+@login_required
+def post_helpful():
+    db = get_db()
+    auth = get_session_auth()
+
+    query_id = int(request.form['id'])
+    value = int(request.form['value'])
+    db.execute("UPDATE queries SET helpful=? WHERE id=? AND user_id=?", [value, query_id, auth['user_id']])
+    db.commit()
+    return ""
