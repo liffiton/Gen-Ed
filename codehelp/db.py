@@ -72,7 +72,6 @@ def migrate_command(migration_script):
     try:
         db.executescript(script)
         db.commit()
-        click.echo("Migration complete.")
         click.echo("[32;1m===Migration complete===[m")
     except Exception as e:
         click.echo(f"[31;1m===Migration failed===[m  [31m{e}[m")
