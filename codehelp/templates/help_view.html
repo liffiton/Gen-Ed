@@ -24,7 +24,7 @@
           <label class="label">When:</label>
         </div>
         <div class="field-body">
-          {{ (query.query_time | localtime).strftime("%Y-%m-%d %-I:%M%P") }}
+          {{ query.query_time | localtime }}
         </div>
       </div>
 

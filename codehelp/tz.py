@@ -21,4 +21,4 @@ def init_app(app):
         utc_dt = pytz.utc.localize(value)
         local_tz = pytz.timezone(session['timezone'])
         local_dt = utc_dt.astimezone(local_tz)
-        return local_dt
+        return local_dt.strftime("%Y-%m-%d %-I:%M%P")

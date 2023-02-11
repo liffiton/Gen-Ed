@@ -11,15 +11,12 @@
           {% for col in columns %}
             {% set value = row[col[1]] %}
             {% if 'time' in col[1] %}
-              {% set value = value | localtime %}
-              <td>{{ value.strftime("%Y-%m-%d %-I:%M%P") }}</td>
-            {% elif value | string | length > 30 %}
-              {% set title_value = value.strip() | replace("\r", "") | replace("\n", "&#13;" | safe) %}
-              <td><span title="{{ title_value }}">{{ value | truncate(30) }}</span></td>
+              <td>{{ value | localtime }}</td>
             {% else %}
-              <td>{{ value }}</td>
+              <td>{{ value | tbl_cell }}</td>
             {% endif %}
           {% endfor %}
+        </tr>
       {% endfor %}
     </tbody>
   </table>
