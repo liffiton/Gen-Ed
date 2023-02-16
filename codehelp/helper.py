@@ -163,10 +163,14 @@ def run_query(language, code, error, issue):
 
     db = get_db()
     auth = get_session_auth()
-    class_id = auth['lti']['class_id']
-    class_row = db.execute("SELECT * FROM classes WHERE id=?", [class_id]).fetchone()
-    class_config = json.loads(class_row['config'])
-    avoid_set = set(x.strip() for x in class_config.get('avoid', '').split('\n') if x.strip() != '')
+
+    if auth['lti'] is not None:
+        class_id = auth['lti']['class_id']
+        class_row = db.execute("SELECT * FROM classes WHERE id=?", [class_id]).fetchone()
+        class_config = json.loads(class_row['config'])
+        avoid_set = set(x.strip() for x in class_config.get('avoid', '').split('\n') if x.strip() != '')
+    else:
+        avoid_set = set()
 
     prompt, stop_seq = prompts.make_main_prompt(language, code, error, issue, avoid_set)
     # TODO: store prompt template in database for internal reference, esp. if it changes over time
