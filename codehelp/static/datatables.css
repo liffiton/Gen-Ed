@@ -3,6 +3,11 @@ table.datatable-table tbody tr { cursor: pointer; }
 table.datatable-table tbody tr:hover { background: #def; }
 /**/
 
+/* Avoiding x-overflows */
+table.datatable-table tbdody td { overflow-wrap: break-word; }
+.datatable-container { overflow-x: auto; }
+/**/
+
 .datatable-wrapper.no-header .datatable-container {
 	border-top: 1px solid #d9d9d9;
 }
