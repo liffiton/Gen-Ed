@@ -20,3 +20,8 @@ Setup & Running
   # or
   flask --app codehelp --debug run
 
+Running Tests
+-------------
+
+  python -m pytest
+
