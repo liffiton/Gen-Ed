@@ -84,7 +84,28 @@ System response:
     return prompt, stop_seq
 
 
-def make_cleanup_prompt(language, code, error, issue, orig_response_txt):
+def make_sufficient_prompt(language, code, error, issue):
+    return f"""You are a system for assisting a student with programming.  They can provide you with the relevant portion of their code, an error message if relevant, and an issue or question they need help with.  Please assess the following submission to determine whether you could provide help if you were to make assumptions about any missing information.
+If and only if critical information is missing or ambiguous and cannot be guessed or assumed, please describe for the student, clearly and directly, the additional information you need to be able to help.
+If the information provided is enough to be able to help, please respond with exactly: "OK"
+
+<lang>{language}</lang>
+
+<code>
+{code}
+</code>
+
+<error>
+{error}
+</error>
+
+<issue>
+{issue}
+</issue>
+"""
+
+
+def make_cleanup_prompt(orig_response_txt):
     return f"""The following (between [[start]] and [[end]]) was written to help a student in a CS class, but any complete lines of code could be giving them the answer rather than helping them figure it out themselves.  Rewrite the following to provide help without including example code.  Remove statements following the example code if they are referring to the example code itself.
 
 [[start]]

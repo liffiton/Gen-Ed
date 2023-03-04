@@ -1,3 +1,4 @@
+import asyncio
 import json
 import markdown
 import openai
@@ -105,25 +106,22 @@ def get_openai_key():
         return consumer_row['openai_key']
 
 
-def get_completion(prompt, stop_seq=None):
-    api_key = get_openai_key()
-
-    if not api_key:
-        msg = "Error: API key not set.  Request cannot be submitted."
-        return msg, msg
-
+async def get_completion(prompt, stop_seq=None):
     try:
-        openai.api_key = api_key
-        response = openai.Completion.create(
-            model="text-davinci-003",
-            prompt=prompt,
+        response = await openai.ChatCompletion.acreate(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+        #response = await openai.Completion.acreate(
+        #    model="text-davinci-003",
+        #    prompt=prompt,
             temperature=0.25,
             max_tokens=1000,
             stop=stop_seq,
             # TODO: add user= parameter w/ unique ID of user (e.g., hash of username+email or similar)
         )
 
-        response_txt = response.choices[0].text
+        response_txt = response.choices[0].message["content"]
+        #response_txt = response.choices[0].text
         response_reason = response.choices[0].finish_reason  # e.g. "length" if max_tokens reached
 
         if response_reason == "length":
@@ -155,15 +153,21 @@ def get_completion(prompt, stop_seq=None):
         response_txt = "Error (Exception).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
         pass
 
-    return response, response_txt
+    return response, response_txt.strip()
 
 
-def run_query(language, code, error, issue):
-    query_id = record_query(language, code, error, issue)
-
+async def run_query_prompts(language, code, error, issue):
     db = get_db()
     auth = get_session_auth()
 
+    # set openai API key for following completions
+    api_key = get_openai_key()
+    if not api_key:
+        msg = "Error: API key not set.  Request cannot be submitted."
+        return msg, msg
+    openai.api_key = api_key
+
+    # create "avoid set" from class configuration
     if auth['lti'] is not None:
         class_id = auth['lti']['class_id']
         class_row = db.execute("SELECT * FROM classes WHERE id=?", [class_id]).fetchone()
@@ -172,24 +176,48 @@ def run_query(language, code, error, issue):
     else:
         avoid_set = set()
 
-    prompt, stop_seq = prompts.make_main_prompt(language, code, error, issue, avoid_set)
-    # TODO: store prompt template in database for internal reference, esp. if it changes over time
-    #       (could just automatically add to a table if not present and get the autoID for it as foreign key)
+    # Launch the "sufficient detail" check concurrently with the main prompt to save time if it comes back as sufficient.
+    task_sufficient = asyncio.create_task(
+        get_completion(prompts.make_sufficient_prompt(language, code, error, issue), stop_seq=None)
+    )
 
-    # short circuit for testing w/o using GPT credits
-    if issue == "test":
-        current_app.logger.info(prompt)
-        record_response(query_id, "test response", "test response")
-        return query_id
+    task_main = asyncio.create_task(
+        get_completion(*prompts.make_main_prompt(language, code, error, issue, avoid_set))
+    )
 
-    response, response_txt = get_completion(prompt, stop_seq)
+    # Store all responses received
+    responses = []
+
+    # Check whether there is sufficient information
+    response_sufficient, response_sufficient_txt = await task_sufficient
+    responses.append(response_sufficient)
+
+    # And let's get the main response.
+    response, response_txt = await task_main
+    responses.append(response)
 
     if "```" in response_txt or "should look like" in response_txt or "should look something like" in response_txt:
         # That's probably too much code.  Let's clean it up...
-        cleanup_prompt = prompts.make_cleanup_prompt(language, code, error, issue, orig_response_txt=response_txt)
-        _, response_txt = get_completion(cleanup_prompt, stop_seq=None)
+        cleanup_prompt = prompts.make_cleanup_prompt(orig_response_txt=response_txt)
+        cleanup_response, cleanup_response_txt = await get_completion(cleanup_prompt, stop_seq=None)
+        responses.append(cleanup_response)
+        response_txt = cleanup_response_txt
 
-    record_response(query_id, response, response_txt)
+    if response_sufficient_txt != "OK":
+        # Give them the request for more information plus the main response, in case it's helpful.
+        final_txt = f"{response_sufficient_txt}\n\n*[However, here's an attempt at helping anyway:]*\n\n{response_txt}"
+        return responses, final_txt
+    else:
+        # We're using just the main response.
+        return responses, response_txt
+
+
+def run_query(language, code, error, issue):
+    query_id = record_query(language, code, error, issue)
+
+    responses, final_txt = asyncio.run(run_query_prompts(language, code, error, issue))
+
+    record_response(query_id, responses, final_txt)
 
     return query_id
 
@@ -209,12 +237,12 @@ def record_query(language, code, error, issue):
     return new_row_id
 
 
-def record_response(query_id, response, response_txt):
+def record_response(query_id, responses, final_txt):
     db = get_db()
 
     db.execute(
         "UPDATE queries SET response_json=?, response_text=? WHERE id=?",
-        [json.dumps(response), response_txt, query_id]
+        [json.dumps(responses), final_txt, query_id]
     )
     db.commit()
 
