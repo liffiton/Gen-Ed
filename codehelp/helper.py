@@ -15,7 +15,7 @@ def get_query(query_id):
     auth = get_session_auth()
 
     query_row = None
-    response_html = None
+    response_html_dict = None
 
     if auth['is_admin']:
         cur = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id WHERE queries.id=?", [query_id])
@@ -27,17 +27,17 @@ def get_query(query_id):
 
     if query_row:
         if query_row['response_text']:
-            response_html = markdown.markdown(
-                query_row['response_text'],
-                output_format="html5",
-                extensions=['fenced_code', 'sane_lists', 'smarty'],
-            )
+            text_dict = json.loads(query_row['response_text'])
+            response_html_dict = {
+                key: markdown.markdown(text, output_format="html5", extensions=['fenced_code', 'sane_lists', 'smarty'])
+                for key, text in text_dict.items()
+            }
         else:
-            response_html = "<i>No response -- an error occurred.  Please try again.</i>"
+            response_html_dict = {'error': "<i>No response -- an error occurred.  Please try again.</i>"}
     else:
         flash("Invalid id.", "warning")
 
-    return query_row, response_html
+    return query_row, response_html_dict
 
 
 def get_history():
@@ -75,7 +75,7 @@ def help_form(query_id=None):
 
     # populate with a query+response if one is specified in the query string
     if query_id is not None:
-        query_row, _ = get_query(query_id)   # _ because we don't need response_html here
+        query_row, _ = get_query(query_id)   # _ because we don't need response_html_dict here
         selected_lang = query_row['language']
 
     history = get_history()
@@ -87,10 +87,10 @@ def help_form(query_id=None):
 @login_required
 @class_config_required
 def help_view(query_id):
-    query_row, response_html = get_query(query_id)
+    query_row, response_html_dict = get_query(query_id)
     history = get_history()
 
-    return render_template("help_view.html", query=query_row, response_html=response_html, history=history)
+    return render_template("help_view.html", query=query_row, response_html_dict=response_html_dict, history=history)
 
 
 def get_openai_key():
@@ -111,9 +111,6 @@ async def get_completion(prompt, stop_seq=None):
         response = await openai.ChatCompletion.acreate(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
-        #response = await openai.Completion.acreate(
-        #    model="text-davinci-003",
-        #    prompt=prompt,
             temperature=0.25,
             max_tokens=1000,
             stop=stop_seq,
@@ -121,7 +118,6 @@ async def get_completion(prompt, stop_seq=None):
         )
 
         response_txt = response.choices[0].message["content"]
-        #response_txt = response.choices[0].text
         response_reason = response.choices[0].finish_reason  # e.g. "length" if max_tokens reached
 
         if response_reason == "length":
@@ -157,6 +153,12 @@ async def get_completion(prompt, stop_seq=None):
 
 
 async def run_query_prompts(language, code, error, issue):
+    ''' Run the given query against the coding help system of prompts.
+
+    Returns a tuple containing:
+      1) A list of response objects from the OpenAI completion (to be stored in the database)
+      2) A dictionary of response text, potentially including keys 'error', 'insufficient', and 'main'.
+    '''
     db = get_db()
     auth = get_session_auth()
 
@@ -164,7 +166,7 @@ async def run_query_prompts(language, code, error, issue):
     api_key = get_openai_key()
     if not api_key:
         msg = "Error: API key not set.  Request cannot be submitted."
-        return msg, msg
+        return [msg], {'error': msg}
     openai.api_key = api_key
 
     # create "avoid set" from class configuration
@@ -205,19 +207,18 @@ async def run_query_prompts(language, code, error, issue):
 
     if response_sufficient_txt.endswith("OK") or response_sufficient_txt.endswith("OK."):
         # We're using just the main response.
-        return responses, response_txt
+        return responses, {'main': response_txt}
     else:
         # Give them the request for more information plus the main response, in case it's helpful.
-        final_txt = f"{response_sufficient_txt}\n\n*[However, here's an attempt at helping anyway:]*\n\n{response_txt}"
-        return responses, final_txt
+        return responses, {'insufficient': response_sufficient_txt, 'main': response_txt}
 
 
 def run_query(language, code, error, issue):
     query_id = record_query(language, code, error, issue)
 
-    responses, final_txt = asyncio.run(run_query_prompts(language, code, error, issue))
+    responses, texts = asyncio.run(run_query_prompts(language, code, error, issue))
 
-    record_response(query_id, responses, final_txt)
+    record_response(query_id, responses, texts)
 
     return query_id
 
@@ -237,12 +238,12 @@ def record_query(language, code, error, issue):
     return new_row_id
 
 
-def record_response(query_id, responses, final_txt):
+def record_response(query_id, responses, texts):
     db = get_db()
 
     db.execute(
         "UPDATE queries SET response_json=?, response_text=? WHERE id=?",
-        [json.dumps(responses), final_txt, query_id]
+        [json.dumps(responses), json.dumps(texts), query_id]
     )
     db.commit()
 

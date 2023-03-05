@@ -41,7 +41,7 @@
         <div class="field-label is-normal">
           <label class="label">Code:</label>
         </div>
-        <div class="field-body">
+        <div class="field-body" style="overflow-x: auto;">
           <pre>
             {{- query.code -}}
           </pre>
@@ -70,11 +70,30 @@
 
     </div>
 
-    <div class="card mt-5 is-size-5">
+    <div class="card mt-5">
       <div class="card-content">
         <div class="content">
-          <p><span class="title">Response</span> <span class="subtitle ml-5 is-italic">Remember: It will not always be correct!</span></p>
-          {{ response_html | safe }}
+          <p><span class="title is-size-4">Response</span> <span class="subtitle ml-5 is-italic">Remember: It will not always be correct!</span></p>
+          {% if 'error' in response_html_dict %}
+            <div class="notification is-danger">
+              {{ response_html_dict['error'] | safe }}
+            </div>
+          {% endif %}
+          {% if 'insufficient' in response_html_dict %}
+            <div class="message is-warning">
+              <div class="message-header">
+                <p>Please clarify</p>
+              </div>
+              <div class="message-body">
+                {{ response_html_dict['insufficient'] | safe }}
+                <p style="border-top: solid 1px #c90; padding-top: 0.75rem;">An <i>attempt</i> at a response is below, but you can <a href="/help/{{query.id}}" class="button is-link is-outlined is-rounded p-2 ml-1 mr-1" style="vertical-align: baseline; height: 2rem;">Retry</a> this query and provide additional details or clarification to receive a more helpful response.
+                </p>
+              </div>
+            </div>
+          {% endif %}
+          {% if 'main' in response_html_dict %}
+            {{ response_html_dict['main'] | safe }}
+          {% endif %}
         </div>
       </div>
 
