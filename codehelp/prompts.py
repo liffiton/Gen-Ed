@@ -1,7 +1,7 @@
 import random
 
 
-def make_main_prompt(language, code, error, issue, avoid_set):
+def make_main_prompt(language, code, error, issue, avoid_set=set()):
     # generate the extra / avoidance instructions
     extra_list = ["any commonly-known unsafe coding practices"]
     extra_list.extend(avoid_set)
@@ -13,7 +13,7 @@ def make_main_prompt(language, code, error, issue, avoid_set):
 The student inputs provide:
  1) the programming language (in "<lang>" delimiters)
  2) extra context about the class they are in (in "<extra_{nonce}>")
- 3) a snippet of their code that they think is relevant to their question (in "<code_{nonce}>")
+ 3) a relevant snippet of their code (in "<code_{nonce}>")
  4) an error message they are seeing (in "<error_{nonce}>")
  5) a description of the issue and how they want assistance (in "<issue_{nonce}>")
 
@@ -85,24 +85,27 @@ System response:
 
 
 def make_sufficient_prompt(language, code, error, issue):
-    return f"""You are a system for assisting a student with programming.  They can provide you with the relevant portion of their code, an error message if relevant, and an issue or question they need help with.  Please assess the following submission to determine whether you could provide help if you were to make assumptions about any missing information.
-If and only if critical information is missing or ambiguous and cannot be guessed or assumed, please describe for the student, clearly and directly, the additional information you need to be able to help.
-If the information provided is enough to be able to help, please respond with exactly: "OK"
+    prompt = f"""You are a system for assisting students with programming.
+My inputs provide: the programming language, a snippet of code if relevant, an error message if relevant, and an issue or question I need help with.  If I provide an error message but the issue is empty, then I am asking for help understanding the error.  Please assess the following submission to determine whether it is sufficient for you to provide help or if additional information is needed.
 
+If no additional information is needed, please briefly summarize what I am asking for in words, no code, and then write "OK" on the final line by itself.
+Otherwise, if and only if critical information needed for you to help is missing, ask for the additional information you need to be able to help.  State your reasoning first.
+
+Inputs:
 <lang>{language}</lang>
-
 <code>
 {code}
 </code>
-
 <error>
 {error}
 </error>
-
 <issue>
 {issue}
 </issue>
+
+Response:
 """
+    return prompt, None
 
 
 def make_cleanup_prompt(orig_response_txt):

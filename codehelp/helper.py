@@ -178,7 +178,7 @@ async def run_query_prompts(language, code, error, issue):
 
     # Launch the "sufficient detail" check concurrently with the main prompt to save time if it comes back as sufficient.
     task_sufficient = asyncio.create_task(
-        get_completion(prompts.make_sufficient_prompt(language, code, error, issue), stop_seq=None)
+        get_completion(*prompts.make_sufficient_prompt(language, code, error, issue))
     )
 
     task_main = asyncio.create_task(
@@ -203,13 +203,13 @@ async def run_query_prompts(language, code, error, issue):
         responses.append(cleanup_response)
         response_txt = cleanup_response_txt
 
-    if response_sufficient_txt != "OK":
+    if response_sufficient_txt.endswith("OK") or response_sufficient_txt.endswith("OK."):
+        # We're using just the main response.
+        return responses, response_txt
+    else:
         # Give them the request for more information plus the main response, in case it's helpful.
         final_txt = f"{response_sufficient_txt}\n\n*[However, here's an attempt at helping anyway:]*\n\n{response_txt}"
         return responses, final_txt
-    else:
-        # We're using just the main response.
-        return responses, response_txt
 
 
 def run_query(language, code, error, issue):
