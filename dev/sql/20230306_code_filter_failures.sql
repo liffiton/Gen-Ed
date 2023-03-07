@@ -12,7 +12,7 @@ SELECT
 
 -- Extract examples w/ code still in
 SELECT
-    json_extract(response_json, '$[1].choices[0].message.content')
+    id, json_extract(response_json, '$[1].choices[0].message.content')
 	FROM queries
 	WHERE id >= 935 AND
           json_extract(response_json, '$[2].choices[0].message.content') LIKE "%```%"
