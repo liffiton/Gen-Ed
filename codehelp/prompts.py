@@ -112,4 +112,6 @@ def make_cleanup_prompt(orig_response_txt):
     return f"""The following was written to help a student in a CS class.  However, any example code (such as in ``` Markdown delimiters) can give the student an assignment's answer rather than help them figure it out themselves.  We need to provide help without including example code.  To do this, rewrite the following to remove any code blocks so that the response explains what the student should do but does not provide solution code.
 ---
 {orig_response_txt}
+---
+Rewritten:
 """
