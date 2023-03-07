@@ -1,4 +1,5 @@
 import csv
+import itertools
 
 from dotenv import load_dotenv
 import openai
@@ -11,15 +12,16 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from codehelp import prompts  # noqa
 
 
-def load_test_queries():
-    with open("test_queries.csv") as csvfile:
+def load_queries(filename):
+    with open(filename) as csvfile:
         reader = csv.DictReader(csvfile)
         return list(reader)
 
 
 class QueryView(urwid.WidgetWrap):
-    def __init__(self, queries, footer_counter):
+    def __init__(self, queries, fields, footer_counter):
         self._queries = queries
+        self._fields = fields
         self._footcnt = footer_counter
         self.curidx = 0
         self._contents = urwid.SimpleListWalker([])
@@ -31,29 +33,26 @@ class QueryView(urwid.WidgetWrap):
         self._footcnt.set_text(f"{self.curidx + 1} / {len(self._queries)}")
         item = self._queries[self.curidx]
         col_w = 10
-        self._contents[:] = [
-            urwid.Divider(),
-            urwid.Columns([
-                (col_w, urwid.Text(('label', "Code: "), 'right')),
-                urwid.Text(item['code']),
-            ]),
-            urwid.Divider(),
-            urwid.Columns([
-                (col_w, urwid.Text(('label', "Error: "), 'right')),
-                urwid.Text(item['error']),
-            ]),
-            urwid.Divider(),
-            urwid.Columns([
-                (col_w, urwid.Text(('label', "Issue: "), 'right')),
-                urwid.Text(item['issue']),
-            ]),
+        new_contents = list(itertools.chain.from_iterable(
+            (
+                urwid.Divider(),
+                urwid.Columns([
+                    (col_w, urwid.Text(('label', f"{field}: "), 'right')),
+                    urwid.Text(item[field]),
+                ])
+            )
+            for field in self._fields
+        ))
+        new_contents.extend([
             urwid.Divider('-'),
             urwid.Columns([
                 (col_w, urwid.Text(('response_label', "Response: "), 'right')),
-                urwid.Text(item.get('response', '')),
+                urwid.Text(item.get('__tester_response', '')),
             ]),
             urwid.Divider(),
-        ]
+        ])
+
+        self._contents[:] = new_contents
 
     def next(self):
         if self.curidx == len(self._queries) - 1:
@@ -68,43 +67,58 @@ class QueryView(urwid.WidgetWrap):
         self.update()
 
 
-def get_response(queries, index):
+def get_response(queries, index, model):
+    '''
+    model can be either 'davinci' or 'turbo'
+    '''
     item = queries[index]
+
     #prompt, stop_seq = prompts.make_main_prompt(
-    prompt, stop_seq = prompts.make_sufficient_prompt(
-        language="python",
-        code=item['code'],
-        error=item['error'],
-        issue=item['issue'],
-    )
+
+    #prompt, stop_seq = prompts.make_sufficient_prompt(
+    #    language="python",
+    #    code=item['code'],
+    #    error=item['error'],
+    #    issue=item['issue'],
+    #)
+
+    prompt = prompts.make_cleanup_prompt(item['response'])
+    stop_seq = None
 
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-        #response = openai.Completion.create(
-        #    model="text-davinci-003",
-        #    prompt=prompt,
-            temperature=0.25,
-            max_tokens=1000,
-            stop=stop_seq,
-            # TODO: add user= parameter w/ unique ID of user (e.g., hash of username+email or similar)
-        )
+        if model == 'davinci':
+            response = openai.Completion.create(
+                model="text-davinci-003",
+                prompt=prompt,
+                temperature=0.25,
+                max_tokens=1000,
+                stop=stop_seq,
+                # TODO: add user= parameter w/ unique ID of user (e.g., hash of username+email or similar)
+            )
+            response_txt = response.choices[0].text
+        elif model == 'turbo':
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.25,
+                max_tokens=1000,
+                stop=stop_seq,
+                # TODO: add user= parameter w/ unique ID of user (e.g., hash of username+email or similar)
+            )
+            response_txt = response.choices[0].message["content"]
 
-        response_txt = response.choices[0].message["content"]
-        #response_txt = response.choices[0].text
         response_reason = response.choices[0].finish_reason  # e.g. "length" if max_tokens reached
 
         if response_reason == "length":
             response_txt += "\n\n[error: maximum length exceeded]"
 
-        item['response'] = response_txt
+        item['__tester_response'] = response_txt
 
     except:  # noqa
-        item['response'] = "[An error occurred in the openai completion.]"
+        item['__tester_response'] = "[An error occurred in the openai completion.]"
 
 
-def main():
+def setup_openai():
     # load config values from .env file
     load_dotenv()
     try:
@@ -114,8 +128,17 @@ def main():
         print("Error:  OPENAI_API_KEY environment variable not set.", file=sys.stderr)
         sys.exit(1)
 
-    queries = load_test_queries()
 
+def main():
+    setup_openai()
+
+    # Setup / run config
+    queries = load_queries(sys.argv[1])
+    #fields = ['code', 'error', 'issue']
+    fields = ['response']
+    model = 'turbo'
+
+    # Make the UI
     header = urwid.AttrMap(urwid.Text("Query Tester"), 'header')
     footer_counter = urwid.Text("x/x")
     footer = urwid.AttrMap(
@@ -126,7 +149,7 @@ def main():
         ]),
         'footer'
     )
-    viewer = QueryView(queries, footer_counter)
+    viewer = QueryView(queries, fields, footer_counter)
     frame = urwid.Frame(urwid.AttrMap(viewer, 'body'), header=header, footer=footer)
 
     palette = [
@@ -143,11 +166,12 @@ def main():
             case 'k':
                 viewer.prev()
             case 'g':
-                get_response(queries, viewer.curidx)
+                get_response(queries, viewer.curidx, model=model)
                 viewer.update()
             case 'q':
                 raise urwid.ExitMainLoop()
 
+    # And go!
     urwid.MainLoop(frame, palette, unhandled_input=unhandled).run()
 
 
