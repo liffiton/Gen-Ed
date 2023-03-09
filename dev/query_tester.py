@@ -1,4 +1,6 @@
+import argparse
 import csv
+from importlib import reload
 import itertools
 
 from dotenv import load_dotenv
@@ -67,23 +69,30 @@ class QueryView(urwid.WidgetWrap):
         self.update()
 
 
-def get_response(queries, index, model):
+def get_response(queries, index, test_type, model):
     '''
     model can be either 'davinci' or 'turbo'
     '''
     item = queries[index]
 
-    #prompt, stop_seq = prompts.make_main_prompt(
-
-    #prompt, stop_seq = prompts.make_sufficient_prompt(
-    #    language="python",
-    #    code=item['code'],
-    #    error=item['error'],
-    #    issue=item['issue'],
-    #)
-
-    prompt = prompts.make_cleanup_prompt(item['response'])
-    stop_seq = None
+    match test_type:
+        case "helper":
+            prompt, stop_seq = prompts.make_main_prompt(
+                language="python",
+                code=item['code'],
+                error=item['error'],
+                issue=item['issue'],
+            )
+        case "sufficient":
+            prompt, stop_seq = prompts.make_sufficient_prompt(
+                language="python",
+                code=item['code'],
+                error=item['error'],
+                issue=item['issue'],
+            )
+        case "cleanup":
+            prompt = prompts.make_cleanup_prompt(item['response'])
+            stop_seq = None
 
     try:
         if model == 'davinci':
@@ -133,10 +142,19 @@ def main():
     setup_openai()
 
     # Setup / run config
-    queries = load_queries(sys.argv[1])
-    #fields = ['code', 'error', 'issue']
-    fields = ['response']
-    model = 'turbo'
+    parser = argparse.ArgumentParser(description='A tool for running queries against data from a CSV file.')
+    parser.add_argument('filename', type=str, help='The filename of the CSV file to be read.')
+    parser.add_argument('test_type', type=str, choices=['helper', 'sufficient', 'cleanup'], help='The type of test to run.')
+    parser.add_argument('model', type=str, choices=['davinci', 'turbo'], help='The LLM to use.')
+    args = parser.parse_args()
+
+    queries = load_queries(args.filename)
+
+    match args.test_type:
+        case "helper" | "sufficient":
+            fields = ['code', 'error', 'issue']
+        case "cleanup":
+            fields = ['response']
 
     # Make the UI
     header = urwid.AttrMap(urwid.Text("Query Tester"), 'header')
@@ -145,7 +163,7 @@ def main():
         urwid.Columns([
             (15, urwid.Text("Query Tester")),
             (10, footer_counter),
-            urwid.Text("j:next, k:prev, g:get response, q:quit", 'right'),
+            urwid.Text("j:next, k:prev, g:get response, r:reload prompts, q:quit", 'right'),
         ]),
         'footer'
     )
@@ -166,8 +184,10 @@ def main():
             case 'k':
                 viewer.prev()
             case 'g':
-                get_response(queries, viewer.curidx, model=model)
+                get_response(queries, viewer.curidx, args.test_type, args.model)
                 viewer.update()
+            case 'r':
+                reload(prompts)
             case 'q':
                 raise urwid.ExitMainLoop()
 
