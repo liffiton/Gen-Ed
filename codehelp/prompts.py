@@ -3,9 +3,10 @@ import random
 
 def make_main_prompt(language, code, error, issue, avoid_set=set()):
     # generate the extra / avoidance instructions
-    extra_list = list(avoid_set)
-    extra_list.append("eval()")
-    extra_text = f"Do not use in your response: {', '.join(extra_list)}."
+    if avoid_set:
+        extra_text = f"Do not use in your response: {', '.join(avoid_set)}."
+    else:
+        extra_text = ""
 
     if error.strip() == '':
         error = "[no error message]"
