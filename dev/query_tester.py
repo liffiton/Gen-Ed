@@ -48,6 +48,11 @@ class QueryView(urwid.WidgetWrap):
         new_contents.extend([
             urwid.Divider('-'),
             urwid.Columns([
+                (col_w, urwid.Text(('response_label', "Usage: "), 'right')),
+                urwid.Text(item.get('__tester_usage', '')),
+            ]),
+            urwid.Divider(),
+            urwid.Columns([
                 (col_w, urwid.Text(('response_label', "Response: "), 'right')),
                 urwid.Text(item.get('__tester_response', '')),
             ]),
@@ -77,14 +82,14 @@ def get_response(queries, index, test_type, model):
 
     match test_type:
         case "helper":
-            prompt, stop_seq = prompts.make_main_prompt(
+            prompt = prompts.make_main_prompt(
                 language="python",
                 code=item['code'],
                 error=item['error'],
                 issue=item['issue'],
             )
         case "sufficient":
-            prompt, stop_seq = prompts.make_sufficient_prompt(
+            prompt = prompts.make_sufficient_prompt(
                 language="python",
                 code=item['code'],
                 error=item['error'],
@@ -92,7 +97,6 @@ def get_response(queries, index, test_type, model):
             )
         case "cleanup":
             prompt = prompts.make_cleanup_prompt(item['response'])
-            stop_seq = None
 
     try:
         if model == 'davinci':
@@ -101,8 +105,6 @@ def get_response(queries, index, test_type, model):
                 prompt=prompt,
                 temperature=0.25,
                 max_tokens=1000,
-                stop=stop_seq,
-                # TODO: add user= parameter w/ unique ID of user (e.g., hash of username+email or similar)
             )
             response_txt = response.choices[0].text
         elif model == 'turbo':
@@ -111,17 +113,18 @@ def get_response(queries, index, test_type, model):
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.25,
                 max_tokens=1000,
-                stop=stop_seq,
-                # TODO: add user= parameter w/ unique ID of user (e.g., hash of username+email or similar)
+                n=3,
             )
-            response_txt = response.choices[0].message["content"]
+            response_txt = '\n\n----------\n\n'.join(x.message['content'] for x in response.choices)
 
-        response_reason = response.choices[0].finish_reason  # e.g. "length" if max_tokens reached
+        response_reason = response.choices[-1].finish_reason  # e.g. "length" if max_tokens reached
 
         if response_reason == "length":
             response_txt += "\n\n[error: maximum length exceeded]"
 
         item['__tester_response'] = response_txt
+
+        item['__tester_usage'] = f"Prompt: {response.usage['prompt_tokens']}  Completion: {response.usage['completion_tokens']}  Total: {response.usage['total_tokens']}"
 
     except:  # noqa
         item['__tester_response'] = "[An error occurred in the openai completion.]"

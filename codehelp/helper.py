@@ -106,7 +106,7 @@ def get_openai_key():
         return consumer_row['openai_key']
 
 
-async def get_completion(prompt, stop_seq=None, model='turbo'):
+async def get_completion(prompt, model='turbo'):
     '''
     model can be either 'davinci' or 'turbo'
     '''
@@ -117,7 +117,6 @@ async def get_completion(prompt, stop_seq=None, model='turbo'):
                 prompt=prompt,
                 temperature=0.25,
                 max_tokens=1000,
-                stop=stop_seq,
                 # TODO: add user= parameter w/ unique ID of user (e.g., hash of username+email or similar)
             )
             response_txt = response.choices[0].text
@@ -127,7 +126,6 @@ async def get_completion(prompt, stop_seq=None, model='turbo'):
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.25,
                 max_tokens=1000,
-                stop=stop_seq,
                 # TODO: add user= parameter w/ unique ID of user (e.g., hash of username+email or similar)
             )
             response_txt = response.choices[0].message["content"]
@@ -194,11 +192,11 @@ async def run_query_prompts(language, code, error, issue):
 
     # Launch the "sufficient detail" check concurrently with the main prompt to save time if it comes back as sufficient.
     task_sufficient = asyncio.create_task(
-        get_completion(*prompts.make_sufficient_prompt(language, code, error, issue), model='turbo')
+        get_completion(prompts.make_sufficient_prompt(language, code, error, issue), model='turbo')
     )
 
     task_main = asyncio.create_task(
-        get_completion(*prompts.make_main_prompt(language, code, error, issue, avoid_set), model='turbo')
+        get_completion(prompts.make_main_prompt(language, code, error, issue, avoid_set), model='turbo')
     )
 
     # Store all responses received
@@ -215,7 +213,7 @@ async def run_query_prompts(language, code, error, issue):
     if "```" in response_txt or "should look like" in response_txt or "should look something like" in response_txt:
         # That's probably too much code.  Let's clean it up...
         cleanup_prompt = prompts.make_cleanup_prompt(orig_response_txt=response_txt)
-        cleanup_response, cleanup_response_txt = await get_completion(cleanup_prompt, stop_seq=None, model='davinci')
+        cleanup_response, cleanup_response_txt = await get_completion(cleanup_prompt, model='davinci')
         responses.append(cleanup_response)
         response_txt = cleanup_response_txt
 

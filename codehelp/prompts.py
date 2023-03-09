@@ -11,8 +11,7 @@ def make_main_prompt(language, code, error, issue, avoid_set=set()):
         error = "[no error message]"
 
     nonce = random.randint(1000, 9999)
-    stop_seq = f"</response_{nonce}>"
-    prompt = f"""You are a system for assisting a student with programming.
+    return f"""You are a system for assisting a student with programming.
 The students provide:
  1) the programming language (in "<lang>" delimiters)
  2) a relevant snippet of their code (in "<code_{nonce}>")
@@ -46,11 +45,10 @@ How would you respond to the student to guide them and explain concepts without 
 
 System Response:
 """
-    return prompt, stop_seq
 
 
 def make_sufficient_prompt(language, code, error, issue):
-    prompt = f"""You are a system for assisting students with programming.
+    return f"""You are a system for assisting students with programming.
 My inputs provide: the programming language, a snippet of code if relevant, an error message if relevant, and an issue or question I need help with.  If I provide an error message but the issue is empty, then I am asking for help understanding the error.  Please assess the following submission to determine whether it is sufficient for you to provide help or if additional information is needed.
 
 If no additional information is needed, please briefly summarize what I am asking for in words, no code, and then write "OK" on the final line by itself.
@@ -70,7 +68,6 @@ Inputs:
 
 Response:
 """
-    return prompt, None
 
 
 def make_cleanup_prompt(orig_response_txt):
