@@ -106,7 +106,23 @@ def get_openai_key():
         return consumer_row['openai_key']
 
 
-async def get_completion(prompt, model='turbo'):
+def score_response(response_txt, avoid_set):
+    ''' Return an integer score for a given response text.
+    Returns:
+        0 = best.
+        Negative values for responses including indications of code blocks or keywords in the avoid set.
+        Indications of code blocks are weighted most heavily.
+    '''
+    score = 0
+    for bad_kw in avoid_set:
+        score -= response_txt.count(bad_kw)
+    for code_indication in ['```', 'should look like', 'should look something like']:
+        score -= 100 * response_txt.count(code_indication)
+
+    return score
+
+
+async def get_completion(prompt, model='turbo', n=1, avoid_set=set()):
     '''
     model can be either 'davinci' or 'turbo'
     '''
@@ -117,20 +133,24 @@ async def get_completion(prompt, model='turbo'):
                 prompt=prompt,
                 temperature=0.25,
                 max_tokens=1000,
+                n=n,
                 # TODO: add user= parameter w/ unique ID of user (e.g., hash of username+email or similar)
             )
-            response_txt = response.choices[0].text
+            best_choice = max(response.choices, key=lambda choice: score_response(choice.text, avoid_set))
+            response_txt = best_choice.text
         elif model == 'turbo':
             response = await openai.ChatCompletion.acreate(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.25,
                 max_tokens=1000,
+                n=n,
                 # TODO: add user= parameter w/ unique ID of user (e.g., hash of username+email or similar)
             )
-            response_txt = response.choices[0].message["content"]
+            best_choice = max(response.choices, key=lambda choice: score_response(choice.message['content'], avoid_set))
+            response_txt = best_choice.message["content"]
 
-        response_reason = response.choices[0].finish_reason  # e.g. "length" if max_tokens reached
+        response_reason = best_choice.finish_reason  # e.g. "length" if max_tokens reached
 
         if response_reason == "length":
             response_txt += "\n\n[error: maximum length exceeded]"
@@ -196,7 +216,7 @@ async def run_query_prompts(language, code, error, issue):
     )
 
     task_main = asyncio.create_task(
-        get_completion(prompts.make_main_prompt(language, code, error, issue, avoid_set), model='turbo')
+        get_completion(prompts.make_main_prompt(language, code, error, issue, avoid_set), model='turbo', n=2, avoid_set=avoid_set)
     )
 
     # Store all responses received
