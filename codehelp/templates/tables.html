@@ -1,9 +1,12 @@
-{% macro datatable(name, columns, data, link_col=None, link_template=None) -%}
+{% macro datatable(name, columns, data, link_col=None, link_template=None, edit_link=None) -%}
   <table id="tbl_{{name}}">
     <thead>
       {% for col in columns %}
         <th>{{ col[0] }}</th>
       {% endfor %}
+      {% if edit_link %}
+        <th data-sortable="False" data-searchable="False"></th>
+      {% endif %}
     </thead>
     <tbody>
       {% for row in data %}
@@ -16,6 +19,9 @@
               <td>{{ value | tbl_cell }}</td>
             {% endif %}
           {% endfor %}
+          {% if edit_link %}
+            <td><a class="button is-warning is-small p-2" href="{{ edit_link }}{{ row['id'] }}">Edit</a></td>
+          {% endif %}
         </tr>
       {% endfor %}
     </tbody>

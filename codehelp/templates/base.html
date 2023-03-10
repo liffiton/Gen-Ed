@@ -40,8 +40,12 @@ ${ options.searchable ?
 </div>`,
         });
         table.on("datatable.selectrow", (row, event) => {
-          if (event.button == 2) {
-            // right click -- don't trigger anything
+          if (event.button !== 0) {
+            // right click or middle -- don't trigger anything
+            return;
+          }
+          if (event.target.tagName !== 'TD') {
+            // button or something other than the data/cell itself -- don't trigger anything and let the default happen
             return;
           }
           const value = table.data.data[row][link_col].text;

@@ -8,7 +8,12 @@ from .auth import admin_required
 
 bp = Blueprint('admin', __name__, url_prefix="/admin", template_folder='templates')
 
-Filter = namedtuple('Filter', ('name', 'column', 'value'))
+
+@bp.before_request
+@admin_required
+def before_request():
+    """ Protect all of the admin endpoints. """
+    pass
 
 
 def reload_consumers():
@@ -20,11 +25,7 @@ def reload_consumers():
     current_app.config['PYLTI_CONFIG']['consumers'] = consumer_dict
 
 
-@bp.before_request
-@admin_required
-def before_request():
-    """ Protect all of the admin endpoints. """
-    pass
+Filter = namedtuple('Filter', ('name', 'column', 'value'))
 
 
 class Filters:
