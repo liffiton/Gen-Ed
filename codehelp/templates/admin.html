@@ -1,36 +1,5 @@
-{% extends "base.html" %}
-{% from "tables.html" import datatable %}
+{% extends "admin_base.html" %}
 
-{% block body %}
-<section class="section">
-  <div class="buttons is-inline">
-    {% for filter in filters %}
-      <a class="button is-info is-rounded p-3" href="?">
-        {{filter.name}} = {{filter.value}}
-        <span class="delete is-small is-link ml-2"></span>
-      </a>
-    {% endfor %}
-  </div>
-  <div class="columns is-multiline is-desktop">
-    <div class="column is-7-desktop is-4-fullhd">
-      <h1 class="is-size-3">Consumers <a class="button is-light is-link is-small mt-2" href="{{url_for('admin.consumer_form')}}">Create New</a></h1>
-      {{ datatable('consumers', [('id', 'id'), ('consumer', 'lti_consumer'), ('#queries', 'num_queries')], consumers, link_col=0, link_template="?consumer=${value}", edit_link="consumer/") }}
-      <h1 class="is-size-3">Classes</h1>
-      {{ datatable('classes', [('id', 'id'), ('name', 'lti_context_label'), ('consumer', 'lti_consumer'), ('lti_id', 'lti_context_id'), ('#queries', 'num_queries')], classes, link_col=0, link_template="?class=${value}") }}
-      <h1 class="is-size-3">Users</h1>
-      {{ datatable('users', [('id', 'id'), ('username', 'username'), ('lti_id', 'lti_id'), ('#queries', 'num_queries')], users, link_col=1, link_template="?username=${value}") }}
-      <h1 class="is-size-3">Roles</h1>
-      {{ datatable('roles', [('id', 'id'), ('username', 'username'), ('class_id', 'class_id'), ('role', 'role'), ('#queries', 'num_queries')], roles, link_col=0, link_template="?role=${value}") }}
-    </div>
-    <div class="column is-full-widescreen is-8-fullhd">
-      <h1 class="is-size-3">
-        Queries
-      </h1>
-      {{ datatable('queries', [('id', 'id'), ('user', 'username'), ('time', 'query_time'), ('language', 'language'), ('code', 'code'), ('error', 'error'), ('issue', 'issue'), ('response', 'response_text'), ('helpful', 'helpful_emoji')], queries, link_col=0, link_template="/help/view/${value}") }}
-    </div>
-  </div>
-</section>
-<section class="section">
-  <a href="get_db">Download DB</a>
-</section>
+{% block admin_queries %}
+  {{ datatable('queries', [('id', 'id'), ('user', 'username'), ('time', 'query_time'), ('language', 'language'), ('code', 'code'), ('error', 'error'), ('issue', 'issue'), ('response', 'response_text'), ('helpful', 'helpful_emoji')], queries, link_col=0, link_template="/help/view/${value}") }}
 {% endblock %}

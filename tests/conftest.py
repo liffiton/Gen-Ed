@@ -3,7 +3,7 @@ import tempfile
 
 import pytest
 from codehelp import create_app
-from codehelp.db import get_db, init_db
+from shared.db import get_db, init_db
 
 
 # Load test DB data

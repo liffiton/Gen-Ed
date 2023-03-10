@@ -1,6 +1,6 @@
 import pytest
 
-from codehelp.auth import get_session_auth
+from shared.auth import get_session_auth
 
 
 @pytest.mark.parametrize(('username', 'password', 'status', 'message', 'is_admin'), (

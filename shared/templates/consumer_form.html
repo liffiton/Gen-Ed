@@ -32,7 +32,7 @@
       <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label" for="lti_secret">lti_secret:</label>
-          <p class="has-text-grey">A shared secret used by the LTI consumer (the LMS) to authenticate itself with CodeHelp.  If blank, users from this consumer will not be able to connect.</p>
+          <p class="has-text-grey">A shared secret used by the LTI consumer (the LMS) to authenticate itself with this application.  If blank, users from this consumer will not be able to connect.</p>
         </div>
         <div class="field-body">
           {% if consumer and consumer.lti_secret %}
@@ -53,7 +53,7 @@
       <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label" for="openai_key">openai_key:</label>
-          <p class="has-text-grey">A shared secret used by CodeHelp to authenticate itself with the OpenAI API.  If blank, users from this consumer will not be able to submit queries.</p>
+          <p class="has-text-grey">A shared secret used by this application to authenticate itself with the OpenAI API.  If blank, users from this consumer will not be able to submit queries.</p>
         </div>
         <div class="field-body">
           {% if consumer and consumer.openai_key %}

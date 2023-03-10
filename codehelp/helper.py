@@ -6,8 +6,8 @@ import openai
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 
 from . import prompts
-from .db import get_db
-from .auth import get_session_auth, login_required, class_config_required
+from shared.db import get_db
+from shared.auth import get_session_auth, login_required, class_config_required
 
 
 def get_query(query_id):

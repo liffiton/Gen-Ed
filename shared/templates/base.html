@@ -63,13 +63,13 @@ ${ options.searchable ?
       fetch("/set_timezone", {method: 'POST', body: timezone});
     </script>
     {% endif %}
-    <title>CodeHelp</title>
+    <title>{{ config['APPLICATION_TITLE'] }}</title>
   </head>
   <body>
     <nav class="navbar is-dark is-size-5" role="navigation" aria-label="main navigation" x-data="{menu_open: false}">
       <div class="navbar-brand">
         <a class="navbar-item is-size-3" href="/">
-          CodeHelp
+          {{ config['APPLICATION_TITLE'] }}
         </a>
         {% if auth['username'] %}
           <a class="navbar-item has-text-success" href="/help/">

@@ -1,50 +1,23 @@
-import logging
 import os
-import sys
 
-from dotenv import load_dotenv
-from flask import Flask, render_template
+from flask import Flask
 
-from . import admin
-from . import auth
-from . import db
+from shared import base
+from shared import admin
 from . import helper
-from . import instructor
-from . import lti
-from . import tz
-from . import utils
 
 
 def create_app(test_config=None):
     # create and configure the app
+
     app = Flask(__name__, instance_relative_config=True)
 
-    #from werkzeug.middleware.profiler import ProfilerMiddleware
-    #app.wsgi_app = ProfilerMiddleware(app.wsgi_app)
-
-    # set logging level
-    if not app.debug:
-        app.logger.setLevel(logging.INFO)
-
-    # strip whitespace before and after {% ... %} template statements
-    app.jinja_env.lstrip_blocks = True
-    app.jinja_env.trim_blocks = True
-
-    # load config values from .env file
-    load_dotenv()
-    try:
-        openai_key = os.environ["OPENAI_API_KEY"]
-    except KeyError:
-        print("Error:  OPENAI_API_KEY environment variable not set.", file=sys.stderr)
-        sys.exit(1)
+    base.configure_app_base(app)
 
     app.config.from_mapping(
+        APPLICATION_TITLE='CodeHelp',
+        DATABASE=os.path.join(app.instance_path, 'codehelp.db'),
         SECRET_KEY='_oeofMFVOeT-Z730Ksz44Q',
-        OPENAI_API_KEY=openai_key,
-        PYLTI_CONFIG={
-            # will be loaded from the consumers table in the database
-            "consumers": { }
-        },
         LANGUAGES=[
             "c",
             "c++",
@@ -54,39 +27,18 @@ def create_app(test_config=None):
             "python",
             "rust",
         ],
-        DATABASE=os.path.join(app.instance_path, 'codehelp.db'),
     )
 
-    with app.app_context():
-        admin.reload_consumers()
-
-    # load test config if provided
+    # load test config if provided, potentially overriding above config
     if test_config is not None:
         app.config.from_mapping(test_config)
 
-    # ensure the instance folder exists
-    try:
-        os.makedirs(app.instance_path)
-    except OSError:
-        pass
+    # load consumers from DB (but only if we're not in testing mode)
+    if not app.config['TESTING']:
+        with app.app_context():
+            admin.reload_consumers()
 
-    db.init_app(app)
-    tz.init_app(app)
-    utils.init_app(app)
-
-    app.register_blueprint(admin.bp)
-    app.register_blueprint(auth.bp)
+    # register blueprints specific to this application variant
     app.register_blueprint(helper.bp)
-    app.register_blueprint(instructor.bp)
-    app.register_blueprint(lti.bp)
-
-    # Inject auth data into template contexts
-    @app.context_processor
-    def inject_auth_data():
-        return dict(auth=auth.get_session_auth())
-
-    @app.route('/')
-    def index():
-        return render_template("index.html")
 
     return app

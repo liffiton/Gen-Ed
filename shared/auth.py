@@ -2,7 +2,7 @@ from functools import wraps
 from flask import Blueprint, abort, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
 
-from .db import get_db
+from shared.db import get_db
 
 # Constants for use in session dictionary
 KEY_AUTH_USER = "__codehelp_auth_user"
