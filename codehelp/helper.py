@@ -79,7 +79,7 @@ async def run_query_prompts(language, code, error, issue):
     db = get_db()
     auth = get_session_auth()
 
-    # set openai API key for following completions
+    # get openai API key for following completions
     api_key = get_openai_key()
     if not isinstance(api_key, str) or api_key == '':
         msg = "Error: API key not set.  Request cannot be submitted."

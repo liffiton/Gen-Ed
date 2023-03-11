@@ -4,8 +4,8 @@
   {% for prev in history %}
     <div class="box p-3">
       <div class="buttons has-addons are-small is-pulled-right">
-        <a href="/help/view/{{prev.id}}" class="button is-link is-outlined is-rounded p-2">View</a>
-        <a href="/help/{{prev.id}}" class="button is-link is-outlined is-rounded p-2">Retry</a>
+        <a href="{{url_for('helper.help_view', query_id=prev.id)}}" class="button is-link is-outlined is-rounded p-2">View</a>
+        <a href="{{url_for('helper.help_form', query_id=prev.id)}}" class="button is-link is-outlined is-rounded p-2">Retry</a>
       </div>
       {{prev.language | capitalize}}: <code>{{prev.code | truncate(50)}}</code> | <code>{{prev.error | truncate(50)}}</code>
       <br>

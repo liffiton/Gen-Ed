@@ -1,7 +1,7 @@
 from logging.config import dictConfig
 import os
+import sqlite3
 import sys
-
 
 from dotenv import load_dotenv
 from flask import render_template
@@ -65,6 +65,14 @@ def configure_app_base(app):
             "consumers": { }
         },
     )
+
+    # load consumers from DB (but only if the database is initialized)
+    try:
+        with app.app_context():
+            admin.reload_consumers()
+    except sqlite3.OperationalError:
+        # the table doesn't exist yet -- that's fine
+        pass
 
     db.init_app(app)
     tz.init_app(app)
