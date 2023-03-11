@@ -2,10 +2,12 @@ from logging.config import dictConfig
 import os
 import sys
 
+
 from dotenv import load_dotenv
 from flask import render_template
+import markupsafe
 
-from shared import admin, auth, db, instructor, lti, tz, utils
+from shared import admin, auth, db, instructor, lti, tz
 
 
 def configure_app_base(app):
@@ -66,7 +68,6 @@ def configure_app_base(app):
 
     db.init_app(app)
     tz.init_app(app)
-    utils.init_app(app)
 
     app.register_blueprint(admin.bp)
     app.register_blueprint(auth.bp)
@@ -77,6 +78,21 @@ def configure_app_base(app):
     @app.context_processor
     def inject_auth_data():
         return dict(auth=auth.get_session_auth())
+
+    # Set up a Jinja filter for table cell contents
+    @app.template_filter('tbl_cell')
+    def table_cell_filter(value):
+        '''Format a value to be displayed in a table cell.'''
+        value = str(value)
+
+        if len(value) > 30:
+            value = value.strip().replace('\r', '')
+            value = app.jinja_env.filters['e'](value)
+            value_trunc = value[:30] + " ..."
+            value_title = value.replace('\n', markupsafe.Markup('&#13;'))
+            return markupsafe.Markup(f"<span title='{value_title}'>{value_trunc}</span>")
+        else:
+            return value
 
     @app.route('/')
     def index():

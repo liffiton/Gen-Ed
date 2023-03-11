@@ -1,53 +1,13 @@
 import asyncio
 import json
-import markdown
-import openai
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, redirect, render_template, request, url_for
 
 from . import prompts
 from shared.db import get_db
 from shared.auth import get_session_auth, login_required, class_config_required
-
-
-def get_query(query_id):
-    db = get_db()
-    auth = get_session_auth()
-
-    query_row = None
-    response_html_dict = None
-
-    if auth['is_admin']:
-        cur = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id WHERE queries.id=?", [query_id])
-    elif auth['lti'] is not None and auth['lti']['role'] == 'instructor':
-        cur = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id JOIN roles ON queries.role_id=roles.id WHERE (roles.class_id=? OR queries.user_id=?) AND queries.id=?", [auth['lti']['class_id'], auth['user_id'], query_id])
-    else:
-        cur = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id WHERE queries.user_id=? AND queries.id=?", [auth['user_id'], query_id])
-    query_row = cur.fetchone()
-
-    if query_row:
-        if query_row['response_text']:
-            text_dict = json.loads(query_row['response_text'])
-            response_html_dict = {
-                key: markdown.markdown(text, output_format="html5", extensions=['fenced_code', 'sane_lists', 'smarty'])
-                for key, text in text_dict.items()
-            }
-        else:
-            response_html_dict = {'error': "<i>No response -- an error occurred.  Please try again.</i>"}
-    else:
-        flash("Invalid id.", "warning")
-
-    return query_row, response_html_dict
-
-
-def get_history():
-    '''Fetch current user's query history.'''
-    db = get_db()
-    auth = get_session_auth()
-
-    cur = db.execute("SELECT * FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT 10", [auth['user_id']])
-    history = cur.fetchall()
-    return history
+from shared.openai import set_openai_key, get_completion
+from shared.queries import get_query, get_history
 
 
 bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='templates')
@@ -93,19 +53,6 @@ def help_view(query_id):
     return render_template("help_view.html", query=query_row, response_html_dict=response_html_dict, history=history)
 
 
-def get_openai_key():
-    '''Get the openai API key for the current consumer,
-       or else use the default key in the config for non-LTI users.'''
-    db = get_db()
-    auth = get_session_auth()
-    if auth['lti'] is None:
-        # default key for non-LTI users
-        return current_app.config["OPENAI_API_KEY"]
-    else:
-        consumer_row = db.execute("SELECT openai_key FROM consumers WHERE lti_consumer=?", [auth['lti']['consumer']]).fetchone()
-        return consumer_row['openai_key']
-
-
 def score_response(response_txt, avoid_set):
     ''' Return an integer score for a given response text.
     Returns:
@@ -122,68 +69,6 @@ def score_response(response_txt, avoid_set):
     return score
 
 
-async def get_completion(prompt, model='turbo', n=1, avoid_set=set()):
-    '''
-    model can be either 'davinci' or 'turbo'
-    '''
-    try:
-        if model == 'davinci':
-            response = await openai.Completion.acreate(
-                model="text-davinci-003",
-                prompt=prompt,
-                temperature=0.25,
-                max_tokens=1000,
-                n=n,
-                # TODO: add user= parameter w/ unique ID of user (e.g., hash of username+email or similar)
-            )
-            best_choice = max(response.choices, key=lambda choice: score_response(choice.text, avoid_set))
-            response_txt = best_choice.text
-        elif model == 'turbo':
-            response = await openai.ChatCompletion.acreate(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.25,
-                max_tokens=1000,
-                n=n,
-                # TODO: add user= parameter w/ unique ID of user (e.g., hash of username+email or similar)
-            )
-            best_choice = max(response.choices, key=lambda choice: score_response(choice.message['content'], avoid_set))
-            response_txt = best_choice.message["content"]
-
-        response_reason = best_choice.finish_reason  # e.g. "length" if max_tokens reached
-
-        if response_reason == "length":
-            response_txt += "\n\n[error: maximum length exceeded]"
-
-    except openai.error.APIError as e:
-        current_app.logger.error(e)
-        response = str(e)
-        response_txt = "Error (APIError).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
-        pass
-    except openai.error.Timeout as e:
-        current_app.logger.error(e)
-        response = str(e)
-        response_txt = "Error (Timeout).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
-        pass
-    except openai.error.ServiceUnavailableError as e:
-        current_app.logger.error(e)
-        response = str(e)
-        response_txt = "Error (ServiceUnavailableError).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
-        pass
-    except openai.error.RateLimitError as e:
-        current_app.logger.error(e)
-        response = str(e)
-        response_txt = "Error (RateLimitError).  The system is receiving too many requests right now.  Please try again in one minute.  If it does not resolve, please let me know at mliffito@iwu.edu."
-        pass
-    except Exception as e:
-        current_app.logger.error(e)
-        response = str(e)
-        response_txt = "Error (Exception).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
-        pass
-
-    return response, response_txt.strip()
-
-
 async def run_query_prompts(language, code, error, issue):
     ''' Run the given query against the coding help system of prompts.
 
@@ -195,11 +80,10 @@ async def run_query_prompts(language, code, error, issue):
     auth = get_session_auth()
 
     # set openai API key for following completions
-    api_key = get_openai_key()
-    if not api_key:
+    valid_key = set_openai_key()
+    if not valid_key:
         msg = "Error: API key not set.  Request cannot be submitted."
         return [msg], {'error': msg}
-    openai.api_key = api_key
 
     # create "avoid set" from class configuration
     if auth['lti'] is not None:
@@ -216,7 +100,12 @@ async def run_query_prompts(language, code, error, issue):
     )
 
     task_main = asyncio.create_task(
-        get_completion(prompts.make_main_prompt(language, code, error, issue, avoid_set), model='turbo', n=2, avoid_set=avoid_set)
+        get_completion(
+            prompts.make_main_prompt(language, code, error, issue, avoid_set),
+            model='turbo',
+            n=2,
+            score_func=lambda x: score_response(x, avoid_set)
+        )
     )
 
     # Store all responses received
