@@ -1,0 +1,17 @@
+{% macro recent_queries(history) -%}
+<div class="p-4">
+  <h2 class="is-size-5">Your recent queries:</h2>
+  {% for prev in history %}
+    <div class="box p-3">
+      <div class="buttons has-addons are-small is-pulled-right">
+        <a href="{{url_for('helper.help_view', query_id=prev.id)}}" class="button is-link is-outlined is-rounded p-2">View</a>
+        <a href="{{url_for('helper.help_form', query_id=prev.id)}}" class="button is-link is-outlined is-rounded p-2">Retry</a>
+      </div>
+      Assignment: <span {% if prev.assignment | length > 50 %}title="{{prev.assignment}}"{% endif %}>{{prev.assignment | truncate(50)}}</span><br>
+      Topics: <span {% if prev.topics | length > 100 %}title="{{prev.topics}}"{% endif %}>{{prev.topics | truncate(100)}}</span>
+    </div>
+  {% else %}
+    <p class="is-italic">No previous queries...</p>
+  {% endfor %}
+</div>
+{%- endmacro %}

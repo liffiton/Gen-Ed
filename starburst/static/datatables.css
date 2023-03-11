@@ -1,0 +1,202 @@
+/* For clickable rows */
+table.datatable-table tbody tr { cursor: pointer; }
+table.datatable-table tbody tr:hover { background: #def; }
+/**/
+
+/* Avoiding x-overflows */
+table.datatable-table tbdody td { overflow-wrap: break-word; }
+.datatable-container { overflow-x: auto; }
+/**/
+
+.datatable-wrapper.no-header .datatable-container {
+	border-top: 1px solid #d9d9d9;
+}
+
+.datatable-wrapper.no-footer .datatable-container {
+	border-bottom: 1px solid #d9d9d9;
+}
+
+.datatable-bottom {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    background: #f8f8f8;
+}
+.datatable-bottom > div,
+.datatable-bottom > nav {
+    margin: 0.5rem;
+}
+.datatable-search {
+    flex-grow: 1;
+    text-align: right;
+}
+
+.datatable-selector {
+	padding: 6px;
+}
+
+.datatable-input {
+	padding: 6px 12px;
+}
+
+.datatable-info {
+	margin: 7px 0;
+}
+
+/* PAGER */
+.datatable-pagination ul {
+	margin: 0;
+	padding-left: 0;
+}
+
+.datatable-pagination li {
+	list-style: none;
+	float: left;
+}
+
+.datatable-pagination a {
+	border: 1px solid transparent;
+	float: left;
+	margin-left: 2px;
+	padding: 6px 12px;
+	position: relative;
+	text-decoration: none;
+	color: #333;
+}
+
+.datatable-pagination a:hover {
+	background-color: #d9d9d9;
+}
+
+/* TODO in 7.0.0: remove */
+.datatable-pagination .active a,
+.datatable-pagination .active a:focus,
+.datatable-pagination .active a:hover {
+	background-color: #d9d9d9;
+	cursor: default;
+}
+
+.datatable-pagination .datatable-active a,
+.datatable-pagination .datatable-active a:focus,
+.datatable-pagination .datatable-active a:hover {
+	background-color: #d9d9d9;
+	cursor: default;
+}
+
+.datatable-pagination .datatable-ellipsis a,
+.datatable-pagination .ellipsis a, /* TODO in 7.0.0: remove */
+.datatable-pagination .disabled a,
+.datatable-pagination .disabled a:focus,
+.datatable-pagination .disabled a:hover {
+	cursor: not-allowed;
+}
+
+.datatable-pagination .disabled a,
+.datatable-pagination .disabled a:focus,
+.datatable-pagination .disabled a:hover {
+	cursor: not-allowed;
+	opacity: 0.4;
+}
+
+.datatable-pagination .pager a {
+	font-weight: bold;
+}
+
+/* TABLE */
+.datatable-table {
+	max-width: 100%;
+	width: 100%;
+	border-spacing: 0;
+	border-collapse: separate;
+}
+
+.datatable-table > tbody > tr:nth-child(2n) {
+    background: #f4f4f4;
+}
+
+.datatable-table > tbody > tr > td,
+.datatable-table > tbody > tr > th,
+.datatable-table > tfoot > tr > td,
+.datatable-table > tfoot > tr > th,
+.datatable-table > thead > tr > td,
+.datatable-table > thead > tr > th {
+	vertical-align: top;
+	padding: 0.25rem 0.5rem;
+}
+
+.datatable-table > thead > tr > th {
+	vertical-align: bottom;
+	text-align: left;
+    background: #f8f8f8;
+	border-bottom: 1px solid #d9d9d9;
+}
+
+.datatable-table > tfoot > tr > th {
+	vertical-align: bottom;
+	text-align: left;
+	border-top: 1px solid #d9d9d9;
+}
+
+.datatable-table th {
+	vertical-align: bottom;
+	text-align: left;
+}
+
+.datatable-table th a {
+	text-decoration: none;
+	color: inherit;
+}
+
+.datatable-sorter {
+	display: inline-block;
+	height: 100%;
+	position: relative;
+	width: 100%;
+}
+
+.datatable-sorter::before,
+.datatable-sorter::after {
+	content: "";
+	height: 0;
+	width: 0;
+	position: absolute;
+	right: 4px;
+	border-left: 4px solid transparent;
+	border-right: 4px solid transparent;
+	opacity: 0.2;
+}
+
+.datatable-sorter::before {
+	border-top: 4px solid #000;
+	bottom: 0px;
+}
+
+.datatable-sorter::after {
+	border-bottom: 4px solid #000;
+	border-top: 4px solid transparent;
+	top: 0px;
+}
+
+.asc .datatable-sorter::after,
+.desc .datatable-sorter::before {
+	opacity: 0.6;
+}
+
+.datatable-empty {
+	text-align: center;
+}
+
+.datatable-top::after, .datatable-bottom::after {
+	clear: both;
+	content: " ";
+	display: table;
+}
+
+table.datatable-table:focus tr.datatable-cursor > td:first-child {
+	border-left: 3px blue solid;
+}
+
+table.datatable-table:focus {
+	outline: solid 1px black;
+    outline-offset: -1px;
+}

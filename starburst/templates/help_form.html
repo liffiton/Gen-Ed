@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% from "recent_queries.html" import recent_queries %}
+
+{% block body %}
+<div class="columns is-desktop is-gapless">
+  <div class="column is-three-quarters-desktop">
+    <section class="section">
+
+    <div class="container">
+      {# debounce on the submit handler so that the form's actual submit fires *before* the form elements are disabled #}
+      <form action="{{url_for('helper.help_request')}}" method="post" x-data="{loading: false}" x-on:submit.debounce.10ms="loading = true">
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="assignment">Assignment Prompt:</label>
+          <p class="has-text-grey">Copy just the assignment prompt here.  This should be the <i>most relevant</i> part of the assignment, focused on the topic you choose and any constraints placed on it.  Responses will be much more helpful when you include only the relevant part of the assignment.</p>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <textarea class="textarea" name="assignment" x-bind:disabled="loading" rows=10>{{ query.assignment }}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="error">Topics of Interest:</label>
+          <p class="has-text-grey">List and/or describe any topics of interest to you so far.  These might be ideas you've had, interesting points raised in class, keywords from the reading that have stuck in your mind...</p>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <textarea class="textarea" name="topics" x-bind:disabled="loading" rows=4>{{ query.topics }}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal"><!-- spacing --></div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <button
+                class="button is-link"
+                x-bind:class="loading ? 'is-loading' : ''"
+                type="submit" >
+              Submit Request
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </form>
+    </div>
+
+    </section>
+
+  </div>
+
+  <div class="column has-background-light">
+    {{ recent_queries(history) }}
+  </div>
+
+</div>
+
+{% endblock %}

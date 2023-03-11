@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% from "recent_queries.html" import recent_queries %}
+
+{% block body %}
+<div class="columns is-desktop is-gapless">
+  <div class="column is-three-quarters-desktop">
+    <section class="section">
+    {% if query %}
+
+    <div class="container">
+      {% if query.username != auth['username'] %}
+      <div class="field is-horizontal">
+        <div class="field-label">
+          <label class="label">User:</label>
+        </div>
+        <div class="field-body">
+          {{ query.username }}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="field is-horizontal">
+        <div class="field-label">
+          <label class="label">When:</label>
+        </div>
+        <div class="field-body">
+          {{ query.query_time | localtime }}
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
+        <div class="field-label">
+          <label class="label">Assignment:</label>
+        </div>
+        <div class="field-body">
+          {{- query.assignment -}}
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
+        <div class="field-label">
+          <label class="label">Topics:</label>
+        </div>
+        <div class="field-body">
+            {{- query.topics -}}
+        </div>
+      </div>
+
+    </div>
+
+    <div class="card mt-5">
+      <div class="card-content">
+        <div class="content">
+          <p><span class="title is-size-4">Response</span></p>
+          {% if 'error' in response_html_dict %}
+            <div class="notification is-danger">
+              {{ response_html_dict['error'] | safe }}
+            </div>
+          {% endif %}
+          {% if 'insufficient' in response_html_dict %}
+            <div class="message is-warning">
+              <div class="message-header">
+                <p>Please clarify</p>
+              </div>
+              <div class="message-body">
+                {{ response_html_dict['insufficient'] | safe }}
+                <p style="border-top: solid 1px #c90; padding-top: 0.75rem;">An <i>attempt</i> at a response is below, but you can <a href="/help/{{query.id}}" class="button is-link is-outlined is-rounded p-2 ml-1 mr-1" style="vertical-align: baseline; height: 2rem;">Retry</a> this query and provide additional details or clarification to receive a more helpful response.
+                </p>
+              </div>
+            </div>
+          {% endif %}
+          {% if 'main' in response_html_dict %}
+            {{ response_html_dict['main'] | safe }}
+          {% endif %}
+        </div>
+      </div>
+
+      {% if auth['user_id'] == query.user_id %}
+      <div class="card-content p-2 pl-5" style="background: #e5e5e5;" x-data="{helpful: {{"null" if query.helpful == None else query.helpful}}}">
+        <script type="text/javascript">
+          function post_helpful(value) {
+            fetch("{{url_for('helper.post_helpful')}}", {
+              method: "POST",
+              body: `id={{query.id}}&value=${value}`,
+              headers: { "Content-Type": "application/x-www-form-urlencoded" }
+            });
+          }
+        </script>
+        <div class="level is-size-6">
+          <div class="level-left">
+            <div class="level-item is-italic">Was this helpful?</div>
+            <div class="level-item">
+              <button class="button is-success" x-bind:class="helpful===1 ? '' : 'is-light'" x-on:click="helpful=1; post_helpful(1);">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon ml-0 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"></path><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"></path></svg>
+                Yes
+              </button>
+            </div>
+            <div class="level-item">
+              <button class="button is-danger " x-bind:class="helpful===0 ? '' : 'is-light'" x-on:click="helpful=0; post_helpful(0);">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon ml-0 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14V2"></path><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22h0a3.13 3.13 0 0 1-3-3.88Z"></path></svg>
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    {% endif %}
+    </section>
+
+  </div>
+
+  <div class="column has-background-light">
+    {{ recent_queries(history) }}
+  </div>
+
+</div>
+
+{% endblock %}
