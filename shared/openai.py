@@ -5,11 +5,9 @@ from shared.db import get_db
 from shared.auth import get_session_auth
 
 
-def set_openai_key():
-    '''Set the openai API key, using the key stored for the current consumer
+def get_openai_key():
+    '''Get the openai API key, using the key stored for the current consumer
        or else use the default key in the config for non-LTI users.
-
-    Returns: True if a valid-looking key is found.
     '''
     db = get_db()
     auth = get_session_auth()
@@ -20,23 +18,17 @@ def set_openai_key():
         consumer_row = db.execute("SELECT openai_key FROM consumers WHERE lti_consumer=?", [auth['lti']['consumer']]).fetchone()
         key = consumer_row['openai_key']
 
-    looks_valid = isinstance(key, str) and len(key) > 40
-
-    if looks_valid:
-        openai.api_key = key
-    else:
-        openai.api_key = None
-
-    return looks_valid
+    return key
 
 
-async def get_completion(prompt, model='turbo', n=1, score_func=None):
+async def get_completion(api_key, prompt, model='turbo', n=1, score_func=None):
     '''
     model can be either 'davinci' or 'turbo'
     '''
     try:
         if model == 'davinci':
             response = await openai.Completion.acreate(
+                api_key=api_key,
                 model="text-davinci-003",
                 prompt=prompt,
                 temperature=0.25,
@@ -47,6 +39,7 @@ async def get_completion(prompt, model='turbo', n=1, score_func=None):
             get_text = lambda choice: choice.text  # noqa
         elif model == 'turbo':
             response = await openai.ChatCompletion.acreate(
+                api_key=api_key,
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.25,

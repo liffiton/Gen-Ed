@@ -6,7 +6,7 @@ from flask import Blueprint, current_app, redirect, render_template, request, ur
 from . import prompts
 from shared.db import get_db
 from shared.auth import get_session_auth, login_required, class_config_required
-from shared.openai import set_openai_key, get_completion
+from shared.openai import get_openai_key, get_completion
 from shared.queries import get_query, get_history
 
 
@@ -80,8 +80,8 @@ async def run_query_prompts(language, code, error, issue):
     auth = get_session_auth()
 
     # set openai API key for following completions
-    valid_key = set_openai_key()
-    if not valid_key:
+    api_key = get_openai_key()
+    if not isinstance(api_key, str) or api_key == '':
         msg = "Error: API key not set.  Request cannot be submitted."
         return [msg], {'error': msg}
 
@@ -96,11 +96,12 @@ async def run_query_prompts(language, code, error, issue):
 
     # Launch the "sufficient detail" check concurrently with the main prompt to save time if it comes back as sufficient.
     task_sufficient = asyncio.create_task(
-        get_completion(prompts.make_sufficient_prompt(language, code, error, issue), model='turbo')
+        get_completion(api_key, prompts.make_sufficient_prompt(language, code, error, issue), model='turbo')
     )
 
     task_main = asyncio.create_task(
         get_completion(
+            api_key,
             prompts.make_main_prompt(language, code, error, issue, avoid_set),
             model='turbo',
             n=2,
@@ -122,7 +123,7 @@ async def run_query_prompts(language, code, error, issue):
     if "```" in response_txt or "should look like" in response_txt or "should look something like" in response_txt:
         # That's probably too much code.  Let's clean it up...
         cleanup_prompt = prompts.make_cleanup_prompt(orig_response_txt=response_txt)
-        cleanup_response, cleanup_response_txt = await get_completion(cleanup_prompt, model='davinci')
+        cleanup_response, cleanup_response_txt = await get_completion(api_key, cleanup_prompt, model='davinci')
         responses.append(cleanup_response)
         response_txt = cleanup_response_txt
 
