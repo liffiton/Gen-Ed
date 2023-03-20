@@ -1,7 +1,9 @@
 from datetime import datetime
 import os
+import secrets
 import shutil
 import sqlite3
+import string
 import sys
 
 import click
@@ -82,10 +84,10 @@ def migrate_command(migration_script):
 def newuser_command(username):
     """Add a new user to the database (prompts for a password)."""
     db = get_db()
-    password = input(f"Password for {username}: ")
-    db.execute("INSERT INTO users(username, password) VALUES(?, ?)", [username, generate_password_hash(password)])
+    new_password = ''.join(secrets.choice(string.ascii_letters) for _ in range(6))
+    db.execute("INSERT INTO users(username, password) VALUES(?, ?)", [username, generate_password_hash(new_password)])
     db.commit()
-    click.echo(f"User {username} added to the database.")
+    click.echo(f"User added to the database:\nusername: {username}\npassword: {new_password}")
 
 
 def init_app(app):
