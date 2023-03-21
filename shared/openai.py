@@ -63,27 +63,27 @@ async def get_completion(api_key, prompt, model='turbo', n=1, score_func=None):
     except openai.error.APIError as e:
         current_app.logger.error(e)
         response = str(e)
-        response_txt = "Error (APIError).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
+        response_txt = "Error (APIError).  Something went wrong on our side.  Please try again, and if it repeats, let us know using the contact form at the bottom of the page."
         pass
     except openai.error.Timeout as e:
         current_app.logger.error(e)
         response = str(e)
-        response_txt = "Error (Timeout).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
+        response_txt = "Error (Timeout).  Something went wrong on our side.  Please try again, and if it repeats, let us know using the contact form at the bottom of the page."
         pass
     except openai.error.ServiceUnavailableError as e:
         current_app.logger.error(e)
         response = str(e)
-        response_txt = "Error (ServiceUnavailableError).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
+        response_txt = "Error (ServiceUnavailableError).  Something went wrong on our side.  Please try again, and if it repeats, let us know using the contact form at the bottom of the page."
         pass
     except openai.error.RateLimitError as e:
         current_app.logger.error(e)
         response = str(e)
-        response_txt = "Error (RateLimitError).  The system is receiving too many requests right now.  Please try again in one minute.  If it does not resolve, please let me know at mliffito@iwu.edu."
+        response_txt = "Error (RateLimitError).  The system is receiving too many requests right now.  Please try again in one minute.  If it does not resolve, please let us know using the contact form at the bottom of the page."
         pass
     except Exception as e:
         current_app.logger.error(e)
         response = str(e)
-        response_txt = "Error (Exception).  Something went wrong on our side.  Please try again, and if it repeats, let me know at mliffito@iwu.edu."
+        response_txt = "Error (Exception).  Something went wrong on our side.  Please try again, and if it repeats, let us know using the contact form at the bottom of the page."
         pass
 
     return response, response_txt.strip()
