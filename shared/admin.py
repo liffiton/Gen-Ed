@@ -32,6 +32,9 @@ class Filters:
     def __init__(self):
         self._filters = []
 
+    def __iter__(self):
+        return self._filters.__iter__()
+
     def add_where(self, name, column, value):
         self._filters.append(Filter(name, column, value))
 
@@ -44,8 +47,11 @@ class Filters:
                 [f.value for f in self._filters]
             )
 
-    def get_filters(self):
-        return self._filters
+    def dict_minus(self, item_name):
+        return {name: value for name, column, value in self._filters if name != item_name}
+
+    def dict(self):
+        return {name: value for name, column, value in self._filters}
 
 
 @bp.route("/")
@@ -67,8 +73,8 @@ def main():
     where_clause, where_params = filters.make_where()
     users = db.execute(f"SELECT users.*, COUNT(queries.id) AS num_queries FROM users LEFT JOIN roles ON roles.user_id=users.id LEFT JOIN consumers ON consumers.lti_consumer=users.lti_consumer LEFT JOIN queries ON users.id=queries.user_id {where_clause} GROUP BY users.id", where_params).fetchall()
 
-    if 'username' in request.args:
-        filters.add_where("user", "users.username", request.args['username'])
+    if 'user' in request.args:
+        filters.add_where("user", "users.username", request.args['user'])
 
     where_clause, where_params = filters.make_where()
     roles = db.execute(f"SELECT roles.*, users.username, COUNT(queries.id) AS num_queries FROM roles LEFT JOIN users ON users.id=roles.user_id LEFT JOIN consumers ON users.lti_consumer=consumers.lti_consumer LEFT JOIN queries ON roles.id=queries.role_id {where_clause} GROUP BY roles.id", where_params).fetchall()
@@ -77,9 +83,10 @@ def main():
         filters.add_where("role", "roles.id", request.args['role'])
 
     where_clause, where_params = filters.make_where()
-    queries = db.execute(f"SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id LEFT JOIN consumers ON users.lti_consumer=consumers.lti_consumer LEFT JOIN roles ON queries.role_id=roles.id {where_clause} ORDER BY query_time DESC", where_params).fetchall()
+    queries_limit = 200
+    queries = db.execute(f"SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id LEFT JOIN consumers ON users.lti_consumer=consumers.lti_consumer LEFT JOIN roles ON queries.role_id=roles.id {where_clause} ORDER BY query_time DESC LIMIT ?", where_params + [queries_limit]).fetchall()
 
-    return render_template("admin.html", consumers=consumers, classes=classes, users=users, roles=roles, queries=queries, filters=filters.get_filters())
+    return render_template("admin.html", consumers=consumers, classes=classes, users=users, roles=roles, queries=queries, filters=filters)
 
 
 @bp.route("/get_db")
