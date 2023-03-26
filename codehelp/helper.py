@@ -127,7 +127,7 @@ async def run_query_prompts(language, code, error, issue):
         responses.append(cleanup_response)
         response_txt = cleanup_response_txt
 
-    if response_sufficient_txt.endswith("OK") or response_sufficient_txt.endswith("OK."):
+    if response_sufficient_txt.endswith("OK") or "OK." in response_sufficient_txt:
         # We're using just the main response.
         return responses, {'main': response_txt}
     else:

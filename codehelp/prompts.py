@@ -52,7 +52,7 @@ def make_sufficient_prompt(language, code, error, issue):
     return f"""You are a system for assisting students with programming.
 My inputs provide: the programming language, a snippet of code if relevant, an error message if relevant, and an issue or question I need help with.  If I provide an error message but the issue is empty, then I am asking for help understanding the error.  Please assess the following submission to determine whether it is sufficient for you to provide help or if additional information is needed.
 
-If no additional information is needed, please briefly summarize what I am asking for in words, no code, and then write "OK" on the final line by itself.
+If no additional information is needed, please briefly summarize what I am asking for in words, no code, and then write "OK." on the final line by itself.
 Otherwise, if and only if critical information needed for you to help is missing, ask for the additional information you need to be able to help.  State your reasoning first.
 
 Inputs:
