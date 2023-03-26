@@ -19,7 +19,7 @@
       <h1 class="is-size-3">Classes</h1>
       {{ datatable('classes', [('id', 'id'), ('name', 'lti_context_label'), ('consumer', 'lti_consumer'), ('lti_id', 'lti_context_id'), ('#queries', 'num_queries')], classes, link_col=0, link_template=cur_filter_string + "class=${value}") }}
       <h1 class="is-size-3">Users</h1>
-      {{ datatable('users', [('id', 'id'), ('user', 'username'), ('lti_id', 'lti_id'), ('#queries', 'num_queries')], users, link_col=1, link_template=cur_filter_string + "user=${value}") }}
+      {{ datatable('users', [('id', 'id'), ('user', 'username'), ('consumer', 'lti_consumer'), ('#queries', 'num_queries')], users, link_col=1, link_template=cur_filter_string + "user=${value}") }}
       <h1 class="is-size-3">Roles</h1>
       {{ datatable('roles', [('id', 'id'), ('user', 'username'), ('class_id', 'class_id'), ('role', 'role'), ('#queries', 'num_queries')], roles, link_col=0, link_template=cur_filter_string + "role=${value}") }}
     </div>
@@ -33,6 +33,6 @@
   </div>
 </section>
 <section class="section">
-  <a href="get_db">Download DB</a>
+  <a href="get_db" class="button is-link">Download DB</a>
 </section>
 {% endblock %}
