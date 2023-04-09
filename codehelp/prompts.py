@@ -1,5 +1,13 @@
 import random
 
+from jinja2 import Environment
+
+
+jinja_env = Environment(
+    trim_blocks=True,
+    lstrip_blocks=True,
+)
+
 
 def make_main_prompt(language, code, error, issue, avoid_set=set()):
     # generate the extra / avoidance instructions
@@ -48,27 +56,47 @@ System Response:
 """
 
 
-def make_sufficient_prompt(language, code, error, issue):
-    return f"""You are a system for assisting students with programming.
-My inputs provide: the programming language, a snippet of code if relevant, an error message if relevant, and an issue or question I need help with.  If I provide an error message but the issue is empty, then I am asking for help understanding the error.  Please assess the following submission to determine whether it is sufficient for you to provide help or if additional information is needed.
+sufficient_template = jinja_env.from_string("""\
+You are a system for assisting students like me with programming.
 
-If no additional information is needed, please briefly summarize what I am asking for in words, no code, and then write "OK." on the final line by itself.
-Otherwise, if and only if critical information needed for you to help is missing, ask for the additional information you need to be able to help.  State your reasoning first.
+My inputs provide:
+ - the programming language
+ - a snippet of code if relevant
+{% if error %}
+ - an error message if relevant
+{% endif %}
+ - an issue or question I need help with.
+{% if error and not issue %}
+When I provide an error message but the issue is empty, then I am asking for help understanding the error.
+{% endif %}
+{% if error and issue %}
+If the error message and issue do not seem to relate to each other, your first goal is to help me understand the error.
+{% endif %}
+
+Please assess the following submission to determine whether it is sufficient for you to provide help or if you need additional information.
+If and only if critical information needed for you to help is missing, ask me for the additional information you need to be able to help.  State your reasoning first.
+Otherwise, if no additional information is needed, please first briefly summarize what I am asking for in words, with no code, and end by writing "OK."
 
 Inputs:
-<lang>{language}</lang>
+<lang>{{language}}</lang>
 <code>
-{code}
+{{code}}
 </code>
+{% if error %}
 <error>
-{error}
+{{error}}
 </error>
+{% endif %}
 <issue>
-{issue}
+{{issue}}
 </issue>
 
 Response:
-"""
+""")
+
+
+def make_sufficient_prompt(language, code, error, issue):
+    return sufficient_template.render(language=language, code=code, error=error, issue=issue)
 
 
 def make_cleanup_prompt(orig_response_txt):
