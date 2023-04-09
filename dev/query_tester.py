@@ -48,6 +48,11 @@ class QueryView(urwid.WidgetWrap):
         new_contents.extend([
             urwid.Divider('-'),
             urwid.Columns([
+                (col_w, urwid.Text(('label', "Prompt: "), 'right')),
+                urwid.Text(item.get('__tester_prompt', '')),
+            ]),
+            urwid.Divider('-'),
+            urwid.Columns([
                 (col_w, urwid.Text(('response_label', "Usage: "), 'right')),
                 urwid.Text(item.get('__tester_usage', '')),
             ]),
@@ -123,6 +128,8 @@ def get_response(queries, index, test_type, model):
             response_txt += "\n\n[error: maximum length exceeded]"
 
         item['__tester_response'] = response_txt
+
+        item['__tester_prompt'] = prompt
 
         item['__tester_usage'] = f"Prompt: {response.usage['prompt_tokens']}  Completion: {response.usage['completion_tokens']}  Total: {response.usage['total_tokens']}"
 
