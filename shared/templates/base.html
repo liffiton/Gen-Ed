@@ -40,16 +40,16 @@ ${ options.searchable ?
 </div>`,
         });
         table.on("datatable.selectrow", (row, event) => {
-          if (event.button !== 0) {
-            // right click or middle -- don't trigger anything
-            return;
-          }
           if (event.target.tagName !== 'TD') {
             // button or something other than the data/cell itself -- don't trigger anything and let the default happen
             return;
           }
-          const value = table.data.data[row][link_col].text;
-          window.location = link_func(value);
+          if (event.button === 0) {
+            // left click, open in new window
+            const value = table.data.data[row][link_col].text;
+            const url = link_func(value);
+            window.open(url, '_blank');
+          }
         });
         document.querySelector(`button#csv_${tblname}`).addEventListener('click', event => {
           simpleDatatables.exportCSV(table);

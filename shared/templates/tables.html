@@ -12,12 +12,12 @@
       {% for row in data %}
         <tr>
           {% for col in columns %}
-            {% set value = row[col[1]] %}
             {% if 'time' in col[1] %}
-              <td>{{ value | localtime }}</td>
+              {% set value = row[col[1]] | localtime %}
             {% else %}
-              <td>{{ value | tbl_cell }}</td>
+              {% set value = row[col[1]] | tbl_cell %}
             {% endif %}
+            <td>{{ value }}</td>
           {% endfor %}
           {% if edit_link %}
             <td><a class="button is-warning is-small p-2" href="{{ edit_link }}{{ row['id'] }}">Edit</a></td>
