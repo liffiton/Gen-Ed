@@ -20,11 +20,10 @@ table.datatable-table tbdody td { overflow-wrap: break-word; }
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    background: #f8f8f8;
 }
 .datatable-bottom > div,
 .datatable-bottom > nav {
-    margin: 0.5rem;
+    margin: 0.3rem 0.5rem;
 }
 .datatable-search {
     flex-grow: 1;
@@ -44,6 +43,11 @@ table.datatable-table tbdody td { overflow-wrap: break-word; }
 }
 
 /* PAGER */
+.datatable-pagination {
+	border: 1px solid #aaa;
+    border-radius: 0.3rem;
+}
+
 .datatable-pagination ul {
 	margin: 0;
 	padding-left: 0;
@@ -55,10 +59,8 @@ table.datatable-table tbdody td { overflow-wrap: break-word; }
 }
 
 .datatable-pagination a {
-	border: 1px solid transparent;
 	float: left;
-	margin-left: 2px;
-	padding: 6px 12px;
+	padding: 0.1rem 0.5rem;
 	position: relative;
 	text-decoration: none;
 	color: #333;
