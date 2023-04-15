@@ -17,7 +17,7 @@
       <h1 class="is-size-3">Consumers <a class="button is-light is-link is-small mt-2" href="{{url_for('admin.consumer_form')}}">Create New</a></h1>
       {{ datatable('consumers', [('id', 'id'), ('consumer', 'lti_consumer'), ('#queries', 'num_queries')], consumers, link_col=0, link_template=cur_filter_string + "consumer=${value}", edit_link="consumer/") }}
       <h1 class="is-size-3">Classes</h1>
-      {{ datatable('classes', [('id', 'id'), ('name', 'lti_context_label'), ('consumer', 'lti_consumer'), ('lti_id', 'lti_context_id'), ('#queries', 'num_queries')], classes, link_col=0, link_template=cur_filter_string + "class=${value}") }}
+      {{ datatable('classes', [('id', 'id'), ('name', 'lti_context_label'), ('consumer', 'lti_consumer'), ('#queries', 'num_queries')], classes, link_col=0, link_template=cur_filter_string + "class=${value}") }}
       <h1 class="is-size-3">Users</h1>
       {{ datatable('users', [('id', 'id'), ('user', 'username'), ('consumer', 'lti_consumer'), ('#queries', 'num_queries')], users, link_col=1, link_template=cur_filter_string + "user=${value}") }}
       <h1 class="is-size-3">Roles</h1>
