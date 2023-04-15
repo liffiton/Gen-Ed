@@ -13,9 +13,10 @@
     <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7" type="text/javascript"></script>
     <link href="{{ url_for('static', filename='datatables.css') }}" rel="stylesheet" type="text/css">
     <script type="text/javascript">
-      function initTable(tblname, link_col, link_func) {
+      function initTable(tblname, rows, link_col, link_func) {
         const table = new simpleDatatables.DataTable(`table#${tblname}`, {
-        perPage: 20,
+        paging: rows > 15,
+        perPage: 10,
         perPageSelect: [[10, 10], [20, 20], [50, 50], ["All", 0]],
         template: options => `
 <div class='${options.classes.container}'${options.scrollY.length ? ` style='height: ${options.scrollY}; overflow-Y: auto;'` : ""}></div>

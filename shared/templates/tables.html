@@ -27,6 +27,6 @@
     </tbody>
   </table>
   <script type="text/javascript">
-    initTable("tbl_{{name}}", {{link_col}}, value => `{{link_template}}`);
+    initTable("tbl_{{name}}", {{data | length}}, {{link_col}}, value => `{{link_template}}`);
   </script>
 {%- endmacro %}
