@@ -59,19 +59,51 @@ def main():
     db = get_db()
     filters = Filters()
 
-    consumers = db.execute("SELECT consumers.*, COUNT(queries.id) AS num_queries FROM consumers LEFT JOIN classes ON classes.lti_consumer=consumers.lti_consumer LEFT JOIN roles ON roles.class_id=classes.id LEFT JOIN queries ON queries.role_id=roles.id GROUP BY consumers.id").fetchall()
+    consumers = db.execute("""
+        SELECT
+            consumers.*,
+            COUNT(queries.id) AS num_queries,
+            SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
+        FROM consumers
+        LEFT JOIN classes ON classes.lti_consumer=consumers.lti_consumer
+        LEFT JOIN roles ON roles.class_id=classes.id
+        LEFT JOIN queries ON queries.role_id=roles.id
+        GROUP BY consumers.id
+    """).fetchall()
 
     if 'consumer' in request.args:
         filters.add_where("consumer", "consumers.id", request.args['consumer'])
 
     where_clause, where_params = filters.make_where()
-    classes = db.execute(f"SELECT classes.*, COUNT(queries.id) AS num_queries FROM classes LEFT JOIN consumers ON consumers.lti_consumer=classes.lti_consumer LEFT JOIN roles ON roles.class_id=classes.id LEFT JOIN queries ON queries.role_id=roles.id {where_clause} GROUP BY classes.id", where_params).fetchall()
+    classes = db.execute(f"""
+        SELECT
+            classes.*,
+            COUNT(queries.id) AS num_queries,
+            SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
+        FROM classes
+        LEFT JOIN consumers ON consumers.lti_consumer=classes.lti_consumer
+        LEFT JOIN roles ON roles.class_id=classes.id
+        LEFT JOIN queries ON queries.role_id=roles.id
+        {where_clause}
+        GROUP BY classes.id
+    """, where_params).fetchall()
 
     if 'class' in request.args:
         filters.add_where("class", "roles.class_id", request.args['class'])
 
     where_clause, where_params = filters.make_where()
-    users = db.execute(f"SELECT users.*, COUNT(queries.id) AS num_queries FROM users LEFT JOIN roles ON roles.user_id=users.id LEFT JOIN consumers ON consumers.lti_consumer=users.lti_consumer LEFT JOIN queries ON users.id=queries.user_id {where_clause} GROUP BY users.id", where_params).fetchall()
+    users = db.execute(f"""
+        SELECT
+            users.*,
+            COUNT(queries.id) AS num_queries,
+            SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
+        FROM users
+        LEFT JOIN roles ON roles.user_id=users.id
+        LEFT JOIN consumers ON consumers.lti_consumer=users.lti_consumer
+        LEFT JOIN queries ON queries.user_id=users.id
+        {where_clause}
+        GROUP BY users.id
+    """, where_params).fetchall()
 
     if 'user' in request.args:
         filters.add_where("user", "users.username", request.args['user'])

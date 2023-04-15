@@ -17,14 +17,24 @@ def main():
 
     class_id = auth['lti']['class_id']
 
-    users = db.execute("SELECT users.*, COUNT(queries.id) AS num_queries FROM users LEFT JOIN queries ON users.id=queries.user_id JOIN roles ON users.id=roles.user_id WHERE roles.class_id=? GROUP BY users.id", [class_id]).fetchall()
+    users = db.execute("""
+        SELECT
+            users.*,
+            COUNT(queries.id) AS num_queries,
+            SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
+        FROM users
+        JOIN roles ON roles.user_id=users.id
+        LEFT JOIN queries ON queries.role_id=roles.id
+        WHERE roles.class_id=?
+        GROUP BY users.id
+    """, [class_id]).fetchall()
 
     username = None
     if 'username' in request.args:
         username = request.args['username']
         queries = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id JOIN roles ON queries.role_id=roles.id WHERE users.username=? AND roles.class_id=? ORDER BY query_time DESC", [username, class_id]).fetchall()
     else:
-        queries = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id JOIN roles ON queries.role_id=roles.id WHERE roles.class_id=? ORDER BY query_time DESC", [auth['lti']['class_id']]).fetchall()
+        queries = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id JOIN roles ON queries.role_id=roles.id WHERE roles.class_id=? ORDER BY query_time DESC", [class_id]).fetchall()
 
     return render_template("instructor.html", users=users, queries=queries, username=username)
 
