@@ -1,5 +1,21 @@
 {% extends "instructor_base.html" %}
 
 {% block instructor_queries %}
-  {{ datatable('queries', [('id', 'id'), ('user', 'username'), ('time', 'query_time'), ('language', 'language'), ('code', 'code'), ('error', 'error'), ('issue', 'issue'), ('response', 'response_text'), ('helpful', 'helpful_emoji')], queries, link_col=0, link_template="/help/view/${value}") }}
+{{
+datatable('queries', [
+    ('id', 'id'),
+    ('user', 'username'),
+    ('time', 'query_time'),
+    ('lang', 'language'),
+    ('code', 'code'),
+    ('error', 'error'),
+    ('issue', 'issue'),
+    ('response (len)', 'response_text'),
+    ('helpful', 'helpful_emoji')
+  ],
+  queries,
+  link_col=0,
+  link_template="/help/view/${value}"
+)
+}}
 {% endblock %}

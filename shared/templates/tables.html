@@ -14,6 +14,8 @@
           {% for col in columns %}
             {% if 'time' in col[1] %}
               {% set value = row[col[1]] | localtime %}
+            {% elif col[1] == 'response_text' %}
+              {% set value = row[col[1]] | fmt_response_txt %}
             {% else %}
               {% set value = row[col[1]] | tbl_cell %}
             {% endif %}
