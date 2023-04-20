@@ -1,12 +1,49 @@
+import csv
+import datetime
+import io
 import json
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, make_response, redirect, render_template, request, url_for
 
 from shared.db import get_db
 from shared.auth import get_session_auth, instructor_required
 
 
 bp = Blueprint('instructor', __name__, url_prefix="/instructor", template_folder='templates')
+
+
+def get_queries(class_id, username=None):
+    db = get_db()
+
+    where_clause = "WHERE roles.class_id=?"
+    params = [class_id]
+
+    if username is not None:
+        where_clause += " AND users.username=?"
+        params += [username]
+
+    queries = db.execute(f"""
+        SELECT
+            queries.id,
+            users.username,
+            queries.query_time,
+            queries.language,
+            queries.code,
+            queries.error,
+            queries.issue,
+            queries.response_text,
+            queries.helpful,
+            queries.helpful_emoji
+        FROM queries
+        JOIN users
+            ON queries.user_id=users.id
+        JOIN roles
+            ON queries.role_id=roles.id
+        {where_clause}
+        ORDER BY query_time DESC
+    """, params).fetchall()
+
+    return queries
 
 
 @bp.route("/")
@@ -29,14 +66,35 @@ def main():
         GROUP BY users.id
     """, [class_id]).fetchall()
 
-    username = None
     if 'username' in request.args:
         username = request.args['username']
-        queries = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id JOIN roles ON queries.role_id=roles.id WHERE users.username=? AND roles.class_id=? ORDER BY query_time DESC", [username, class_id]).fetchall()
     else:
-        queries = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id JOIN roles ON queries.role_id=roles.id WHERE roles.class_id=? ORDER BY query_time DESC", [class_id]).fetchall()
+        username = None
+
+    queries = get_queries(class_id, username)
 
     return render_template("instructor.html", users=users, queries=queries, username=username)
+
+
+@bp.route("/queries/csv")
+@instructor_required
+def get_queries_csv():
+    auth = get_session_auth()
+    class_id = auth['lti']['class_id']
+    queries = get_queries(class_id)
+
+    stringio = io.StringIO()
+    writer = csv.writer(stringio)
+    writer.writerow(queries[0].keys())  # column headers
+    writer.writerows(queries)
+
+    output = make_response(stringio.getvalue())
+    class_name = auth['lti']['class_name'].replace(" ","-")
+    timestamp = datetime.datetime.now().strftime("%Y%M%d")
+    output.headers["Content-Disposition"] = f"attachment; filename={timestamp}_{class_name}_queries.csv"
+    output.headers["Content-type"] = "text/csv"
+
+    return output
 
 
 @bp.route("/config")

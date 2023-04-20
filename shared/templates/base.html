@@ -13,7 +13,7 @@
     <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7" type="text/javascript"></script>
     <link href="{{ url_for('static', filename='datatables.css') }}" rel="stylesheet" type="text/css">
     <script type="text/javascript">
-      function initTable(tblname, rows, link_col, link_func) {
+      function initTable(tblname, rows, link_col, link_func, csv_link=null) {
         const table = new simpleDatatables.DataTable(`table#${tblname}`, {
         paging: rows > 15,
         perPage: 10,
@@ -56,9 +56,16 @@ ${ options.searchable ?
             window.open(url, '_blank');
           }
         });
-        document.querySelector(`button#csv_${tblname}`).addEventListener('click', event => {
-          simpleDatatables.exportCSV(table);
-        });
+        if (csv_link) {
+          document.querySelector(`button#csv_${tblname}`).addEventListener('click', event => {
+            window.location = csv_link;
+          });
+        }
+        else {
+          document.querySelector(`button#csv_${tblname}`).addEventListener('click', event => {
+            simpleDatatables.exportCSV(table);
+          });
+        }
       }
     </script>
     {% if 'timezone' not in session %}

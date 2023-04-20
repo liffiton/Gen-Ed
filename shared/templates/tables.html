@@ -1,4 +1,4 @@
-{% macro datatable(name, columns, data, link_col=None, link_template=None, edit_link=None) -%}
+{% macro datatable(name, columns, data, link_col="", link_template=None, edit_link=None, csv_link="") -%}
   <table id="tbl_{{name}}">
     <thead>
       {% for col in columns %}
@@ -29,6 +29,6 @@
     </tbody>
   </table>
   <script type="text/javascript">
-    initTable("tbl_{{name}}", {{data | length}}, {{link_col}}, value => `{{link_template}}`);
+    initTable("tbl_{{name}}", {{data | length}}, "{{link_col}}", value => `{{link_template}}`, "{{csv_link}}");
   </script>
 {%- endmacro %}
