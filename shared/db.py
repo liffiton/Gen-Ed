@@ -84,10 +84,17 @@ def migrate_command(migration_script):
 def newuser_command(username):
     """Add a new user to the database (prompts for a password)."""
     db = get_db()
-    new_password = ''.join(secrets.choice(string.ascii_letters) for _ in range(6))
-    db.execute("INSERT INTO users(username, password) VALUES(?, ?)", [username, generate_password_hash(new_password)])
-    db.commit()
-    click.echo(f"User added to the database:\nusername: {username}\npassword: {new_password}")
+
+    # Check for pre-existing username
+    existing = db.execute("SELECT username FROM users WHERE username=?", [username]).fetchone()
+    if existing:
+        click.secho(f"Error: username {username} already exists.", fg='red')
+    else:
+        new_password = ''.join(secrets.choice(string.ascii_letters) for _ in range(6))
+        db.execute("INSERT INTO users(username, password) VALUES(?, ?)", [username, generate_password_hash(new_password)])
+        db.commit()
+        click.secho("User added to the database:", fg='green')
+        click.echo(f"  username: {username}\n  password: {new_password}")
 
 
 def init_app(app):
