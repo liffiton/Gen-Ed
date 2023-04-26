@@ -18,12 +18,15 @@ CREATE UNIQUE INDEX consumers_idx ON consumers(lti_consumer);
 
 CREATE TABLE users (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL UNIQUE,  -- ideally email
+    username TEXT NOT NULL,  -- ideally email
     password TEXT,  -- could be null if registered via LTI
     is_admin BOOLEAN NOT NULL CHECK (is_admin IN (0,1)) DEFAULT 0,
-    lti_id   TEXT,  -- combination of LTI consumer, LTI userid, and email -- used to connect LTI sessions to users
+    lti_id   TEXT UNIQUE,  -- combination of LTI consumer, LTI userid, and email -- used to connect LTI sessions to users
     lti_consumer  TEXT  -- the LTI consumer that registered this user, if applicable
 );
+-- require unique usernames if no LTI ID (allows multiple users w/ same username if coming from different LTI consumers)
+DROP INDEX IF EXISTS unique_username_without_lti;
+CREATE UNIQUE INDEX unique_username_without_lti ON users (username) WHERE lti_id IS NULL;
 
 -- Record LTI contexts (classes) and their config
 -- Config stored as JSON for flexibility, esp. during development
