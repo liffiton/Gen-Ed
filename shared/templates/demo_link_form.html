@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block body %}
+<section class="section">
+  <div class="container">
+    <form action="{{url_for('admin.demo_link_update')}}" method="post">
+      {% if demo_link %}
+        {# We're editing an existing demo_link.  Provide its ID. #}
+        <h1 class="title">Edit Demo Link</h1>
+        <input type="hidden" name="demo_link_id" value="{{demo_link.id}}">
+      {% else %}
+        <h1 class="title">New Demo Link</h1>
+      {% endif %}
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="name">Name:</label>
+        </div>
+        <div class="field-body">
+          {% if demo_link %}
+            <div style="margin-top: 0.375rem;">
+              <p>{{demo_link.name}}</p>
+            </div>
+          {% else %}
+            <div class="field">
+              <div class="control">
+                <input class="input" required name="name">
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      {% if demo_link %}
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label">Link:</label>
+        </div>
+        <div class="field-body">
+          <div style="margin-top: 0.375rem;">
+            <a href="{{ demo_link_url }}">{{ demo_link_url }}</a>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="expiration">Expiration Date:</label>
+          <p class="has-text-grey">The final date on which this demo link will be active.  Implemented as Anywhere-On-Earth (UTC-12).</p>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <input class="input" required name="expiration" type="date" style="max-width: 20em;" value='{{ demo_link.expiration if demo_link }}'>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="tokens">Query Tokens:</label>
+          <p class="has-text-grey">How many query tokens to give new users entering via this demo link.</p>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <input class="input" required name="tokens" type="number" style="max-width: 20em;" value='{{ demo_link.tokens if demo_link }}'>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="enabled">Enabled:</label>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <input style="transform: scale(2.0); margin: 0.5rem;" name="enabled" type="checkbox" {% if demo_link and demo_link.enabled %}checked{% endif %}>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal"><!-- spacing --></div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <button class="button is-link" type="submit" >Submit</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </form>
+
+  </section>
+
+</div>
+
+{% endblock %}

@@ -14,6 +14,11 @@
         <li>Learn more about specific syntax, functions, or techniques in your programming language of choice.</li>
         <li>... and a lot more.</li>
       </ul>
+      {% if auth['username'] %}
+      <a class="button is-link is-large" href="{{ url_for('helper.help_form') }}">
+        <span>Try it now!</span>
+      </a>
+      {% endif %}
     </div>
     <div class="box content is-large">
       <h2>For instructors:</h2>

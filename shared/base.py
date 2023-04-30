@@ -6,7 +6,7 @@ import sys
 from dotenv import load_dotenv
 from flask import render_template
 
-from shared import admin, auth, db, instructor, filters, lti, tz
+from shared import admin, auth, db, demo, instructor, filters, lti, tz
 
 
 def configure_app_base(app):
@@ -79,6 +79,7 @@ def configure_app_base(app):
 
     app.register_blueprint(admin.bp)
     app.register_blueprint(auth.bp)
+    app.register_blueprint(demo.bp)
     app.register_blueprint(instructor.bp)
     app.register_blueprint(lti.bp)
 
@@ -88,5 +89,5 @@ def configure_app_base(app):
         return dict(auth=auth.get_session_auth())
 
     @app.route('/')
-    def index():
+    def landing():
         return render_template("landing.html")

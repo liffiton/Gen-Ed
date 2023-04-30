@@ -22,6 +22,8 @@
       {{ datatable('users', [('id', 'id'), ('user', 'username'), ('consumer', 'lti_consumer'), ('#queries', 'num_queries', 'r'), ('1wk', 'num_recent_queries', 'r'), ('tokens', 'query_tokens', 'r')], users, link_col=1, link_template=cur_filter_string + "user=${value}") }}
       <h1 class="is-size-3">Roles</h1>
       {{ datatable('roles', [('id', 'id'), ('user', 'username'), ('role', 'role'), ('class_id', 'class_id')], roles, link_col=0, link_template=cur_filter_string + "role=${value}") }}
+      <h1 class="is-size-3">Demo Links <a class="button is-light is-link is-small mt-2" href="{{url_for('admin.demo_link_form')}}">Create New</a></h1>
+      {{ datatable('demo_links', [('id', 'id'), ('name', 'name'), ('expiration', 'expiration'), ('tokens', 'tokens', 'r'), ('enabled', 'enabled', 'r'), ('uses', 'uses', 'r')], demo_links, edit_link="demo_link/") }}
     </div>
     <div class="column is-full-widescreen is-8-fullhd">
       <h1 class="is-size-3">

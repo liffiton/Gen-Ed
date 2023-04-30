@@ -5,6 +5,7 @@ DROP INDEX IF EXISTS consumers_idx;
 DROP TABLE IF EXISTS roles;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS classes;
+DROP TABLE IF EXISTS demo_links;
 
 CREATE TABLE consumers (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,7 +22,8 @@ CREATE TABLE users (
     password TEXT,  -- could be null if registered via LTI
     is_admin BOOLEAN NOT NULL CHECK (is_admin IN (0,1)) DEFAULT 0,
     lti_id   TEXT UNIQUE,  -- combination of LTI consumer, LTI userid, and email -- used to connect LTI sessions to users
-    lti_consumer  TEXT  -- the LTI consumer that registered this user, if applicable
+    lti_consumer TEXT,  -- the LTI consumer that registered this user, if applicable
+    query_tokens INTEGER  -- number of tokens left for making queries - for demo users - default NULL means no limit
 );
 -- require unique usernames if no LTI ID (allows multiple users w/ same username if coming from different LTI consumers)
 DROP INDEX IF EXISTS unique_username_without_lti;
@@ -45,4 +47,14 @@ CREATE TABLE roles (
     role     TEXT NOT NULL CHECK( role IN ('instructor', 'student') ),
     FOREIGN KEY(user_id) REFERENCES users(id),
     FOREIGN KEY(class_id) REFERENCES classes(id)
+);
+
+-- Store/manage demonstration links
+CREATE TABLE demo_links (
+    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    name    TEXT NOT NULL UNIQUE,
+    enabled BOOLEAN NOT NULL CHECK (enabled IN (0,1)) DEFAULT 0,
+    expiration DATE NOT NULL,
+    tokens  INTEGER NOT NULL,  -- default number of query tokens to give newly-created users
+    uses    INTEGER NOT NULL DEFAULT 0
 );

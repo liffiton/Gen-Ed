@@ -5,7 +5,7 @@ from flask import Blueprint, current_app, redirect, render_template, request, ur
 
 from . import prompts
 from shared.db import get_db
-from shared.auth import get_session_auth, login_required, class_config_required
+from shared.auth import get_session_auth, login_required, class_config_required, uses_token
 from shared.openai import get_openai_key, get_completion
 from shared.queries import get_query, get_history
 
@@ -173,6 +173,7 @@ def record_response(query_id, responses, texts):
 @bp.route("/request", methods=["POST"])
 @login_required
 @class_config_required
+@uses_token
 def help_request():
     lang_id = int(request.form["lang_id"])
     language = current_app.config["LANGUAGES"][lang_id]
