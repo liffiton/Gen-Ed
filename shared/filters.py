@@ -17,7 +17,9 @@ def init_app(app):
         '''Format a value to be displayed in a table cell.'''
         value = str(value)
 
-        if len(value) > 30:
+        if value == "None":
+            return ""
+        elif len(value) > 30:
             value = value.strip().replace('\r', '')
             value = jinja_escape(value)
             value_trunc = value[:30] + " ..."
