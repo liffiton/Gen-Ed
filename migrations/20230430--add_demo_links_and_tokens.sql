@@ -1,6 +1,6 @@
 BEGIN;
 
-ALTER TABLE users ADD COLUM query_tokens INTEGER;
+ALTER TABLE users ADD COLUMN query_tokens INTEGER;
 
 CREATE TABLE demo_links (
     id      INTEGER PRIMARY KEY AUTOINCREMENT,
