@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <style type="text/css">
+      body { display: flex; min-height: 100vh; flex-direction: column; }
+      main.site-content { flex: 1; } /* expand main content, push footer to bottom of page/viewport */
       .icon svg, svg.icon { width: 1.2rem; height: 1.2rem; }
       span[title] { text-decoration:underline; text-decoration-style: dotted; }
       pre { padding: 0.5rem 0.75rem; }
@@ -164,19 +166,21 @@ ${ options.searchable ?
       </div>
     </nav>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <section class="section p-3">
-        {% for category, message in messages %}
-          <div class="notification {% if category == "message" %}is-primary{% else %}is-{{category}}{% endif %}">
-            {{ message }}
-          </div>
-        {% endfor %}
-      </section>
-    {% endif %}
-    {% endwith %}
+    <main class="site-content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <section class="section p-3">
+          {% for category, message in messages %}
+            <div class="notification {% if category == "message" %}is-primary{% else %}is-{{category}}{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </section>
+      {% endif %}
+      {% endwith %}
 
-    {% block body %}{% endblock %}
+      {% block body %}{% endblock %}
+    </main>
 
     <footer class="footer has-background-dark has-text-light">
       <div class="content has-text-right">
