@@ -1,12 +1,29 @@
 {% macro datatable(name, columns, data, link_col="", link_template=None, edit_link=None, csv_link="") -%}
+  <style type="text/css">
+  {% for col in columns %}
+    {% if col | length > 2 and col[2] == 'r' %}
+    table#tbl_{{name}} tr td:nth-child({{loop.index}}), 
+    table#tbl_{{name}} thead th:nth-child({{loop.index}}) {
+      text-align: right;
+    }
+    {% endif %}
+  {% endfor %}
+  {% if edit_link %}
+    table#tbl_{{name}} tr td:nth-child({{columns | length + 1}}) {
+      text-align: right;
+    }
+  {% endif %}
+  </style>
   <table id="tbl_{{name}}">
     <thead>
+      <tr>
       {% for col in columns %}
         <th>{{ col[0] }}</th>
       {% endfor %}
       {% if edit_link %}
         <th data-sortable="False" data-searchable="False"></th>
       {% endif %}
+      </tr>
     </thead>
     <tbody>
       {% for row in data %}

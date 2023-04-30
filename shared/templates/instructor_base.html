@@ -7,7 +7,7 @@
   <div class="columns is-desktop">
     <div class="column is-3">
       <h2 class="is-size-3">Users</h2>
-      {{ datatable('users', [('id', 'id'), ('username', 'username'), ('#queries', 'num_queries'), ('1wk', 'num_recent_queries')], users, link_col=1, link_template="?username=${value}") }}
+      {{ datatable('users', [('id', 'id'), ('username', 'username'), ('#queries', 'num_queries', 'r'), ('1wk', 'num_recent_queries', 'r')], users, link_col=1, link_template="?username=${value}") }}
     </div>
     <div class="column is-9">
       <h2 class="is-size-3">
