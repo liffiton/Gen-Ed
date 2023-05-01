@@ -2,7 +2,7 @@ import os
 import tempfile
 
 import pytest
-from codehelp import create_app
+import codehelp
 from shared.db import get_db, init_db
 
 
@@ -12,10 +12,17 @@ with open(os.path.join(os.path.dirname(__file__), 'test_data.sql'), 'rb') as f:
 
 
 @pytest.fixture
-def app():
+def app(monkeypatch):
     db_fd, db_path = tempfile.mkstemp()
 
-    app = create_app({
+    # Mock get_completion() to not hit OpenAI's API
+    async def mock_completion(*args, **kwargs):
+        prompt = kwargs['prompt'] if 'prompt' in kwargs else args[1]
+        txt = f"Mocked completion with {prompt=}"
+        return {'main': txt}, txt
+    monkeypatch.setattr(codehelp.helper, 'get_completion', mock_completion)
+
+    app = codehelp.create_app({
         'TESTING': True,
         'DATABASE': db_path,
     })

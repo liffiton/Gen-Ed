@@ -4,13 +4,13 @@ from shared.auth import get_session_auth
 
 
 @pytest.mark.parametrize(('username', 'password', 'status', 'message', 'is_admin'), (
-    ('', '', 200, b'Invalid username or password.', False),
-    ('x', '', 200, b'Invalid username or password.', False),
-    ('', 'y', 200, b'Invalid username or password.', False),
-    ('x', 'y', 200, b'Invalid username or password.', False),
-    ('testuser', 'y', 200, b'Invalid username or password.', False),
-    ('testuser', 'testpassword', 302, b'Welcome, testuser!', False),
-    ('testadmin', 'testadminpassword', 302, b'Welcome, testadmin!', True),
+    ('', '', 200, 'Invalid username or password.', False),
+    ('x', '', 200, 'Invalid username or password.', False),
+    ('', 'y', 200, 'Invalid username or password.', False),
+    ('x', 'y', 200, 'Invalid username or password.', False),
+    ('testuser', 'y', 200, 'Invalid username or password.', False),
+    ('testuser', 'testpassword', 302, 'Welcome, testuser!', False),
+    ('testadmin', 'testadminpassword', 302, 'Welcome, testadmin!', True),
 ))
 def test_login(client, auth, username, password, status, message, is_admin):
     with client:  # so we can use session in get_session_auth()
@@ -36,7 +36,7 @@ def test_login(client, auth, username, password, status, message, is_admin):
             assert sessauth['is_admin'] is False
             assert sessauth['lti'] is None
 
-        assert message in response.data
+        assert message in response.text
 
 
 def test_logout(client, auth):
@@ -55,7 +55,7 @@ def test_logout(client, auth):
 @pytest.mark.parametrize(('path', 'nologin', 'withlogin', 'withadmin'), (
     ('/', 200, 200, 200),
     ('/help/', 401, 200, 200),
-    ('/help/view/1', 401, 200, 200),
+    ('/help/view/1', 401, (200, "Invalid id."), (200, "response1")),
     ('/admin/', 302, 302, 200),         # admin_required redirects to login
     ('/admin/get_db', 302, 302, 200),   # admin_required redirects to login
 ))
@@ -65,7 +65,11 @@ def test_auth_required(client, auth, path, nologin, withlogin, withadmin):
 
     auth.login()
     response = client.get(path)
-    assert response.status_code == withlogin
+    if isinstance(withlogin, tuple):
+        assert response.status_code == withlogin[0]
+        assert withlogin[1] in response.text
+    else:
+        assert response.status_code == withlogin
 
     auth.logout()
     response = client.get(path)
@@ -73,7 +77,11 @@ def test_auth_required(client, auth, path, nologin, withlogin, withadmin):
 
     auth.login('testadmin', 'testadminpassword')
     response = client.get(path)
-    assert response.status_code == withadmin
+    if isinstance(withadmin, tuple):
+        assert response.status_code == withadmin[0]
+        assert withadmin[1] in response.text
+    else:
+        assert response.status_code == withadmin
 
     auth.logout()
     response = client.get(path)
