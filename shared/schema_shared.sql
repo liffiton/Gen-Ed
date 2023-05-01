@@ -1,4 +1,4 @@
-PRAGMA foreign_keys = ON;
+PRAGMA foreign_keys = OFF;  -- just for not worrying about table deletion order
 
 DROP TABLE IF EXISTS consumers;
 DROP INDEX IF EXISTS consumers_idx;
@@ -6,6 +6,8 @@ DROP TABLE IF EXISTS roles;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS classes;
 DROP TABLE IF EXISTS demo_links;
+
+PRAGMA foreign_keys = ON;
 
 CREATE TABLE consumers (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
