@@ -29,3 +29,9 @@ For code coverage report (assuming 'coverage' package is installed):
 
   coverage run -m pytest && coverage html && xdg-open htmlcov/index.html
 
+Credit
+------
+
+CodeHelp developed by Mark Liffiton.
+
+Icons from Lucide [https://lucide.dev/]
