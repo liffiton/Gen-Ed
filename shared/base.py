@@ -18,7 +18,7 @@ def configure_app_base(app):
     # first try to log something, causing double-logging.  If I configure
     # logging first here, then Waitress will not set up logging itself, and
     # everything is good.
-    if not app.debug:
+    if not app.debug and not app.testing:
         dictConfig({
             'version': 1,
             'formatters': {'default': {
