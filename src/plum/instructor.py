@@ -66,10 +66,7 @@ def main():
         GROUP BY users.id
     """, [class_id]).fetchall()
 
-    if 'username' in request.args:
-        username = request.args['username']
-    else:
-        username = None
+    username = request.args.get('username', None)
 
     queries = get_queries(class_id, username)
 

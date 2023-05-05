@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import tempfile
 
 import pytest
@@ -7,7 +8,8 @@ import codehelp
 
 
 # Load test DB data
-with open(os.path.join(os.path.dirname(__file__), 'test_data.sql'), 'rb') as f:
+test_sql = Path(__file__).parent / 'test_data.sql'
+with test_sql.open('rb') as f:
     _test_data_sql = f.read().decode('utf8')
 
 
@@ -50,7 +52,7 @@ def runner(app):
     return app.test_cli_runner()
 
 
-class AuthActions(object):
+class AuthActions:
     def __init__(self, client):
         self._client = client
 

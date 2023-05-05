@@ -9,9 +9,9 @@ jinja_env = Environment(
 )
 
 
-def make_main_prompt(language, code, error, issue, avoid_set=set()):
+def make_main_prompt(language, code, error, issue, avoid_set=None):
     # generate the extra / avoidance instructions
-    if avoid_set:
+    if avoid_set is not None:
         extra_text = f"Do not use in your response: {', '.join(avoid_set)}."
     else:
         extra_text = ""
