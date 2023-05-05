@@ -83,12 +83,13 @@ def create_app_base(import_name, app_config, instance_path):
             # will be loaded from the consumers table in the database
             "consumers": { }
         },
+        # finalize the database path now that we have an instance_path
+        # may be overridden by app_config (e.g. if test_config sets DATABASE)
+        DATABASE=os.path.join(app.instance_path, app_config['DATABASE_NAME']),
     )
 
     # build total configuration
     total_config = base_config | app_config
-    # finalize the database path now that we have an instance_path
-    total_config['DATABASE'] = os.path.join(app.instance_path, app_config['DATABASE_NAME'])
 
     # configure the application
     app.config.from_mapping(total_config)
