@@ -1,6 +1,7 @@
 flask
 markdown
 openai
+oauthlib  # for testing
 pylti
 python-dotenv
 pytest

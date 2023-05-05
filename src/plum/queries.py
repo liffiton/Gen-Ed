@@ -3,8 +3,8 @@ import markdown
 
 from flask import flash
 
-from shared.db import get_db
-from shared.auth import get_session_auth
+from .db import get_db
+from .auth import get_session_auth
 
 
 def get_query(query_id):

@@ -1,4 +1,5 @@
 from datetime import datetime
+import importlib
 import os
 import secrets
 import shutil
@@ -33,9 +34,15 @@ def close_db(e=None):
 def init_db():
     db = get_db()
 
-    with current_app.open_resource('schema_shared.sql') as f:
-        db.executescript(f.read().decode('utf8'))
+    # Common schema in the plum package
+    # importlib: https://stackoverflow.com/a/73497763/
+    # requires Python 3.9+
+    common_schema_res = importlib.resources.files('plum').joinpath("schema_common.sql")
+    with importlib.resources.as_file(common_schema_res) as filename:
+        with open(filename) as f:
+            db.executescript(f.read())
 
+    # App-specific schema in the app's package
     with current_app.open_resource('schema.sql') as f:
         db.executescript(f.read().decode('utf8'))
 

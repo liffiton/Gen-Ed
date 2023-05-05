@@ -11,3 +11,7 @@ venv/
 .*.swp
 
 .coverage
+
+lib/pylti/
+
+*.egg-info/

@@ -1,2 +1,15 @@
+[project]
+name = 'plum'
+version = '0.0.1'
+authors = [
+  { name='Mark Liffiton', email='liffiton@gmail.com' }
+]
+readme = 'README'
+requires-python = '>=3.9'
+
 [tool.pytest.ini_options]
-log_level='DEBUG'
+log_level = 'DEBUG'
+testpaths = 'tests'
+addopts = [
+    "--import-mode=importlib",
+]

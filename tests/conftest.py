@@ -2,8 +2,8 @@ import os
 import tempfile
 
 import pytest
+from plum.db import get_db, init_db
 import codehelp
-from shared.db import get_db, init_db
 
 
 # Load test DB data
@@ -22,10 +22,13 @@ def app(monkeypatch):
         return {'main': txt}, txt
     monkeypatch.setattr(codehelp.helper, 'get_completion', mock_completion)
 
-    app = codehelp.create_app({
-        'TESTING': True,
-        'DATABASE': db_path,
-    })
+    app = codehelp.create_app(
+        test_config={
+            'TESTING': True,
+            'DATABASE': db_path,
+        },
+        instance_path='tests/instance',
+    )
 
     with app.app_context():
         init_db()

@@ -2,8 +2,8 @@ from collections import namedtuple
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file, url_for
 
-from shared.db import get_db
-from shared.auth import admin_required
+from .db import get_db
+from .auth import admin_required
 
 
 bp = Blueprint('admin', __name__, url_prefix="/admin", template_folder='templates')

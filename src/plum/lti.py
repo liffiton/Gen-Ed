@@ -2,8 +2,8 @@ from flask import Blueprint, abort, current_app, redirect, session, url_for
 
 from pylti.flask import lti
 
-from shared.db import get_db
-from shared.auth import set_session_auth
+from .db import get_db
+from .auth import set_session_auth
 
 
 bp = Blueprint('lti', __name__, url_prefix="/lti", template_folder='templates')

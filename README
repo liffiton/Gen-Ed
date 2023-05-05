@@ -1,37 +1,49 @@
-CodeHelp
-========
+PLuM: Prompted Language Model Applications
+==========================================
 
-Setup & Running
+Setup & Install
 ---------------
 
-1. Populate .env (OpenAI key, initial password(s)).
+1. Populate .env (instance path, OpenAI key, initial password(s))
 2. Install dependencies
 
   pip install -r requirements.txt
 
-3. Initialize database
+3. Install the plum package and apps in 'editable' mode
+
+  pip install -e .
+
+
+Running an Application
+----------------------
+
+For example, the codehelp app:
+
+1. Initialize database
 
   flask --app codehelp initdb
   flask --app codehelp newuser [username]  # will prompt for password
 
-4. Start the application
+2. Start the application
 
   flask --app codehelp run
   # or
   flask --app codehelp --debug run
 
+
 Running Tests
 -------------
 
-  python -m pytest
+  pytest
 
 For code coverage report (assuming 'coverage' package is installed):
 
   coverage run -m pytest && coverage html && xdg-open htmlcov/index.html
 
+
 Credit
 ------
 
-CodeHelp developed by Mark Liffiton.
+PLuM and included applications developed by Mark Liffiton.
 
 Icons from Lucide [https://lucide.dev/]

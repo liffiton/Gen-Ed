@@ -5,8 +5,8 @@ import pytz
 
 from flask import Blueprint, current_app, flash, redirect, render_template, url_for
 
-from shared.db import get_db
-from shared.auth import get_session_auth, set_session_auth
+from .db import get_db
+from .auth import get_session_auth, set_session_auth
 
 
 bp = Blueprint('demo', __name__, url_prefix="/demo", template_folder='templates')

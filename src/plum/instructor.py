@@ -5,8 +5,8 @@ import json
 
 from flask import Blueprint, flash, make_response, redirect, render_template, request, url_for
 
-from shared.db import get_db
-from shared.auth import get_session_auth, instructor_required
+from .db import get_db
+from .auth import get_session_auth, instructor_required
 
 
 bp = Blueprint('instructor', __name__, url_prefix="/instructor", template_folder='templates')

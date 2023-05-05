@@ -4,12 +4,39 @@ import sqlite3
 import sys
 
 from dotenv import load_dotenv
-from flask import render_template
+from flask import Flask, render_template
 
-from shared import admin, auth, db, demo, instructor, filters, lti, tz
+from . import admin, auth, db, demo, instructor, filters, lti, tz
 
 
-def configure_app_base(app):
+def create_app_base(import_name, app_config, instance_path):
+    ''' Create a base PLuM application.
+    Args:
+        module_name: The name of the application's package (preferred) or module.
+                     E.g., call this as plum.create_app_base(__name__, ...) from package/__init__.py.
+        app_config: A dictionary containing application-specific configuration for the Flask object (w/ CAPITALIZED keys)
+        instance_path: A path to the instance folder (for the database file, primarily)
+
+    Returns:
+        A configured Flask application object.
+    '''
+    # load config values from .env file
+    load_dotenv()
+
+    # set up instance path from env variable if not provided
+    if instance_path is None:
+        try:
+            instance_path = os.environ["FLASK_INSTANCE_PATH"]
+        except KeyError:
+            raise Exception("FLASK_INSTANCE_PATH environment variable not set.")
+    # ensure instance_path folder exists
+    if not os.path.isdir(instance_path):
+        raise FileNotFoundError(f"FLASK_INSTANCE_PATH ({instance_path}) not found.")
+    # Flask() requires an absolute instance path
+    instance_path = os.path.abspath(instance_path)
+
+    # create the Flask application object
+    app = Flask(import_name, instance_path=instance_path, instance_relative_config=True)
 
     # Configure logging (from https://flask.palletsprojects.com/en/2.2.x/logging/#basic-configuration)
     # Important to do this to make sure logging is configured before Waitress
@@ -42,14 +69,7 @@ def configure_app_base(app):
     app.jinja_env.lstrip_blocks = True
     app.jinja_env.trim_blocks = True
 
-    # ensure the instance folder exists
-    try:
-        os.makedirs(app.instance_path)
-    except OSError:
-        pass
-
-    # load config values from .env file
-    load_dotenv()
+    # OPENAI_API_KEY set in .env, loaded by load_dotenv() above.
     try:
         openai_key = os.environ["OPENAI_API_KEY"]
     except KeyError:
@@ -57,13 +77,21 @@ def configure_app_base(app):
         sys.exit(1)
 
     # base config for all applications
-    app.config.from_mapping(
+    base_config = dict(
         OPENAI_API_KEY=openai_key,
         PYLTI_CONFIG={
             # will be loaded from the consumers table in the database
             "consumers": { }
         },
     )
+
+    # build total configuration
+    total_config = base_config | app_config
+    # finalize the database path now that we have an instance_path
+    total_config['DATABASE'] = os.path.join(app.instance_path, app_config['DATABASE_NAME'])
+
+    # configure the application
+    app.config.from_mapping(total_config)
 
     # load consumers from DB (but only if the database is initialized)
     try:
@@ -91,3 +119,5 @@ def configure_app_base(app):
     @app.route('/')
     def landing():
         return render_template("landing.html")
+
+    return app

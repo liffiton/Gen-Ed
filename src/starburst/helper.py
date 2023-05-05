@@ -4,10 +4,10 @@ import json
 from flask import Blueprint, redirect, render_template, request, url_for
 
 from . import prompts
-from shared.db import get_db
-from shared.auth import get_session_auth, login_required, class_config_required
-from shared.openai import get_openai_key, get_completion
-from shared.queries import get_query, get_history
+from plum.db import get_db
+from plum.auth import get_session_auth, login_required, class_config_required
+from plum.openai import get_openai_key, get_completion
+from plum.queries import get_query, get_history
 
 
 bp = Blueprint('helper', __name__, url_prefix="/ideas", template_folder='templates')
