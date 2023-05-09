@@ -38,30 +38,6 @@ def create_app_base(import_name, app_config, instance_path):
     # create the Flask application object
     app = Flask(import_name, instance_path=instance_path, instance_relative_config=True)
 
-    # Configure logging (from https://flask.palletsprojects.com/en/2.2.x/logging/#basic-configuration)
-    # Important to do this to make sure logging is configured before Waitress
-    # starts serving.  Waitress will create its own basic logger if logging is
-    # not yet configured.  Flask will then lazy-load its *own* logger when I
-    # first try to log something, causing double-logging.  If I configure
-    # logging first here, then Waitress will not set up logging itself, and
-    # everything is good.
-    if not app.debug and not app.testing:
-        dictConfig({
-            'version': 1,
-            'formatters': {'default': {
-                'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
-            }},
-            'handlers': {'wsgi': {
-                'class': 'logging.StreamHandler',
-                'stream': 'ext://flask.logging.wsgi_errors_stream',
-                'formatter': 'default'
-            }},
-            'root': {
-                'level': 'INFO',
-                'handlers': ['wsgi']
-            }
-        })
-
     #from werkzeug.middleware.profiler import ProfilerMiddleware
     #app.wsgi_app = ProfilerMiddleware(app.wsgi_app)
 
@@ -93,6 +69,30 @@ def create_app_base(import_name, app_config, instance_path):
 
     # configure the application
     app.config.from_mapping(total_config)
+
+    # Configure logging (from https://flask.palletsprojects.com/en/2.2.x/logging/#basic-configuration)
+    # Important to do this to make sure logging is configured before Waitress
+    # starts serving.  Waitress will create its own basic logger if logging is
+    # not yet configured.  Flask will then lazy-load its *own* logger when I
+    # first try to log something, causing double-logging.  If I configure
+    # logging first here, then Waitress will not set up logging itself, and
+    # everything is good.
+    if not app.debug and not app.testing:
+        dictConfig({
+            'version': 1,
+            'formatters': {'default': {
+                'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+            }},
+            'handlers': {'wsgi': {
+                'class': 'logging.StreamHandler',
+                'stream': 'ext://flask.logging.wsgi_errors_stream',
+                'formatter': 'default'
+            }},
+            'root': {
+                'level': 'INFO',
+                'handlers': ['wsgi']
+            }
+        })
 
     # load consumers from DB (but only if the database is initialized)
     try:
