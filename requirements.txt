@@ -2,7 +2,7 @@ flask
 markdown
 openai
 oauthlib  # for testing
-pylti
+git+https://github.com/liffiton/pylti
 python-dotenv
-pytest
+pytest    # for testing
 pytz
