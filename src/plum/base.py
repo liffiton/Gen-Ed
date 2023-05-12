@@ -93,6 +93,13 @@ def create_app_base(import_name, app_config, instance_path):
                 'handlers': ['wsgi']
             }
         })
+    else:
+        # For testing/debugging, ensure DEBUG level logging.
+        import logging
+        logging.getLogger().setLevel(logging.DEBUG)
+        #import logging_tree
+        #logging_tree.printout()
+        logging.debug("DEBUG logging enabled.")  # This appears to be required for the config to "stick"?
 
     # load consumers from DB (but only if the database is initialized)
     try:
