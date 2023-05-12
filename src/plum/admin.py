@@ -183,7 +183,7 @@ def demo_link_form(demo_link_id=None):
     else:
         db = get_db()
         demo_link_row = db.execute("SELECT * FROM demo_links WHERE id=?", [demo_link_id]).fetchone()
-        demo_link_url = f"{request.url_root}demo/{demo_link_row['name']}"
+        demo_link_url = f"/demo/{demo_link_row['name']}"
         return render_template("demo_link_form.html", demo_link=demo_link_row, demo_link_url=demo_link_url)
 
 
