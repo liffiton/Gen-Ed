@@ -1,13 +1,11 @@
-PRAGMA foreign_keys = OFF;  -- just for not worrying about table deletion order
+PRAGMA foreign_keys = OFF;
+BEGIN;
 
-DROP TABLE IF EXISTS consumers;
-DROP TABLE IF EXISTS roles;
-DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS classes;
-DROP TABLE IF EXISTS demo_links;
+-- Can't add a column w/ non-constant default, so need to recreate tables
+-- and copy data into them...
 
-PRAGMA foreign_keys = ON;
-
+DROP TABLE IF EXISTS __old_consumers;
+ALTER TABLE consumers RENAME TO __old_consumers;
 CREATE TABLE consumers (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     lti_consumer  TEXT NOT NULL UNIQUE,
@@ -15,10 +13,14 @@ CREATE TABLE consumers (
     openai_key    TEXT,
     created       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
-DROP INDEX IF EXISTS consumers_idx;
+INSERT INTO consumers SELECT *, NULL AS created FROM __old_consumers;
+DROP TABLE __old_consumers;
 CREATE UNIQUE INDEX consumers_idx ON consumers(lti_consumer);
 
+---
+
+DROP TABLE IF EXISTS __old_users;
+ALTER TABLE users RENAME TO __old_users;
 CREATE TABLE users (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL,  -- ideally email
@@ -29,12 +31,14 @@ CREATE TABLE users (
     query_tokens INTEGER,  -- number of tokens left for making queries - for demo users - default NULL means no limit
     created  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
--- require unique usernames if no LTI ID (allows multiple users w/ same username if coming from different LTI consumers)
-DROP INDEX IF EXISTS unique_username_without_lti;
+INSERT INTO users SELECT *, NULL AS created FROM __old_users;
+DROP TABLE __old_users;
 CREATE UNIQUE INDEX unique_username_without_lti ON users (username) WHERE lti_id IS NULL;
 
--- Record LTI contexts (classes) and their config
--- Config stored as JSON for flexibility, esp. during development
+---
+
+DROP TABLE IF EXISTS __old_classes;
+ALTER TABLE classes RENAME TO __old_classes;
 CREATE TABLE classes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     lti_consumer      TEXT NOT NULL,
@@ -43,23 +47,10 @@ CREATE TABLE classes (
     config            TEXT NOT NULL DEFAULT "{}",  -- JSON containing class config options
     created           TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+INSERT INTO classes SELECT *, NULL AS created FROM __old_classes;
+DROP TABLE __old_classes;
 
--- Record the LTI contexts and roles with which any user has connected to the service.
-CREATE TABLE roles (
-    id       INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id  INTEGER NOT NULL,
-    class_id INTEGER NOT NULL,
-    role     TEXT NOT NULL CHECK( role IN ('instructor', 'student') ),
-    FOREIGN KEY(user_id) REFERENCES users(id),
-    FOREIGN KEY(class_id) REFERENCES classes(id)
-);
+---
 
--- Store/manage demonstration links
-CREATE TABLE demo_links (
-    id      INTEGER PRIMARY KEY AUTOINCREMENT,
-    name    TEXT NOT NULL UNIQUE,
-    enabled BOOLEAN NOT NULL CHECK (enabled IN (0,1)) DEFAULT 0,
-    expiration DATE NOT NULL,
-    tokens  INTEGER NOT NULL,  -- default number of query tokens to give newly-created users
-    uses    INTEGER NOT NULL DEFAULT 0
-);
+COMMIT;
+PRAGMA foreign_keys = ON;
