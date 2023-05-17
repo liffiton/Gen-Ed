@@ -5,6 +5,7 @@ import itertools
 
 from dotenv import load_dotenv
 import openai
+import pyperclip
 import urwid
 
 import sys
@@ -77,6 +78,10 @@ class QueryView(urwid.WidgetWrap):
             return
         self.curidx -= 1
         self.update()
+
+    def copy_prompt(self):
+        cur_prompt = self._queries[self.curidx]['__tester_prompt']
+        pyperclip.copy(cur_prompt)
 
 
 def get_response(queries, index, test_type, model):
@@ -173,7 +178,7 @@ def main():
         urwid.Columns([
             (15, urwid.Text("Query Tester")),
             (10, footer_counter),
-            urwid.Text("j:next, k:prev, g:get response, r:reload prompts, q:quit", 'right'),
+            urwid.Text("j:next, k:prev, g:get response, c:copy prompt, r:reload prompts, q:quit", 'right'),
         ]),
         'footer'
     )
@@ -196,6 +201,8 @@ def main():
             case 'g':
                 get_response(queries, viewer.curidx, args.test_type, args.model)
                 viewer.update()
+            case 'c':
+                viewer.copy_prompt()
             case 'r':
                 reload(prompts)
             case 'q':
