@@ -3,7 +3,31 @@
 
 {% block body %}
 <section class="section">
-  <h1 class="is-size-3">Tutor Chats</h1>
-  {{ datatable('chats', [('id', 'id'), ('user_id', 'user'), ('topic', 'topic'), ('chat_json', 'chat_json')], chats) }}
+  <div class="columns is-multiline is-desktop">
+    <div class="column is-7-desktop is-4-fullhd">
+      <h1 class="is-size-3">Tutor Chats</h1>
+      {{ datatable('chats', [('id', 'id'), ('user', 'username'), ('topic', 'topic'), ('user messages', 'user_msgs', 'r')], chats, link_col=0, link_template='${value}') }}
+    </div>
+    <div class="column is-full-widescreen is-8-fullhd">
+      {% if chat_row %}
+      <h1 class="is-size-4">User: {{chat_row['username']}}</h1>
+      <h1 class="is-size-4">Topic: {{chat_row['topic']}}</h1>
+        {% for message in chat %}
+          <div class="field is-horizontal">
+            <div class="field-label is-normal">
+              {{message['role']}}
+            </div>
+            <div class="field-body">
+              <div class="field">
+                <div class="control">
+                  {{message['html'] | safe}}
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
 </section>
 {% endblock %}

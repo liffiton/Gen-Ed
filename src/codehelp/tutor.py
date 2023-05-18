@@ -13,6 +13,10 @@ from plum.openai import get_openai_key, get_completion
 bp = Blueprint('tutor', __name__, url_prefix="/tutor", template_folder='templates')
 
 
+def to_html(md):
+    return markdown.markdown(md, output_format="html5", extensions=['fenced_code', 'sane_lists', 'smarty'])
+
+
 @bp.route("/")
 @login_required
 def tutor_form(chat_id=None):
@@ -49,8 +53,6 @@ def chat_interface(chat_id):
         flash("Invalid id", "warning")
         return render_template("error.html")
 
-    def to_html(md):
-        return markdown.markdown(md, output_format="html5", extensions=['fenced_code', 'sane_lists', 'smarty'])
     chat = [
         message | {'html': to_html(message['content'])}
         for message in chat
@@ -185,8 +187,37 @@ def new_message():
 
 @register_admin_page("Tutor Chats")
 @bp_admin.route("/tutor/")
-def tutor_admin():
+@bp_admin.route("/tutor/<int:id>")
+def tutor_admin(id=None):
     db = get_db()
-    chats = db.execute("SELECT * FROM tutor_chats").fetchall()
+    chats = db.execute("""
+        SELECT
+            tutor_chats.id,
+            users.username,
+            tutor_chats.topic,
+            (
+                SELECT
+                    COUNT(*)
+                FROM
+                    json_each(tutor_chats.chat_json)
+                WHERE
+                    json_extract(json_each.value, '$.role')='user'
+            ) as user_msgs
+        FROM
+            tutor_chats
+        JOIN
+            users ON tutor_chats.user_id=users.id
+    """).fetchall()
 
-    return render_template("admin_tutor.html", chats=chats)
+    if id is not None:
+        chat_row = db.execute("SELECT users.username, topic, chat_json FROM tutor_chats JOIN users ON tutor_chats.user_id=users.id WHERE tutor_chats.id=?", [id]).fetchone()
+        chat = json.loads(chat_row['chat_json'])
+        chat = [
+            message | {'html': to_html(message['content'])}
+            for message in chat
+        ]
+    else:
+        chat_row = None
+        chat = None
+
+    return render_template("admin_tutor.html", chats=chats, chat_row=chat_row, chat=chat)
