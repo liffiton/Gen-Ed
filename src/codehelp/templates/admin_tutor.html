@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% from "tables.html" import datatable %}
+
+{% block body %}
+<section class="section">
+  <h1 class="is-size-3">Tutor Chats</h1>
+  {{ datatable('chats', [('id', 'id'), ('user_id', 'user'), ('topic', 'topic'), ('chat_json', 'chat_json')], chats) }}
+</section>
+{% endblock %}

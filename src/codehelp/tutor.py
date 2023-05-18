@@ -6,6 +6,7 @@ import markdown
 
 from plum.db import get_db
 from plum.auth import get_session_auth, login_required
+from plum.admin import bp as bp_admin, register_admin_page
 from plum.openai import get_openai_key, get_completion
 
 
@@ -178,3 +179,14 @@ def new_message():
 
     # Send the user back to the now-updated chat view
     return redirect(url_for("tutor.chat_interface", chat_id=chat_id))
+
+
+# ### Admin routes ###
+
+@register_admin_page("Tutor Chats")
+@bp_admin.route("/tutor/")
+def tutor_admin():
+    db = get_db()
+    chats = db.execute("SELECT * FROM tutor_chats").fetchall()
+
+    return render_template("admin_tutor.html", chats=chats)
