@@ -3,10 +3,11 @@ import random
 
 import pytz
 
-from flask import Blueprint, current_app, flash, redirect, render_template, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 
 from .db import get_db
 from .auth import get_session_auth, set_session_auth
+from .admin import bp as bp_admin, register_admin_page
 
 
 bp = Blueprint('demo', __name__, url_prefix="/demo", template_folder='templates')
@@ -63,3 +64,51 @@ def demo_register_user(demo_name):
 
     # Redirect to the app
     return redirect(url_for("landing"))
+
+
+# ### Admin routes ###
+
+@register_admin_page("Demo Links")
+@bp_admin.route("/demo_link/")
+def demo_link_view():
+    db = get_db()
+    demo_links = db.execute("SELECT * FROM demo_links").fetchall()
+
+    return render_template("admin_demo_link.html", demo_links=demo_links)
+
+
+@bp_admin.route("/demo_link/new")
+def demo_link_new():
+    return render_template("demo_link_form.html")
+
+
+@bp_admin.route("/demo_link/<int:id>")
+def demo_link_form(id):
+    db = get_db()
+    demo_link_row = db.execute("SELECT * FROM demo_links WHERE id=?", [id]).fetchone()
+    demo_link_url = f"/demo/{demo_link_row['name']}"
+    return render_template("demo_link_form.html", demo_link=demo_link_row, demo_link_url=demo_link_url)
+
+
+@bp_admin.route("/demo_link/update", methods=['POST'])
+def demo_link_update():
+    db = get_db()
+
+    demo_link_id = request.form.get("demo_link_id", None)
+    enabled = 1 if 'enabled' in request.form else 0
+
+    if demo_link_id is None:
+        # Adding a new demo_link
+        cur = db.execute("INSERT INTO demo_links (name, expiration, tokens, enabled) VALUES (?, ?, ?, ?)",
+                         [request.form['name'], request.form['expiration'], request.form['tokens'], enabled])
+        demo_link_id = cur.lastrowid
+        db.commit()
+
+    else:
+        # Updating
+        cur = db.execute("UPDATE demo_links SET expiration=?, tokens=?, enabled=? WHERE id=?",
+                         [request.form['expiration'], request.form['tokens'], enabled, demo_link_id])
+        db.commit()
+        flash("Demo link updated.")
+
+    return redirect(url_for(".demo_link_form", demo_link_id=demo_link_id))

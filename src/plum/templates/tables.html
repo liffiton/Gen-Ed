@@ -1,4 +1,4 @@
-{% macro datatable(name, columns, data, link_col="", link_template=None, edit_link=None, csv_link="") -%}
+{% macro datatable(name, columns, data, link_col="", link_template=None, edit_handler=None, csv_link="") -%}
   <style type="text/css">
   {% for col in columns %}
     {% if col | length > 2 and col[2] == 'r' %}
@@ -8,7 +8,7 @@
     }
     {% endif %}
   {% endfor %}
-  {% if edit_link %}
+  {% if edit_handler %}
     table#tbl_{{name}} tr td:nth-child({{columns | length + 1}}) {
       text-align: right;
     }
@@ -20,7 +20,7 @@
       {% for col in columns %}
         <th>{{ col[0] }}</th>
       {% endfor %}
-      {% if edit_link %}
+      {% if edit_handler %}
         <th data-sortable="False" data-searchable="False"></th>
       {% endif %}
       </tr>
@@ -38,8 +38,8 @@
             {% endif %}
             <td>{{ value }}</td>
           {% endfor %}
-          {% if edit_link %}
-            <td><a class="button is-warning is-small p-2" href="{{ edit_link }}{{ row['id'] }}">Edit</a></td>
+          {% if edit_handler %}
+            <td><a class="button is-warning is-small p-2" href="{{ url_for(edit_handler, id=row['id']) }}">Edit</a></td>
           {% endif %}
         </tr>
       {% endfor %}

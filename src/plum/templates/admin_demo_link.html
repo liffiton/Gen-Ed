@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "tables.html" import datatable %}
+
+{% block body %}
+<section class="section">
+  <div class="columns is-multiline is-desktop">
+    <div class="column is-7-desktop is-4-fullhd">
+      <h1 class="is-size-3">Demo Links <a class="button is-light is-link is-small mt-2" href="{{url_for('admin.demo_link_new')}}">Create New</a></h1>
+      {{ datatable('demo_links', [('id', 'id'), ('name', 'name'), ('expiration', 'expiration'), ('tokens', 'tokens', 'r'), ('enabled', 'enabled', 'r'), ('uses', 'uses', 'r')], demo_links, edit_handler="admin.demo_link_form") }}
+    </div>
+    <div class="column is-full-widescreen is-8-fullhd">
+      {% block demo_link_section %}
+      {% endblock %}
+    </div>
+  </div>
+</section>
+{% endblock %}

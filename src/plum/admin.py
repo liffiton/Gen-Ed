@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, current_app, redirect, render_template, request, send_file, url_for
 
 from .db import get_db
 from .auth import admin_required
@@ -14,6 +14,23 @@ bp = Blueprint('admin', __name__, url_prefix="/admin", template_folder='template
 def before_request():
     """ Protect all of the admin endpoints. """
     pass
+
+
+# A module-level list of registered admin pages.  Updated by register_admin_page()
+_admin_pages = []
+
+
+# Decorator function for registering routes as admin pages.
+# Use:
+#   @register_admin_page("Demo Links")
+#   @[route stuff]
+#   def handler():  [...]
+def register_admin_page(display_name):
+    def decorator(route_func):
+        handler_name = f"admin.{route_func.__name__}"
+        _admin_pages.append((handler_name, display_name))
+        return route_func
+    return decorator
 
 
 def reload_consumers():
@@ -58,8 +75,6 @@ class Filters:
 def main():
     db = get_db()
     filters = Filters()
-
-    demo_links = db.execute("SELECT * FROM demo_links").fetchall()
 
     consumers = db.execute("""
         SELECT
@@ -120,7 +135,7 @@ def main():
     queries_limit = 200
     queries = db.execute(f"SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id LEFT JOIN consumers ON users.lti_consumer=consumers.lti_consumer LEFT JOIN roles ON queries.role_id=roles.id {where_clause} ORDER BY query_time DESC LIMIT ?", where_params + [queries_limit]).fetchall()
 
-    return render_template("admin.html", demo_links=demo_links, consumers=consumers, classes=classes, users=users, roles=roles, queries=queries, filters=filters)
+    return render_template("admin.html", consumers=consumers, classes=classes, users=users, roles=roles, queries=queries, filters=filters, admin_pages=_admin_pages)
 
 
 @bp.route("/get_db")
@@ -128,15 +143,16 @@ def get_db_file():
     return send_file(current_app.config['DATABASE'], as_attachment=True)
 
 
-@bp.route("/consumer/")
-@bp.route("/consumer/<int:consumer_id>")
-def consumer_form(consumer_id=None):
-    if consumer_id is None:
-        return render_template("consumer_form.html")
-    else:
-        db = get_db()
-        consumer_row = db.execute("SELECT * FROM consumers WHERE id=?", [consumer_id]).fetchone()
-        return render_template("consumer_form.html", consumer=consumer_row)
+@bp.route("/consumer/new")
+def consumer_new():
+    return render_template("consumer_form.html")
+
+
+@bp.route("/consumer/<int:id>")
+def consumer_form(id=None):
+    db = get_db()
+    consumer_row = db.execute("SELECT * FROM consumers WHERE id=?", [id]).fetchone()
+    return render_template("consumer_form.html", consumer=consumer_row)
 
 
 @bp.route("/consumer/update", methods=['POST'])
@@ -173,39 +189,3 @@ def consumer_update():
     reload_consumers()
 
     return redirect(url_for(".consumer_form", consumer_id=consumer_id))
-
-
-@bp.route("/demo_link/")
-@bp.route("/demo_link/<int:demo_link_id>")
-def demo_link_form(demo_link_id=None):
-    if demo_link_id is None:
-        return render_template("demo_link_form.html")
-    else:
-        db = get_db()
-        demo_link_row = db.execute("SELECT * FROM demo_links WHERE id=?", [demo_link_id]).fetchone()
-        demo_link_url = f"/demo/{demo_link_row['name']}"
-        return render_template("demo_link_form.html", demo_link=demo_link_row, demo_link_url=demo_link_url)
-
-
-@bp.route("/demo_link/update", methods=['POST'])
-def demo_link_update():
-    db = get_db()
-
-    demo_link_id = request.form.get("demo_link_id", None)
-    enabled = 1 if 'enabled' in request.form else 0
-
-    if demo_link_id is None:
-        # Adding a new demo_link
-        cur = db.execute("INSERT INTO demo_links (name, expiration, tokens, enabled) VALUES (?, ?, ?, ?)",
-                         [request.form['name'], request.form['expiration'], request.form['tokens'], enabled])
-        demo_link_id = cur.lastrowid
-        db.commit()
-
-    else:
-        # Updating
-        cur = db.execute("UPDATE demo_links SET expiration=?, tokens=?, enabled=? WHERE id=?",
-                         [request.form['expiration'], request.form['tokens'], enabled, demo_link_id])
-        db.commit()
-        flash("Demo link updated.")
-
-    return redirect(url_for(".demo_link_form", demo_link_id=demo_link_id))
