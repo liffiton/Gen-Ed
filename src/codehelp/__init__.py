@@ -1,5 +1,5 @@
 from plum import base
-from . import helper
+from . import helper, tutor
 
 
 def create_app(test_config=None, instance_path=None):
@@ -31,5 +31,6 @@ def create_app(test_config=None, instance_path=None):
 
     # register blueprints specific to this application variant
     app.register_blueprint(helper.bp)
+    app.register_blueprint(tutor.bp)
 
     return app

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block body %}
+<section class="section">
+  <div class="container">
+    <h1 class="title">{{topic}}</h1>
+
+    {# debounce on the submit handler so that the form's actual submit fires *before* the form elements are disabled #}
+    <form action="{{url_for('tutor.new_message')}}" method="post" x-data="{loading: false}" x-on:submit.debounce.10ms="loading = true">
+      <input type="hidden" name="id" value="{{chat_id}}">
+
+      {% for message in chat %}
+        <div class="field is-horizontal">
+          <div class="field-label is-normal">
+            {{message['role']}}
+          </div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                {{message['html'] | safe}}
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="message">Message:</label>
+        </div>
+        <div class="field-body">
+          <div class="field has-addons">
+            <div class="control is-expanded">
+              <input class="input" name="message" x-bind:disabled="loading">
+            </div>
+            <div class="control">
+              <button
+                class="button is-link"
+                x-bind:class="loading ? 'is-loading' : ''"
+                type="submit" >
+              Send
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </form>
+  </div>
+
+</section>
+
+{% endblock %}

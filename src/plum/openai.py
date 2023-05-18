@@ -21,10 +21,19 @@ def get_openai_key():
     return key
 
 
-async def get_completion(api_key, prompt, model='turbo', n=1, score_func=None):
+async def get_completion(api_key, prompt=None, messages=None, model='turbo', n=1, score_func=None):
     '''
     model can be either 'davinci' or 'turbo'
+
+    Returns:
+       - A tuple containing:
+           - An OpenAI response object
+           - The response text (stripped)
     '''
+    assert prompt is None or messages is None
+    if model == 'davinci':
+        assert prompt is not None
+
     try:
         if model == 'davinci':
             response = await openai.Completion.acreate(
@@ -38,10 +47,12 @@ async def get_completion(api_key, prompt, model='turbo', n=1, score_func=None):
             )
             get_text = lambda choice: choice.text  # noqa
         elif model == 'turbo':
+            if messages is None:
+                messages = [{"role": "user", "content": prompt}]
             response = await openai.ChatCompletion.acreate(
                 api_key=api_key,
                 model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
+                messages=messages,
                 temperature=0.25,
                 max_tokens=1000,
                 n=n,
