@@ -29,3 +29,9 @@ VALUES
     (2, 'python', 'code2', '', '', '{}', '{"main": "response2"}', 0, 14, 2),
     (3, 'python', 'code3', '', '', '{}', '{"main": "response3"}', 0, 13, 1),
     (4, 'python', 'code4', '', '', '{}', '{"main": "response4"}', 0, 15, 3);
+
+INSERT INTO demo_links (id, name, enabled, expiration, tokens, uses)
+VALUES
+    (1, 'test_valid', 1, '2199-12-31', 10, 0),
+    (2, 'test_disabled', 0, '2199-12-31', 10, 0),
+    (3, 'test_expired', 1, '2000-01-01', 10, 0);
