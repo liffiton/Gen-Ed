@@ -55,7 +55,8 @@ ${ options.searchable ?
             // left click, open in new window
             const value = table.data.data[row][link_col].text;
             const url = link_func(value);
-            window.open(url, '_blank');
+            //window.open(url, '_blank');
+            window.location = url;
           }
         });
         if (csv_link) {
