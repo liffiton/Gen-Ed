@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "tables.html" import datatable %}
+{% from "tutor_chat.html" import chat_view %}
 
 {% block body %}
 <section class="section">
@@ -10,22 +11,9 @@
     </div>
     <div class="column is-full-widescreen is-8-fullhd">
       {% if chat_row %}
-      <h1 class="is-size-4">User: {{chat_row['username']}}</h1>
-      <h1 class="is-size-4">Topic: {{chat_row['topic']}}</h1>
-        {% for message in chat %}
-          <div class="field is-horizontal">
-            <div class="field-label is-normal">
-              {{message['role']}}
-            </div>
-            <div class="field-body">
-              <div class="field">
-                <div class="control">
-                  {{message['content'] | markdown}}
-                </div>
-              </div>
-            </div>
-          </div>
-        {% endfor %}
+        <h1 class="is-size-4">User: {{chat_row['username']}}</h1>
+        <h1 class="is-size-4">Topic: {{chat_row['topic']}}</h1>
+        {{ chat_view(chat) }}
       {% endif %}
     </div>
   </div>

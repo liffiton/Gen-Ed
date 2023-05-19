@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "tutor_chat.html" import chat_view %}
 
 {% block body %}
 <section class="section">
@@ -9,20 +10,7 @@
     <form action="{{url_for('tutor.new_message')}}" method="post" x-data="{loading: false}" x-on:submit.debounce.10ms="loading = true">
       <input type="hidden" name="id" value="{{chat_id}}">
 
-      {% for message in chat %}
-        <div class="field is-horizontal">
-          <div class="field-label is-normal">
-            {{message['role']}}
-          </div>
-          <div class="field-body">
-            <div class="field">
-              <div class="control">
-                {{message['content'] | markdown}}
-              </div>
-            </div>
-          </div>
-        </div>
-      {% endfor %}
+      {{ chat_view(chat) }}
 
       <div class="field is-horizontal">
         <div class="field-label is-normal">
