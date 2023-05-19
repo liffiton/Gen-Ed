@@ -2,7 +2,6 @@ import asyncio
 import json
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
-import markdown
 
 from plum.db import get_db
 from plum.auth import get_session_auth, login_required
@@ -11,10 +10,6 @@ from plum.openai import get_openai_key, get_completion
 
 
 bp = Blueprint('tutor', __name__, url_prefix="/tutor", template_folder='templates')
-
-
-def to_html(md):
-    return markdown.markdown(md, output_format="html5", extensions=['fenced_code', 'sane_lists', 'smarty'])
 
 
 @bp.route("/")
@@ -53,10 +48,6 @@ def chat_interface(chat_id):
         flash("Invalid id", "warning")
         return render_template("error.html")
 
-    chat = [
-        message | {'html': to_html(message['content'])}
-        for message in chat
-    ]
     return render_template("tutor_view.html", chat_id=chat_id, topic=topic, chat=chat)
 
 
@@ -212,10 +203,6 @@ def tutor_admin(id=None):
     if id is not None:
         chat_row = db.execute("SELECT users.username, topic, chat_json FROM tutor_chats JOIN users ON tutor_chats.user_id=users.id WHERE tutor_chats.id=?", [id]).fetchone()
         chat = json.loads(chat_row['chat_json'])
-        chat = [
-            message | {'html': to_html(message['content'])}
-            for message in chat
-        ]
     else:
         chat_row = None
         chat = None

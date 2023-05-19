@@ -22,7 +22,7 @@ def help_form(query_id=None):
 
     # populate with a query+response if one is specified
     if query_id is not None:
-        query_row, _ = get_query(query_id)   # _ because we don't need response_html_dict here
+        query_row, _ = get_query(query_id)   # _ because we don't need responses here
 
     history = get_history()
 
@@ -33,10 +33,10 @@ def help_form(query_id=None):
 @login_required
 @class_config_required
 def help_view(query_id):
-    query_row, response_html_dict = get_query(query_id)
+    query_row, responses = get_query(query_id)
     history = get_history()
 
-    return render_template("help_view.html", query=query_row, response_html_dict=response_html_dict, history=history)
+    return render_template("help_view.html", query=query_row, responses=responses, history=history)
 
 
 async def run_query_prompts(assignment, topics):

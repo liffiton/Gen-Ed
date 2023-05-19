@@ -1,5 +1,4 @@
 import json
-import markdown
 
 from flask import flash
 
@@ -12,7 +11,6 @@ def get_query(query_id):
     auth = get_session_auth()
 
     query_row = None
-    response_html_dict = None
 
     if auth['is_admin']:
         cur = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id WHERE queries.id=?", [query_id])
@@ -24,17 +22,14 @@ def get_query(query_id):
 
     if query_row:
         if query_row['response_text']:
-            text_dict = json.loads(query_row['response_text'])
-            response_html_dict = {
-                key: markdown.markdown(text, output_format="html5", extensions=['fenced_code', 'sane_lists', 'smarty'])
-                for key, text in text_dict.items()
-            }
+            responses = json.loads(query_row['response_text'])
         else:
-            response_html_dict = {'error': "<i>No response -- an error occurred.  Please try again.</i>"}
+            responses = {'error': "*No response -- an error occurred.  Please try again.*"}
     else:
         flash("Invalid id.", "warning")
+        responses = None
 
-    return query_row, response_html_dict
+    return query_row, responses
 
 
 def get_history(limit=10):

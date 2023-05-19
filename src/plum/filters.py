@@ -1,4 +1,5 @@
 import json
+import markdown
 import markupsafe
 
 
@@ -44,3 +45,10 @@ def init_app(app):
             )
 
         return markupsafe.Markup(html_string)
+
+    @app.template_filter('markdown')
+    def markdown_filter(value):
+        '''Convert markdown to HTML (after escaping).'''
+        escaped = jinja_escape(value)
+        html = markdown.markdown(escaped, output_format="html5", extensions=['fenced_code', 'sane_lists', 'smarty'])
+        return markupsafe.Markup(html)
