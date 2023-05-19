@@ -1,5 +1,6 @@
 import json
-import markdown
+from markdown import Markdown
+from markdown.extensions import fenced_code, sane_lists, smarty
 import markupsafe
 
 
@@ -46,9 +47,17 @@ def init_app(app):
 
         return markupsafe.Markup(html_string)
 
+    # only init these once, not every time the filter is called
+    markdown_extensions = [
+        fenced_code.makeExtension(),
+        sane_lists.makeExtension(),
+        smarty.makeExtension()
+    ]
+    markdown_processor = Markdown(output_format="html5", extensions=markdown_extensions)
+
     @app.template_filter('markdown')
     def markdown_filter(value):
         '''Convert markdown to HTML (after escaping).'''
         escaped = jinja_escape(value)
-        html = markdown.markdown(escaped, output_format="html5", extensions=['fenced_code', 'sane_lists', 'smarty'])
+        html = markdown_processor.convert(escaped)
         return markupsafe.Markup(html)
