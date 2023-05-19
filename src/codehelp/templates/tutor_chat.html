@@ -1,0 +1,12 @@
+{% macro chat_view(chat_messages) -%}
+  <div class="m-3" style="display: grid; grid-template-columns: 1fr 5fr; column-gap: 1.5rem;">
+    {% for message in chat_messages %}
+      <div class="has-text-right is-italic mr-2">
+        {{message['role']}}
+      </div>
+      <div class="content">
+        {{message['content'] | markdown}}
+      </div>
+    {% endfor %}
+  </div>
+{%- endmacro %}
