@@ -47,7 +47,10 @@ def init_app(app):
 
         return markupsafe.Markup(html_string)
 
-    # only init these once, not every time the filter is called
+    # a Jinja filter for converting Markdown to HTML
+    # monkey-patch fenced_code to not escape HTML in code block -- we're already escaping everything, code or not, so...
+    fenced_code.FencedBlockPreprocessor._escape = lambda self, x: x
+    # only configure/init these once, not every time the filter is called
     markdown_extensions = [
         fenced_code.makeExtension(),
         sane_lists.makeExtension(),
