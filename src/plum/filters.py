@@ -59,5 +59,5 @@ def init_app(app):
     def markdown_filter(value):
         '''Convert markdown to HTML (after escaping).'''
         escaped = jinja_escape(value)
-        html = markdown_processor.convert(escaped)
+        html = markdown_processor.reset().convert(escaped)
         return markupsafe.Markup(html)
