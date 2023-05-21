@@ -19,7 +19,7 @@
         <div class="field-body">
           <div class="field has-addons">
             <div class="control is-expanded">
-              <input class="input" name="message" x-bind:disabled="loading">
+              <textarea class="textarea is-link" rows=2 name="message" placeholder="Press enter to send, shift-enter for a new line." x-bind:disabled="loading" @keydown.enter="if (!$event.shiftKey) {$event.target.form.submit(); $event.preventDefault();}"></textarea>
             </div>
             <div class="control">
               <button
