@@ -1,0 +1,5 @@
+BEGIN;
+
+ALTER TABLE tutor_chats ADD COLUMN context TEXT;
+
+COMMIT;

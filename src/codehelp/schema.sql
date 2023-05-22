@@ -22,6 +22,7 @@ DROP TABLE IF EXISTS tutor_chats;
 CREATE TABLE tutor_chats (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     topic TEXT NOT NULL,
+    context TEXT,
     chat_json TEXT NOT NULL,
     user_id INTEGER NOT NULL,
     role_id INTEGER,
