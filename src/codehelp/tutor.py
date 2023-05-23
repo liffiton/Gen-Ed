@@ -16,7 +16,7 @@ bp = Blueprint('tutor', __name__, url_prefix="/tutor", template_folder='template
 @bp.route("/")
 @login_required
 def tutor_form(chat_id=None):
-    return render_template("tutor_new.html")
+    return render_template("tutor_new_form.html")
 
 
 @bp.route("/chat/create", methods=["POST"])
@@ -237,4 +237,4 @@ def tutor_admin(id=None):
         chat_row = None
         chat = None
 
-    return render_template("admin_tutor.html", chats=chats, chat_row=chat_row, chat=chat)
+    return render_template("tutor_admin.html", chats=chats, chat_row=chat_row, chat=chat)

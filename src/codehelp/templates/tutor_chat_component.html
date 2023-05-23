@@ -1,0 +1,55 @@
+{% macro chat_component(chat_messages, msg_input=False) -%}
+  <style type="text/css">
+    .chat_grid {
+      display: grid;
+      grid-template-columns: 1fr 5fr;
+    }
+    .chat_role {
+      padding-right: 0.5em;
+      margin-right: 1em;
+      margin-bottom: 0.2em;
+      font-style: italic;
+      text-align: right;
+    }
+    .chat_role_assistant {
+      color: #358;
+      border-right: solid 3px #47a;
+    }
+    .chat_role_user {
+      color: #834;
+      border-right: solid 3px #a35;
+    }
+  </style>
+
+  <div class="m-3 chat_grid">
+    {% for message in chat_messages %}
+      <div class="chat_role chat_role_{{message['role']}}">
+        {{ 'You' if message['role'] == 'user' else 'Helper' }}
+      </div>
+      <div class="content">
+        {{message['content'] | markdown}}
+      </div>
+    {% endfor %}
+    {% if msg_input %}
+      <div class="chat_role chat_role_user">
+        You
+      </div>
+      <div>
+        <div class="field has-addons">
+          <div class="control is-expanded">
+            <textarea class="textarea is-link" rows=2 name="message" placeholder="Send a message.  Press enter to send, shift-enter for a new line." autofocus x-bind:disabled="loading" @keydown.enter="if (!$event.shiftKey) {$event.target.form.submit(); loading=true; $event.preventDefault();}"></textarea>
+          </div>
+          <div class="control">
+            <button
+              class="button is-link"
+              style="height: 100%;"
+              x-bind:class="loading ? 'is-loading' : ''"
+              type="submit" >
+            Send
+            </button>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+{%- endmacro %}

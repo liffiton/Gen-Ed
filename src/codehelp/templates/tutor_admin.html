@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "tables.html" import datatable %}
-{% from "tutor_chat.html" import chat_view %}
+{% from "tutor_chat_component.html" import chat_component %}
 
 {% block body %}
 <section class="section">
@@ -13,7 +13,7 @@
       {% if chat_row %}
         <h1 class="is-size-4">User: {{chat_row['username']}}</h1>
         <h1 class="is-size-4">Topic: {{chat_row['topic']}}</h1>
-        {{ chat_view(chat) }}
+        {{ chat_component(chat) }}
       {% endif %}
     </div>
   </div>
