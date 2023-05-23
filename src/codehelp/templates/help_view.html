@@ -71,9 +71,9 @@
     </div>
 
     <div class="card mt-5">
-      <div class="card-content">
+      <div class="card-content p-2 pl-5">
         <div class="content">
-          <p><span class="title is-size-4">Response</span> <span class="subtitle ml-5 is-italic">Remember: It will not always be correct!</span></p>
+          <h1><span class="title is-size-4">Response</span> <span class="subtitle ml-5 is-italic">Remember: It will not always be correct!</span></h1>
           {% if 'error' in responses %}
             <div class="notification is-danger">
               {{ responses['error'] | markdown }}
@@ -98,7 +98,7 @@
       </div>
 
       {% if auth['user_id'] == query.user_id %}
-      <div class="card-content p-2 pl-5" style="background: #e5e5e5;" x-data="{helpful: {{"null" if query.helpful == None else query.helpful}}}">
+      <div class="card-content p-2 pl-5" style="background: #e8e8e8;" x-data="{helpful: {{"null" if query.helpful == None else query.helpful}}}">
         <script type="text/javascript">
           function post_helpful(value) {
             fetch("{{url_for('helper.post_helpful')}}", {
@@ -126,6 +126,24 @@
           </div>
         </div>
       </div>
+      {% endif %}
+
+      {% if auth['is_tester'] %}
+        <div class="card-content p-2 pl-5">
+          {% if topics %}
+            {% include 'topics_fragment.html' %}
+          {% else %}
+            <div
+              x-data="{topics_fragment: ''}"
+              x-html="topics_fragment"
+              x-init="
+                fetch('/help/topics/html/{{query.id}}')
+                  .then(response => response.text())
+                  .then(text => { topics_fragment = text })
+              "
+            >
+          {% endif %}
+        </div>
       {% endif %}
     </div>
 

@@ -5,7 +5,7 @@ from flask import Blueprint, current_app, redirect, render_template, request, ur
 
 from . import prompts
 from plum.db import get_db
-from plum.auth import get_session_auth, login_required, class_config_required, uses_token
+from plum.auth import get_session_auth, login_required, class_config_required, tester_required, uses_token
 from plum.openai import get_openai_key, get_completion
 from plum.queries import get_query, get_history
 
@@ -49,8 +49,12 @@ def help_form(query_id=None):
 def help_view(query_id):
     query_row, responses = get_query(query_id)
     history = get_history()
+    if query_row and query_row['topics_json']:
+        topics = json.loads(query_row['topics_json'])
+    else:
+        topics = []
 
-    return render_template("help_view.html", query=query_row, responses=responses, history=history)
+    return render_template("help_view.html", query=query_row, responses=responses, history=history, topics=topics)
 
 
 def score_response(response_txt, avoid_set):
@@ -199,3 +203,58 @@ def post_helpful():
     db.execute("UPDATE queries SET helpful=? WHERE id=? AND user_id=?", [value, query_id, auth['user_id']])
     db.commit()
     return ""
+
+
+@bp.route("/topics/html/<int:query_id>", methods=["GET", "POST"])
+@login_required
+@class_config_required
+@tester_required
+def get_topics_html(query_id):
+    topics = get_topics(query_id)
+    return render_template("topics_fragment.html", query_id=query_id, topics=topics)
+
+
+@bp.route("/topics/raw/<int:query_id>", methods=["GET", "POST"])
+@login_required
+@class_config_required
+@tester_required
+def get_topics_raw(query_id):
+    return get_topics(query_id)
+
+
+def get_topics(query_id):
+    query_row, responses = get_query(query_id)
+
+    messages = [
+        {'role': 'user', 'content': f"""\
+<language>{query_row['language']}</language>
+<code>{query_row['code']}</code>
+<error>{query_row['error']}</error>
+<issue>{query_row['issue']}</issue>
+"""},
+        {'role': 'assistant', 'content': responses['main']},
+        {'role': 'user', 'content': "Please give me a list, in JSON format, of topics I appear to be having difficulty with in the above exchange.  Write each topic in title case."},
+        {'role': 'assistant', 'content': "[inner monologue] I need to provide ONLY a JSON-formatted list with NO other text."}
+    ]
+
+    # get openai API key for following completion
+    api_key = get_openai_key()
+    if not isinstance(api_key, str) or api_key == '':
+        return "Error: API key not set.  Request cannot be submitted."
+
+    response, response_txt = asyncio.run(get_completion(
+        api_key,
+        messages=messages,
+        model='turbo',
+    ))
+
+    if response_txt.startswith("Error ("):
+        return None
+    else:
+        # Save topics into queries table for the given query
+        db = get_db()
+        db.execute("UPDATE queries SET topics_json=? WHERE id=?", [response_txt, query_id])
+        db.commit()
+        # Return a Python list
+        topics = json.loads(response_txt)
+        return topics

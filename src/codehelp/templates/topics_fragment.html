@@ -1,0 +1,17 @@
+<div class="content">
+  <h2 class="is-size-5">Related Topics</h2>
+  <ul>
+  {% for topic in topics %}
+    <li>
+      <form action="{{url_for('tutor.start_chat_from_query')}}" method="POST">
+        {{topic}}:
+        <input type="hidden" name="query_id" value="{{query_id}}">
+        <input type="hidden" name="topic" value="{{topic}}">
+        <button type="submit" class="button is-link is-outlined is-rounded p-1 pl-2 pr-2" style="vertical-align: baseline; height: 2em;">
+          New Tutor &rarr;
+        </button>
+      </form>
+    </li>
+  {% endfor %}
+  </ul>
+</div>

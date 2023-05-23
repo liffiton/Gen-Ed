@@ -1,0 +1,5 @@
+BEGIN;
+
+ALTER TABLE queries ADD COLUMN topics_json TEXT;
+
+COMMIT;
