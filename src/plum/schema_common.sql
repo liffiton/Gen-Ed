@@ -24,6 +24,7 @@ CREATE TABLE users (
     username TEXT NOT NULL,  -- ideally email
     password TEXT,  -- could be null if registered via LTI
     is_admin BOOLEAN NOT NULL CHECK (is_admin IN (0,1)) DEFAULT 0,
+    is_tester BOOLEAN NOT NULL CHECK (is_tester IN (0,1)) DEFAULT 0,
     lti_id   TEXT UNIQUE,  -- combination of LTI consumer, LTI userid, and email -- used to connect LTI sessions to users
     lti_consumer TEXT,  -- the LTI consumer that registered this user, if applicable
     query_tokens INTEGER,  -- number of tokens left for making queries - for demo users - default NULL means no limit

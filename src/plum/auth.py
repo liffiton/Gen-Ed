@@ -8,11 +8,12 @@ from .db import get_db
 AUTH_SESSION_KEY = "__codehelp_auth"
 
 
-def set_session_auth(username, user_id, is_admin, lti=None):
+def set_session_auth(username, user_id, is_admin, is_tester=False, lti=None):
     session[AUTH_SESSION_KEY] = {
         'username': username,
         'user_id': user_id,
         'is_admin': is_admin,
+        'is_tester': is_tester,
         'lti': lti,
     }
 
@@ -22,6 +23,7 @@ def get_session_auth():
         'username': None,
         'user_id': None,
         'is_admin': False,
+        'is_tester': False,
         'lti': None,
     }
     # Get the session auth dict, or an empty dict if it's not there, then
@@ -47,7 +49,7 @@ def login():
             flash("Invalid username or password.", "warning")
         else:
             # Success!
-            set_session_auth(username, user_row['id'], user_row['is_admin'])
+            set_session_auth(username, user_row['id'], user_row['is_admin'], user_row['is_tester'])
             next_url = request.form['next'] or url_for("helper.help_form")
             flash(f"Welcome, {username}!")
             return redirect(next_url)
@@ -116,6 +118,16 @@ def admin_required(f):
         if not auth['is_admin']:
             flash("Login required.", "warning")
             return redirect(url_for('auth.login', next=request.url))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def tester_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        auth = get_session_auth()
+        if not auth['is_tester']:
+            return abort(404)
         return f(*args, **kwargs)
     return decorated_function
 
