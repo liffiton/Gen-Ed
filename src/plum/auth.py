@@ -18,13 +18,16 @@ def set_session_auth(username, user_id, is_admin, lti=None):
 
 
 def get_session_auth():
-    empty = {
+    base = {
         'username': None,
         'user_id': None,
         'is_admin': False,
         'lti': None,
     }
-    return session.get(AUTH_SESSION_KEY, empty)
+    # Get the session auth dict, or an empty dict if it's not there, then
+    # "override" any values in 'base' that are defined in the session auth dict.
+    auth_dict = base | session.get(AUTH_SESSION_KEY, {})
+    return auth_dict
 
 
 bp = Blueprint('auth', __name__, url_prefix="/auth", template_folder='templates')
