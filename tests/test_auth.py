@@ -32,7 +32,7 @@ def test_login(client, auth, username, password, status, message, is_admin):
         else:
             # Verify session auth contains correct values for non-logged-in user
             sessauth = get_session_auth()
-            assert sessauth['username'] == ''
+            assert sessauth['username'] is None
             assert sessauth['is_admin'] is False
             assert sessauth['lti'] is None
 
@@ -47,7 +47,7 @@ def test_logout(client, auth):
 
         auth.logout()
         sessauth = get_session_auth()
-        assert sessauth['username'] == ''
+        assert sessauth['username'] is None
         assert sessauth['is_admin'] is False
         assert sessauth['lti'] is None
 

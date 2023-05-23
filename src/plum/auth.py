@@ -5,26 +5,26 @@ from werkzeug.security import check_password_hash
 from .db import get_db
 
 # Constants for use in session dictionary
-KEY_AUTH_USER = "__codehelp_auth_user"
-KEY_AUTH_USERID = "__codehelp_auth_user_id"
-KEY_AUTH_IS_ADMIN = "__codehelp_auth_is_admin"
-KEY_AUTH_LTI = "__codehelp_auth_lti"
+AUTH_SESSION_KEY = "__codehelp_auth"
 
 
 def set_session_auth(username, user_id, is_admin, lti=None):
-    session[KEY_AUTH_USER] = username
-    session[KEY_AUTH_USERID] = user_id
-    session[KEY_AUTH_IS_ADMIN] = is_admin
-    session[KEY_AUTH_LTI] = lti
+    session[AUTH_SESSION_KEY] = {
+        'username': username,
+        'user_id': user_id,
+        'is_admin': is_admin,
+        'lti': lti,
+    }
 
 
 def get_session_auth():
-    return {
-        'username': session.get(KEY_AUTH_USER, ""),
-        'user_id': session.get(KEY_AUTH_USERID, ""),
-        'is_admin': session.get(KEY_AUTH_IS_ADMIN, False),
-        'lti': session.get(KEY_AUTH_LTI, None),
+    empty = {
+        'username': None,
+        'user_id': None,
+        'is_admin': False,
+        'lti': None,
     }
+    return session.get(AUTH_SESSION_KEY, empty)
 
 
 bp = Blueprint('auth', __name__, url_prefix="/auth", template_folder='templates')
