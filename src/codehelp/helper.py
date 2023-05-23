@@ -210,8 +210,8 @@ def post_helpful():
 @class_config_required
 @tester_required
 def get_topics_html(query_id):
-    topics = get_topics(query_id)
-    return render_template("topics_fragment.html", query_id=query_id, topics=topics)
+    topics, query_row = get_topics(query_id)
+    return render_template("topics_fragment.html", query=query_row, topics=topics)
 
 
 @bp.route("/topics/raw/<int:query_id>", methods=["GET", "POST"])
@@ -219,7 +219,8 @@ def get_topics_html(query_id):
 @class_config_required
 @tester_required
 def get_topics_raw(query_id):
-    return get_topics(query_id)
+    topics, _ = get_topics(query_id)
+    return topics
 
 
 def get_topics(query_id):
@@ -249,7 +250,7 @@ def get_topics(query_id):
     ))
 
     if response_txt.startswith("Error ("):
-        return None
+        return None, None
     else:
         # Save topics into queries table for the given query
         db = get_db()
@@ -257,4 +258,4 @@ def get_topics(query_id):
         db.commit()
         # Return a Python list
         topics = json.loads(response_txt)
-        return topics
+        return topics, query_row
