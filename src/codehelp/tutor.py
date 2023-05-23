@@ -7,6 +7,7 @@ from plum.db import get_db
 from plum.auth import get_session_auth, login_required
 from plum.admin import bp as bp_admin, register_admin_page
 from plum.openai import get_openai_key, get_completion
+from plum.queries import get_query
 
 
 bp = Blueprint('tutor', __name__, url_prefix="/tutor", template_folder='templates')
@@ -18,7 +19,7 @@ def tutor_form(chat_id=None):
     return render_template("tutor_new.html")
 
 
-@bp.route("/chat/new", methods=["POST"])
+@bp.route("/chat/create", methods=["POST"])
 @login_required
 def start_chat():
     auth = get_session_auth()
@@ -28,7 +29,30 @@ def start_chat():
     topic = request.form['topic']
     context = request.form.get('context', None)
 
-    chat_id = new_chat(user_id, role_id, topic, context)
+    chat_id = create_chat(user_id, role_id, topic, context)
+
+    run_chat_round(chat_id)
+
+    return redirect(url_for("tutor.chat_interface", chat_id=chat_id))
+
+
+@bp.route("/chat/create_from_query", methods=["POST"])
+@login_required
+def start_chat_from_query():
+    auth = get_session_auth()
+    user_id = auth['user_id']
+    role_id = auth['lti']['role_id'] if auth['lti'] else None
+
+    query_id = request.form['query_id']
+    topic = request.form['topic']
+
+    # build context from the specified query
+    query_row, response = get_query(query_id)
+    context = f"""\
+The user is working with the {query_row['language']} language.
+"""
+
+    chat_id = create_chat(user_id, role_id, topic, context)
 
     run_chat_round(chat_id)
 
@@ -52,7 +76,7 @@ def chat_interface(chat_id):
     return render_template("tutor_view.html", chat_id=chat_id, topic=topic, context=context, chat=chat)
 
 
-def new_chat(user_id, role_id, topic, context=None):
+def create_chat(user_id, role_id, topic, context=None):
     db = get_db()
     cur = db.execute(
         "INSERT INTO tutor_chats (user_id, role_id, topic, context, chat_json) VALUES (?, ?, ?, ?, ?)",
