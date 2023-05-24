@@ -94,6 +94,9 @@ ${ options.searchable ?
             <span>{{ config['HELP_LINK_TEXT'] }}</span>
           </a>
         {% endif %}
+        {% for nav_item_template in config['NAVBAR_ITEM_TEMPLATES'] %}
+          {% include nav_item_template %}
+        {% endfor %}
         <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample" x-bind:class="menu_open ? 'is-active' : ''" x-on:click="menu_open = ! menu_open">
           <span aria-hidden="true"></span>
           <span aria-hidden="true"></span>

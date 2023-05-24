@@ -62,6 +62,8 @@ def create_app_base(import_name, app_config, instance_path):
         # finalize the database path now that we have an instance_path
         # may be overridden by app_config (e.g. if test_config sets DATABASE)
         DATABASE=os.path.join(app.instance_path, app_config['DATABASE_NAME']),
+        # list of navbar item templates; will be extended by specific create_app()s
+        NAVBAR_ITEM_TEMPLATES=[],
     )
 
     # build total configuration

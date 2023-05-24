@@ -33,4 +33,7 @@ def create_app(test_config=None, instance_path=None):
     app.register_blueprint(helper.bp)
     app.register_blueprint(tutor.bp)
 
+    # add navbar items
+    app.config['NAVBAR_ITEM_TEMPLATES'].append("tutor_nav_item.html")
+
     return app
