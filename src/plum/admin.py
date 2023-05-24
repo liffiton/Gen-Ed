@@ -33,6 +33,13 @@ def register_admin_page(display_name):
     return decorator
 
 
+def init_app(app):
+    # inject admin pages into template contexts
+    @app.context_processor
+    def inject_admin_pages():
+        return dict(admin_pages=_admin_pages)
+
+
 def reload_consumers():
     db = get_db()
     consumer_rows = db.execute("SELECT * FROM consumers").fetchall()
@@ -135,9 +142,10 @@ def main():
     queries_limit = 200
     queries = db.execute(f"SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id LEFT JOIN consumers ON users.lti_consumer=consumers.lti_consumer LEFT JOIN roles ON queries.role_id=roles.id {where_clause} ORDER BY query_time DESC LIMIT ?", where_params + [queries_limit]).fetchall()
 
-    return render_template("admin.html", consumers=consumers, classes=classes, users=users, roles=roles, queries=queries, filters=filters, admin_pages=_admin_pages)
+    return render_template("admin.html", consumers=consumers, classes=classes, users=users, roles=roles, queries=queries, filters=filters)
 
 
+@register_admin_page("Download DB")
 @bp.route("/get_db")
 def get_db_file():
     return send_file(current_app.config['DATABASE'], as_attachment=True)

@@ -1,8 +1,7 @@
-{% extends "base.html" %}
+{% extends "admin_main.html" %}
 {% from "tables.html" import datatable %}
 
-{% block body %}
-<section class="section">
+{% block admin_body %}
   <div class="columns is-multiline is-desktop">
     <div class="column is-7-desktop is-4-fullhd">
       <h1 class="is-size-3">Demo Links <a class="button is-light is-link is-small mt-2" href="{{url_for('admin.demo_link_new')}}">Create New</a></h1>
@@ -13,5 +12,4 @@
       {% endblock %}
     </div>
   </div>
-</section>
 {% endblock %}

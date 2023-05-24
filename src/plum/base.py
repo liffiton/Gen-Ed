@@ -111,6 +111,7 @@ def create_app_base(import_name, app_config, instance_path):
         # the table doesn't exist yet -- that's fine
         pass
 
+    admin.init_app(app)
     db.init_app(app)
     filters.init_app(app)
     tz.init_app(app)

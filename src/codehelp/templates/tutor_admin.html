@@ -1,9 +1,8 @@
-{% extends "base.html" %}
+{% extends "admin_base.html" %}
 {% from "tables.html" import datatable %}
 {% from "tutor_chat_component.html" import chat_component %}
 
-{% block body %}
-<section class="section">
+{% block admin_body %}
   <div class="columns is-multiline is-desktop">
     <div class="column is-7-desktop is-4-fullhd">
       <h1 class="is-size-3">Tutor Chats</h1>
@@ -17,5 +16,4 @@
       {% endif %}
     </div>
   </div>
-</section>
 {% endblock %}
