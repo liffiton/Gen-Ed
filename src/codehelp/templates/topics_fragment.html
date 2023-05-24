@@ -1,5 +1,8 @@
 <div class="content">
   <h2 class="is-size-5">Related Topics</h2>
+  {% if error %}
+    <p>An error occurred while loading related topics.  If you reload this page, it will try again.</p>
+  {% else %}
   <ul>
   {% for topic in topics %}
     <li>
@@ -14,4 +17,5 @@
     </li>
   {% endfor %}
   </ul>
+  {% endif %}
 </div>

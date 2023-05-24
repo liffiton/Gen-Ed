@@ -211,7 +211,10 @@ def post_helpful():
 @tester_required
 def get_topics_html(query_id):
     topics, query_row = get_topics(query_id)
-    return render_template("topics_fragment.html", query=query_row, topics=topics)
+    if not topics:
+        return render_template("topics_fragment.html", error=True)
+    else:
+        return render_template("topics_fragment.html", query=query_row, topics=topics)
 
 
 @bp.route("/topics/raw/<int:query_id>", methods=["GET", "POST"])
