@@ -1,4 +1,4 @@
-{% extends "admin_base.html" %}
+{% extends "admin_main.html" %}
 
 {% block admin_queries %}
   {{ datatable('queries', [('id', 'id'), ('user', 'username'), ('time', 'query_time'), ('assignment', 'assignment'), ('topics', 'topics'), ('response', 'response_text'), ('helpful', 'helpful_emoji')], queries, link_col=0, link_template="/ideas/view/${value}") }}
