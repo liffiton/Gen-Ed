@@ -16,7 +16,8 @@ bp = Blueprint('tutor', __name__, url_prefix="/tutor", template_folder='template
 @bp.route("/")
 @login_required
 def tutor_form():
-    return render_template("tutor_new_form.html")
+    chat_history = get_chat_history()
+    return render_template("tutor_new_form.html", chat_history=chat_history)
 
 
 @bp.route("/chat/create", methods=["POST"])
@@ -66,7 +67,9 @@ def chat_interface(chat_id):
         flash("Invalid id.", "warning")
         return render_template("error.html")
 
-    return render_template("tutor_view.html", chat_id=chat_id, topic=topic, context=context, chat=chat)
+    chat_history = get_chat_history()
+
+    return render_template("tutor_view.html", chat_id=chat_id, topic=topic, context=context, chat=chat, chat_history=chat_history)
 
 
 def create_chat(user_id, role_id, topic, context=None):
@@ -78,6 +81,15 @@ def create_chat(user_id, role_id, topic, context=None):
     new_row_id = cur.lastrowid
     db.commit()
     return new_row_id
+
+
+def get_chat_history(limit=10):
+    '''Fetch current user's chat history.'''
+    db = get_db()
+    auth = get_session_auth()
+
+    history = db.execute("SELECT * FROM tutor_chats WHERE user_id=? ORDER BY id DESC LIMIT ?", [auth['user_id'], limit]).fetchall()
+    return history
 
 
 def get_chat(chat_id):

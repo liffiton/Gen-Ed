@@ -1,54 +1,65 @@
 {% extends "base.html" %}
+{% from "recent_chats.html" import recent_chats %}
 
 {% block body %}
-<section class="section">
-  <div class="container">
-    <h1 class="title">Start a new Tutor chat</h1>
+<div class="columns is-desktop is-gapless">
 
-    <form action="{{url_for('tutor.start_chat')}}" method="post">
+  <div class="column is-three-quarters-desktop">
+    <section class="section">
+      <div class="container">
+        <h1 class="title">Start a new Tutor chat</h1>
 
-      <div class="field is-horizontal">
-        <div class="field-label is-normal">
-          <label class="label" for="topic">Topic:</label>
-        </div>
-        <div class="field-body">
-          <div class="field">
-            <div class="control">
-              <input class="input" name="topic">
+        <form action="{{url_for('tutor.start_chat')}}" method="post">
+
+          <div class="field is-horizontal">
+            <div class="field-label is-normal">
+              <label class="label" for="topic">Topic:</label>
+            </div>
+            <div class="field-body">
+              <div class="field">
+                <div class="control">
+                  <input class="input" name="topic">
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div class="field is-horizontal">
-        <div class="field-label is-normal">
-          <label class="label" for="context">Context:</label>
-        </div>
-        <div class="field-body">
-          <div class="field">
-            <div class="control">
-              <textarea class="textarea" name="context"></textarea>
+          <div class="field is-horizontal">
+            <div class="field-label is-normal">
+              <label class="label" for="context">Context:</label>
+            </div>
+            <div class="field-body">
+              <div class="field">
+                <div class="control">
+                  <textarea class="textarea" name="context"></textarea>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div class="field is-horizontal">
-        <div class="field-label is-normal"><!-- spacing --></div>
-        <div class="field-body">
-          <div class="field">
-            <div class="control">
-              <button class="button is-link" type="submit">
-                Submit
-              </button>
+          <div class="field is-horizontal">
+            <div class="field-label is-normal"><!-- spacing --></div>
+            <div class="field-body">
+              <div class="field">
+                <div class="control">
+                  <button class="button is-link" type="submit">
+                    Submit
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+
+        </form>
       </div>
 
-    </form>
+    </section>
   </div>
 
-</section>
+  <div class="column has-background-light">
+    {{ recent_chats(chat_history) }}
+  </div>
+
+</div>
 
 {% endblock %}
