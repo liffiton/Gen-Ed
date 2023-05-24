@@ -1,5 +1,5 @@
 import json
-from markdown import Markdown
+from markdown import Markdown, util as md_util
 from markdown.extensions import fenced_code, sane_lists, smarty
 import markupsafe
 
@@ -48,7 +48,10 @@ def init_app(app):
         return markupsafe.Markup(html_string)
 
     # a Jinja filter for converting Markdown to HTML
-    # monkey-patch fenced_code to not escape HTML in code block -- we're already escaping everything, code or not, so...
+    # monkey-patch markdown and fenced_code extension to not escape HTML in
+    # `inline code` or ``` code blocks -- we're already escaping everything,
+    # code or not, so...
+    md_util.code_escape = lambda x: x
     fenced_code.FencedBlockPreprocessor._escape = lambda self, x: x
     # only configure/init these once, not every time the filter is called
     markdown_extensions = [
@@ -62,5 +65,7 @@ def init_app(app):
     def markdown_filter(value):
         '''Convert markdown to HTML (after escaping).'''
         escaped = jinja_escape(value)
+        print(escaped)
         html = markdown_processor.reset().convert(escaped)
+        print(html)
         return markupsafe.Markup(html)
