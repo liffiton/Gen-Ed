@@ -15,7 +15,7 @@ bp = Blueprint('tutor', __name__, url_prefix="/tutor", template_folder='template
 
 @bp.route("/")
 @login_required
-def tutor_form(chat_id=None):
+def tutor_form():
     return render_template("tutor_new_form.html")
 
 
@@ -48,9 +48,7 @@ def start_chat_from_query():
 
     # build context from the specified query
     query_row, response = get_query(query_id)
-    context = f"""\
-The user is working with the {query_row['language']} language.
-"""
+    context = f"The user is working with the {query_row['language']} language."
 
     chat_id = create_chat(user_id, role_id, topic, context)
 
@@ -62,15 +60,10 @@ The user is working with the {query_row['language']} language.
 @bp.route("/chat/<int:chat_id>")
 @login_required
 def chat_interface(chat_id):
-    #auth = get_session_auth()
-    #user_id = auth['user_id']
-    #role_id = auth['lti']['role_id'] if auth['lti'] else None
-
-    # TODO: auth/ownership checks
     chat, topic, context = get_chat(chat_id)
 
     if chat is None:
-        flash("Invalid id", "warning")
+        flash("Invalid id.", "warning")
         return render_template("error.html")
 
     return render_template("tutor_view.html", chat_id=chat_id, topic=topic, context=context, chat=chat)
@@ -88,15 +81,28 @@ def create_chat(user_id, role_id, topic, context=None):
 
 
 def get_chat(chat_id):
-    # TODO: auth/ownership checks
     db = get_db()
+    auth = get_session_auth()
+
     chat_row = db.execute(
-        "SELECT chat_json, topic, context FROM tutor_chats WHERE id=?",
+        "SELECT chat_json, topic, context, tutor_chats.user_id, roles.class_id "
+        "FROM tutor_chats "
+        "JOIN users ON tutor_chats.user_id=users.id "
+        "LEFT JOIN roles ON tutor_chats.role_id=roles.id "
+        "WHERE tutor_chats.id=?",
         [chat_id]
     ).fetchone()
 
     if not chat_row:
-        return None, None
+        return None, None, None
+
+    access_allowed = \
+        (auth['user_id'] == chat_row['user_id']) \
+        or auth['is_admin'] \
+        or (auth['lti'] and auth['lti']['role'] == 'instructor' and auth['lti']['class_id'] == chat_row['class_id'])
+
+    if not access_allowed:
+        return None, None, None
 
     chat_json = chat_row['chat_json']
     chat = json.loads(chat_json)
@@ -146,6 +152,10 @@ def run_chat_round(chat_id, message=None):
     # Get the specified chat
     chat, topic, context = get_chat(chat_id)
 
+    if chat is None:
+        # No access.
+        return
+
     # Add the given message(s) to the chat
     if message is not None:
         chat.append({
@@ -188,8 +198,6 @@ Please check to see how well I've understood each piece. But if you just ask me 
     })
     save_chat(chat_id, chat)
 
-    return chat, response_txt
-
 
 @bp.route("/message", methods=["POST"])
 @login_required
@@ -200,7 +208,7 @@ def new_message():
     # TODO: limit length
 
     # Run a round of the chat with the given message.
-    chat, response_txt = run_chat_round(chat_id, new_msg)
+    run_chat_round(chat_id, new_msg)
 
     # Send the user back to the now-updated chat view
     return redirect(url_for("tutor.chat_interface", chat_id=chat_id))

@@ -41,7 +41,7 @@ def test_login(client, auth, username, password, status, message, is_admin):
 
 def test_logout(client, auth):
     with client:
-        auth.login()
+        auth.login()  # defaults to testuser (id 11)
         sessauth = get_session_auth()
         assert sessauth['username'] == 'testuser'
 
@@ -56,6 +56,9 @@ def test_logout(client, auth):
     ('/', 200, 200, 200),
     ('/help/', 401, 200, 200),
     ('/help/view/1', 401, (200, "Invalid id."), (200, "response1")),
+    ('/tutor/', 401, 200, 200),
+    ('/tutor/chat/1', 401, (200, "user_msg_1"), (200, "user_msg_1")),
+    ('/tutor/chat/2', 401, (200, "Invalid id."), (200, "user_msg_2")),
     ('/admin/', 302, 302, 200),         # admin_required redirects to login
     ('/admin/get_db', 302, 302, 200),   # admin_required redirects to login
 ))
@@ -63,7 +66,7 @@ def test_auth_required(client, auth, path, nologin, withlogin, withadmin):
     response = client.get(path)
     assert response.status_code == nologin
 
-    auth.login()
+    auth.login()  # defaults to testuser (id 11)
     response = client.get(path)
     if isinstance(withlogin, tuple):
         assert response.status_code == withlogin[0]
