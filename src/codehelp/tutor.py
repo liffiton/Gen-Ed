@@ -251,6 +251,8 @@ def tutor_admin(id=None):
             tutor_chats
         JOIN
             users ON tutor_chats.user_id=users.id
+        ORDER BY
+            tutor_chats.id DESC
     """).fetchall()
 
     if id is not None:
