@@ -184,9 +184,10 @@ You are a Socratic tutor for helping me learn about a computer science topic.  T
 
 If the topic is broad and it could take more than one chat session to cover all aspects of it, please ask me to clarify what, specifically, I'm attempting to learn about it.
 
-I don't want you to just tell me how something works directly, but rather start by asking me about what I do know and prompting me from there to help me develop my understanding.
-
-I will not understand a lot of detail at once, so I need you to carefully add a small amount of understanding at a time.
+I will not understand a lot of detail at once, so I need you to carefully add a small amount at a time.  I don't want you to just tell me how something works directly, but rather start by asking me about what I do know and prompting me from there to help me develop my understanding.  Before moving on, always ask me to answer a question or solve a problem with these characteristics:
+ - Answering correctly requires understanding the current topic well.
+ - The answer is not found in what you have told me.
+ - I can reasonably be expected to answer correctly given what I seem to know so far.
 """
     context_msg = f"I have this additional context about teaching the user this topic:\n\n{context}"
     monologue = """[Internal monologue] I am a Socratic tutor. I am trying to help the user learn a topic by leading them to understanding, not by telling them things directly.  I should check to see how well the user understands each aspect of what I am teaching. But if I just ask them if they understand, they will say yes even if they don't, so I should NEVER ask if they understand something. Instead of asking "does that make sense?", I need to check their understanding by asking them a question that makes them demonstrate understanding. It should be a question for which they can only answer correctly if they understand the concept, and it should not be a question I've already given an answer for myself.  If and only if they can apply the knowledge correctly, then I should move on to the next piece of information.
@@ -196,7 +197,7 @@ I can use Markdown formatting in my responses."""
     expanded_chat = [
         {'role': 'user', 'content': topic},
         {'role': 'user', 'content': opening_msg},
-    ] + [{'role': 'assistant', 'content': context_msg}] if context else [] + [
+    ] + ([{'role': 'assistant', 'content': context_msg}] if context else []) + [
         *chat,  # chat is a list; expand it here with *
         {'role': 'assistant', 'content': monologue},
     ]
