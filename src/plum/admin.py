@@ -1,4 +1,5 @@
 from collections import namedtuple
+from urllib.parse import urlencode
 
 from flask import Blueprint, current_app, redirect, render_template, request, send_file, url_for
 
@@ -49,6 +50,7 @@ def reload_consumers():
     current_app.config['PYLTI_CONFIG']['consumers'] = consumer_dict
 
 
+FilterSpec = namedtuple('FilterSpec', ('name', 'column'))
 Filter = namedtuple('Filter', ('name', 'column', 'value'))
 
 
@@ -62,20 +64,26 @@ class Filters:
     def add_where(self, name, column, value):
         self._filters.append(Filter(name, column, value))
 
-    def make_where(self):
-        if not self._filters:
+    def make_where(self, selected):
+        filters = [f for f in self._filters if f.name in selected]
+        if not filters:
             return "", []
         else:
             return (
-                "WHERE " + " AND ".join(f"{f.column}=?" for f in self._filters),
-                [f.value for f in self._filters]
+                "WHERE " + " AND ".join(f"{f.column}=?" for f in filters),
+                [f.value for f in filters]
             )
 
-    def dict_minus(self, item_name):
-        return {name: value for name, column, value in self._filters if name != item_name}
+    def filter_string(self):
+        filter_dict = {name: value for name, column, value in self._filters}
+        return f"?{urlencode(filter_dict)}"
 
-    def dict(self):
-        return {name: value for name, column, value in self._filters}
+    def filter_string_without(self, exclude_name):
+        filter_dict = {name: value for name, column, value in self._filters if name != exclude_name}
+        return f"?{urlencode(filter_dict)}"
+
+    def template_string(self, selected_name):
+        return self.filter_string_without(selected_name) + f"&{selected_name}=${{value}}"
 
 
 @bp.route("/")
@@ -83,6 +91,17 @@ def main():
     db = get_db()
     filters = Filters()
 
+    args_cols = [
+        FilterSpec('consumer', 'consumers.id'),
+        FilterSpec('class', 'roles.class_id'),
+        FilterSpec('user', 'users.username'),
+        FilterSpec('role', 'roles.id'),
+    ]
+    for name, col in args_cols:
+        if name in request.args:
+            filters.add_where(name, col, request.args[name])
+
+    # all consumers
     consumers = db.execute("""
         SELECT
             consumers.*,
@@ -95,10 +114,8 @@ def main():
         GROUP BY consumers.id
     """).fetchall()
 
-    if 'consumer' in request.args:
-        filters.add_where("consumer", "consumers.id", request.args['consumer'])
-
-    where_clause, where_params = filters.make_where()
+    # classes, filtered by consumer
+    where_clause, where_params = filters.make_where(['consumer'])
     classes = db.execute(f"""
         SELECT
             classes.*,
@@ -112,10 +129,8 @@ def main():
         GROUP BY classes.id
     """, where_params).fetchall()
 
-    if 'class' in request.args:
-        filters.add_where("class", "roles.class_id", request.args['class'])
-
-    where_clause, where_params = filters.make_where()
+    # users, filtered by consumer and class
+    where_clause, where_params = filters.make_where(['consumer', 'class'])
     users = db.execute(f"""
         SELECT
             users.*,
@@ -129,16 +144,12 @@ def main():
         GROUP BY users.id
     """, where_params).fetchall()
 
-    if 'user' in request.args:
-        filters.add_where("user", "users.username", request.args['user'])
-
-    where_clause, where_params = filters.make_where()
+    # roles, filtered by consumer, class, and user
+    where_clause, where_params = filters.make_where(['consumer', 'class', 'user'])
     roles = db.execute(f"SELECT roles.*, users.username, COUNT(queries.id) AS num_queries FROM roles LEFT JOIN users ON users.id=roles.user_id LEFT JOIN consumers ON users.lti_consumer=consumers.lti_consumer LEFT JOIN queries ON roles.id=queries.role_id {where_clause} GROUP BY roles.id", where_params).fetchall()
 
-    if 'role' in request.args:
-        filters.add_where("role", "roles.id", request.args['role'])
-
-    where_clause, where_params = filters.make_where()
+    # queries, filtered by consumer, class, user, and role
+    where_clause, where_params = filters.make_where(['consumer', 'class', 'user', 'role'])
     queries_limit = 200
     queries = db.execute(f"SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id LEFT JOIN consumers ON users.lti_consumer=consumers.lti_consumer LEFT JOIN roles ON queries.role_id=roles.id {where_clause} ORDER BY query_time DESC LIMIT ?", where_params + [queries_limit]).fetchall()
 

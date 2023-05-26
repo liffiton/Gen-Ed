@@ -2,10 +2,9 @@
 {% from "tables.html" import datatable %}
 
 {% block admin_body %}
-  {% set cur_filter_string = "?" + (filters.dict() | urlencode | safe) + ("&" | safe) %}
   <div class="buttons is-inline">
     {% for filter in filters %}
-      <a class="button is-info is-rounded p-3" href="?{{ filters.dict_minus(filter.name) | urlencode }}">
+      <a class="button is-info is-rounded p-3" href="{{ filters.filter_string_without(filter.name) | safe }}">
         {{filter.name}} = {{filter.value}}
         <span class="delete is-small is-link ml-2"></span>
       </a>
@@ -14,13 +13,38 @@
   <div class="columns is-multiline is-desktop">
     <div class="column is-7-desktop is-4-fullhd">
       <h1 class="is-size-3">Consumers <a class="button is-light is-link is-small mt-2" href="{{url_for('admin.consumer_new')}}">Create New</a></h1>
-      {{ datatable('consumers', [('id', 'id'), ('consumer', 'lti_consumer'), ('#queries', 'num_queries', 'r'), ('1wk', 'num_recent_queries', 'r')], consumers, link_col=0, link_template=cur_filter_string + "consumer=${value}", edit_handler="admin.consumer_form") }}
+      {{ datatable(
+          'consumers',
+          [('id', 'id'), ('consumer', 'lti_consumer'), ('#queries', 'num_queries', 'r'), ('1wk', 'num_recent_queries', 'r')],
+          consumers,
+          link_col=0,
+          link_template=filters.template_string('consumer') | safe,
+          edit_handler="admin.consumer_form"
+      ) }}
       <h1 class="is-size-3">Classes</h1>
-      {{ datatable('classes', [('id', 'id'), ('name', 'lti_context_label'), ('consumer', 'lti_consumer'), ('#queries', 'num_queries', 'r'), ('1wk', 'num_recent_queries', 'r')], classes, link_col=0, link_template=cur_filter_string + "class=${value}") }}
+      {{ datatable(
+          'classes',
+          [('id', 'id'), ('name', 'lti_context_label'), ('consumer', 'lti_consumer'), ('#queries', 'num_queries', 'r'), ('1wk', 'num_recent_queries', 'r')],
+          classes,
+          link_col=0,
+          link_template=filters.template_string('class') | safe,
+      ) }}
       <h1 class="is-size-3">Users</h1>
-      {{ datatable('users', [('id', 'id'), ('user', 'username'), ('consumer', 'lti_consumer'), ('#queries', 'num_queries', 'r'), ('1wk', 'num_recent_queries', 'r'), ('tokens', 'query_tokens', 'r')], users, link_col=1, link_template=cur_filter_string + "user=${value}") }}
+      {{ datatable(
+          'users',
+          [('id', 'id'), ('user', 'username'), ('consumer', 'lti_consumer'), ('#queries', 'num_queries', 'r'), ('1wk', 'num_recent_queries', 'r'), ('tokens', 'query_tokens', 'r')],
+          users,
+          link_col=1,
+          link_template=filters.template_string('user') | safe,
+      ) }}
       <h1 class="is-size-3">Roles</h1>
-      {{ datatable('roles', [('id', 'id'), ('user', 'username'), ('role', 'role'), ('class_id', 'class_id')], roles, link_col=0, link_template=cur_filter_string + "role=${value}") }}
+      {{ datatable(
+          'roles',
+          [('id', 'id'), ('user', 'username'), ('role', 'role'), ('class_id', 'class_id')],
+          roles,
+          link_col=0,
+          link_template=filters.template_string('role') | safe,
+      ) }}
     </div>
     <div class="column is-full-widescreen is-8-fullhd">
       <h1 class="is-size-3">
