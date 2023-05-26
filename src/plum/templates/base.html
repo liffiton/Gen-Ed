@@ -97,7 +97,7 @@ ${ options.searchable ?
         {% for nav_item_template in config['NAVBAR_ITEM_TEMPLATES'] %}
           {% include nav_item_template %}
         {% endfor %}
-        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample" x-bind:class="menu_open ? 'is-active' : ''" x-on:click="menu_open = ! menu_open">
+        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" x-bind:class="menu_open ? 'is-active' : ''" x-on:click="menu_open = ! menu_open">
           <span aria-hidden="true"></span>
           <span aria-hidden="true"></span>
           <span aria-hidden="true"></span>

@@ -7,7 +7,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 
 from .db import get_db
 from .auth import get_session_auth, set_session_auth
-from .admin import bp as bp_admin, register_admin_page
+from .admin import bp as bp_admin, register_admin_link
 
 
 bp = Blueprint('demo', __name__, url_prefix="/demo", template_folder='templates')
@@ -68,7 +68,7 @@ def demo_register_user(demo_name):
 
 # ### Admin routes ###
 
-@register_admin_page("Demo Links")
+@register_admin_link("Demo Links")
 @bp_admin.route("/demo_link/")
 def demo_link_view():
     db = get_db()

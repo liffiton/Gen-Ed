@@ -1,16 +1,32 @@
 {% extends "base.html" %}
 
 {% block body %}
-<nav class="navbar is-light is-size-5" role="navigation" aria-label="admin navigation">
-  <a class="navbar-item has-text-danger is-tab {{ 'is-active' if request.endpoint == 'admin.main' else ''}}" href="{{url_for('admin.main')}}">
-    <span class="icon">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
-    </span>
-    <span>Admin</span>
-  </a>
-  {% for page in admin_pages %}
-    <a class="navbar-item is-tab {{ 'is-active' if request.endpoint == page[0] else ''}}" href="{{url_for(page[0])}}">{{page[1]}}</a>
-  {% endfor %}
+<nav class="navbar is-light is-size-5" role="navigation" aria-label="admin navigation" x-data="{admin_menu_open: false}">
+  <div class="navbar-brand">
+    <a class="navbar-item has-text-danger is-tab {{ 'is-active' if request.endpoint == 'admin.main' else ''}}" href="{{url_for('admin.main')}}">
+      <span class="icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+      </span>
+      <span>Admin</span>
+    </a>
+    <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" x-bind:class="admin_menu_open ? 'is-active' : ''" x-on:click="admin_menu_open = ! admin_menu_open">
+      <span aria-hidden="true"></span>
+      <span aria-hidden="true"></span>
+      <span aria-hidden="true"></span>
+    </a>
+  </div>
+  <div class="navbar-menu" x-bind:class="admin_menu_open ? 'is-active' : ''">
+    <div class="navbar-start">
+      {% for page in admin_links %}
+        <a class="navbar-item is-tab {{ 'is-active' if request.endpoint == page[0] else ''}}" href="{{url_for(page[0])}}">{{page[1]}}</a>
+      {% endfor %}
+    </div>
+    <div class="navbar-end">
+      {% for page in admin_links_right %}
+        <a class="navbar-item is-tab {{ 'is-active' if request.endpoint == page[0] else ''}}" href="{{url_for(page[0])}}">{{page[1]}}</a>
+      {% endfor %}
+    </div>
+  </div>
 </nav>
 
 <section class="section pt-3 pb-4 pl-5 pr-5">

@@ -17,19 +17,23 @@ def before_request():
     pass
 
 
-# A module-level list of registered admin pages.  Updated by register_admin_page()
-_admin_pages = []
+# A module-level list of registered admin pages.  Updated by register_admin_link()
+_admin_links = []
+_admin_links_right = []
 
 
 # Decorator function for registering routes as admin pages.
 # Use:
-#   @register_admin_page("Demo Links")
+#   @register_admin_link("Demo Links")
 #   @[route stuff]
 #   def handler():  [...]
-def register_admin_page(display_name):
+def register_admin_link(display_name, right=False):
     def decorator(route_func):
         handler_name = f"admin.{route_func.__name__}"
-        _admin_pages.append((handler_name, display_name))
+        if right:
+            _admin_links_right.append((handler_name, display_name))
+        else:
+            _admin_links.append((handler_name, display_name))
         return route_func
     return decorator
 
@@ -37,8 +41,8 @@ def register_admin_page(display_name):
 def init_app(app):
     # inject admin pages into template contexts
     @app.context_processor
-    def inject_admin_pages():
-        return dict(admin_pages=_admin_pages)
+    def inject_admin_links():
+        return dict(admin_links=_admin_links, admin_links_right=_admin_links_right)
 
 
 def reload_consumers():
@@ -156,7 +160,7 @@ def main():
     return render_template("admin.html", consumers=consumers, classes=classes, users=users, roles=roles, queries=queries, filters=filters)
 
 
-@register_admin_page("Download DB")
+@register_admin_link("Download DB", right=True)
 @bp.route("/get_db")
 def get_db_file():
     return send_file(current_app.config['DATABASE'], as_attachment=True)

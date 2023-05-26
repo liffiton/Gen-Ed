@@ -5,7 +5,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from plum.db import get_db
 from plum.auth import get_session_auth, login_required
-from plum.admin import bp as bp_admin, register_admin_page
+from plum.admin import bp as bp_admin, register_admin_link
 from plum.openai import get_openai_key, get_completion
 from plum.queries import get_query
 
@@ -229,7 +229,7 @@ def new_message():
 
 # ### Admin routes ###
 
-@register_admin_page("Tutor Chats")
+@register_admin_link("Tutor Chats")
 @bp_admin.route("/tutor/")
 @bp_admin.route("/tutor/<int:id>")
 def tutor_admin(id=None):
