@@ -252,13 +252,17 @@ def get_topics(query_id):
         model='turbo',
     ))
 
-    if response_txt.startswith("Error ("):
+    # Verify it is actually JSON
+    # May be "Error (..." if an API error occurs, or every now and then may get "Here is the JSON: ..." or similar.
+    try:
+        json.loads(response_txt)
+    except json.decoder.JSONDecodeError:
         return None, None
-    else:
-        # Save topics into queries table for the given query
-        db = get_db()
-        db.execute("UPDATE queries SET topics_json=? WHERE id=?", [response_txt, query_id])
-        db.commit()
-        # Return a Python list
-        topics = json.loads(response_txt)
-        return topics, query_row
+
+    # Save topics into queries table for the given query
+    db = get_db()
+    db.execute("UPDATE queries SET topics_json=? WHERE id=?", [response_txt, query_id])
+    db.commit()
+    # Return a Python list
+    topics = json.loads(response_txt)
+    return topics, query_row
