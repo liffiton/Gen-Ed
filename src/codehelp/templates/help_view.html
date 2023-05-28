@@ -129,12 +129,13 @@
       {% endif %}
 
       {% if auth['is_tester'] %}
-        <div class="card-content p-2 pl-5">
+        <div class="card-content content p-2 pl-5">
+          <h2 class="is-size-5">Related Topics</h2>
           {% if topics %}
             {% include 'topics_fragment.html' %}
           {% else %}
             <div
-              x-data="{topics_fragment: ''}"
+              x-data="{topics_fragment: '<span class=\'loader m-4\' style=\'font-size: 200%\'></span>'}"
               x-html="topics_fragment"
               x-init="
                 fetch('/help/topics/html/{{query.id}}')
