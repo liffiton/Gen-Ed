@@ -154,7 +154,7 @@ def main():
 
     # queries, filtered by consumer, class, user, and role
     where_clause, where_params = filters.make_where(['consumer', 'class', 'user', 'role'])
-    queries_limit = 200
+    queries_limit = 20000
     queries = db.execute(f"SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id LEFT JOIN consumers ON users.lti_consumer=consumers.lti_consumer LEFT JOIN roles ON queries.role_id=roles.id {where_clause} ORDER BY query_time DESC LIMIT ?", where_params + [queries_limit]).fetchall()
 
     return render_template("admin.html", consumers=consumers, classes=classes, users=users, roles=roles, queries=queries, filters=filters)
