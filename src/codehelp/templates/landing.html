@@ -1,38 +1,113 @@
 {% extends "base.html" %}
 
 {% block body %}
-<section class="section  has-background-info-light">
-  <div class="container">
-    <div class="box content is-large">
-      <h1>CodeHelp is a tool that can help you while you code.</h1>
-      <p>It can explain issues and answer questions about your code.  It uses <a href="https://en.wikipedia.org/wiki/Large_language_model">large language models (LLMs)</a> to understand code and natural language queries and respond in natural language as well.</p>
-      <p>You can:</p>
-      <ul>
-        <li>Ask how to start writing a program.</li>
-        <li>Get an explanation of a confusing error message.</li>
-        <li>Ask why your code isn't working correctly in a particular spot.</li>
-        <li>Learn more about specific syntax, functions, or techniques in your programming language of choice.</li>
-        <li>... and a lot more.</li>
-      </ul>
-      {% if auth['username'] %}
-      <a class="button is-link is-large" href="{{ url_for('helper.help_form') }}">
-        Try it now!
-      </a>
-      {% endif %}
-    </div>
-    <div class="box content is-large">
-      <h2>For instructors:</h2>
-      <p>CodeHelp helps your students any time they have a question, and it provides help <i>without writing code</i> for them.  It is made specifically to guide and explain rather than provide solution code.</p>
-      <p>You can:</p>
-      <ul>
-        <li>Incorporate LLMs into your teaching in a managed way, offering your students the eductional benefits LLMs can provide without compromising academic integrity.</li>
-        <li>Tailor responses to your class by providing keywords that responses should not use (e.g. <code>sum()</code> if you want students practicing for loops instead of using a built-in function).</li>
-        <li>Gain insights into what your students are working on and the sorts of questions they are asking.</li>
-        <li>Connect it to your LMS, so everyone in your class can log in via a simple link without creating and managing a separate account.</li>
-      </ul>
-      <a class="button is-link is-large" href="https://docs.google.com/forms/d/e/1FAIpQLSfsOZteMbIlIN5_MPZF-_Z-f9LwfZpfrhPOVfqcGjeJCtxHHQ/viewform?usp=sf_link">
-        Request LMS Integration
-      </a>
+<style type="text/css">body {background: #ddd8d3;}</style>
+<section class="section p-5">
+  <div class="containr">
+    <div class="columns is-desktop">
+      <div class="column is-half-desktop">
+        <div class="box content">
+          <h1>CodeHelp is a coding and CS assistant.</h1>
+          <p>It can explain issues and answer questions about your code and CS concepts.  It uses <a href="https://en.wikipedia.org/wiki/Large_language_model">large language models (LLMs)</a> to understand code and natural language queries and respond in natural language as well.</p>
+          <p>You can:</p>
+          <ul>
+            <li>Ask how to start writing a program.</li>
+            <li>Get an explanation of a confusing error message.</li>
+            <li>Ask why your code isn't working correctly in a particular spot.</li>
+            <li>Learn more about specific syntax, functions, or techniques in your programming language of choice.</li>
+            <li>... and a lot more.</li>
+          </ul>
+          {% if auth['username'] %}
+          <a class="button is-link" href="{{ url_for('helper.help_form') }}">
+            Try it now!
+          </a>
+          {% endif %}
+        </div>
+        <div class="box content">
+          <h2>For instructors:</h2>
+          <p>CodeHelp helps your students any time they have a question, and it provides help <i>without writing code</i> for them.  It is made specifically to guide and explain rather than provide solution code.</p>
+          <p>You can:</p>
+          <ul>
+            <li>Incorporate LLMs into your teaching in a managed way, offering your students the eductional benefits LLMs can provide without compromising their learning.</li>
+            <li>Gain insights into what your students are working on and the sorts of questions they are asking.</li>
+            <li>Tailor responses to your class by providing keywords that responses should not use (e.g. <code>sum()</code> if you want students practicing for loops instead of using a built-in function).</li>
+            <li>Connect it to your LMS, so everyone in your class can log in via a simple link without creating and managing a separate account.</li>
+          </ul>
+          <a class="button is-link" href="https://docs.google.com/forms/d/e/1FAIpQLSfsOZteMbIlIN5_MPZF-_Z-f9LwfZpfrhPOVfqcGjeJCtxHHQ/viewform?usp=sf_link">
+            Request LMS Integration
+          </a>
+        </div>
+      </div>
+      <div class="column is-half-desktop">
+        <script type="text/Javascript">
+          const examples = [
+            {
+              code: "def character_remover(word, character):\n    word = word.remove(character)\n    return word",
+              error: "Attribute Error",
+              issue: "I want this function to print the word, excluding the character.",
+              response: "<p>The error message you are seeing is an Attribute Error, which means that the object you are trying to access does not have the attribute or method you are trying to use. In this case, the object is the string <code>word</code> and the attribute you are trying to use is <code>remove()</code>. The <code>remove()</code> method is not a valid method for strings, so you are getting this error.</p><p>You can use the <code>replace()</code> method instead. This method takes two parameters: the substring you want to replace and the substring you want to replace it with. In this case, you want to replace the character with an empty string. To do this, you can pass an empty string as the second parameter to the <code>replace()</code> method. This will remove the character from the string.</p><p>For example, if you have a string <code>word = &#39;Hello&#39;</code> and a character <code>character = &#39;l&#39;</code>, you can remove the character from the string by calling <code>word.replace(character, &#39;&#39;)</code>. This will return a new string with the character removed, <code>&#39;Heo&#39;</code>.</p>",
+            },
+            {
+              code: "",
+              error: "",
+              issue: "How do I write code to evaluate whether an integer is a prime number?",
+              response: "<p>To determine whether an integer is a prime number, you can use a loop to check if it is divisible by any number other than 1 and itself. One way to do this is to loop through all numbers from 2 to the integer&#39;s square root, checking if the integer is divisible by each number. If it is divisible by any number, it is not a prime number. Otherwise, it is a prime number.</p><p>It&#39;s important to note that there are more efficient algorithms for checking prime numbers, but this approach should work for small integers.</p><p>Remember to consider edge cases, such as negative integers and 0 or 1, which are not prime numbers.</p><p>Let me know if you have any further questions or if there&#39;s anything else I can help you with!</p>",
+            },
+            {
+              code: "class Gamer:\n    def __init__(name):\n        self.name = name\n\n    def game():\n        print(f\"I am {self.name}\")",
+              error: "TypeError: Gamer.__init__() takes 1 positional argument but 2 were given",
+              issue: "I'm trying to make a class that is assigned a name, but I am getting an error.",
+              response: "<p>Thank you for reaching out for assistance with your Python code. Based on the error message you provided, it seems that the issue is with the <code>__init__</code> method in your <code>Gamer</code> class. The error message is telling you that this method takes only one argument, but you are passing two arguments to it. </p><p>In Python, the <code>__init__</code> method is a special method that is called when an object is created from a class. It is used to initialize the object's attributes. When defining the <code>__init__</code> method, you need to include the <code>self</code> parameter as the first parameter, which refers to the object being created. </p><p>In your code, you have only included the <code>name</code> parameter in the <code>__init__</code> method, but you have not included the <code>self</code> parameter. This is causing the error message you are seeing. To fix this, you need to add the <code>self</code> parameter as the first parameter in the <code>__init__</code> method. </p><p>I hope this explanation helps you understand the issue and how to fix it. Let me know if you have any further questions or need additional assistance.</p>",
+            },
+            {
+              code: "",
+              error: "",
+              issue: "Write a while loop that starts at the last character in the string and works its way backwards to the first character in the string, printing each letter on a separate line, except backwards.",
+              response: "<p>You can use a <code>while</code> loop to iterate over the characters in the string in reverse order. To do this, you can use the <code>len()</code> function to get the length of the string, and use the <code>range()</code> function to generate a sequence of numbers from the length of the string down to 0. Then you can use the <code>str[index]</code> syntax to access each character in the string. </p><p>To help you understand how this works, think about the following example: </p><p>Say you have a string <code>my_str = \"Hello World\"</code>. You can use the <code>len()</code> function to get the length of the string, which is 11. Then you can use the <code>range()</code> function to generate a sequence of numbers from 11 down to 0. This sequence of numbers will represent the indices of the characters in the string. Finally, you can use the <code>str[index]</code> syntax to access each character in the string. </p><p>Using this approach, you can iterate over the characters in the string in reverse order. This will print out each character in the string on a separate line, except backwards.</p>",
+            },
+          ];
+          const rand_example = Math.floor(Math.random() * examples.length);
+        </script>
+        <div class="box" x-data="{cur: rand_example}">
+          <div class="content">
+            <h1 class="title">Example: <button class="button has-background-link-light has-text-dark ml-4" @click="cur = (cur+1) % examples.length">See Another</button></h1>
+            <hr>
+            <div class="field is-horizontal" x-show="examples[cur]['code']">
+              <div class="field-label is-normal">
+                <label class="label">Code:</label>
+              </div>
+              <div class="field-body" style="overflow-x: auto">
+                <pre x-text="examples[cur]['code']"></pre>
+              </div>
+            </div>
+            <div class="field is-horizontal" x-show="examples[cur]['error']">
+              <div class="field-label is-normal">
+                <label class="label">Error:</label>
+              </div>
+              <div class="field-body" style="overflow-x: auto">
+                <pre x-text="examples[cur]['error']"></pre>
+              </div>
+            </div>
+            <div class="field is-horizontal" x-show="examples[cur]['issue']">
+              <div class="field-label">
+                <label class="label">Issue / Question:</label>
+              </div>
+              <div class="field-body">
+                <div x-html="examples[cur]['issue']"></div>
+              </div>
+            </div>
+            <hr>
+            <div class="field is-horizontal">
+              <div class="field-label">
+                <label class="label">CodeHelp's Response:</label>
+              </div>
+              <div class="field-body">
+                <div x-html="examples[cur]['response']"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
