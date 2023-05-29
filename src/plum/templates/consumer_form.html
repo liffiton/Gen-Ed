@@ -1,8 +1,8 @@
-{% extends "base.html" %}
+{% extends "admin_main.html" %}
 
-{% block body %}
-<section class="section">
+{% block admin_body %}
   <div class="container">
+
     <form action="{{url_for('admin.consumer_update')}}" method="post">
       {% if consumer %}
         {# We're editing an existing consumer.  Provide its ID. #}
@@ -84,8 +84,5 @@
 
     </form>
 
-  </section>
-
-</div>
-
+  </div>
 {% endblock %}

@@ -1,8 +1,8 @@
-{% extends "base.html" %}
+{% extends "admin_main.html" %}
 
-{% block body %}
-<section class="section">
+{% block admin_body %}
   <div class="container">
+
     <form action="{{url_for('admin.demo_link_update')}}" method="post">
       {% if demo_link %}
         {# We're editing an existing demo_link.  Provide its ID. #}
@@ -97,8 +97,5 @@
 
     </form>
 
-  </section>
-
-</div>
-
+  </div>
 {% endblock %}

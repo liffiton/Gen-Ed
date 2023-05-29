@@ -111,4 +111,4 @@ def demo_link_update():
         db.commit()
         flash("Demo link updated.")
 
-    return redirect(url_for(".demo_link_form", demo_link_id=demo_link_id))
+    return redirect(url_for(".demo_link_form", id=demo_link_id))
