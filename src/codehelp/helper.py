@@ -229,17 +229,13 @@ def get_topics_raw(query_id):
 def get_topics(query_id):
     query_row, responses = get_query(query_id)
 
-    messages = [
-        {'role': 'user', 'content': f"""\
-<language>{query_row['language']}</language>
-<code>{query_row['code']}</code>
-<error>{query_row['error']}</error>
-<issue>{query_row['issue']}</issue>
-"""},
-        {'role': 'assistant', 'content': responses['main']},
-        {'role': 'user', 'content': "Please give me a list, in JSON format, of topics I appear to be having difficulty with in the above exchange.  Write each topic in title case."},
-        {'role': 'assistant', 'content': "[inner monologue] I need to provide ONLY a JSON-formatted list with NO other text."}
-    ]
+    messages = prompts.make_topics_prompt(
+        query_row['language'],
+        query_row['code'],
+        query_row['error'],
+        query_row['issue'],
+        responses['main']
+    )
 
     # get openai API key for following completion
     api_key = get_openai_key()

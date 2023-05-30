@@ -106,3 +106,19 @@ def make_cleanup_prompt(orig_response_txt):
 ---
 Rewritten:
 """
+
+
+def make_topics_prompt(language, code, error, issue, response):
+    messages = [
+        {'role': 'user', 'content': f"""\
+<language>{language}</language>
+<code>{code}</code>
+<error>{error}</error>
+<issue>{issue}</issue>
+"""},
+        {'role': 'assistant', 'content': response},
+        {'role': 'user', 'content': "Please give me a list of specific concepts I appear to be having difficulty with in the above exchange.  Write each in title case."},
+        {'role': 'assistant', 'content': "[inner monologue] I need to respond with a JSON-formatted list with NO other text, like: ['Item1','Item2','Item3','Item4']"}
+    ]
+
+    return messages
