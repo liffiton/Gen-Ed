@@ -15,6 +15,12 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from codehelp import prompts  # noqa
 
 
+def msgs2str(messages):
+    return "\n".join(
+        f"{msg['role']}: {msg['content']}" for msg in messages
+    )
+
+
 def load_queries(filename):
     with open(filename) as csvfile:
         reader = csv.DictReader(csvfile)
@@ -98,6 +104,7 @@ def get_response(queries, index, test_type, model):
                 error=item['error'],
                 issue=item['issue'],
             )
+            messages = [{"role": "user", "content": prompt}]
         case "sufficient":
             prompt = prompts.make_sufficient_prompt(
                 language="python",
@@ -105,11 +112,23 @@ def get_response(queries, index, test_type, model):
                 error=item['error'],
                 issue=item['issue'],
             )
+            messages = [{"role": "user", "content": prompt}]
         case "cleanup":
-            prompt = prompts.make_cleanup_prompt(item['response'])
+            prompt = prompts.make_cleanup_prompt(item['response_text'])
+            messages = [{"role": "user", "content": prompt}]
+        case "topics":
+            assert model != "davinci"
+            messages = prompts.make_topics_prompt(
+                language="python",
+                code=item['code'],
+                error=item['error'],
+                issue=item['issue'],
+                response=item['response_text']
+            )
 
     try:
         if model == 'davinci':
+            item['__tester_prompt'] = prompt
             response = openai.Completion.create(
                 model="text-davinci-003",
                 prompt=prompt,
@@ -118,9 +137,10 @@ def get_response(queries, index, test_type, model):
             )
             response_txt = response.choices[0].text
         elif model == 'turbo':
+            item['__tester_prompt'] = msgs2str(messages)
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
+                messages=messages,
                 temperature=0.25,
                 max_tokens=1000,
                 n=3,
@@ -134,12 +154,10 @@ def get_response(queries, index, test_type, model):
 
         item['__tester_response'] = response_txt
 
-        item['__tester_prompt'] = prompt
-
         item['__tester_usage'] = f"Prompt: {response.usage['prompt_tokens']}  Completion: {response.usage['completion_tokens']}  Total: {response.usage['total_tokens']}"
 
-    except:  # noqa
-        item['__tester_response'] = "[An error occurred in the openai completion.]"
+    except Exception as e:  # noqa
+        item['__tester_response'] = f"[An error occurred in the openai completion.]\n{e}"
 
 
 def setup_openai():
@@ -159,7 +177,7 @@ def main():
     # Setup / run config
     parser = argparse.ArgumentParser(description='A tool for running queries against data from a CSV file.')
     parser.add_argument('filename', type=str, help='The filename of the CSV file to be read.')
-    parser.add_argument('test_type', type=str, choices=['helper', 'sufficient', 'cleanup'], help='The type of test to run.')
+    parser.add_argument('test_type', type=str, choices=['helper', 'sufficient', 'cleanup', 'topics'], help='The type of test to run.')
     parser.add_argument('model', type=str, choices=['davinci', 'turbo'], help='The LLM to use.')
     args = parser.parse_args()
 
@@ -169,7 +187,9 @@ def main():
         case "helper" | "sufficient":
             fields = ['code', 'error', 'issue']
         case "cleanup":
-            fields = ['response']
+            fields = ['response_text']
+        case "topics":
+            fields = ['code', 'error', 'issue', 'response_text']
 
     # Make the UI
     header = urwid.AttrMap(urwid.Text("Query Tester"), 'header')
