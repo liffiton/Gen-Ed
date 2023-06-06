@@ -41,9 +41,13 @@
               <button class="button is-danger is-small ml-3" type="submit" name="clear_lti_secret"><span class="delete mr-2"></span> Clear lti_secret</button>
             </div>
           {% else %}
-            <div class="field">
+            <div class="field has-addons">
               <div class="control">
-                <input class="input" name="lti_secret">
+                <input class="input" name="lti_secret" id="lti_secret">
+              </div>
+              <div class="control">
+                {# https://stackoverflow.com/a/24810220/ #}
+                <button class="button is-warning" type="button" onclick="document.querySelector('#lti_secret').value = Array(10).fill().map(()=>(Math.random()*36|0).toString(36)).join('')">Generate New</button>
               </div>
             </div>
           {% endif %}
