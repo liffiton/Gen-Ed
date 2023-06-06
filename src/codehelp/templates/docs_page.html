@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block body %}
+<style type="text/css">
+p.hasimg { text-align: center; }
+img.docimg { max-width: min(100%, 800px); border: 2px solid #ccc; border-radius: 5px; }
+</style>
+
+<section class="section">
+  <div class="container content">
+    {{ html_content | safe }}
+  </div>
+</section>
+{% endblock %}

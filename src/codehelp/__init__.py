@@ -1,5 +1,5 @@
 from plum import base
-from . import helper, tutor
+from . import docs, helper, tutor
 
 
 def create_app(test_config=None, instance_path=None):
@@ -32,6 +32,7 @@ def create_app(test_config=None, instance_path=None):
     # register blueprints specific to this application variant
     app.register_blueprint(helper.bp)
     app.register_blueprint(tutor.bp)
+    app.register_blueprint(docs.bp)
 
     # add navbar items
     app.config['NAVBAR_ITEM_TEMPLATES'].append("tutor_nav_item.html")
