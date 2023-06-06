@@ -1,7 +1,7 @@
 from collections import namedtuple
 from urllib.parse import urlencode
 
-from flask import Blueprint, current_app, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file, url_for
 
 from .db import get_db
 from .auth import admin_required
@@ -190,14 +190,17 @@ def consumer_update():
                          [request.form['lti_consumer'], request.form['lti_secret'], request.form['openai_key']])
         consumer_id = cur.lastrowid
         db.commit()
+        flash(f"Consumer {request.form['lti_consumer']} created.")
 
     elif 'clear_lti_secret' in request.form:
         db.execute("UPDATE consumers SET lti_secret='' WHERE id=?", [consumer_id])
         db.commit()
+        flash("Consumer secret cleared.")
 
     elif 'clear_openai_key' in request.form:
         db.execute("UPDATE consumers SET openai_key='' WHERE id=?", [consumer_id])
         db.commit()
+        flash("Consumer API key cleared.")
 
     else:
         # Updating
@@ -207,8 +210,9 @@ def consumer_update():
         if request.form.get('openai_key', ''):
             db.execute("UPDATE consumers SET openai_key=? WHERE id=?", [request.form['openai_key'], consumer_id])
             db.commit()
+        flash("Consumer updated.")
 
     # anything might have changed: reload all consumers
     reload_consumers()
 
-    return redirect(url_for(".consumer_form", consumer_id=consumer_id))
+    return redirect(url_for(".consumer_form", id=consumer_id))
