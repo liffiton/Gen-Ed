@@ -4,11 +4,11 @@ To set up your Canvas course to use CodeHelp, you need to register CodeHelp as a
 At some schools, this may require your IT staff's help if they have restricted this functionality in your Canvas site.
 If at any step of these instructions an option shown here is not available in your course, that may be why.
 
-  1. First, find the Settings page for Apps, and if you aren't already at the "External Apps" page, choose "View App Configurations":
+  1. First, find the Settings page for Apps, and if you aren't already at the App configurations page, choose "View App Configurations":
   <p class="hasimg">
   <img class="docimg" alt='"Apps" page in Canvas settings' src='/static/canvas_LTI_01_settings.svg'>
   </p>
-  2. On the "External Apps" page, press the "+ App" button:
+  2. On the App configurations page, press the "+ App" button:
   <p class="hasimg">
   <img class="docimg" alt='"External Apps" page in Canvas settings, highlighting the "+ App" button' src='/static/canvas_LTI_02_add_app_button.svg'>
   </p>
