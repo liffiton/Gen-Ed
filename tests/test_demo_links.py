@@ -23,15 +23,21 @@ def test_valid_demo_link(client):
     response = client.get("/help/")
     assert response.status_code == 200   # unauthorized in all of these cases
 
-    response = client.post(
-        '/help/request',
-        data={'lang_id': 1, 'code': 'test code', 'error': 'test error', 'issue': 'test_issue'}
-    )
-    assert response.status_code == 302   # redirect
-
-    response = client.get(response.location)
-    assert response.status_code == 200
-    assert 'test code' in response.text
+    # Try 5 queries, verifying the tokens work (test_data.sql assigns 3 for this demo link)
+    for i in range(5):
+        test_code = f"_test_code_{i}_"
+        response = client.post(
+            '/help/request',
+            data={'lang_id': 1, 'code': test_code, 'error': '_test_error_', 'issue': '_test_issue_'}
+        )
+        assert response.status_code == 302   # redirect
+        response = client.get(response.location)
+        assert response.status_code == 200
+        assert '_test_error_' in response.text and '_test_issue_' in response.text
+        if i < 3:
+            assert test_code in response.text
+        else:
+            assert test_code not in response.text
 
 
 def test_logged_in(auth, client):
