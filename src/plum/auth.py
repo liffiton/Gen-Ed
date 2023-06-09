@@ -54,7 +54,7 @@ def login():
             flash(f"Welcome, {username}!")
             return redirect(next_url)
 
-    # we either have a GET request or we fell through the POST login attempt with a failer
+    # we either have a GET request or we fell through the POST login attempt with a failure
     return render_template("login.html")
 
 

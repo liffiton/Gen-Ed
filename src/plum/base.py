@@ -6,7 +6,7 @@ import sys
 from dotenv import load_dotenv
 from flask import Flask, render_template
 
-from . import admin, auth, db, demo, instructor, filters, lti, tz
+from . import admin, auth, db, demo, instructor, filters, lti, oauth, tz
 
 
 def create_app_base(import_name, app_config, instance_path):
@@ -45,17 +45,9 @@ def create_app_base(import_name, app_config, instance_path):
     app.jinja_env.lstrip_blocks = True
     app.jinja_env.trim_blocks = True
 
-    # OPENAI_API_KEY set in .env, loaded by load_dotenv() above.
-    try:
-        openai_key = os.environ["OPENAI_API_KEY"]
-    except KeyError:
-        app.logger.error("OPENAI_API_KEY environment variable not set.")
-        sys.exit(1)
-
     # base config for all applications
     base_config = dict(
         DEFAULT_TOKENS=10,
-        OPENAI_API_KEY=openai_key,
         PYLTI_CONFIG={
             # will be loaded from the consumers table in the database
             "consumers": { }
@@ -66,6 +58,15 @@ def create_app_base(import_name, app_config, instance_path):
         # list of navbar item templates; will be extended by specific create_app()s
         NAVBAR_ITEM_TEMPLATES=[],
     )
+
+    # Add vars set in .env, loaded by load_dotenv() above, to config dictionary.
+    for varname in ["OPENAI_API_KEY", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"]:
+        try:
+            env_var = os.environ[varname]
+            base_config[varname] = env_var
+        except KeyError:
+            app.logger.error(f"{varname} environment variable not set.")
+            sys.exit(1)
 
     # build total configuration
     total_config = base_config | app_config
@@ -115,6 +116,7 @@ def create_app_base(import_name, app_config, instance_path):
     admin.init_app(app)
     db.init_app(app)
     filters.init_app(app)
+    oauth.init_app(app)
     tz.init_app(app)
 
     app.register_blueprint(admin.bp)
@@ -122,6 +124,7 @@ def create_app_base(import_name, app_config, instance_path):
     app.register_blueprint(demo.bp)
     app.register_blueprint(instructor.bp)
     app.register_blueprint(lti.bp)
+    app.register_blueprint(oauth.bp)
 
     # Inject auth data into template contexts
     @app.context_processor
