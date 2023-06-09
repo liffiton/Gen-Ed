@@ -53,7 +53,7 @@ def init_db():
         print("Error:  INIT_PW_MARK environment variable not set.", file=sys.stderr)
         sys.exit(1)
 
-    db.execute("INSERT INTO users(username, password, is_admin) VALUES(?, ?, True)", ["mark", init_pw_mark])
+    db.execute("INSERT INTO users(username, password, is_admin, is_tester, query_tokens) VALUES(?, ?, True, True, NULL)", ["mark", init_pw_mark])
     db.commit()
 
 
@@ -101,7 +101,7 @@ def newuser_command(username):
         click.secho(f"Error: username {username} already exists.", fg='red')
     else:
         new_password = ''.join(secrets.choice(string.ascii_letters) for _ in range(6))
-        db.execute("INSERT INTO users(username, password) VALUES(?, ?)", [username, generate_password_hash(new_password)])
+        db.execute("INSERT INTO users(username, password, query_tokens) VALUES(?, ?, 100)", [username, generate_password_hash(new_password)])
         db.commit()
         click.secho("User added to the database:", fg='green')
         click.echo(f"  username: {username}\n  password: {new_password}")

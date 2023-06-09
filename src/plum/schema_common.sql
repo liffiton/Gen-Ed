@@ -27,7 +27,7 @@ CREATE TABLE users (
     is_tester BOOLEAN NOT NULL CHECK (is_tester IN (0,1)) DEFAULT 0,
     lti_id   TEXT UNIQUE,  -- combination of LTI consumer, LTI userid, and email -- used to connect LTI sessions to users
     lti_consumer TEXT,  -- the LTI consumer that registered this user, if applicable
-    query_tokens INTEGER,  -- number of tokens left for making queries - for demo users - default NULL means no limit
+    query_tokens INTEGER DEFAULT 0,  -- number of tokens left for making queries - NULL means no limit, non-NULL for SSO/demo users, 0 means cut off
     created  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 -- require unique usernames if no LTI ID (allows multiple users w/ same username if coming from different LTI consumers)

@@ -54,6 +54,7 @@ def create_app_base(import_name, app_config, instance_path):
 
     # base config for all applications
     base_config = dict(
+        DEFAULT_TOKENS=10,
         OPENAI_API_KEY=openai_key,
         PYLTI_CONFIG={
             # will be loaded from the consumers table in the database

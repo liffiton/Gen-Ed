@@ -1,12 +1,12 @@
-INSERT INTO users (id, username, password, is_admin, lti_id, lti_consumer)
+INSERT INTO users (id, username, password, is_admin, lti_id, lti_consumer, query_tokens)
 VALUES
     -- testuser:testpassword
-    (11, 'testuser', 'pbkdf2:sha256:260000$sGEKFQJ2UbGkHl1i$97032d72ed006da449a04a9e636cd4baba6133b6df3c5cdba09ddb0465c5e812', false, null, null),
+    (11, 'testuser', 'pbkdf2:sha256:260000$sGEKFQJ2UbGkHl1i$97032d72ed006da449a04a9e636cd4baba6133b6df3c5cdba09ddb0465c5e812', false, null, null, 10),
     -- testadmin:testadminpassword
-    (12, 'testadmin', 'pbkdf2:sha256:260000$kIcsNgDntNvCz7D0$3c517ee1ebd6402852e47e0ed16827e99a3144ca27024634e6ada8cd836028a4', true, null, null),
-    (13, 'ltiuser1', null, false, 'consumer_123_me@consumer.domain', 'consumer'),
-    (14, 'ltiuser2', null, false, 'consumer_456_me@consumer.domain', 'consumer'),
-    (15, 'ltiuser3', null, false, 'consumer_789_me@consumer.domain', 'consumer');
+    (12, 'testadmin', 'pbkdf2:sha256:260000$kIcsNgDntNvCz7D0$3c517ee1ebd6402852e47e0ed16827e99a3144ca27024634e6ada8cd836028a4', true, null, null, null),
+    (13, 'ltiuser1', null, false, 'consumer_123_me@consumer.domain', 'consumer', 0),
+    (14, 'ltiuser2', null, false, 'consumer_456_me@consumer.domain', 'consumer', 0),
+    (15, 'ltiuser3', null, false, 'consumer_789_me@consumer.domain', 'consumer', 0);
 
 INSERT INTO consumers (id, lti_consumer, lti_secret, openai_key)
 VALUES
@@ -32,7 +32,7 @@ VALUES
 
 INSERT INTO demo_links (id, name, enabled, expiration, tokens, uses)
 VALUES
-    (1, 'test_valid', 1, '2199-12-31', 10, 0),
+    (1, 'test_valid', 1, '2199-12-31', 3, 0),
     (2, 'test_disabled', 0, '2199-12-31', 10, 0),
     (3, 'test_expired', 1, '2000-01-01', 10, 0);
 

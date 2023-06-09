@@ -49,7 +49,8 @@ def lti_login(lti=lti):
 
     if not user_row:
         # Register this user
-        cur = db.execute("INSERT INTO users(username, lti_id, lti_consumer) VALUES(?, ?, ?)", [email, lti_id, lti_consumer])
+        default_tokens = current_app.config['DEFAULT_TOKENS']
+        cur = db.execute("INSERT INTO users(username, lti_id, lti_consumer, query_tokens) VALUES(?, ?, ?, ?)", [email, lti_id, lti_consumer, default_tokens])
         db.commit()
         user_id = cur.lastrowid
     else:
