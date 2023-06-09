@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block body %}
+<style type="text/css">
+dl.profile { display: grid; grid-template-columns: max-content 1fr; gap: 1em; }
+dl.profile dt { font-weight: bold; text-align: right; }
+dl.profile dd { margin: 0; }
+</style>
+
+<section class="section">
+  <div class="container content is-size-5">
+    <h1 class="title">Your Profile</h1>
+    <dl class="profile">
+      <dt>Username:</dt>
+      <dd>{{ auth['username'] }}</dd>
+      {% if auth['is_admin'] %}
+        <dt></dt>
+        <dd class="has-text-danger">
+          <span class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+          </span>
+          <span>Admin</span>
+        </dd>
+      {% endif %}
+      {% if auth['is_tester'] %}
+        <dt></dt>
+        <dd class="has-text-success">
+          <span class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-flask-conical"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg>
+          </span>
+          <span>Tester</span>
+        </dd>
+      {% endif %}
+      <dt>Queries:</dt>
+      <dd>{{ user.num_queries }} total, {{ user.num_recent_queries }} in the past week.</dd>
+      {% if auth['lti'] %}
+        <dt>LTI Consumer:</dt><dd>{{ auth['lti']['consumer'] }}</dd>
+        <dt>LTI Class:</dt><dd>{{ auth['lti']['class_name'] }}</dd>
+        <dt>LTI Role:</dt><dd>{{ auth['lti']['role'] }}</dd>
+      {% endif %}
+      {% if user.query_tokens %}
+        <dt>Tokens:</dt>
+        <dd>{{ user.query_tokens }} remaining</dd>
+      {% endif %}
+    </dl>
+  </div>
+</section>
+{% endblock %}

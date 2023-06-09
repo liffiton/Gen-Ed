@@ -148,3 +148,21 @@ def uses_token(f):
                 db.commit()
         return f(*args, **kwargs)
     return decorated_function
+
+
+@bp.route("/profile")
+@login_required
+def user_profile():
+    db = get_db()
+    auth = get_session_auth()
+    user = db.execute("""
+        SELECT
+            users.*,
+            COUNT(queries.id) AS num_queries,
+            SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
+        FROM users
+        LEFT JOIN queries ON queries.user_id=users.id
+        WHERE users.id=?
+    """, [auth['user_id']]).fetchone()
+
+    return render_template("profile_view.html", user=user)

@@ -108,7 +108,7 @@ ${ options.searchable ?
         </div>
         <div class="navbar-end">
           {% if auth['username'] %}
-            <div class="navbar-item is-size-6" style="flex-direction: column; justify-content: center;">
+            <a class="navbar-item is-size-6" style="flex-direction: column; justify-content: center;" href="{{ url_for('auth.user_profile') }}">
               <div style="display: flex; align-items: center;">
                 <span class="icon">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
@@ -121,7 +121,7 @@ ${ options.searchable ?
                 <span class="is-italic" {% if class_name | length > 20 %}title="{{ class_name }}"{% endif %}>{{ class_name | truncate(20) }}</span>
               </div>
               {% endif %}
-            </div>
+            </a>
             {% if auth['lti']['role'] == 'instructor' %}
               <a class="navbar-item is-size-6 has-text-success" href="/instructor/config">
                 <span class="icon">
