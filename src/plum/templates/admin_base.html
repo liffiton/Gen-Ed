@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block body %}
+{% block second_nav %}
 <nav class="navbar is-light is-size-5" role="navigation" aria-label="admin navigation" x-data="{admin_menu_open: false}">
   <div class="navbar-brand">
     <a class="navbar-item has-text-danger is-tab {{ 'is-active' if request.endpoint == 'admin.main' else ''}}" href="{{url_for('admin.main')}}">
@@ -28,7 +28,9 @@
     </div>
   </div>
 </nav>
+{% endblock %}
 
+{% block body %}
 <section class="section pt-3 pb-4 pl-5 pr-5">
   {% block admin_body %}
   {% endblock %}

@@ -6,6 +6,11 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <style type="text/css">
       body { display: flex; min-height: 100vh; flex-direction: column; }
+      @keyframes fadein {
+        from { opacity: 0; transform: translateY(-100%); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      div.flash_message { animation: fadein 1s; }
       main.site-content { flex: 1; } /* expand main content, push footer to bottom of page/viewport */
       .icon svg, svg.icon { width: 1.2rem; height: 1.2rem; }
       span[title] { text-decoration:underline; text-decoration-style: dotted; }
@@ -170,12 +175,14 @@ ${ options.searchable ?
       </div>
     </nav>
 
+    {% block second_nav %}{% endblock %}
+
     <main class="site-content">
       {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <section class="section columns p-5">
           {% for category, message in messages %}
-            <div class="notification column is-10 is-offset-1 is-size-4 pl-5 {% if category == "message" %}is-info{% else %}is-{{category}}{% endif %}">
+            <div class="flash_message notification column is-10 is-offset-1 is-size-4 pl-5 {% if category == "message" %}is-info{% else %}is-{{category}}{% endif %}">
               {{ message }}
             </div>
           {% endfor %}
