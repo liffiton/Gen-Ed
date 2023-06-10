@@ -1,4 +1,3 @@
-import pytest
 from oauthlib import oauth1
 
 
@@ -10,16 +9,10 @@ USER = {
 
 
 class LTIConsumer:
-    def __init__(self, url, consumer_key='', consumer_secret='', app=None):
+    def __init__(self, url, consumer_key='', consumer_secret=''):
         self.url = url
         self.consumer_key = consumer_key
         self.consumer_secret = consumer_secret
-        if app is not None:
-            app.config['PYLTI_CONFIG'] = {
-                'consumers': {
-                    consumer_key: {'secret': consumer_secret}
-                }
-            }
 
     def generate_launch_request(self, roles):
         params = {
@@ -55,23 +48,35 @@ class LTIConsumer:
         return uri, headers, body
 
 
-@pytest.fixture
-def lti(app):
-    return LTIConsumer('http://localhost/lti/', 'test_consumer_key', 'test_consumer_secret', app)
-
-
-@pytest.fixture
-def lti_unconfigured():
-    return LTIConsumer('http://localhost/lti/')
-
-
-def test_lti_auth_failed(lti_unconfigured, client):
+def test_lti_auth_bad_communication(client):
+    lti_unconfigured = LTIConsumer('http://localhost/lti/')  # no consumer, secret set; invalid LTI communication
     uri, headers, body = lti_unconfigured.generate_launch_request("Instructor")
     result = client.post(uri, headers=headers, data=body)
     assert result.text == "There was an LTI communication error"
 
 
-def test_lti_auth_instructor(lti, client):
+def test_lti_auth_bad_consumer(client):
+    # Consumer not registered in app
+    lti_unconfigured = LTIConsumer('http://localhost/lti/', 'invalid_consumer.domain', 'secret')
+
+    uri, headers, body = lti_unconfigured.generate_launch_request("Instructor")
+    result = client.post(uri, headers=headers, data=body)
+    assert result.text == "There was an LTI communication error"
+
+
+def test_lti_auth_bad_secret(client):
+    # Incorrect secret for that consumer as configured in the database (test_data.sql)
+    lti_unconfigured = LTIConsumer('http://localhost/lti/', 'consumer.domain', 'wrong_secret')
+
+    uri, headers, body = lti_unconfigured.generate_launch_request("Instructor")
+    result = client.post(uri, headers=headers, data=body)
+    assert result.text == "There was an LTI communication error"
+
+
+def test_lti_auth_instructor(client):
+    # key and secret match 'consumer.domain' consumer in test_data.sql
+    lti = LTIConsumer('http://localhost/lti/', 'consumer.domain', 'seecrits1')
+
     uri, headers, body = lti.generate_launch_request("Instructor")
 
     result = client.post(uri, headers=headers, data=body)
@@ -95,7 +100,10 @@ def test_lti_auth_instructor(lti, client):
     assert USER['email'] in result.text
 
 
-def test_lti_auth_student(lti, client):
+def test_lti_auth_student(client):
+    # key and secret match 'consumer.domain' consumer in test_data.sql
+    lti = LTIConsumer('http://localhost/lti/', 'consumer.domain', 'seecrits1')
+
     uri, headers, body = lti.generate_launch_request("Student")
 
     result = client.post(uri, headers=headers, data=body)

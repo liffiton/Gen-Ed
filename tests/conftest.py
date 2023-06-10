@@ -3,6 +3,7 @@ from pathlib import Path
 import tempfile
 
 import pytest
+from plum.admin import reload_consumers
 from plum.db import get_db, init_db
 import codehelp
 
@@ -15,14 +16,15 @@ with test_sql.open('rb') as f:
 
 @pytest.fixture
 def app(monkeypatch):
-    db_fd, db_path = tempfile.mkstemp()
-
     # Mock get_completion() to not hit OpenAI's API
     async def mock_completion(*args, **kwargs):
         prompt = kwargs['prompt'] if 'prompt' in kwargs else args[1]
         txt = f"Mocked completion with {prompt=}"
         return {'main': txt}, txt
     monkeypatch.setattr(codehelp.helper, 'get_completion', mock_completion)
+
+    # Create an app and initialize the DB
+    db_fd, db_path = tempfile.mkstemp()
 
     app = codehelp.create_app(
         test_config={
@@ -35,6 +37,7 @@ def app(monkeypatch):
     with app.app_context():
         init_db()
         get_db().executescript(_test_data_sql)
+        reload_consumers()  # reload consumers from now-initialized DB
 
     yield app
 
