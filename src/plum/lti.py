@@ -41,6 +41,29 @@ def lti_login(lti=lti):
 
     db = get_db()
 
+    # grab consumer ID (must exist, since the LTI processing must have used it to get here with success)
+    consumer_row = db.execute("SELECT id FROM consumers WHERE lti_consumer=?", [lti_consumer]).fetchone()
+    lti_consumer_id = consumer_row['id']
+
+    # check for and create class if needed
+    class_row = db.execute(
+        """
+        SELECT * FROM classes WHERE
+            classes.lti_consumer_id = ?
+            AND classes.lti_context_id = ?
+            AND classes.lti_context_label = ?
+        """,
+        [lti_consumer_id, lti_context_id, lti_context_label]
+    ).fetchone()
+
+    if not class_row:
+        # Add the class -- will not be usable until an instructor configures it, though.
+        cur = db.execute("INSERT INTO classes(lti_consumer_id, lti_context_id, lti_context_label) VALUES(?, ?, ?)", [lti_consumer_id, lti_context_id, lti_context_label])
+        db.commit()
+        class_id = cur.lastrowid
+    else:
+        class_id = class_row['id']
+
     # check for and create user if needed
     lti_id = f"{lti_consumer}_{lti_user_id}_{email}"
     user_row = db.execute(
@@ -49,25 +72,12 @@ def lti_login(lti=lti):
 
     if not user_row:
         # Register this user
-        default_tokens = current_app.config['DEFAULT_TOKENS']
-        cur = db.execute("INSERT INTO users(username, lti_id, lti_consumer, query_tokens) VALUES(?, ?, ?, ?)", [email, lti_id, lti_consumer, default_tokens])
+        # 0 tokens, because LTI users should always use a registered consumer's API key
+        cur = db.execute("INSERT INTO users(username, lti_id, lti_consumer_id, query_tokens) VALUES(?, ?, ?, 0)", [email, lti_id, lti_consumer_id])
         db.commit()
         user_id = cur.lastrowid
     else:
         user_id = user_row['id']
-
-    # check for class
-    class_row = db.execute(
-        "SELECT * FROM classes WHERE lti_consumer=? AND lti_context_id=? AND lti_context_label=?", [lti_consumer, lti_context_id, lti_context_label]
-    ).fetchone()
-
-    if not class_row:
-        # Add the class -- will not be usable until an instructor configures it, though.
-        cur = db.execute("INSERT INTO classes(lti_consumer, lti_context_id, lti_context_label) VALUES(?, ?, ?)", [lti_consumer, lti_context_id, lti_context_label])
-        db.commit()
-        class_id = cur.lastrowid
-    else:
-        class_id = class_row['id']
 
     # check for and create role if needed
     role_row = db.execute(

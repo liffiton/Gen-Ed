@@ -1,21 +1,22 @@
-INSERT INTO users (id, username, password, is_admin, lti_id, lti_consumer, query_tokens)
-VALUES
-    -- testuser:testpassword
-    (11, 'testuser', 'pbkdf2:sha256:260000$sGEKFQJ2UbGkHl1i$97032d72ed006da449a04a9e636cd4baba6133b6df3c5cdba09ddb0465c5e812', false, null, null, 10),
-    -- testadmin:testadminpassword
-    (12, 'testadmin', 'pbkdf2:sha256:260000$kIcsNgDntNvCz7D0$3c517ee1ebd6402852e47e0ed16827e99a3144ca27024634e6ada8cd836028a4', true, null, null, null),
-    (13, 'ltiuser1', null, false, 'consumer_123_me@consumer.domain', 'consumer', 0),
-    (14, 'ltiuser2', null, false, 'consumer_456_me@consumer.domain', 'consumer', 0),
-    (15, 'ltiuser3', null, false, 'consumer_789_me@consumer.domain', 'consumer', 0);
-
 INSERT INTO consumers (id, lti_consumer, lti_secret, openai_key)
 VALUES
     (1, 'consumer.domain', 'seecrits1', 'keeeez1'),
     (2, 'consumer.otherdomain', 'seecrits2', 'keeeez2');
 
-INSERT INTO classes (id, lti_consumer, lti_context_id, lti_context_label, config)
+INSERT INTO classes (id, lti_consumer_id, lti_context_id, lti_context_label, config)
 VALUES
-    (1, 'consumer.domain', 'ctx_id', 'LERN101', '{"default_lang": "python", "avoid": "sum()\r\neval()\r\nzfill()\r\n+=\r\n"}');
+    (1, 1, 'ctx_id', 'LERN101', '{"default_lang": "python", "avoid": "sum()\r\neval()\r\nzfill()\r\n+=\r\n"}');
+
+INSERT INTO users (id, username, password, is_admin, lti_id, lti_consumer_id, query_tokens)
+VALUES
+    -- testuser:testpassword
+    (11, 'testuser', 'pbkdf2:sha256:260000$sGEKFQJ2UbGkHl1i$97032d72ed006da449a04a9e636cd4baba6133b6df3c5cdba09ddb0465c5e812', false, null, null, 10),
+    -- testadmin:testadminpassword
+    (12, 'testadmin', 'pbkdf2:sha256:260000$kIcsNgDntNvCz7D0$3c517ee1ebd6402852e47e0ed16827e99a3144ca27024634e6ada8cd836028a4', true, null, null, null),
+    (13, 'ltiuser1', null, false, 'consumer_123_me@consumer.domain', 1, 0),
+    (14, 'ltiuser2', null, false, 'consumer_456_me@consumer.domain', 1, 0),
+    (15, 'ltiuser3', null, false, 'consumer_789_me@consumer.domain', 1, 0);
+
 
 INSERT INTO roles (id, user_id, class_id, role)
 VALUES

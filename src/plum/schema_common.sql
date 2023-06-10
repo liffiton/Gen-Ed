@@ -26,9 +26,10 @@ CREATE TABLE users (
     is_admin BOOLEAN NOT NULL CHECK (is_admin IN (0,1)) DEFAULT 0,
     is_tester BOOLEAN NOT NULL CHECK (is_tester IN (0,1)) DEFAULT 0,
     lti_id   TEXT UNIQUE,  -- combination of LTI consumer, LTI userid, and email -- used to connect LTI sessions to users
-    lti_consumer TEXT,  -- the LTI consumer that registered this user, if applicable
+    lti_consumer_id INTEGER,  -- the LTI consumer that registered this user, if applicable
     query_tokens INTEGER DEFAULT 0,  -- number of tokens left for making queries - NULL means no limit, non-NULL for SSO/demo users, 0 means cut off
-    created  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(lti_consumer_id) REFERENCES consumers(id)
 );
 -- require unique usernames if no LTI ID (allows multiple users w/ same username if coming from different LTI consumers)
 DROP INDEX IF EXISTS unique_username_without_lti;
@@ -38,11 +39,12 @@ CREATE UNIQUE INDEX unique_username_without_lti ON users (username) WHERE lti_id
 -- Config stored as JSON for flexibility, esp. during development
 CREATE TABLE classes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    lti_consumer      TEXT NOT NULL,
-    lti_context_id    TEXT NOT NULL,
+    lti_consumer_id   INTEGER NOT NULL,  -- references consumers.id
+    lti_context_id    TEXT NOT NULL,  -- used for matching LTI requests to rows in this table
     lti_context_label TEXT NOT NULL,  -- name of the class
     config            TEXT NOT NULL DEFAULT "{}",  -- JSON containing class config options
-    created           TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created           TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(lti_consumer_id) REFERENCES consumers(id)
 );
 
 -- Record the LTI contexts and roles with which any user has connected to the service.
