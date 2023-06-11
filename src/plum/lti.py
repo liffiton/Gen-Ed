@@ -3,7 +3,7 @@ from flask import Blueprint, abort, current_app, redirect, session, url_for
 from pylti.flask import lti
 
 from .db import get_db
-from .auth import ext_login_get_or_create, set_session_auth
+from .auth import ext_login_update_or_create, set_session_auth
 
 
 bp = Blueprint('lti', __name__, url_prefix="/lti", template_folder='templates')
@@ -71,7 +71,7 @@ def lti_login(lti=lti):
         'ext_id': lti_id,
     }
     # LTI users given 0 tokens by default -- should only ever use API registered w/ LTI consumer
-    user_row = ext_login_get_or_create('lti', user_normed, query_tokens=10)
+    user_row = ext_login_update_or_create('lti', user_normed, query_tokens=10)
     user_id = user_row['id']
 
     # check for and create role if needed

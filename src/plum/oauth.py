@@ -1,7 +1,7 @@
 from flask import Blueprint, abort, current_app, flash, redirect, url_for
 from authlib.integrations.flask_client import OAuth
 
-from .auth import ext_login_get_or_create, set_session_auth
+from .auth import ext_login_update_or_create, set_session_auth
 
 
 GOOGLE_CONF_URL = 'https://accounts.google.com/.well-known/openid-configuration'
@@ -67,7 +67,7 @@ def auth(provider_name):
     current_app.logger.info(f"SSO login: {provider_name=} {user_normed=}")
 
     # Given 10 tokens by default if creating an account on first login.
-    user_row = ext_login_get_or_create(provider_name, user_normed, query_tokens=10)
+    user_row = ext_login_update_or_create(provider_name, user_normed, query_tokens=10)
 
     # Now, either the user existed or has been created.  Log them in!
     set_session_auth(user_row['id'], user_row['display_name'])

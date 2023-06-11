@@ -32,11 +32,12 @@ def get_session_auth():
     return auth_dict
 
 
-def ext_login_get_or_create(provider_name, user_normed, query_tokens=0):
+def ext_login_update_or_create(provider_name, user_normed, query_tokens=0):
     """
     For an external authentication login:
       1. Create an account for the user if they do not already have an account (entry in users)
-      2. Get and return the account info for that user
+      2. Update the account with user info provided if one does already exist
+      3. Get and return the account info for that user
 
     Parameters
     ----------
@@ -61,6 +62,13 @@ def ext_login_get_or_create(provider_name, user_normed, query_tokens=0):
 
     if auth_row:
         user_id = auth_row['user_id']
+        # Update w/ latest user info (name, email, etc. could conceivably change)
+        cur = db.execute(
+            "UPDATE users SET full_name=?, email=?, auth_name=? WHERE id=?",
+            [user_normed['full_name'], user_normed['email'], user_normed['auth_name'], user_id]
+        )
+        db.commit()
+
     else:
         # Create a new user account.
         cur = db.execute(
@@ -71,7 +79,7 @@ def ext_login_get_or_create(provider_name, user_normed, query_tokens=0):
         db.execute("INSERT INTO auth_external(user_id, auth_provider, ext_id) VALUES (?, ?, ?)", [user_id, provider_id, user_normed['ext_id']])
         db.commit()
 
-    # get all values in newly inserted row
+    # get all values in newly updated/inserted row
     user_row = db.execute("SELECT * FROM users WHERE id=?", [user_id]).fetchone()
     return user_row
 
