@@ -5,6 +5,7 @@ import sys
 
 from dotenv import load_dotenv
 from flask import Flask, render_template
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from . import admin, auth, db, demo, instructor, filters, lti, oauth, tz
 
@@ -104,6 +105,10 @@ def create_app_base(import_name, app_config, instance_path):
         #import logging_tree
         #logging_tree.printout()
         logging.debug("DEBUG logging enabled.")  # This appears to be required for the config to "stick"?
+
+    # set up middleware to fix headers from a proxy if configured as such
+    if os.environ.get("FLASK_APP_BEHIND_PROXY"):
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     # load consumers from DB (but only if the database is initialized)
     try:
