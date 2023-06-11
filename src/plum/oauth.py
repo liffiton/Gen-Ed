@@ -29,19 +29,19 @@ def init_app(app):
     )
 
 
-@bp.route('/login/<string:name>')
-def login(name):
-    client = _oauth.create_client(name)
+@bp.route('/login/<string:provider_name>')
+def login(provider_name):
+    client = _oauth.create_client(provider_name)
     if not client:
         abort(404)
 
-    redirect_uri = url_for('.auth', name=name, _external=True)
+    redirect_uri = url_for('.auth', provider_name=provider_name, _external=True)
     return client.authorize_redirect(redirect_uri)
 
 
-@bp.route('/auth/<string:name>')
-def auth(name):
-    client = _oauth.create_client(name)
+@bp.route('/auth/<string:provider_name>')
+def auth(provider_name):
+    client = _oauth.create_client(provider_name)
     if not client:
         abort(404)
 
@@ -52,26 +52,45 @@ def auth(name):
         # On Github, email will be null if user does not share email publicly, but we can enumerate
         # their email addresses using the user api and choose the one they have marked 'primary'
         # [https://github.com/authlib/loginpass/blob/master/loginpass/github.py]
-        assert name == 'github'
+        assert provider_name == 'github'
         response = client.get('user/emails')
         response.raise_for_status()
         data = response.json()
         user['email'] = next(item['email'] for item in data if item['primary'])
 
-    assert user['email']
-    username = user['email']
+    #current_app.logger.debug(user)
+
+    user_normed = {
+        'email': user.get('email'),
+        'full_name': user.get('name'),
+        'auth_name': user.get('login'),
+        'ext_id': user.get('sub') or user.get('id')   # 'sub' for OpenID Connect (Google); 'id' for Github
+    }
 
     db = get_db()
-    user_row = db.execute("SELECT * FROM users WHERE username=?", [username]).fetchone()
 
-    if not user_row:
+    provider_row = db.execute("SELECT id FROM auth_providers WHERE name=?", [provider_name]).fetchone()
+    provider_id = provider_row['id']
+
+    auth_row = db.execute("SELECT * FROM auth_external WHERE auth_provider=? AND ext_id=?", [provider_id, user_normed['ext_id']]).fetchone()
+
+    if auth_row:
+        user_id = auth_row['user_id']
+    else:
         # Create a new user.
         # Given 10 tokens by default.
-        db.execute("INSERT INTO users (username, query_tokens) VALUES (?, 10)", [username])
+        cur = db.execute(
+            "INSERT INTO users (auth_provider, full_name, email, auth_name, query_tokens) VALUES (?, ?, ?, ?, 10)",
+            [provider_id, user_normed['full_name'], user_normed['email'], user_normed['auth_name']]
+        )
+        user_id = cur.lastrowid
+        db.execute("INSERT INTO auth_external(user_id, auth_provider, ext_id) VALUES (?, ?, ?)", [user_id, provider_id, user_normed['ext_id']])
         db.commit()
-        user_row = db.execute("SELECT * FROM users WHERE username=?", [username]).fetchone()  # simplest way to get all values in newly inserted row
 
-    # Either the user existed or has been created.  Log them in!
+    # get all values in newly inserted row
+    user_row = db.execute("SELECT * FROM users WHERE id=?", [user_id]).fetchone()
+
+    # Now, either the user existed or has been created.  Log them in!
     set_session_auth(user_row['id'], user_row['display_name'])
-    flash(f"Welcome, {username}!")
+    flash(f"Welcome, {user_row['display_name']}!")
     return redirect('/')
