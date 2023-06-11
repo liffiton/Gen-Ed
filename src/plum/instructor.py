@@ -19,13 +19,13 @@ def get_queries(class_id, user=None):
     params = [class_id]
 
     if user is not None:
-        where_clause += " AND users.email=?"
+        where_clause += " AND users.id=?"
         params += [user]
 
     queries = db.execute(f"""
         SELECT
             queries.id,
-            users.email,
+            users.display_name,
             queries.query_time,
             queries.language,
             queries.code,

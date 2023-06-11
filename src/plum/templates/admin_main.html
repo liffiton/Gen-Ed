@@ -32,15 +32,15 @@
       <h1 class="is-size-3">Users</h1>
       {{ datatable(
           'users',
-          [('id', 'id'), ('user', 'email'), ('#queries', 'num_queries', 'r'), ('1wk', 'num_recent_queries', 'r'), ('tokens', 'query_tokens', 'r')],
+          [('id', 'id'), ('user', 'display_name'), ('#queries', 'num_queries', 'r'), ('1wk', 'num_recent_queries', 'r'), ('tokens', 'query_tokens', 'r')],
           users,
-          link_col=1,
+          link_col=0,
           link_template=filters.template_string('user') | safe,
       ) }}
       <h1 class="is-size-3">Roles</h1>
       {{ datatable(
           'roles',
-          [('id', 'id'), ('user', 'email'), ('role', 'role'), ('class_id', 'class_id')],
+          [('id', 'id'), ('user', 'display_name'), ('role', 'role'), ('class_id', 'class_id')],
           roles,
           link_col=0,
           link_template=filters.template_string('role') | safe,

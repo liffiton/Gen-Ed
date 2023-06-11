@@ -154,7 +154,7 @@ def main():
     roles = db.execute(f"""
         SELECT
             roles.*,
-            users.email,
+            users.display_name,
             COUNT(queries.id) AS num_queries
         FROM roles
         LEFT JOIN users ON users.id=roles.user_id
@@ -171,7 +171,7 @@ def main():
     queries = db.execute(f"""
         SELECT
             queries.*,
-            users.email
+            users.display_name
         FROM queries
         JOIN users ON queries.user_id=users.id
         LEFT JOIN roles ON queries.role_id=roles.id
