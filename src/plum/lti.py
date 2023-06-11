@@ -3,7 +3,7 @@ from flask import Blueprint, abort, current_app, redirect, session, url_for
 from pylti.flask import lti
 
 from .db import get_db
-from .auth import set_session_auth, AUTH_PROVIDER_LTI
+from .auth import ext_login_get_or_create, set_session_auth
 
 
 bp = Blueprint('lti', __name__, url_prefix="/lti", template_folder='templates')
@@ -29,11 +29,9 @@ def lti_login(lti=lti):
     if not authenticated:
         session.clear()
         return abort(403)
-    if '@' not in email or lti_user_id == "" or lti_consumer == "" or lti_context_id == "" or lti_context_label == "":
+    if '@' not in email or not lti_user_id or not lti_consumer or not lti_context_id or not lti_context_label:
         session.clear()
         return abort(400)
-
-    current_app.logger.info(f"LTI login: {email=} connected.")
 
     # Anything that isn't "instructor" becomes "student"
     if role not in ["instructor"]:
@@ -64,21 +62,17 @@ def lti_login(lti=lti):
     else:
         class_id = class_row['id']
 
-    # check for and create user if needed
+    # check for and create user account if needed
     lti_id = f"{lti_consumer}_{lti_user_id}_{email}"
-    auth_row = db.execute(
-        "SELECT * FROM auth_external WHERE auth_provider=? AND ext_id=?", [AUTH_PROVIDER_LTI, lti_id]
-    ).fetchone()
-
-    if not auth_row:
-        # Register this user
-        # 0 tokens, because LTI users should always use a registered consumer's API key
-        cur = db.execute("INSERT INTO users(auth_provider, email, query_tokens) VALUES(?, ?, 0)", [AUTH_PROVIDER_LTI, email])
-        user_id = cur.lastrowid
-        db.execute("INSERT INTO auth_external(user_id, auth_provider, ext_id) VALUES(?, ?, ?)", [user_id, AUTH_PROVIDER_LTI, lti_id])
-        db.commit()
-    else:
-        user_id = auth_row['user_id']
+    user_normed = {
+        'email': email,
+        'full_name': session.get('lis_person_name_full'),
+        'auth_name': None,
+        'ext_id': lti_id,
+    }
+    # LTI users given 0 tokens by default -- should only ever use API registered w/ LTI consumer
+    user_row = ext_login_get_or_create('lti', user_normed, query_tokens=10)
+    user_id = user_row['id']
 
     # check for and create role if needed
     role_row = db.execute(

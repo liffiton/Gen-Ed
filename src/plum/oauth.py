@@ -1,8 +1,7 @@
 from flask import Blueprint, abort, current_app, flash, redirect, url_for
 from authlib.integrations.flask_client import OAuth
 
-from .db import get_db
-from .auth import set_session_auth
+from .auth import ext_login_get_or_create, set_session_auth
 
 
 GOOGLE_CONF_URL = 'https://accounts.google.com/.well-known/openid-configuration'
@@ -67,28 +66,8 @@ def auth(provider_name):
 
     current_app.logger.info(f"SSO login: {provider_name=} {user_normed=}")
 
-    db = get_db()
-
-    provider_row = db.execute("SELECT id FROM auth_providers WHERE name=?", [provider_name]).fetchone()
-    provider_id = provider_row['id']
-
-    auth_row = db.execute("SELECT * FROM auth_external WHERE auth_provider=? AND ext_id=?", [provider_id, user_normed['ext_id']]).fetchone()
-
-    if auth_row:
-        user_id = auth_row['user_id']
-    else:
-        # Create a new user.
-        # Given 10 tokens by default.
-        cur = db.execute(
-            "INSERT INTO users (auth_provider, full_name, email, auth_name, query_tokens) VALUES (?, ?, ?, ?, 10)",
-            [provider_id, user_normed['full_name'], user_normed['email'], user_normed['auth_name']]
-        )
-        user_id = cur.lastrowid
-        db.execute("INSERT INTO auth_external(user_id, auth_provider, ext_id) VALUES (?, ?, ?)", [user_id, provider_id, user_normed['ext_id']])
-        db.commit()
-
-    # get all values in newly inserted row
-    user_row = db.execute("SELECT * FROM users WHERE id=?", [user_id]).fetchone()
+    # Given 10 tokens by default if creating an account on first login.
+    user_row = ext_login_get_or_create(provider_name, user_normed, query_tokens=10)
 
     # Now, either the user existed or has been created.  Log them in!
     set_session_auth(user_row['id'], user_row['display_name'])

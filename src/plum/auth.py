@@ -6,7 +6,6 @@ from .db import get_db
 
 # Constants
 AUTH_SESSION_KEY = "__codehelp_auth"
-AUTH_PROVIDER_LTI = 3
 
 
 def set_session_auth(user_id, display_name, is_admin=False, is_tester=False, lti=None):
@@ -31,6 +30,50 @@ def get_session_auth():
     # "override" any values in 'base' that are defined in the session auth dict.
     auth_dict = base | session.get(AUTH_SESSION_KEY, {})
     return auth_dict
+
+
+def ext_login_get_or_create(provider_name, user_normed, query_tokens=0):
+    """
+    For an external authentication login:
+      1. Create an account for the user if they do not already have an account (entry in users)
+      2. Get and return the account info for that user
+
+    Parameters
+    ----------
+    provider_name : str
+      Name of the external auth provider: in set {lti, google, github}
+    user_normed : dict
+      User information.
+      Must contain non-null 'ext_id' key; must contain keys 'email', 'full_name', and 'auth_name', and at least one should be non-null.
+    query_tokens : int (default 0)
+      Number of query tokens to assign to the user *if* creating an account for them (on first login).
+
+    Returns
+    -------
+    SQLite row object containing the 'users' table row for the now-logged-in user.
+    """
+    db = get_db()
+
+    provider_row = db.execute("SELECT id FROM auth_providers WHERE name=?", [provider_name]).fetchone()
+    provider_id = provider_row['id']
+
+    auth_row = db.execute("SELECT * FROM auth_external WHERE auth_provider=? AND ext_id=?", [provider_id, user_normed['ext_id']]).fetchone()
+
+    if auth_row:
+        user_id = auth_row['user_id']
+    else:
+        # Create a new user account.
+        cur = db.execute(
+            "INSERT INTO users (auth_provider, full_name, email, auth_name, query_tokens) VALUES (?, ?, ?, ?, ?)",
+            [provider_id, user_normed['full_name'], user_normed['email'], user_normed['auth_name'], query_tokens]
+        )
+        user_id = cur.lastrowid
+        db.execute("INSERT INTO auth_external(user_id, auth_provider, ext_id) VALUES (?, ?, ?)", [user_id, provider_id, user_normed['ext_id']])
+        db.commit()
+
+    # get all values in newly inserted row
+    user_row = db.execute("SELECT * FROM users WHERE id=?", [user_id]).fetchone()
+    return user_row
 
 
 bp = Blueprint('auth', __name__, url_prefix="/auth", template_folder='templates')

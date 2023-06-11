@@ -4,6 +4,7 @@ from oauthlib import oauth1
 USER = {
     'given': "Tester",
     'family': "McTestson",
+    'fullname': "Tester McTestson",
     'email': "tmctest@university.edu",
 }
 
@@ -23,7 +24,7 @@ class LTIConsumer:
             "context_title": "CS799-S23+-+Advanced+LTI+Testing",
             "lis_person_name_given": USER['given'],
             "lis_person_name_family": USER['family'],
-            "lis_person_name_full": f"{USER['given']} {USER['family']}",
+            "lis_person_name_full": USER['fullname'],
             "lis_person_contact_email_primary": USER['email'],
             "oauth_callback": "about:blank",
             "lti_version": "LTI-1p0",
@@ -97,7 +98,7 @@ def test_lti_auth_instructor(client):
 
     result = client.get('/help/')
     assert result.status_code == 200  # ... and now it should work!
-    assert USER['email'] in result.text
+    assert USER['fullname'] in result.text
 
 
 def test_lti_auth_student(client):
@@ -113,4 +114,4 @@ def test_lti_auth_student(client):
 
     result = client.get('/help/')
     assert result.status_code == 200
-    assert USER['email'] in result.text
+    assert USER['fullname'] in result.text
