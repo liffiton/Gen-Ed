@@ -210,10 +210,12 @@ def user_profile():
     user = db.execute("""
         SELECT
             users.*,
+            auth_providers.name AS provider_name,
             COUNT(queries.id) AS num_queries,
             SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
         FROM users
         LEFT JOIN queries ON queries.user_id=users.id
+        LEFT JOIN auth_providers ON auth_providers.id=users.auth_provider
         WHERE users.id=?
     """, [auth['user_id']]).fetchone()
 

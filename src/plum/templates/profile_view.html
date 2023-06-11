@@ -11,8 +11,18 @@ dl.profile dd { margin: 0; }
   <div class="container content is-size-5">
     <h1 class="title">Your Profile</h1>
     <dl class="profile">
-      <dt>Username:</dt>
-      <dd>{{ user.display_name }}</dd>
+      {% if user.full_name %}
+        <dt>Full Name:</dt>
+        <dd>{{ user.full_name }}</dd>
+      {% endif %}
+      {% if user.email %}
+        <dt>Email:</dt>
+        <dd>{{ user.email }}</dd>
+      {% endif %}
+      {% if user.auth_name %}
+        <dt>{{ user.provider_name | title }} username:</dt>
+        <dd>{{ user.auth_name }}</dd>
+      {% endif %}
       {% if user.is_admin %}
         <dt></dt>
         <dd class="has-text-danger">
@@ -34,9 +44,9 @@ dl.profile dd { margin: 0; }
       <dt>Queries:</dt>
       <dd>{{ user.num_queries }} total, {{ user.num_recent_queries }} in the past week.</dd>
       {% if auth['lti'] %}
-        <dt>LTI Consumer:</dt><dd>{{ auth['lti']['consumer'] }}</dd>
-        <dt>LTI Class:</dt><dd>{{ auth['lti']['class_name'] }}</dd>
-        <dt>LTI Role:</dt><dd>{{ auth['lti']['role'] }}</dd>
+        {# <dt>LTI Consumer:</dt><dd>{{ auth['lti']['consumer'] }}</dd> #}
+        <dt>Class:</dt><dd>{{ auth['lti']['class_name'] }}</dd>
+        <dt>Role:</dt><dd>{{ auth['lti']['role'] }}</dd>
       {% endif %}
       {% if user.query_tokens %}
         <dt>Tokens:</dt>
