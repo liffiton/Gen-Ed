@@ -237,7 +237,7 @@ def tutor_admin(id=None):
     chats = db.execute("""
         SELECT
             tutor_chats.id,
-            users.username,
+            users.display_name,
             tutor_chats.topic,
             (
                 SELECT
@@ -256,7 +256,7 @@ def tutor_admin(id=None):
     """).fetchall()
 
     if id is not None:
-        chat_row = db.execute("SELECT users.username, topic, chat_json FROM tutor_chats JOIN users ON tutor_chats.user_id=users.id WHERE tutor_chats.id=?", [id]).fetchone()
+        chat_row = db.execute("SELECT users.display_name, topic, chat_json FROM tutor_chats JOIN users ON tutor_chats.user_id=users.id WHERE tutor_chats.id=?", [id]).fetchone()
         chat = json.loads(chat_row['chat_json'])
     else:
         chat_row = None

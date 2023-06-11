@@ -8,13 +8,13 @@
     {% if query %}
 
     <div class="container">
-      {% if query.username != auth['username'] %}
+      {% if auth['user_id'] != query.user_id %}
       <div class="field is-horizontal">
         <div class="field-label">
           <label class="label">User:</label>
         </div>
         <div class="field-body">
-          {{ query.username }}
+          {{ query.display_name }}
         </div>
       </div>
       {% endif %}

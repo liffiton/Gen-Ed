@@ -17,7 +17,7 @@
             <li>Learn more about specific syntax, functions, or techniques in your programming language of choice.</li>
             <li>... and a lot more.</li>
           </ul>
-          {% if auth['username'] %}
+          {% if auth['user_id'] %}
           <a class="button is-link" href="{{ url_for('helper.help_form') }}">
             Try it now!
           </a>
