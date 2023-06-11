@@ -58,7 +58,7 @@ def demo_register_user(demo_name):
     db.execute("UPDATE demo_links SET uses=uses+1 WHERE name=?", [demo_name])
     db.commit()
 
-    set_session_auth(new_username, user_id, is_admin=False)
+    set_session_auth(user_id, new_username)
 
     current_app.logger.info(f"Demo login: {demo_name=} {user_id=} {new_username=}")
 

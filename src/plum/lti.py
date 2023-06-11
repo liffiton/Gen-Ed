@@ -101,7 +101,8 @@ def lti_login(lti=lti):
         'class_name': lti_context_label,
         'consumer': lti_consumer,
     }
-    set_session_auth(email, user_id, is_admin=False, lti=lti_dict)
+    user_row = db.execute("SELECT * FROM users WHERE id=?", [user_id]).fetchone()
+    set_session_auth(user_id, user_row['display_name'], lti=lti_dict)
 
     # Redirect to the app
     #flash(f"Welcome, {email}!")

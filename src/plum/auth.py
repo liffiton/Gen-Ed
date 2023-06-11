@@ -9,10 +9,10 @@ AUTH_SESSION_KEY = "__codehelp_auth"
 AUTH_PROVIDER_LTI = 3
 
 
-def set_session_auth(username, user_id, is_admin, is_tester=False, lti=None):
+def set_session_auth(user_id, display_name, is_admin=False, is_tester=False, lti=None):
     session[AUTH_SESSION_KEY] = {
-        'username': username,
         'user_id': user_id,
+        'display_name': display_name,
         'is_admin': is_admin,
         'is_tester': is_tester,
         'lti': lti,
@@ -21,8 +21,8 @@ def set_session_auth(username, user_id, is_admin, is_tester=False, lti=None):
 
 def get_session_auth():
     base = {
-        'username': None,
         'user_id': None,
+        'display_name': None,
         'is_admin': False,
         'is_tester': False,
         'lti': None,
@@ -50,7 +50,7 @@ def login():
             flash("Invalid username or password.", "warning")
         else:
             # Success!
-            set_session_auth(username, auth_row['id'], auth_row['is_admin'], auth_row['is_tester'])
+            set_session_auth(auth_row['id'], auth_row['display_name'], auth_row['is_admin'], auth_row['is_tester'])
             next_url = request.form['next'] or url_for("helper.help_form")
             flash(f"Welcome, {username}!")
             return redirect(next_url)
@@ -70,7 +70,7 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         auth = get_session_auth()
-        if not auth['username']:
+        if not auth['user_id']:
             return abort(401)
         return f(*args, **kwargs)
     return decorated_function

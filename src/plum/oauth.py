@@ -72,6 +72,6 @@ def auth(name):
         user_row = db.execute("SELECT * FROM users WHERE username=?", [username]).fetchone()  # simplest way to get all values in newly inserted row
 
     # Either the user existed or has been created.  Log them in!
-    set_session_auth(username, user_row['id'], user_row['is_admin'], user_row['is_tester'])
+    set_session_auth(user_row['id'], user_row['display_name'])
     flash(f"Welcome, {username}!")
     return redirect('/')

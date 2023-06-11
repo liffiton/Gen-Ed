@@ -12,8 +12,8 @@ dl.profile dd { margin: 0; }
     <h1 class="title">Your Profile</h1>
     <dl class="profile">
       <dt>Username:</dt>
-      <dd>{{ auth['username'] }}</dd>
-      {% if auth['is_admin'] %}
+      <dd>{{ user.display_name }}</dd>
+      {% if user.is_admin %}
         <dt></dt>
         <dd class="has-text-danger">
           <span class="icon">
@@ -22,7 +22,7 @@ dl.profile dd { margin: 0; }
           <span>Admin</span>
         </dd>
       {% endif %}
-      {% if auth['is_tester'] %}
+      {% if user.is_tester %}
         <dt></dt>
         <dd class="has-text-success">
           <span class="icon">
