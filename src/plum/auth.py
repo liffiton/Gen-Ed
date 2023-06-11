@@ -4,8 +4,9 @@ from werkzeug.security import check_password_hash
 
 from .db import get_db
 
-# Constants for use in session dictionary
+# Constants
 AUTH_SESSION_KEY = "__codehelp_auth"
+AUTH_PROVIDER_LTI = 3
 
 
 def set_session_auth(username, user_id, is_admin, is_tester=False, lti=None):
@@ -41,15 +42,15 @@ def login():
         username = request.form['username']
         password = request.form['password']
         db = get_db()
-        user_row = db.execute("SELECT * FROM users WHERE username=?", [username]).fetchone()
+        auth_row = db.execute("SELECT * FROM auth_local JOIN users ON auth_local.user_id=users.id WHERE username=?", [username]).fetchone()
 
-        if not user_row:
+        if not auth_row:
             flash("Invalid username or password.", "warning")
-        elif not check_password_hash(user_row['password'], password):
+        elif not check_password_hash(auth_row['password'], password):
             flash("Invalid username or password.", "warning")
         else:
             # Success!
-            set_session_auth(username, user_row['id'], user_row['is_admin'], user_row['is_tester'])
+            set_session_auth(username, auth_row['id'], auth_row['is_admin'], auth_row['is_tester'])
             next_url = request.form['next'] or url_for("helper.help_form")
             flash(f"Welcome, {username}!")
             return redirect(next_url)

@@ -13,6 +13,9 @@ from flask import current_app, g
 from werkzeug.security import generate_password_hash
 
 
+AUTH_PROVIDER_LOCAL = 1
+
+
 def get_db():
     if 'db' not in g:
         g.db = sqlite3.connect(
@@ -53,7 +56,8 @@ def init_db():
         print("Error:  INIT_PW_MARK environment variable not set.", file=sys.stderr)
         sys.exit(1)
 
-    db.execute("INSERT INTO users(username, password, is_admin, is_tester, query_tokens) VALUES(?, ?, True, True, NULL)", ["mark", init_pw_mark])
+    cur = db.execute("INSERT INTO users(auth_provider, auth_name, is_admin, is_tester, query_tokens) VALUES(?, ?, True, True, NULL)", [AUTH_PROVIDER_LOCAL, "mark"])
+    db.execute("INSERT INTO auth_local(user_id, username, password) VALUES(?, ?, ?)", [cur.lastrowid, "mark", init_pw_mark])
     db.commit()
 
 
@@ -89,22 +93,42 @@ def migrate_command(migration_script):
         click.echo(f"[31;1m===Migration failed===[m  [31m{e}[m")
 
 
-@click.command('newuser')
-@click.argument('username')
-def newuser_command(username):
-    """Add a new user to the database (prompts for a password)."""
+class UserExistsError(Exception):
+    pass
+
+
+def create_user(username):
+    """ Add a new user to the database.
+    If it already exists, raises UserExistsError.
+    Otherwise, returns a generated password for the new user as a string.
+    """
     db = get_db()
 
     # Check for pre-existing username
-    existing = db.execute("SELECT username FROM users WHERE username=?", [username]).fetchone()
+    existing = db.execute("SELECT username FROM auth_local WHERE username=?", [username]).fetchone()
     if existing:
-        click.secho(f"Error: username {username} already exists.", fg='red')
+        raise UserExistsError
     else:
         new_password = ''.join(secrets.choice(string.ascii_letters) for _ in range(6))
-        db.execute("INSERT INTO users(username, password, query_tokens) VALUES(?, ?, 100)", [username, generate_password_hash(new_password)])
+        cur = db.execute("INSERT INTO users(auth_provider, auth_name, query_tokens) VALUES(?, ?, 100)", [AUTH_PROVIDER_LOCAL, username])
+        db.execute("INSERT INTO auth_local(user_id, username, password) VALUES(?, ?, ?)",
+                   [cur.lastrowid, username, generate_password_hash(new_password)])
         db.commit()
-        click.secho("User added to the database:", fg='green')
-        click.echo(f"  username: {username}\n  password: {new_password}")
+        return new_password
+
+
+@click.command('newuser')
+@click.argument('username')
+def newuser_command(username):
+    """Add a new user to the database (generates a password)."""
+    try:
+        new_password = create_user(username)
+    except UserExistsError:
+        click.secho(f"Error: username {username} already exists.", fg='red')
+        return
+
+    click.secho("User added to the database:", fg='green')
+    click.echo(f"  username: {username}\n  password: {new_password}")
 
 
 def init_app(app):

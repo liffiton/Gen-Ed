@@ -13,11 +13,11 @@ def get_query(query_id):
     query_row = None
 
     if auth['is_admin']:
-        cur = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id WHERE queries.id=?", [query_id])
+        cur = db.execute("SELECT queries.*, users.email FROM queries JOIN users ON queries.user_id=users.id WHERE queries.id=?", [query_id])
     elif auth['lti'] is not None and auth['lti']['role'] == 'instructor':
-        cur = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id JOIN roles ON queries.role_id=roles.id WHERE (roles.class_id=? OR queries.user_id=?) AND queries.id=?", [auth['lti']['class_id'], auth['user_id'], query_id])
+        cur = db.execute("SELECT queries.*, users.email FROM queries JOIN users ON queries.user_id=users.id JOIN roles ON queries.role_id=roles.id WHERE (roles.class_id=? OR queries.user_id=?) AND queries.id=?", [auth['lti']['class_id'], auth['user_id'], query_id])
     else:
-        cur = db.execute("SELECT queries.*, users.username FROM queries JOIN users ON queries.user_id=users.id WHERE queries.user_id=? AND queries.id=?", [auth['user_id'], query_id])
+        cur = db.execute("SELECT queries.*, users.email FROM queries JOIN users ON queries.user_id=users.id WHERE queries.user_id=? AND queries.id=?", [auth['user_id'], query_id])
     query_row = cur.fetchone()
 
     if query_row:

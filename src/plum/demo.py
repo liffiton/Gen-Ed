@@ -17,7 +17,7 @@ bp = Blueprint('demo', __name__, url_prefix="/demo", template_folder='templates'
 def demo_register_user(demo_name):
     # Can't create a demo user if already logged in.
     auth = get_session_auth()
-    if auth['username']:
+    if auth['user_id']:
         flash("You are already logged in.", "warning")
         return render_template("error.html")
 
@@ -48,15 +48,15 @@ def demo_register_user(demo_name):
     while not got_one:
         new_num = random.randrange(10**4, 10**5)  # a new 5-digit number
         new_username = f"demo_{demo_name}_{new_num}"
-        check_user = db.execute("SELECT* FROM users WHERE username=?", [new_username]).fetchone()
+        check_user = db.execute("SELECT * FROM users WHERE auth_name=?", [new_username]).fetchone()
         got_one = not check_user
 
     # Register the new user and update the usage count for this demo link
     query_tokens = demo_row['tokens']  # default number of tokens for this demo link
-    cur = db.execute("INSERT INTO users(username, query_tokens) VALUES(?, ?)", [new_username, query_tokens])
+    cur = db.execute("INSERT INTO users(auth_provider, auth_name, query_tokens) VALUES(3, ?, ?)", [new_username, query_tokens])  # 3 = 'demo' auth provider
+    user_id = cur.lastrowid
     db.execute("UPDATE demo_links SET uses=uses+1 WHERE name=?", [demo_name])
     db.commit()
-    user_id = cur.lastrowid
 
     set_session_auth(new_username, user_id, is_admin=False)
 

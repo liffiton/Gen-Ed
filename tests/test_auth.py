@@ -1,20 +1,18 @@
 import pytest
 
 from plum.auth import get_session_auth
+from plum.db import create_user
 
 
-@pytest.mark.parametrize(('username', 'password', 'status', 'message', 'is_admin'), (
-    ('', '', 200, 'Invalid username or password.', False),
-    ('x', '', 200, 'Invalid username or password.', False),
-    ('', 'y', 200, 'Invalid username or password.', False),
-    ('x', 'y', 200, 'Invalid username or password.', False),
-    ('testuser', 'y', 200, 'Invalid username or password.', False),
-    ('testuser', 'testpassword', 302, 'Welcome, testuser!', False),
-    ('testadmin', 'testadminpassword', 302, 'Welcome, testadmin!', True),
-))
-def test_login(client, auth, username, password, status, message, is_admin):
+def test_login_page(client):
+    response = client.get('/auth/login')
+    assert response.status_code == 200
+    assert "Username:" in response.text
+    assert "Password:" in response.text
+
+
+def check_login(client, auth, username, password, status, message, is_admin):
     with client:  # so we can use session in get_session_auth()
-        assert client.get('/auth/login').status_code == 200
         response = auth.login(username, password)
         assert response.status_code == status
 
@@ -37,6 +35,33 @@ def test_login(client, auth, username, password, status, message, is_admin):
             assert sessauth['lti'] is None
 
         assert message in response.text
+
+
+def test_newuser_command(app, client, auth):
+    username = "_newuser_"
+    check_login(client, auth, username, 'x', 200, "Invalid username or password.", False)
+    auth.logout()
+
+    with app.app_context():
+        password = create_user(username)
+        check_login(client, auth, username, password, 302, "Welcome, _newuser_!", False)
+        auth.logout()
+        check_login(client, auth, 'x', password, 200, "Invalid username or password.", False)
+        auth.logout()
+        check_login(client, auth, username, 'x', 200, "Invalid username or password.", False)
+
+
+@pytest.mark.parametrize(('username', 'password', 'status', 'message', 'is_admin'), (
+    ('', '', 200, 'Invalid username or password.', False),
+    ('x', '', 200, 'Invalid username or password.', False),
+    ('', 'y', 200, 'Invalid username or password.', False),
+    ('x', 'y', 200, 'Invalid username or password.', False),
+    ('testuser', 'y', 200, 'Invalid username or password.', False),
+    ('testuser', 'testpassword', 302, 'Welcome, testuser!', False),
+    ('testadmin', 'testadminpassword', 302, 'Welcome, testadmin!', True),
+))
+def test_login(client, auth, username, password, status, message, is_admin):
+    check_login(client, auth, username, password, status, message, is_admin)
 
 
 def test_logout(client, auth):

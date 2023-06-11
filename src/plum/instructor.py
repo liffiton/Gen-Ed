@@ -12,20 +12,20 @@ from .auth import get_session_auth, instructor_required
 bp = Blueprint('instructor', __name__, url_prefix="/instructor", template_folder='templates')
 
 
-def get_queries(class_id, username=None):
+def get_queries(class_id, user=None):
     db = get_db()
 
     where_clause = "WHERE roles.class_id=?"
     params = [class_id]
 
-    if username is not None:
-        where_clause += " AND users.username=?"
-        params += [username]
+    if user is not None:
+        where_clause += " AND users.email=?"
+        params += [user]
 
     queries = db.execute(f"""
         SELECT
             queries.id,
-            users.username,
+            users.email,
             queries.query_time,
             queries.language,
             queries.code,
@@ -66,11 +66,11 @@ def main():
         GROUP BY users.id
     """, [class_id]).fetchall()
 
-    username = request.args.get('username', None)
+    user = request.args.get('user', None)
 
-    queries = get_queries(class_id, username)
+    queries = get_queries(class_id, user)
 
-    return render_template("instructor.html", users=users, queries=queries, username=username)
+    return render_template("instructor.html", users=users, queries=queries, user=user)
 
 
 @bp.route("/queries/csv")

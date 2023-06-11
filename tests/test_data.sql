@@ -7,16 +7,29 @@ INSERT INTO classes (id, lti_consumer_id, lti_context_id, lti_context_label, con
 VALUES
     (1, 1, 'ctx_id', 'LERN101', '{"default_lang": "python", "avoid": "sum()\r\neval()\r\nzfill()\r\n+=\r\n"}');
 
-INSERT INTO users (id, username, password, is_admin, lti_id, lti_consumer_id, query_tokens)
+INSERT INTO users (id, auth_provider, full_name, email, auth_name, is_admin, query_tokens)
+VALUES
+    -- provider 1 = local
+    (11, 1, null, 'testuser@domain.edu', null, false, 10),  -- testuser
+    (12, 1, null, 'testadmin@domain.edu', null, true, null),  -- testadmin
+    -- provider 2 = lti
+    (13, 2, null, 'ltiuser1@domain.edu', null, false, 0),
+    (14, 2, null, 'ltiuser2@domain.edu', null, false, 0),
+    (15, 2, null, 'ltiuser3@domain.edu', null, false, 0);
+
+INSERT INTO auth_local (user_id, username, password)
 VALUES
     -- testuser:testpassword
-    (11, 'testuser', 'pbkdf2:sha256:260000$sGEKFQJ2UbGkHl1i$97032d72ed006da449a04a9e636cd4baba6133b6df3c5cdba09ddb0465c5e812', false, null, null, 10),
+    (11, 'testuser', 'pbkdf2:sha256:260000$sGEKFQJ2UbGkHl1i$97032d72ed006da449a04a9e636cd4baba6133b6df3c5cdba09ddb0465c5e812'),
     -- testadmin:testadminpassword
-    (12, 'testadmin', 'pbkdf2:sha256:260000$kIcsNgDntNvCz7D0$3c517ee1ebd6402852e47e0ed16827e99a3144ca27024634e6ada8cd836028a4', true, null, null, null),
-    (13, 'ltiuser1', null, false, 'consumer_123_me@consumer.domain', 1, 0),
-    (14, 'ltiuser2', null, false, 'consumer_456_me@consumer.domain', 1, 0),
-    (15, 'ltiuser3', null, false, 'consumer_789_me@consumer.domain', 1, 0);
+    (12, 'testadmin', 'pbkdf2:sha256:260000$kIcsNgDntNvCz7D0$3c517ee1ebd6402852e47e0ed16827e99a3144ca27024634e6ada8cd836028a4');
 
+INSERT INTO auth_external (user_id, auth_provider, ext_id)
+VALUES
+    -- provider 2 = lti
+    (13, 2, 'domain.edu_1234_ltiuser1@domain.edu'),
+    (14, 2, 'domain.edu_5678_ltiuser2@domain.edu'),
+    (15, 2, 'domain.edu_ABCD_ltiuser3@domain.edu');
 
 INSERT INTO roles (id, user_id, class_id, role)
 VALUES

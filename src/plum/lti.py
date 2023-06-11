@@ -3,7 +3,7 @@ from flask import Blueprint, abort, current_app, redirect, session, url_for
 from pylti.flask import lti
 
 from .db import get_db
-from .auth import set_session_auth
+from .auth import set_session_auth, AUTH_PROVIDER_LTI
 
 
 bp = Blueprint('lti', __name__, url_prefix="/lti", template_folder='templates')
@@ -66,18 +66,19 @@ def lti_login(lti=lti):
 
     # check for and create user if needed
     lti_id = f"{lti_consumer}_{lti_user_id}_{email}"
-    user_row = db.execute(
-        "SELECT * FROM users WHERE lti_id=?", [lti_id]
+    auth_row = db.execute(
+        "SELECT * FROM auth_external WHERE auth_provider=? AND ext_id=?", [AUTH_PROVIDER_LTI, lti_id]
     ).fetchone()
 
-    if not user_row:
+    if not auth_row:
         # Register this user
         # 0 tokens, because LTI users should always use a registered consumer's API key
-        cur = db.execute("INSERT INTO users(username, lti_id, lti_consumer_id, query_tokens) VALUES(?, ?, ?, 0)", [email, lti_id, lti_consumer_id])
-        db.commit()
+        cur = db.execute("INSERT INTO users(auth_provider, email, query_tokens) VALUES(?, ?, 0)", [AUTH_PROVIDER_LTI, email])
         user_id = cur.lastrowid
+        db.execute("INSERT INTO auth_external(user_id, auth_provider, ext_id) VALUES(?, ?, ?)", [user_id, AUTH_PROVIDER_LTI, lti_id])
+        db.commit()
     else:
-        user_id = user_row['id']
+        user_id = auth_row['user_id']
 
     # check for and create role if needed
     role_row = db.execute(
