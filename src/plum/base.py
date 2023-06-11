@@ -107,7 +107,7 @@ def create_app_base(import_name, app_config, instance_path):
         logging.debug("DEBUG logging enabled.")  # This appears to be required for the config to "stick"?
 
     # set up middleware to fix headers from a proxy if configured as such
-    if os.environ.get("FLASK_APP_BEHIND_PROXY"):
+    if os.environ.get("FLASK_APP_BEHIND_PROXY", "").lower() in ("yes", "true", "1"):
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     # load consumers from DB (but only if the database is initialized)
