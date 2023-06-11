@@ -1,4 +1,4 @@
-from flask import Blueprint, abort, flash, redirect, url_for
+from flask import Blueprint, abort, current_app, flash, redirect, url_for
 from authlib.integrations.flask_client import OAuth
 
 from .db import get_db
@@ -17,7 +17,7 @@ def init_app(app):
     _oauth.register(  # automatically loads client ID and secret from app config (see base.py)
         name='google',
         server_metadata_url=GOOGLE_CONF_URL,
-        client_kwargs={'scope': 'openid email'},
+        client_kwargs={'scope': 'openid email profile'},
     )
     _oauth.register(
         name='github',
@@ -58,14 +58,14 @@ def auth(provider_name):
         data = response.json()
         user['email'] = next(item['email'] for item in data if item['primary'])
 
-    #current_app.logger.debug(user)
-
     user_normed = {
         'email': user.get('email'),
         'full_name': user.get('name'),
         'auth_name': user.get('login'),
         'ext_id': user.get('sub') or user.get('id')   # 'sub' for OpenID Connect (Google); 'id' for Github
     }
+
+    current_app.logger.info(f"SSO login: {provider_name=} {user_normed=}")
 
     db = get_db()
 
