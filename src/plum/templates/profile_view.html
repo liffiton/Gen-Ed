@@ -2,7 +2,7 @@
 
 {% block body %}
 <style type="text/css">
-dl.profile { display: grid; grid-template-columns: max-content 1fr; gap: 1em; }
+dl.profile { display: grid; grid-template-columns: minmax(6em, max-content) 1fr; gap: 1em; }
 dl.profile dt { font-weight: bold; text-align: right; }
 dl.profile dd { margin: 0; }
 </style>
@@ -43,14 +43,39 @@ dl.profile dd { margin: 0; }
       {% endif %}
       <dt>Queries:</dt>
       <dd>{{ user.num_queries }} total, {{ user.num_recent_queries }} in the past week.</dd>
-      {% if auth['lti'] %}
-        {# <dt>LTI Consumer:</dt><dd>{{ auth['lti']['consumer'] }}</dd> #}
-        <dt>Class:</dt><dd>{{ auth['lti']['class_name'] }}</dd>
-        <dt>Role:</dt><dd>{{ auth['lti']['role'] }}</dd>
-      {% endif %}
       {% if user.query_tokens %}
         <dt>Tokens:</dt>
         <dd>{{ user.query_tokens }} remaining</dd>
+      {% endif %}
+    </dl>
+    <h2 class="title is-size-3">Classes</h1>
+    <dl class="profile">
+      {% if auth['lti'] %}
+        {# <dt>LTI Consumer:</dt><dd>{{ auth['lti']['consumer'] }}</dd> #}
+        <dt>Current:</dt><dd>{{ auth['lti']['class_name'] }} ({{ auth['lti']['role'] }})</dd>
+      {% endif %}
+      {% if other_classes %}
+        <dt></dt><dd>
+          <div class="dropdown is-hoverable">
+            <div class="dropdown-trigger">
+              <button class="button" aria-haspopup="true" aria-controls="dropdown-menu">
+                <span>Switch to:</span>
+                <span class="icon is-small">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down"><polyline points="6 9 12 15 18 9"/></svg>
+                </span>
+              </button>
+            </div>
+            <div class="dropdown-menu" id="dropdown-menu" role="menu">
+              <div class="dropdown-content">
+                {% for class in other_classes %}
+                  <a href="{{ url_for(".switch_class", class_id=class.id) }}" class="dropdown-item is-size-5">
+                    {{ class.lti_context_label }} ({{ class.role }})
+                  </a>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </dd>
       {% endif %}
     </dl>
   </div>

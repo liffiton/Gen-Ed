@@ -18,6 +18,12 @@ def set_session_auth(user_id, display_name, is_admin=False, is_tester=False, lti
     }
 
 
+def set_session_auth_lti(lti):
+    auth = get_session_auth()
+    auth['lti'] = lti
+    session[AUTH_SESSION_KEY] = auth
+
+
 def get_session_auth():
     base = {
         'user_id': None,
@@ -200,23 +206,3 @@ def uses_token(f):
                 db.commit()
         return f(*args, **kwargs)
     return decorated_function
-
-
-@bp.route("/profile")
-@login_required
-def user_profile():
-    db = get_db()
-    auth = get_session_auth()
-    user = db.execute("""
-        SELECT
-            users.*,
-            auth_providers.name AS provider_name,
-            COUNT(queries.id) AS num_queries,
-            SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
-        FROM users
-        LEFT JOIN queries ON queries.user_id=users.id
-        LEFT JOIN auth_providers ON auth_providers.id=users.auth_provider
-        WHERE users.id=?
-    """, [auth['user_id']]).fetchone()
-
-    return render_template("profile_view.html", user=user)
