@@ -12,7 +12,7 @@ def test_invalid_demo_link(client, link_name, message):
     assert message in response.text
 
     response = client.get("/help/")
-    assert response.status_code == 401   # unauthorized in all of these cases
+    assert response.status_code == 302   # /help/ redirects to login in all of these cases
 
 
 def test_valid_demo_link(client):

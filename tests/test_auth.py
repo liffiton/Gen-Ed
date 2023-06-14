@@ -80,9 +80,9 @@ def test_logout(client, auth):
 
 @pytest.mark.parametrize(('path', 'nologin', 'withlogin', 'withadmin'), (
     ('/', 200, 200, 200),
-    ('/profile/', 401, (200, "0 total, 0 in the past week"), (200, "0 total, 0 in the past week")),
-    ('/help/', 401, 200, 200),
-    ('/help/view/1', 401, (200, "Invalid id."), (200, "response1")),
+    ('/profile/', 302, (200, "0 total, 0 in the past week"), (200, "0 total, 0 in the past week")),
+    ('/help/', 302, 200, 200),
+    ('/help/view/1', 302, (200, "Invalid id."), (200, "response1")),
     ('/tutor/', 404, 200, 200),
     ('/tutor/chat/1', 404, (200, "user_msg_1"), (200, "user_msg_1")),
     ('/tutor/chat/2', 404, (200, "Invalid id."), (200, "user_msg_2")),
@@ -100,6 +100,8 @@ def test_auth_required(client, auth, path, nologin, withlogin, withadmin):
         assert withlogin[1] in response.text
     else:
         assert response.status_code == withlogin
+        if withlogin == 302:
+            assert response.location.startswith('/auth/login')
 
     auth.logout()
     response = client.get(path)
