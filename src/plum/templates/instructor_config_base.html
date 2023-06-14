@@ -5,6 +5,8 @@
   <div class="container content">
     <h1>{{ auth['class_name'] }}</h1>
 
+    {% if class_row['link_ident'] %}
+    {# link_ident only in classes_user, so will only be set for user classes. #}
     <h2>Access Control</h2>
     <form action="{{ url_for("instructor.set_access") }}" method="post">
       <input type="hidden" name="class_id" value="{{class_row['id']}}">
@@ -47,6 +49,7 @@
       </div>
 
     </form>
+    {% endif %}
 
     <h2>Class Configuration</h2>
     {% block class_config_form %}
