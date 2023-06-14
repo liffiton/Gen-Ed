@@ -9,7 +9,7 @@ DROP TABLE IF EXISTS roles;
 DROP TABLE IF EXISTS classes;
 DROP TABLE IF EXISTS demo_links;
 
-PRAGMA foreign_keys = ON;
+PRAGMA foreign_keys = ON;  -- back on for good
 
 CREATE TABLE consumers (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,19 +69,43 @@ DROP INDEX IF EXISTS auth_external_by_ext_id;
 CREATE UNIQUE INDEX auth_external_by_ext_id ON auth_external(auth_provider, ext_id);
 
 
--- Record LTI contexts (classes) and their config
+-- Classes and their config
+-- (superset type for lti_classes and user_classes)
 -- Config stored as JSON for flexibility, esp. during development
 CREATE TABLE classes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    lti_consumer_id   INTEGER NOT NULL,  -- references consumers.id
-    lti_context_id    TEXT NOT NULL,  -- used for matching LTI requests to rows in this table
-    lti_context_label TEXT NOT NULL,  -- name of the class
-    config            TEXT NOT NULL DEFAULT "{}",  -- JSON containing class config options
-    created           TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(lti_consumer_id) REFERENCES consumers(id)
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    name     TEXT NOT NULL,
+    enabled  BOOLEAN NOT NULL CHECK (enabled IN (0,1)) DEFAULT 1,
+    config   TEXT NOT NULL DEFAULT "{}",  -- JSON containing class config options
+    created  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Record the LTI contexts and roles with which any user has connected to the service.
+-- Classes created/accessed via LTI
+CREATE TABLE lti_classes (
+    class_id          INTEGER PRIMARY KEY,  -- references classes.id
+    lti_consumer_id   INTEGER NOT NULL,  -- references consumers.id
+    lti_context_id    TEXT NOT NULL,  -- class ID from the LMS
+    created           TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(class_id) REFERENCES classes(id),
+    FOREIGN KEY(lti_consumer_id) REFERENCES consumers(id)
+);
+DROP INDEX IF EXISTS lti_classes_by_consumer_context;
+CREATE UNIQUE INDEX  lti_classes_by_consumer_context ON lti_classes(lti_consumer_id, lti_context_id);
+
+-- Classes created by a user, accessed via class link
+CREATE TABLE user_classes (
+    class_id         INTEGER PRIMARY KEY,  -- references classes.id
+    openai_key       TEXT,
+    link_ident       TEXT NOT NULL UNIQUE,  -- random (unguessable) identifier used in access/registration link for this class
+    creator_user_id  INTEGER NOT NULL,  -- references users.id
+    created          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(class_id) REFERENCES classes(id),
+    FOREIGN KEY(creator_user_id) REFERENCES users(id)
+);
+DROP INDEX IF EXISTS user_classes_by_link_ident;
+CREATE UNIQUE INDEX  user_classes_by_link_ident ON user_classes(link_ident);
+
+-- Roles for users in classes
 CREATE TABLE roles (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id  INTEGER NOT NULL,

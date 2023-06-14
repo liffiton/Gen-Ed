@@ -69,7 +69,7 @@ dl.profile dd { margin: 0; }
               <div class="dropdown-content">
                 {% for class in other_classes %}
                   <a href="{{ url_for(".switch_class", class_id=class.id) }}" class="dropdown-item is-size-5">
-                    {{ class.lti_context_label }} ({{ class.role }})
+                    {{ class.name }} ({{ class.role }})
                   </a>
                 {% endfor %}
               </div>

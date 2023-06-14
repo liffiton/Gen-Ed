@@ -9,6 +9,50 @@ from .auth import ext_login_update_or_create, set_session_auth
 bp = Blueprint('lti', __name__, url_prefix="/lti", template_folder='templates')
 
 
+def get_or_create_lti_class(lti_consumer_id, lti_context_id, class_name):
+    """
+    Get a class (by id) for a given LTI connection, creating the class
+    if it does not already exist.
+
+    Parameters
+    ----------
+    lti_consumer_id : int
+      row ID for an LTI consumer (in table lti_consumers)
+    lti_context_id : str
+      class identifier from the LMS
+    class_name : str
+      class name from the LMS
+
+    Returns
+    -------
+    int: class ID (row primary key) for the new or existing class.
+    """
+    db = get_db()
+
+    class_row = db.execute("""
+        SELECT classes.id
+        FROM classes
+        JOIN lti_classes
+          ON classes.id=lti_classes.class_id
+        WHERE lti_classes.lti_consumer_id=?
+          AND lti_classes.lti_context_id=?
+    """, [lti_consumer_id, lti_context_id]).fetchone()
+
+    if class_row:
+        return class_row['id']
+
+    else:
+        cur = db.execute("INSERT INTO classes (name) VALUES (?)", [class_name])
+        class_id = cur.lastrowid
+        db.execute(
+            "INSERT INTO lti_classes (class_id, lti_consumer_id, lti_context_id) VALUES (?, ?, ?)",
+            [class_id, lti_consumer_id, lti_context_id]
+        )
+        db.commit()
+
+        return class_id
+
+
 # Handles LTI 1.0/1.1 initial request / login
 # https://github.com/mitodl/pylti/blob/master/pylti/flask.py
 # https://github.com/mitodl/mit_lti_flask_sample
@@ -21,15 +65,15 @@ def lti_login(lti=lti):
     lti_user_id = session.get("user_id", "")
     lti_consumer = session.get("oauth_consumer_key", "")
     lti_context_id = session.get("context_id", "")
-    lti_context_label = session.get("context_label", "")
+    class_name = session.get("context_label", "")
 
-    current_app.logger.info(f"LTI login: {lti_consumer=} {email=} {lti_user_id=} {role=} {lti_context_id=} {lti_context_label=}")
+    current_app.logger.info(f"LTI login: {lti_consumer=} {email=} {lti_user_id=} {role=} {lti_context_id=} {class_name=}")
 
     # sanity checks
     if not authenticated:
         session.clear()
         return abort(403)
-    if '@' not in email or not lti_user_id or not lti_consumer or not lti_context_id or not lti_context_label:
+    if '@' not in email or not lti_user_id or not lti_consumer or not lti_context_id or not class_name:
         session.clear()
         return abort(400)
 
@@ -44,23 +88,7 @@ def lti_login(lti=lti):
     lti_consumer_id = consumer_row['id']
 
     # check for and create class if needed
-    class_row = db.execute(
-        """
-        SELECT * FROM classes WHERE
-            classes.lti_consumer_id = ?
-            AND classes.lti_context_id = ?
-            AND classes.lti_context_label = ?
-        """,
-        [lti_consumer_id, lti_context_id, lti_context_label]
-    ).fetchone()
-
-    if not class_row:
-        # Add the class -- will not be usable until an instructor configures it, though.
-        cur = db.execute("INSERT INTO classes(lti_consumer_id, lti_context_id, lti_context_label) VALUES(?, ?, ?)", [lti_consumer_id, lti_context_id, lti_context_label])
-        db.commit()
-        class_id = cur.lastrowid
-    else:
-        class_id = class_row['id']
+    class_id = get_or_create_lti_class(lti_consumer_id, lti_context_id, class_name)
 
     # check for and create user account if needed
     lti_id = f"{lti_consumer}_{lti_user_id}_{email}"
@@ -92,7 +120,7 @@ def lti_login(lti=lti):
         'role_id': role_id,
         'role': role,
         'class_id': class_id,
-        'class_name': lti_context_label,
+        'class_name': class_name,
         'consumer': lti_consumer,
     }
     user_row = db.execute("SELECT * FROM users WHERE id=?", [user_id]).fetchone()

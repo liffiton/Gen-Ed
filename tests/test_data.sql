@@ -3,9 +3,13 @@ VALUES
     (1, 'consumer.domain', 'seecrits1', 'keeeez1'),
     (2, 'consumer.otherdomain', 'seecrits2', 'keeeez2');
 
-INSERT INTO classes (id, lti_consumer_id, lti_context_id, lti_context_label, config)
+INSERT INTO classes (id, name, enabled, config)
 VALUES
-    (1, 1, 'ctx_id', 'LERN101', '{"default_lang": "python", "avoid": "sum()\r\neval()\r\nzfill()\r\n+=\r\n"}');
+    (1, 'LERN101', 1, '{"default_lang": "python", "avoid": "sum()\r\neval()\r\nzfill()\r\n+=\r\n"}');
+
+INSERT INTO lti_classes (class_id, lti_consumer_id, lti_context_id)
+VALUES
+    (1, 1, 'ctx_id');
 
 INSERT INTO users (id, auth_provider, full_name, email, auth_name, is_admin, query_tokens)
 VALUES

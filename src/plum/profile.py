@@ -29,7 +29,7 @@ def main():
     other_classes = db.execute("""
         SELECT
             roles.role,
-            classes.*
+            classes.name
         FROM roles
         LEFT JOIN classes ON roles.class_id=classes.id
         WHERE roles.user_id=? AND classes.id <> ?
@@ -47,11 +47,10 @@ def switch_class(class_id):
     db = get_db()
     row = db.execute("""
         SELECT
-            roles.id as role_id,
+            roles.id AS role_id,
             roles.role,
-            classes.id as class_id,
-            classes.lti_context_label,
-            classes.lti_consumer_id
+            classes.id AS class_id,
+            classes.name AS class_name
         FROM roles
         LEFT JOIN classes ON roles.class_id=classes.id
         WHERE roles.user_id=? AND classes.id=?
@@ -61,8 +60,7 @@ def switch_class(class_id):
         'role_id': row['role_id'],
         'role': row['role'],
         'class_id': row['class_id'],
-        'class_name': row['lti_context_label'],
-        'consumer': row['lti_consumer_id'],
+        'class_name': row['class_name'],
     }
     set_session_auth_lti(lti_dict)
 
