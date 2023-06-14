@@ -26,8 +26,8 @@ def help_form(query_id=None):
     lang_row = db.execute("SELECT language FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT 1", [auth['user_id']]).fetchone()
     if lang_row:
         selected_lang = lang_row['language']
-    elif auth['lti'] is not None:
-        config_row = db.execute("SELECT config FROM classes WHERE id=?", [auth['lti']['class_id']]).fetchone()
+    elif auth['class_id'] is not None:
+        config_row = db.execute("SELECT config FROM classes WHERE id=?", [auth['class_id']]).fetchone()
         class_config = json.loads(config_row['config'])
         selected_lang = class_config['default_lang']
 
@@ -90,8 +90,8 @@ async def run_query_prompts(language, code, error, issue):
         return [msg], {'error': msg}
 
     # create "avoid set" from class configuration
-    if auth['lti'] is not None:
-        class_id = auth['lti']['class_id']
+    if auth['class_id'] is not None:
+        class_id = auth['class_id']
         class_row = db.execute("SELECT * FROM classes WHERE id=?", [class_id]).fetchone()
         class_config = json.loads(class_row['config'])
         avoid_set = set(x.strip() for x in class_config.get('avoid', '').split('\n') if x.strip() != '')
@@ -152,7 +152,7 @@ def run_query(language, code, error, issue):
 def record_query(language, code, error, issue):
     db = get_db()
     auth = get_session_auth()
-    role_id = auth['lti']['role_id'] if auth['lti'] else None
+    role_id = auth['role_id']
 
     cur = db.execute(
         "INSERT INTO queries (language, code, error, issue, user_id, role_id) VALUES (?, ?, ?, ?, ?, ?)",

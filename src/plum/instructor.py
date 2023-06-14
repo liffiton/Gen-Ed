@@ -52,7 +52,7 @@ def main():
     db = get_db()
     auth = get_session_auth()
 
-    class_id = auth['lti']['class_id']
+    class_id = auth['class_id']
 
     users = db.execute("""
         SELECT
@@ -77,7 +77,7 @@ def main():
 @instructor_required
 def get_queries_csv():
     auth = get_session_auth()
-    class_id = auth['lti']['class_id']
+    class_id = auth['class_id']
     queries = get_queries(class_id)
 
     stringio = io.StringIO()
@@ -86,7 +86,7 @@ def get_queries_csv():
     writer.writerows(queries)
 
     output = make_response(stringio.getvalue())
-    class_name = auth['lti']['class_name'].replace(" ","-")
+    class_name = auth['class_name'].replace(" ","-")
     timestamp = datetime.datetime.now().strftime("%Y%M%d")
     output.headers["Content-Disposition"] = f"attachment; filename={timestamp}_{class_name}_queries.csv"
     output.headers["Content-type"] = "text/csv"
@@ -100,7 +100,7 @@ def config_form(query_id=None):
     db = get_db()
     auth = get_session_auth()
 
-    class_id = auth['lti']['class_id']
+    class_id = auth['class_id']
 
     class_row = db.execute("SELECT * FROM classes WHERE id=?", [class_id]).fetchone()
     class_config = json.loads(class_row['config'])

@@ -25,7 +25,7 @@ def tutor_form():
 def start_chat():
     auth = get_session_auth()
     user_id = auth['user_id']
-    role_id = auth['lti']['role_id'] if auth['lti'] else None
+    role_id = auth['role_id']
 
     topic = request.form['topic']
     context = request.form.get('context', None)
@@ -42,7 +42,7 @@ def start_chat():
 def start_chat_from_query():
     auth = get_session_auth()
     user_id = auth['user_id']
-    role_id = auth['lti']['role_id'] if auth['lti'] else None
+    role_id = auth['role_id']
 
     query_id = request.form['query_id']
     topic = request.form['topic']
@@ -111,7 +111,7 @@ def get_chat(chat_id):
     access_allowed = \
         (auth['user_id'] == chat_row['user_id']) \
         or auth['is_admin'] \
-        or (auth['lti'] and auth['lti']['role'] == 'instructor' and auth['lti']['class_id'] == chat_row['class_id'])
+        or (auth['role'] == 'instructor' and auth['class_id'] == chat_row['class_id'])
 
     if not access_allowed:
         return None, None, None

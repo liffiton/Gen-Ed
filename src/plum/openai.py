@@ -11,11 +11,17 @@ def get_openai_key():
     '''
     db = get_db()
     auth = get_session_auth()
-    if auth['lti'] is None:
+    if auth['class_id'] is None:
         # default key for non-LTI users
         key = current_app.config["OPENAI_API_KEY"]
     else:
-        consumer_row = db.execute("SELECT openai_key FROM consumers WHERE lti_consumer=?", [auth['lti']['consumer']]).fetchone()
+        consumer_row = db.execute("""
+            SELECT consumers.openai_key
+            FROM classes_lti
+            JOIN consumers
+              ON classes_lti.lti_consumer_id = consumers.id
+            WHERE classes_lti.class_id=?
+        """, [auth['class_id']]).fetchone()
         key = consumer_row['openai_key']
 
     return key

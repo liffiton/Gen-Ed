@@ -83,7 +83,7 @@ def run_query(assignment, topics):
 def record_query(assignment, topics):
     db = get_db()
     auth = get_session_auth()
-    role_id = auth['lti']['role_id'] if auth['lti'] else None
+    role_id = auth['role_id']
 
     cur = db.execute(
         "INSERT INTO queries (assignment, topics, user_id, role_id) VALUES (?, ?, ?, ?)",

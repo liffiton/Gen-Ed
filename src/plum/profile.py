@@ -1,6 +1,6 @@
 from flask import Blueprint, redirect, render_template, url_for
 
-from .auth import get_session_auth, login_required, set_session_auth_lti
+from .auth import get_session_auth, login_required, set_session_auth_class
 from .db import get_db
 
 
@@ -25,7 +25,7 @@ def main():
         WHERE users.id=?
     """, [user_id]).fetchone()
 
-    class_id = auth['lti'] and auth['lti']['class_id']
+    class_id = auth['class_id']
     other_classes = db.execute("""
         SELECT
             classes.id,
@@ -57,12 +57,6 @@ def switch_class(class_id):
         WHERE roles.user_id=? AND classes.id=?
     """, [user_id, class_id]).fetchone()
 
-    lti_dict = {
-        'role_id': row['role_id'],
-        'role': row['role'],
-        'class_id': row['class_id'],
-        'class_name': row['class_name'],
-    }
-    set_session_auth_lti(lti_dict)
+    set_session_auth_class(row['class_id'], row['class_name'], row['role_id'], row['role'])
 
     return redirect(url_for(".main"))

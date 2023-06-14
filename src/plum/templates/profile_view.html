@@ -50,9 +50,8 @@ dl.profile dd { margin: 0; }
     </dl>
     <h2 class="title is-size-3">Classes</h1>
     <dl class="profile">
-      {% if auth['lti'] %}
-        {# <dt>LTI Consumer:</dt><dd>{{ auth['lti']['consumer'] }}</dd> #}
-        <dt>Current:</dt><dd>{{ auth['lti']['class_name'] }} ({{ auth['lti']['role'] }})</dd>
+      {% if auth['role'] %}
+        <dt>Current:</dt><dd>{{ auth['class_name'] }} ({{ auth['role'] }})</dd>
       {% endif %}
       {% if other_classes %}
         <dt></dt><dd>

@@ -116,15 +116,8 @@ def lti_login(lti=lti):
         role_id = role_row['id']
 
     # Record them as logged in in the session
-    lti_dict = {
-        'role_id': role_id,
-        'role': role,
-        'class_id': class_id,
-        'class_name': class_name,
-        'consumer': lti_consumer,
-    }
     user_row = db.execute("SELECT * FROM users WHERE id=?", [user_id]).fetchone()
-    set_session_auth(user_id, user_row['display_name'], lti=lti_dict)
+    set_session_auth(user_id, user_row['display_name'], class_id=class_id, class_name=class_name, role_id=role_id, role=role)
 
     # Redirect to the app
     #flash(f"Welcome, {email}!")

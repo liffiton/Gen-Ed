@@ -8,19 +8,25 @@ from .db import get_db
 AUTH_SESSION_KEY = "__codehelp_auth"
 
 
-def set_session_auth(user_id, display_name, is_admin=False, is_tester=False, lti=None):
+def set_session_auth(user_id, display_name, is_admin=False, is_tester=False, class_id=None, class_name=None, role_id=None, role=None):
     session[AUTH_SESSION_KEY] = {
         'user_id': user_id,
         'display_name': display_name,
         'is_admin': is_admin,
         'is_tester': is_tester,
-        'lti': lti,
+        'class_id': class_id,
+        'class_name': class_name,
+        'role_id': role_id,
+        'role': role,
     }
 
 
-def set_session_auth_lti(lti):
+def set_session_auth_class(class_id, class_name, role_id, role):
     auth = get_session_auth()
-    auth['lti'] = lti
+    auth['class_id'] = class_id
+    auth['class_name'] = class_name
+    auth['role_id'] = role_id
+    auth['role'] = role
     session[AUTH_SESSION_KEY] = auth
 
 
@@ -30,7 +36,10 @@ def get_session_auth():
         'display_name': None,
         'is_admin': False,
         'is_tester': False,
-        'lti': None,
+        'class_id': None,
+        'class_name': None,
+        'role_id': None,
+        'role': None,
     }
     # Get the session auth dict, or an empty dict if it's not there, then
     # "override" any values in 'base' that are defined in the session auth dict.
@@ -137,7 +146,7 @@ def instructor_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         auth = get_session_auth()
-        if not auth['lti'] or auth['lti']['role'] != "instructor":
+        if auth['role'] != "instructor":
             return abort(403)
         return f(*args, **kwargs)
     return decorated_function
@@ -147,17 +156,16 @@ def class_config_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         auth = get_session_auth()
-        assert 'lti' in auth   # this requires login, so @login_required must be used before it
 
-        if auth['lti'] is None:
+        if auth['class_id'] is None:
             # Non-class user
             return f(*args, **kwargs)
 
         db = get_db()
-        class_row = db.execute("SELECT * FROM classes WHERE id=?", [auth['lti']['class_id']]).fetchone()
+        class_row = db.execute("SELECT * FROM classes WHERE id=?", [auth['class_id']]).fetchone()
         if class_row['config'] == '{}':
             # Not yet configured
-            if auth['lti']['role'] == 'instructor':
+            if auth['role'] == 'instructor':
                 flash("This class is not yet configured.  Please configure it so that you and your students can use the tool.", "danger")
                 return redirect(url_for("instructor.config_form"))
             else:
