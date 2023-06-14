@@ -162,29 +162,29 @@ async def get_completion(api_key, prompt=None, messages=None, model='turbo', n=1
             response_txt += "\n\n[error: maximum length exceeded]"
 
     except openai.error.APIError as e:
-        current_app.logger.error(e)
         response = str(e)
         response_txt = "Error (APIError).  Something went wrong on our side.  Please try again, and if it repeats, let us know using the contact form at the bottom of the page."
-        pass
+        current_app.logger.error(f"OpenAI APIError: {e}")
     except openai.error.Timeout as e:
-        current_app.logger.error(e)
         response = str(e)
         response_txt = "Error (Timeout).  Something went wrong on our side.  Please try again, and if it repeats, let us know using the contact form at the bottom of the page."
-        pass
+        current_app.logger.error(f"OpenAI Timeout: {e}")
     except openai.error.ServiceUnavailableError as e:
         current_app.logger.error(e)
         response = str(e)
         response_txt = "Error (ServiceUnavailableError).  Something went wrong on our side.  Please try again, and if it repeats, let us know using the contact form at the bottom of the page."
-        pass
+        current_app.logger.error(f"OpenAI RateLimitError: {e}")
     except openai.error.RateLimitError as e:
-        current_app.logger.error(e)
         response = str(e)
         response_txt = "Error (RateLimitError).  The system is receiving too many requests right now.  Please try again in one minute.  If it does not resolve, please let us know using the contact form at the bottom of the page."
-        pass
+        current_app.logger.error(f"OpenAI RateLimitError: {e}")
+    except openai.error.AuthenticationError as e:
+        response = str(e)
+        response_txt = "Error (AuthenticationError).  The API key is invalid, expired, or revoked.  If you are a student, please inform the instructor for your class."
+        current_app.logger.error(f"OpenAI AuthenticationError: {e}")
     except Exception as e:
-        current_app.logger.error(e)
         response = str(e)
         response_txt = "Error (Exception).  Something went wrong on our side.  Please try again, and if it repeats, let us know using the contact form at the bottom of the page."
-        pass
+        current_app.logger.error(f"Exception (OpenAI {type(e).__name__}, but I don't handle that specifically yet): {e}")
 
     return response, response_txt.strip()
