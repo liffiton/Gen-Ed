@@ -133,6 +133,7 @@ def logout():
 
 
 def login_required(f):
+    '''Redirect to login on this route if user is not logged in.'''
     @wraps(f)
     def decorated_function(*args, **kwargs):
         auth = get_session_auth()
@@ -178,6 +179,7 @@ def class_config_required(f):
 
 
 def admin_required(f):
+    '''Redirect to login on this route if user is not an admin.'''
     @wraps(f)
     def decorated_function(*args, **kwargs):
         auth = get_session_auth()
@@ -189,6 +191,7 @@ def admin_required(f):
 
 
 def tester_required(f):
+    '''Return a 404 on this route (hide it, basically) if user is not a tester.'''
     @wraps(f)
     def decorated_function(*args, **kwargs):
         auth = get_session_auth()

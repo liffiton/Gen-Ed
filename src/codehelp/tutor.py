@@ -4,7 +4,7 @@ import json
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from plum.db import get_db
-from plum.auth import get_session_auth, login_required
+from plum.auth import get_session_auth, login_required, tester_required
 from plum.admin import bp as bp_admin, register_admin_link
 from plum.openai import with_openai_key, get_completion
 from plum.queries import get_query
@@ -13,15 +13,23 @@ from plum.queries import get_query
 bp = Blueprint('tutor', __name__, url_prefix="/tutor", template_folder='templates')
 
 
-@bp.route("/")
+@bp.before_request
+@tester_required
 @login_required
+def before_request():
+    """Apply decorators to protect all tutor blueprint endpoints.
+    Use @tester_required first so that non-logged-in users get a 404 as well.
+    """
+    pass
+
+
+@bp.route("/")
 def tutor_form():
     chat_history = get_chat_history()
     return render_template("tutor_new_form.html", chat_history=chat_history)
 
 
 @bp.route("/chat/create", methods=["POST"])
-@login_required
 @with_openai_key(use_token=True)  # users with tokens must spend one token to use this
 def start_chat(api_key):
     topic = request.form['topic']
@@ -35,7 +43,6 @@ def start_chat(api_key):
 
 
 @bp.route("/chat/create_from_query", methods=["POST"])
-@login_required
 @with_openai_key(use_token=True)  # users with tokens must spend one token to use this
 def start_chat_from_query(api_key):
     topic = request.form['topic']
@@ -53,7 +60,6 @@ def start_chat_from_query(api_key):
 
 
 @bp.route("/chat/<int:chat_id>")
-@login_required
 def chat_interface(chat_id):
     chat, topic, context = get_chat(chat_id)
 
@@ -205,7 +211,6 @@ I can use Markdown formatting in my responses."""
 
 
 @bp.route("/message", methods=["POST"])
-@login_required
 @with_openai_key(use_token=True)  # users with tokens must spend one token to use this
 def new_message(api_key):
     chat_id = request.form["id"]

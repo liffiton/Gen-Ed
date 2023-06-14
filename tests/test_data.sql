@@ -11,15 +11,15 @@ INSERT INTO classes_lti (class_id, lti_consumer_id, lti_context_id)
 VALUES
     (1, 1, 'ctx_id');
 
-INSERT INTO users (id, auth_provider, full_name, email, auth_name, is_admin, query_tokens)
+INSERT INTO users (id, auth_provider, full_name, email, auth_name, is_admin, is_tester, query_tokens)
 VALUES
     -- provider 1 = local
-    (11, 1, null, 'testuser', null, false, 10),  -- testuser
-    (12, 1, null, 'testadmin', null, true, null),  -- testadmin
+    (11, 1, null, 'testuser', null, false, true, 10),  -- testuser
+    (12, 1, null, 'testadmin', null, true, true, null),  -- testadmin
     -- provider 2 = lti
-    (13, 2, null, 'ltiuser1@domain.edu', null, false, 0),
-    (14, 2, null, 'ltiuser2@domain.edu', null, false, 0),
-    (15, 2, null, 'ltiuser3@domain.edu', null, false, 0);
+    (13, 2, null, 'ltiuser1@domain.edu', null, false, false, 0),
+    (14, 2, null, 'ltiuser2@domain.edu', null, false, false, 0),
+    (15, 2, null, 'ltiuser3@domain.edu', null, false, false, 0);
 
 INSERT INTO auth_local (user_id, username, password)
 VALUES

@@ -13,7 +13,7 @@ bp = Blueprint('admin', __name__, url_prefix="/admin", template_folder='template
 @bp.before_request
 @admin_required
 def before_request():
-    """ Protect all of the admin endpoints. """
+    """ Apply decorator to protect all admin blueprint endpoints. """
     pass
 
 
