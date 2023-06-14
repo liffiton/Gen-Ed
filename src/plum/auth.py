@@ -5,7 +5,7 @@ from werkzeug.security import check_password_hash
 from .db import get_db
 
 # Constants
-AUTH_SESSION_KEY = "__codehelp_auth"
+AUTH_SESSION_KEY = "__plum_auth"
 
 
 def set_session_auth(user_id, display_name, is_admin=False, is_tester=False, class_id=None, class_name=None, role_id=None, role=None):
@@ -122,7 +122,8 @@ def login():
             return redirect(next_url)
 
     # we either have a GET request or we fell through the POST login attempt with a failure
-    return render_template("login.html")
+    next_url = request.args.get('next', '')
+    return render_template("login.html", next_url=next_url)
 
 
 @bp.route("/logout", methods=['POST'])
@@ -139,7 +140,7 @@ def login_required(f):
         auth = get_session_auth()
         if not auth['user_id']:
             flash("Login required.", "warning")
-            return redirect(url_for('auth.login', next=request.url))
+            return redirect(url_for('auth.login', next=request.full_path))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -186,7 +187,7 @@ def admin_required(f):
         auth = get_session_auth()
         if not auth['is_admin']:
             flash("Login required.", "warning")
-            return redirect(url_for('auth.login', next=request.url))
+            return redirect(url_for('auth.login', next=request.full_path))
         return f(*args, **kwargs)
     return decorated_function
 

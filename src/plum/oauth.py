@@ -1,10 +1,11 @@
-from flask import Blueprint, abort, current_app, flash, redirect, url_for
+from flask import Blueprint, abort, current_app, flash, redirect, request, session, url_for
 from authlib.integrations.flask_client import OAuth
 
 from .auth import ext_login_update_or_create, set_session_auth
 
 
-GOOGLE_CONF_URL = 'https://accounts.google.com/.well-known/openid-configuration'
+GOOGLE_CONF_URL = "https://accounts.google.com/.well-known/openid-configuration"
+NEXT_URL_SESSION_KEY = "__plum_next_url"
 
 
 bp = Blueprint('oauth', __name__, url_prefix="/oauth")
@@ -33,6 +34,11 @@ def login(provider_name):
     client = _oauth.create_client(provider_name)
     if not client:
         abort(404)
+
+    # store next_url in session, as simplest way for it to be accessible in auth() below
+    next_url = request.args.get('next')
+    if next_url:
+        session[NEXT_URL_SESSION_KEY] = next_url
 
     redirect_uri = url_for('.auth', provider_name=provider_name, _external=True)
     return client.authorize_redirect(redirect_uri)
@@ -72,4 +78,11 @@ def auth(provider_name):
     # Now, either the user existed or has been created.  Log them in!
     set_session_auth(user_row['id'], user_row['display_name'])
     flash(f"Welcome, {user_row['display_name']}!")
-    return redirect('/')
+
+    # Redirect to stored next_url (and reset) if one has been stored, else root path
+    next_url = session.get(NEXT_URL_SESSION_KEY) or "/"
+
+    # Clear the stored next URL if it is there
+    session.pop(NEXT_URL_SESSION_KEY, None)
+
+    return redirect(next_url)
