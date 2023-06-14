@@ -1,6 +1,6 @@
-from flask import Blueprint, redirect, render_template, url_for
+from flask import Blueprint, render_template
 
-from .auth import get_session_auth, login_required, set_session_auth_class
+from .auth import get_session_auth, login_required
 from .db import get_db
 
 
@@ -37,26 +37,3 @@ def main():
     """, [user_id, class_id]).fetchall()
 
     return render_template("profile_view.html", user=user, other_classes=other_classes)
-
-
-@bp.route("/switch_class/<int:class_id>")
-@login_required
-def switch_class(class_id):
-    auth = get_session_auth()
-    user_id = auth['user_id']
-
-    db = get_db()
-    row = db.execute("""
-        SELECT
-            roles.id AS role_id,
-            roles.role,
-            classes.id AS class_id,
-            classes.name AS class_name
-        FROM roles
-        LEFT JOIN classes ON roles.class_id=classes.id
-        WHERE roles.user_id=? AND classes.id=?
-    """, [user_id, class_id]).fetchone()
-
-    set_session_auth_class(row['class_id'], row['class_name'], row['role_id'], row['role'])
-
-    return redirect(url_for(".main"))

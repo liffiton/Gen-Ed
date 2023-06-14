@@ -1,12 +1,8 @@
-{% extends "base.html" %}
+{% extends "instructor_config_base.html" %}
 
-{% block body %}
-<section class="section">
-  <div class="container">
-    <h1 class="title">{{ auth['class_name'] }}</h1>
-
+{% block class_config_form %}
     <form action="{{ url_for("instructor.set_config") }}" method="post">
-      <input type="hidden" name="class_id" value="{{class_id}}">
+      <input type="hidden" name="class_id" value="{{class_row['id']}}">
 
       <div class="field is-horizontal">
         <div class="field-label is-normal">
@@ -56,9 +52,4 @@
       </div>
 
     </form>
-
-  </div>
-
-</section>
-
 {% endblock %}

@@ -138,7 +138,8 @@ def login_required(f):
     def decorated_function(*args, **kwargs):
         auth = get_session_auth()
         if not auth['user_id']:
-            return abort(401)
+            flash("Login required.", "warning")
+            return redirect(url_for('auth.login', next=request.url))
         return f(*args, **kwargs)
     return decorated_function
 

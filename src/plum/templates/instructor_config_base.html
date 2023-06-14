@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block body %}
+<section class="section">
+  <div class="container content">
+    <h1>{{ auth['class_name'] }}</h1>
+
+    <h2>Access Control</h2>
+    <form action="{{ url_for("instructor.set_access") }}" method="post">
+      <input type="hidden" name="class_id" value="{{class_row['id']}}">
+
+      <div class="field is-horizontal">
+        <div class="field-label">
+          <label class="label" for="language">Access/Join Link:</label>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            {{ url_for("classes.access_class", class_ident=class_row['link_ident'], _external=True) }}
+          </div>
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="link_reg_active">Registration via Link:</label>
+          <p class="has-text-grey">When enabled, any user who access the class link will be registered automatically.</p>
+          <p class="has-text-grey">When disabled, only already-registered users can access the class via its link.</p>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <input style="transform: scale(2.0); margin: 0.5rem;" name="link_reg_active" type="checkbox" {% if class_row['link_reg_active'] %}checked{% endif %}>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal"><!-- spacing --></div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <button class="button is-link" type="submit" >Submit</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </form>
+
+    <h2>Class Configuration</h2>
+    {% block class_config_form %}
+    {% endblock %}
+
+  </div>
+
+</section>
+
+{% endblock %}

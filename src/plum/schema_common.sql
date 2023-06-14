@@ -97,6 +97,7 @@ CREATE TABLE classes_user (
     class_id         INTEGER PRIMARY KEY,  -- references classes.id
     openai_key       TEXT,
     link_ident       TEXT NOT NULL UNIQUE,  -- random (unguessable) identifier used in access/registration link for this class
+    link_reg_active  BOOLEAN NOT NULL CHECK (link_reg_active IN (0,1)) DEFAULT 0,  -- is registration active for the class link currently
     creator_user_id  INTEGER NOT NULL,  -- references users.id
     created          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(class_id) REFERENCES classes(id),

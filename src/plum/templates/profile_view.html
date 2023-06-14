@@ -67,7 +67,7 @@ dl.profile dd { margin: 0; }
             <div class="dropdown-menu" id="dropdown-menu" role="menu">
               <div class="dropdown-content">
                 {% for class in other_classes %}
-                  <a href="{{ url_for(".switch_class", class_id=class.id) }}" class="dropdown-item is-size-5">
+                  <a href="{{ url_for("classes.switch_class_handler", class_id=class.id) }}" class="dropdown-item is-size-5">
                     {{ class.name }} ({{ class.role }})
                   </a>
                 {% endfor %}
@@ -77,6 +77,46 @@ dl.profile dd { margin: 0; }
         </dd>
       {% endif %}
     </dl>
+    <div>
+      <button class="button is-success is-dark" onclick="document.querySelector('#new_class_dialog').showModal()">Create new class</button>
+    </div>
+    <dialog id="new_class_dialog" style="border: none; background: none; width: 75%; min-width: min(32em, 100vw);">
+      <div class="content box">
+        <h2>Create a New Class</h2>
+        <p>You can create a class, attach an OpenAI API key to it, and invite others to join it as students.  You will be given the 'instructor' role in the class, and you will be able to configure it, control access and registration, and see all queries from students who join.</p>
+        <form action="{{url_for('classes.create_class')}}" method="post">
+          <div class="field">
+            <label class="label is-size-5" for="class_name">Class Name:</label>
+            <div class="control">
+              <input class="input" required name="class_name">
+            </div>
+          </div>
+          <div class="field">
+            <label class="label is-size-5" for="openai_key">OpenAI API Key:</label>
+            <div class="control">
+              <input class="input" required name="openai_key">
+            </div>
+          </div>
+          <div class="field">
+            <div class="control">
+              <button class="button is-link" type="submit" >Submit</button>
+            </div>
+          </div>
+        <form>
+      </div>
+    </dialog>
+    <script type="text/JavaScript">
+      // close dialog on click outside
+      const dialog = document.querySelector("#new_class_dialog");
+      dialog.addEventListener('click', function (e) {
+          const rect = dialog.getBoundingClientRect();
+          const isInDialog=(rect.top <= e.clientY && e.clientY <= rect.top + rect.height
+            && rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
+          if (!isInDialog) {
+              dialog.close();
+          }
+      });
+    </script>
   </div>
 </section>
 {% endblock %}

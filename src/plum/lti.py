@@ -4,53 +4,10 @@ from pylti.flask import lti
 
 from .db import get_db
 from .auth import ext_login_update_or_create, set_session_auth
+from .classes import get_or_create_lti_class
 
 
 bp = Blueprint('lti', __name__, url_prefix="/lti", template_folder='templates')
-
-
-def get_or_create_lti_class(lti_consumer_id, lti_context_id, class_name):
-    """
-    Get a class (by id) for a given LTI connection, creating the class
-    if it does not already exist.
-
-    Parameters
-    ----------
-    lti_consumer_id : int
-      row ID for an LTI consumer (in table lti_consumers)
-    lti_context_id : str
-      class identifier from the LMS
-    class_name : str
-      class name from the LMS
-
-    Returns
-    -------
-    int: class ID (row primary key) for the new or existing class.
-    """
-    db = get_db()
-
-    class_row = db.execute("""
-        SELECT classes.id
-        FROM classes
-        JOIN classes_lti
-          ON classes.id=classes_lti.class_id
-        WHERE classes_lti.lti_consumer_id=?
-          AND classes_lti.lti_context_id=?
-    """, [lti_consumer_id, lti_context_id]).fetchone()
-
-    if class_row:
-        return class_row['id']
-
-    else:
-        cur = db.execute("INSERT INTO classes (name) VALUES (?)", [class_name])
-        class_id = cur.lastrowid
-        db.execute(
-            "INSERT INTO classes_lti (class_id, lti_consumer_id, lti_context_id) VALUES (?, ?, ?)",
-            [class_id, lti_consumer_id, lti_context_id]
-        )
-        db.commit()
-
-        return class_id
 
 
 # Handles LTI 1.0/1.1 initial request / login

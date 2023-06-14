@@ -96,18 +96,39 @@ def get_queries_csv():
 
 @bp.route("/config")
 @instructor_required
-def config_form(query_id=None):
+def config_form():
     db = get_db()
     auth = get_session_auth()
 
     class_id = auth['class_id']
 
-    class_row = db.execute("SELECT * FROM classes WHERE id=?", [class_id]).fetchone()
+    class_row = db.execute("""
+        SELECT classes.id, classes.config, classes_user.link_ident, classes_user.link_reg_active
+        FROM classes
+        LEFT JOIN classes_user
+          ON classes.id = classes_user.class_id
+        WHERE classes.id=?
+    """, [class_id]).fetchone()
     class_config = json.loads(class_row['config'])
 
-    return render_template("class_config_form.html", class_id=class_id, class_config=class_config)
+    return render_template("class_config_form.html", class_row=class_row, class_config=class_config)
 
 
+@bp.route("/access/set", methods=["POST"])
+@instructor_required
+def set_access():
+    db = get_db()
+
+    class_id = request.form['class_id']
+    link_reg_active = 1 if 'link_reg_active' in request.form else 0
+    db.execute("UPDATE classes_user SET link_reg_active=? WHERE class_id=?", [link_reg_active, class_id])
+    db.commit()
+
+    flash("Configuration set!", "success")
+    return redirect(url_for(".config_form"))
+
+
+# TODO: Move this to app-specific module... #
 @bp.route("/config/set", methods=["POST"])
 @instructor_required
 def set_config():
