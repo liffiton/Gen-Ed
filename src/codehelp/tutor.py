@@ -30,7 +30,7 @@ def tutor_form():
 
 
 @bp.route("/chat/create", methods=["POST"])
-@with_openai_key(use_token=True)  # users with tokens must spend one token to use this
+@with_openai_key()
 def start_chat(api_key):
     topic = request.form['topic']
     context = request.form.get('context', None)
@@ -43,7 +43,7 @@ def start_chat(api_key):
 
 
 @bp.route("/chat/create_from_query", methods=["POST"])
-@with_openai_key(use_token=True)  # users with tokens must spend one token to use this
+@with_openai_key()
 def start_chat_from_query(api_key):
     topic = request.form['topic']
 
@@ -211,7 +211,7 @@ I can use Markdown formatting in my responses."""
 
 
 @bp.route("/message", methods=["POST"])
-@with_openai_key(use_token=True)  # users with tokens must spend one token to use this
+@with_openai_key()
 def new_message(api_key):
     chat_id = request.form["id"]
     new_msg = request.form["message"]

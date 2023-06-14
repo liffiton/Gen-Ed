@@ -171,7 +171,7 @@ def record_response(query_id, responses, texts):
 @bp.route("/request", methods=["POST"])
 @login_required
 @class_config_required
-@with_openai_key(use_token=True)  # users with tokens must spend one token to use this
+@with_openai_key()
 def help_request(api_key):
     lang_id = int(request.form["lang_id"])
     language = current_app.config["LANGUAGES"][lang_id]
