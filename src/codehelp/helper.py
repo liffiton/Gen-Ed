@@ -5,8 +5,8 @@ from flask import Blueprint, current_app, redirect, render_template, request, ur
 
 from . import prompts
 from plum.db import get_db
-from plum.auth import get_session_auth, login_required, class_config_required, tester_required, uses_token
-from plum.openai import get_openai_key, get_completion
+from plum.auth import get_session_auth, login_required, class_config_required, tester_required
+from plum.openai import with_openai_key, get_completion
 from plum.queries import get_query, get_history
 
 
@@ -73,7 +73,7 @@ def score_response(response_txt, avoid_set):
     return score
 
 
-async def run_query_prompts(language, code, error, issue):
+async def run_query_prompts(api_key, language, code, error, issue):
     ''' Run the given query against the coding help system of prompts.
 
     Returns a tuple containing:
@@ -82,12 +82,6 @@ async def run_query_prompts(language, code, error, issue):
     '''
     db = get_db()
     auth = get_session_auth()
-
-    # get openai API key for following completions
-    api_key = get_openai_key()
-    if not isinstance(api_key, str) or api_key == '':
-        msg = "Error: API key not set.  Request cannot be submitted."
-        return [msg], {'error': msg}
 
     # create "avoid set" from class configuration
     if auth['class_id'] is not None:
@@ -139,10 +133,10 @@ async def run_query_prompts(language, code, error, issue):
         return responses, {'insufficient': response_sufficient_txt, 'main': response_txt}
 
 
-def run_query(language, code, error, issue):
+def run_query(api_key, language, code, error, issue):
     query_id = record_query(language, code, error, issue)
 
-    responses, texts = asyncio.run(run_query_prompts(language, code, error, issue))
+    responses, texts = asyncio.run(run_query_prompts(api_key, language, code, error, issue))
 
     record_response(query_id, responses, texts)
 
@@ -177,8 +171,8 @@ def record_response(query_id, responses, texts):
 @bp.route("/request", methods=["POST"])
 @login_required
 @class_config_required
-@uses_token
-def help_request():
+@with_openai_key(use_token=True)  # users with tokens must spend one token to use this
+def help_request(api_key):
     lang_id = int(request.form["lang_id"])
     language = current_app.config["LANGUAGES"][lang_id]
     code = request.form["code"]
@@ -187,7 +181,7 @@ def help_request():
 
     # TODO: limit length of code/error/issue
 
-    query_id = run_query(language, code, error, issue)
+    query_id = run_query(api_key, language, code, error, issue)
 
     return redirect(url_for(".help_view", query_id=query_id))
 
@@ -209,8 +203,9 @@ def post_helpful():
 @login_required
 @class_config_required
 @tester_required
-def get_topics_html(query_id):
-    topics, query_row = get_topics(query_id)
+@with_openai_key()
+def get_topics_html(api_key, query_id):
+    topics, query_row = get_topics(api_key, query_id)
     if not topics:
         return render_template("topics_fragment.html", error=True)
     else:
@@ -221,12 +216,13 @@ def get_topics_html(query_id):
 @login_required
 @class_config_required
 @tester_required
-def get_topics_raw(query_id):
-    topics, _ = get_topics(query_id)
+@with_openai_key()
+def get_topics_raw(api_key, query_id):
+    topics, _ = get_topics(api_key, query_id)
     return topics
 
 
-def get_topics(query_id):
+def get_topics(api_key, query_id):
     query_row, responses = get_query(query_id)
 
     messages = prompts.make_topics_prompt(
@@ -236,11 +232,6 @@ def get_topics(query_id):
         query_row['issue'],
         responses['main']
     )
-
-    # get openai API key for following completion
-    api_key = get_openai_key()
-    if not isinstance(api_key, str) or api_key == '':
-        return "Error: API key not set.  Request cannot be submitted."
 
     response, response_txt = asyncio.run(get_completion(
         api_key,

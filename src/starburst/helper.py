@@ -6,7 +6,7 @@ from flask import Blueprint, redirect, render_template, request, url_for
 from . import prompts
 from plum.db import get_db
 from plum.auth import get_session_auth, login_required, class_config_required
-from plum.openai import get_openai_key, get_completion
+from plum.openai import with_openai_key, get_completion
 from plum.queries import get_query, get_history
 
 
@@ -39,19 +39,13 @@ def help_view(query_id):
     return render_template("help_view.html", query=query_row, responses=responses, history=history)
 
 
-async def run_query_prompts(assignment, topics):
+async def run_query_prompts(api_key, assignment, topics):
     ''' Run the given query against the coding help system of prompts.
 
     Returns a tuple containing:
       1) A list of response objects from the OpenAI completion (to be stored in the database)
       2) A dictionary of response text, potentially including keys 'error', 'insufficient', and 'main'.
     '''
-    # get openai API key for following completions
-    api_key = get_openai_key()
-    if not isinstance(api_key, str) or api_key == '':
-        msg = "Error: API key not set.  Request cannot be submitted."
-        return [msg], {'error': msg}
-
     task_main = asyncio.create_task(
         get_completion(
             api_key=api_key,
@@ -70,10 +64,10 @@ async def run_query_prompts(assignment, topics):
     return responses, {'main': response_txt}
 
 
-def run_query(assignment, topics):
+def run_query(api_key, assignment, topics):
     query_id = record_query(assignment, topics)
 
-    responses, texts = asyncio.run(run_query_prompts(assignment, topics))
+    responses, texts = asyncio.run(run_query_prompts(api_key, assignment, topics))
 
     record_response(query_id, responses, texts)
 
@@ -108,11 +102,12 @@ def record_response(query_id, responses, texts):
 @bp.route("/request", methods=["POST"])
 @login_required
 @class_config_required
-def help_request():
+@with_openai_key(use_system_key=True)
+def help_request(api_key):
     assignment = request.form["assignment"]
     topics = request.form["topics"]
 
-    query_id = run_query(assignment, topics)
+    query_id = run_query(api_key, assignment, topics)
 
     return redirect(url_for(".help_view", query_id=query_id))
 

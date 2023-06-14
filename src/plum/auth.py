@@ -196,21 +196,3 @@ def tester_required(f):
             return abort(404)
         return f(*args, **kwargs)
     return decorated_function
-
-
-def uses_token(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        auth = get_session_auth()
-        db = get_db()
-        user_row = db.execute("SELECT query_tokens FROM users WHERE id=?", [auth['user_id']]).fetchone()
-        tokens = user_row['query_tokens']
-        if tokens is not None:
-            if tokens == 0:
-                flash("You have used all of your query tokens.  Please use the contact form at the bottom of the page if you want to continue using CodeHelp.", "warning")
-                return redirect(url_for('helper.help_form'))
-            else:
-                db.execute("UPDATE users SET query_tokens=query_tokens-1 WHERE id=?", [auth['user_id']])
-                db.commit()
-        return f(*args, **kwargs)
-    return decorated_function

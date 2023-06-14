@@ -6,7 +6,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from plum.db import get_db
 from plum.auth import get_session_auth, login_required
 from plum.admin import bp as bp_admin, register_admin_link
-from plum.openai import get_openai_key, get_completion
+from plum.openai import with_openai_key, get_completion
 from plum.queries import get_query
 
 
@@ -22,38 +22,32 @@ def tutor_form():
 
 @bp.route("/chat/create", methods=["POST"])
 @login_required
-def start_chat():
-    auth = get_session_auth()
-    user_id = auth['user_id']
-    role_id = auth['role_id']
-
+@with_openai_key(use_token=True)  # users with tokens must spend one token to use this
+def start_chat(api_key):
     topic = request.form['topic']
     context = request.form.get('context', None)
 
-    chat_id = create_chat(user_id, role_id, topic, context)
+    chat_id = create_chat(topic, context)
 
-    run_chat_round(chat_id)
+    run_chat_round(api_key, chat_id)
 
     return redirect(url_for("tutor.chat_interface", chat_id=chat_id))
 
 
 @bp.route("/chat/create_from_query", methods=["POST"])
 @login_required
-def start_chat_from_query():
-    auth = get_session_auth()
-    user_id = auth['user_id']
-    role_id = auth['role_id']
-
-    query_id = request.form['query_id']
+@with_openai_key(use_token=True)  # users with tokens must spend one token to use this
+def start_chat_from_query(api_key):
     topic = request.form['topic']
 
     # build context from the specified query
+    query_id = request.form['query_id']
     query_row, response = get_query(query_id)
     context = f"The user is working with the {query_row['language']} language."
 
-    chat_id = create_chat(user_id, role_id, topic, context)
+    chat_id = create_chat(topic, context)
 
-    run_chat_round(chat_id)
+    run_chat_round(api_key, chat_id)
 
     return redirect(url_for("tutor.chat_interface", chat_id=chat_id))
 
@@ -72,7 +66,11 @@ def chat_interface(chat_id):
     return render_template("tutor_view.html", chat_id=chat_id, topic=topic, context=context, chat=chat, chat_history=chat_history)
 
 
-def create_chat(user_id, role_id, topic, context=None):
+def create_chat(topic, context=None):
+    auth = get_session_auth()
+    user_id = auth['user_id']
+    role_id = auth['role_id']
+
     db = get_db()
     cur = db.execute(
         "INSERT INTO tutor_chats (user_id, role_id, topic, context, chat_json) VALUES (?, ?, ?, ?, ?)",
@@ -124,7 +122,7 @@ def get_chat(chat_id):
     return chat, topic, context
 
 
-def get_response(chat):
+def get_response(api_key, chat):
     ''' Get a new 'assistant' completion for the specified chat.
 
     Parameters:
@@ -135,12 +133,6 @@ def get_response(chat):
       1) A response object from the OpenAI completion (to be stored in the database).
       2) The response text.
     '''
-    # get openai API key for following completion
-    api_key = get_openai_key()
-    if not isinstance(api_key, str) or api_key == '':
-        msg = "Error: API key not set.  Request cannot be submitted."
-        return msg, msg
-
     response, text = asyncio.run(get_completion(
         api_key,
         messages=chat,
@@ -160,7 +152,7 @@ def save_chat(chat_id, chat):
     db.commit()
 
 
-def run_chat_round(chat_id, message=None):
+def run_chat_round(api_key, chat_id, message=None):
     # Get the specified chat
     chat, topic, context = get_chat(chat_id)
 
@@ -202,7 +194,7 @@ I can use Markdown formatting in my responses."""
         {'role': 'assistant', 'content': monologue},
     ]
 
-    response_obj, response_txt = get_response(expanded_chat)
+    response_obj, response_txt = get_response(api_key, expanded_chat)
 
     # Update the chat w/ the response
     chat.append({
@@ -214,14 +206,15 @@ I can use Markdown formatting in my responses."""
 
 @bp.route("/message", methods=["POST"])
 @login_required
-def new_message():
+@with_openai_key(use_token=True)  # users with tokens must spend one token to use this
+def new_message(api_key):
     chat_id = request.form["id"]
     new_msg = request.form["message"]
 
     # TODO: limit length
 
     # Run a round of the chat with the given message.
-    run_chat_round(chat_id, new_msg)
+    run_chat_round(api_key, chat_id, new_msg)
 
     # Send the user back to the now-updated chat view
     return redirect(url_for("tutor.chat_interface", chat_id=chat_id))

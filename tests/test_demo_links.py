@@ -30,14 +30,20 @@ def test_valid_demo_link(client):
             '/help/request',
             data={'lang_id': 1, 'code': test_code, 'error': '_test_error_', 'issue': '_test_issue_'}
         )
-        assert response.status_code == 302   # redirect
-        response = client.get(response.location)
-        assert response.status_code == 200
-        assert '_test_error_' in response.text and '_test_issue_' in response.text
         if i < 3:
+            # successful requests should redirect to a response page with the same items
+            assert response.status_code == 302   # redirect
+            response = client.get(response.location)
             assert test_code in response.text
+            assert '_test_error_' in response.text
+            assert '_test_issue_' in response.text
         else:
+            # those without tokens remaining return an error page directly
+            assert response.status_code == 200
+            assert "You have used all of your query tokens." in response.text
             assert test_code not in response.text
+            assert '_test_error_' not in response.text
+            assert '_test_issue_' not in response.text
 
 
 def test_logged_in(auth, client):
