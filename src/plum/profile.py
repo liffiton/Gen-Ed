@@ -28,8 +28,9 @@ def main():
     class_id = auth['lti'] and auth['lti']['class_id']
     other_classes = db.execute("""
         SELECT
-            roles.role,
-            classes.name
+            classes.id,
+            classes.name,
+            roles.role
         FROM roles
         LEFT JOIN classes ON roles.class_id=classes.id
         WHERE roles.user_id=? AND classes.id <> ?
