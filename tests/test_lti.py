@@ -1,5 +1,9 @@
 from oauthlib import oauth1
 
+CLASS = {
+    'label': "CS799-S23",
+    'title': "CS799-S23+-+Advanced+LTI+Testing",
+}
 
 USER = {
     'given': "Tester",
@@ -20,8 +24,8 @@ class LTIConsumer:
             "user_id": "user54321",
             "roles": roles,
             "context_id": "course54321",
-            "context_label": "CS799-S23",
-            "context_title": "CS799-S23+-+Advanced+LTI+Testing",
+            "context_label": CLASS['label'],
+            "context_title": CLASS['title'],
             "lis_person_name_given": USER['given'],
             "lis_person_name_family": USER['family'],
             "lis_person_name_full": USER['fullname'],
@@ -100,6 +104,10 @@ def test_lti_auth_instructor(client):
     assert result.status_code == 200  # ... and now it should work!
     assert USER['fullname'] in result.text
 
+    result = client.get('/profile/')
+    assert result.status_code == 200
+    assert f"{CLASS['label']} (instructor)" in result.text
+
 
 def test_lti_auth_student(client):
     # key and secret match 'consumer.domain' consumer in test_data.sql
@@ -115,3 +123,7 @@ def test_lti_auth_student(client):
     result = client.get('/help/')
     assert result.status_code == 200
     assert USER['fullname'] in result.text
+
+    result = client.get('/profile/')
+    assert result.status_code == 200
+    assert f"{CLASS['label']} (student)" in result.text
