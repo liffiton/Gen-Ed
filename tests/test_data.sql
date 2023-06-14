@@ -7,7 +7,7 @@ INSERT INTO classes (id, name, enabled, config)
 VALUES
     (1, 'LERN101', 1, '{"default_lang": "python", "avoid": "sum()\r\neval()\r\nzfill()\r\n+=\r\n"}');
 
-INSERT INTO lti_classes (class_id, lti_consumer_id, lti_context_id)
+INSERT INTO classes_lti (class_id, lti_consumer_id, lti_context_id)
 VALUES
     (1, 1, 'ctx_id');
 

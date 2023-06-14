@@ -32,10 +32,10 @@ def get_or_create_lti_class(lti_consumer_id, lti_context_id, class_name):
     class_row = db.execute("""
         SELECT classes.id
         FROM classes
-        JOIN lti_classes
-          ON classes.id=lti_classes.class_id
-        WHERE lti_classes.lti_consumer_id=?
-          AND lti_classes.lti_context_id=?
+        JOIN classes_lti
+          ON classes.id=classes_lti.class_id
+        WHERE classes_lti.lti_consumer_id=?
+          AND classes_lti.lti_context_id=?
     """, [lti_consumer_id, lti_context_id]).fetchone()
 
     if class_row:
@@ -45,7 +45,7 @@ def get_or_create_lti_class(lti_consumer_id, lti_context_id, class_name):
         cur = db.execute("INSERT INTO classes (name) VALUES (?)", [class_name])
         class_id = cur.lastrowid
         db.execute(
-            "INSERT INTO lti_classes (class_id, lti_consumer_id, lti_context_id) VALUES (?, ?, ?)",
+            "INSERT INTO classes_lti (class_id, lti_consumer_id, lti_context_id) VALUES (?, ?, ?)",
             [class_id, lti_consumer_id, lti_context_id]
         )
         db.commit()

@@ -70,7 +70,7 @@ CREATE UNIQUE INDEX auth_external_by_ext_id ON auth_external(auth_provider, ext_
 
 
 -- Classes and their config
--- (superset type for lti_classes and user_classes)
+-- (superset type for classes_lti and classes_user)
 -- Config stored as JSON for flexibility, esp. during development
 CREATE TABLE classes (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -81,7 +81,7 @@ CREATE TABLE classes (
 );
 
 -- Classes created/accessed via LTI
-CREATE TABLE lti_classes (
+CREATE TABLE classes_lti (
     class_id          INTEGER PRIMARY KEY,  -- references classes.id
     lti_consumer_id   INTEGER NOT NULL,  -- references consumers.id
     lti_context_id    TEXT NOT NULL,  -- class ID from the LMS
@@ -89,11 +89,11 @@ CREATE TABLE lti_classes (
     FOREIGN KEY(class_id) REFERENCES classes(id),
     FOREIGN KEY(lti_consumer_id) REFERENCES consumers(id)
 );
-DROP INDEX IF EXISTS lti_classes_by_consumer_context;
-CREATE UNIQUE INDEX  lti_classes_by_consumer_context ON lti_classes(lti_consumer_id, lti_context_id);
+DROP INDEX IF EXISTS classes_lti_by_consumer_context;
+CREATE UNIQUE INDEX  classes_lti_by_consumer_context ON classes_lti(lti_consumer_id, lti_context_id);
 
 -- Classes created by a user, accessed via class link
-CREATE TABLE user_classes (
+CREATE TABLE classes_user (
     class_id         INTEGER PRIMARY KEY,  -- references classes.id
     openai_key       TEXT,
     link_ident       TEXT NOT NULL UNIQUE,  -- random (unguessable) identifier used in access/registration link for this class
@@ -102,8 +102,8 @@ CREATE TABLE user_classes (
     FOREIGN KEY(class_id) REFERENCES classes(id),
     FOREIGN KEY(creator_user_id) REFERENCES users(id)
 );
-DROP INDEX IF EXISTS user_classes_by_link_ident;
-CREATE UNIQUE INDEX  user_classes_by_link_ident ON user_classes(link_ident);
+DROP INDEX IF EXISTS classes_user_by_link_ident;
+CREATE UNIQUE INDEX  classes_user_by_link_ident ON classes_user(link_ident);
 
 -- Roles for users in classes
 CREATE TABLE roles (

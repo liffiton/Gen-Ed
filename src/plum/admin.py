@@ -112,8 +112,8 @@ def main():
             COUNT(queries.id) AS num_queries,
             SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
         FROM consumers
-        LEFT JOIN lti_classes ON lti_classes.lti_consumer_id=consumers.id
-        LEFT JOIN classes ON classes.id=lti_classes.class_id
+        LEFT JOIN classes_lti ON classes_lti.lti_consumer_id=consumers.id
+        LEFT JOIN classes ON classes.id=classes_lti.class_id
         LEFT JOIN roles ON roles.class_id=classes.id
         LEFT JOIN queries ON queries.role_id=roles.id
         GROUP BY consumers.id
@@ -127,8 +127,8 @@ def main():
             COUNT(queries.id) AS num_queries,
             SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
         FROM classes
-        JOIN lti_classes ON classes.id=lti_classes.class_id
-        LEFT JOIN consumers ON consumers.id=lti_classes.lti_consumer_id
+        JOIN classes_lti ON classes.id=classes_lti.class_id
+        LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
         LEFT JOIN roles ON roles.class_id=classes.id
         LEFT JOIN queries ON queries.role_id=roles.id
         {where_clause}
@@ -145,8 +145,8 @@ def main():
         FROM users
         LEFT JOIN roles ON roles.user_id=users.id
         LEFT JOIN classes ON roles.class_id=classes.id
-        LEFT JOIN lti_classes ON classes.id=lti_classes.class_id
-        LEFT JOIN consumers ON consumers.id=lti_classes.lti_consumer_id
+        LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
+        LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
         LEFT JOIN queries ON queries.user_id=users.id
         {where_clause}
         GROUP BY users.id
@@ -162,8 +162,8 @@ def main():
         FROM roles
         LEFT JOIN users ON users.id=roles.user_id
         LEFT JOIN classes ON roles.class_id=classes.id
-        LEFT JOIN lti_classes ON classes.id=lti_classes.class_id
-        LEFT JOIN consumers ON consumers.id=lti_classes.lti_consumer_id
+        LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
+        LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
         LEFT JOIN queries ON roles.id=queries.role_id
         {where_clause}
         GROUP BY roles.id
@@ -180,8 +180,8 @@ def main():
         JOIN users ON queries.user_id=users.id
         LEFT JOIN roles ON queries.role_id=roles.id
         LEFT JOIN classes ON roles.class_id=classes.id
-        LEFT JOIN lti_classes ON classes.id=lti_classes.class_id
-        LEFT JOIN consumers ON consumers.id=lti_classes.lti_consumer_id
+        LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
+        LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
         {where_clause}
         ORDER BY query_time DESC LIMIT ?
     """, where_params + [queries_limit]).fetchall()
