@@ -167,10 +167,10 @@ def class_config_required(f):
         if class_row['config'] == '{}':
             # Not yet configured
             if auth['role'] == 'instructor':
-                flash("This class is not yet configured.  Please configure it so that you and your students can use the tool.", "danger")
+                flash("This class is not yet configured.  Please configure it so that you and your students can use it.", "danger")
                 return redirect(url_for("instructor.config_form"))
             else:
-                flash("This class is not yet configured.  Your instructor must configure it before you can use this tool.", "danger")
+                flash("This class is not yet configured.  Your instructor must configure it before you can use it.", "danger")
                 return render_template("error.html")
 
         return f(*args, **kwargs)
