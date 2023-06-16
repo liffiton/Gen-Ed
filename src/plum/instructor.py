@@ -103,7 +103,7 @@ def config_form():
     class_id = auth['class_id']
 
     class_row = db.execute("""
-        SELECT classes.id, classes.config, classes_user.link_ident, classes_user.link_reg_active
+        SELECT classes.id, classes.config, classes_user.link_ident, classes_user.link_reg_active, classes_user.openai_key
         FROM classes
         LEFT JOIN classes_user
           ON classes.id = classes_user.class_id
@@ -114,17 +114,29 @@ def config_form():
     return render_template("class_config_form.html", class_row=class_row, class_config=class_config)
 
 
-@bp.route("/access/set", methods=["POST"])
+@bp.route("/user_class/set", methods=["POST"])
 @instructor_required
-def set_access():
+def set_user_class_setting():
     db = get_db()
-
     class_id = request.form['class_id']
-    link_reg_active = 1 if 'link_reg_active' in request.form else 0
-    db.execute("UPDATE classes_user SET link_reg_active=? WHERE class_id=?", [link_reg_active, class_id])
-    db.commit()
 
-    flash("Configuration set!", "success")
+    if 'clear_openai_key' in request.form:
+        db.execute("UPDATE classes_user SET openai_key='' WHERE class_id=?", [class_id])
+        db.commit()
+        flash("Class API key cleared.", "success")
+
+    elif 'set_openai_key' in request.form:
+        db.execute("UPDATE classes_user SET openai_key=? WHERE class_id=?", [request.form['openai_key'], class_id])
+        db.commit()
+        flash("Class API key set.", "success")
+
+    else:
+        link_reg_active = 1 if 'link_reg_active' in request.form else 0
+        link_reg_state = 'enabled' if link_reg_active else 'disabled'
+        db.execute("UPDATE classes_user SET link_reg_active=? WHERE class_id=?", [link_reg_active, class_id])
+        db.commit()
+        flash(f"Link registration {link_reg_state}.", "success")
+
     return redirect(url_for(".config_form"))
 
 

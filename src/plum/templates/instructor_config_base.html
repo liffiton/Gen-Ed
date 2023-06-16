@@ -7,8 +7,8 @@
 
     {% if class_row['link_ident'] %}
     {# link_ident only in classes_user, so will only be set for user classes. #}
-    <h2>Access Control</h2>
-    <form action="{{ url_for("instructor.set_access") }}" method="post">
+    <h2>Access &amp; Key</h2>
+    <form action="{{ url_for("instructor.set_user_class_setting") }}" method="post">
       <input type="hidden" name="class_id" value="{{class_row['id']}}">
 
       <div class="field is-horizontal">
@@ -31,20 +31,34 @@
         <div class="field-body">
           <div class="field">
             <div class="control">
-              <input style="transform: scale(2.0); margin: 0.5rem;" name="link_reg_active" type="checkbox" {% if class_row['link_reg_active'] %}checked{% endif %}>
+              <input style="transform: scale(2.0); margin: 0.5rem;" name="link_reg_active" type="checkbox" onChange="this.form.submit()" {% if class_row['link_reg_active'] %}checked{% endif %}>
             </div>
           </div>
         </div>
       </div>
 
       <div class="field is-horizontal">
-        <div class="field-label is-normal"><!-- spacing --></div>
+        <div class="field-label is-normal">
+          <label class="label" for="openai_key">OpenAI Key:</label>
+          <p class="has-text-grey">If blank, users in this class will not be able to submit queries.</p>
+        </div>
         <div class="field-body">
-          <div class="field">
-            <div class="control">
-              <button class="button is-link" type="submit" >Submit</button>
+          {% if class_row.openai_key %}
+            <div style="margin-top: 0.375rem;" x-data="{show_confirm: false}">
+              {{ "*" * 20 + class_row.openai_key[-4:] }}
+              <button class="button is-danger is-small ml-3" type="button" @click="show_confirm=true" x-bind:disabled="show_confirm"><span class="delete mr-2"></span> Clear openai_key</button>
+              <button class="button is-danger is-small" type="submit" name="clear_openai_key" x-show="show_confirm"><b>Confirm</b>&nbsp;clear openai_key</button>
             </div>
-          </div>
+          {% else %}
+            <div class="field has-addons">
+              <div class="control">
+                <input class="input" name="openai_key">
+              </div>
+              <div class="control">
+                <button class="button is-link" type="submit" name="set_openai_key">Save</button>
+              </div>
+            </div>
+          {% endif %}
         </div>
       </div>
 

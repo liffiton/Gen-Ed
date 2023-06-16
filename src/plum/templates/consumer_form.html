@@ -63,7 +63,7 @@
         <div class="field-body">
           {% if consumer and consumer.openai_key %}
             <div style="margin-top: 0.375rem;" x-data="{show_confirm: false}">
-              {{ "*" * 20 }}
+              {{ "*" * 20 + consumer.openai_key[-4:] }}
               <button class="button is-danger is-small ml-3" type="button" @click="show_confirm=true" x-bind:disabled="show_confirm"><span class="delete mr-2"></span> Clear openai_key</button>
               <button class="button is-danger is-small" type="submit" name="clear_openai_key" x-show="show_confirm"><b>Confirm</b>&nbsp;clear openai_key</button>
             </div>
