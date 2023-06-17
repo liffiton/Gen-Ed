@@ -24,7 +24,7 @@
       <h1 class="is-size-3">Classes</h1>
       {{ datatable(
           'classes',
-          [('id', 'id'), ('name', 'name'), ('consumer', 'lti_consumer'), ('#queries', 'num_queries', 'r'), ('1wk', 'num_recent_queries', 'r')],
+          [('id', 'id'), ('name', 'name'), ('owner', 'owner'), ('#queries', 'num_queries', 'r'), ('1wk', 'num_recent_queries', 'r')],
           classes,
           link_col=0,
           link_template=filters.template_string('class') | safe,

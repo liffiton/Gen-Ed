@@ -123,11 +123,15 @@ def main():
     where_clause, where_params = filters.make_where(['consumer'])
     classes = db.execute(f"""
         SELECT
-            classes.*,
+            classes.id,
+            classes.name,
+            COALESCE(consumers.lti_consumer, class_owner.display_name) AS owner,
             COUNT(queries.id) AS num_queries,
             SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
         FROM classes
-        JOIN classes_lti ON classes.id=classes_lti.class_id
+        LEFT JOIN classes_user ON classes.id=classes_user.class_id
+        LEFT JOIN users AS class_owner ON classes_user.creator_user_id=class_owner.id
+        LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
         LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
         LEFT JOIN roles ON roles.class_id=classes.id
         LEFT JOIN queries ON queries.role_id=roles.id
