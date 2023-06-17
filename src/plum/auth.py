@@ -159,11 +159,13 @@ def class_config_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         auth = get_session_auth()
+        class_id = auth['class_id']
 
-        if auth['class_id'] is None:
-            # Non-class user
+        if class_id is None:
+            # No active class, no problem
             return f(*args, **kwargs)
 
+        # Otherwise, there's an active class, so we require it to have a non-empty configuration.
         db = get_db()
         class_row = db.execute("SELECT * FROM classes WHERE id=?", [auth['class_id']]).fetchone()
         if class_row['config'] == '{}':

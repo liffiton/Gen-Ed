@@ -1,8 +1,15 @@
 {% extends "instructor_config_base.html" %}
 
 {% block class_config_form %}
+    <h2>
+      Class Configuration
+      {% if not class_config %}
+        {# anything Falsey, including the expected {} empty dict #}
+        <span class="ml-4 is-size-5 has-text-danger">(Not yet configured.  Students cannot submit queries until a configuration is saved here.)</span>
+      {% endif %}
+    </h2>
     <form action="{{ url_for("instructor.set_config") }}" method="post">
-      <input type="hidden" name="class_id" value="{{class_row['id']}}">
+      <input type="hidden" name="class_id" value="{{class_row.id}}">
 
       <div class="field is-horizontal">
         <div class="field-label is-normal">
