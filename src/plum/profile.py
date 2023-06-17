@@ -25,7 +25,7 @@ def main():
         WHERE users.id=?
     """, [user_id]).fetchone()
 
-    class_id = auth['class_id']
+    class_id = auth['class_id'] or -1   # can't do a != to None/null, so convert that to -1 to match all classes in that case
     other_classes = db.execute("""
         SELECT
             classes.id,
@@ -33,7 +33,7 @@ def main():
             roles.role
         FROM roles
         LEFT JOIN classes ON roles.class_id=classes.id
-        WHERE roles.user_id=? AND classes.id <> ?
+        WHERE roles.user_id=? AND classes.id != ?
     """, [user_id, class_id]).fetchall()
 
     return render_template("profile_view.html", user=user, other_classes=other_classes)

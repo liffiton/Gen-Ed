@@ -48,9 +48,13 @@ dl.profile dd { margin: 0; }
     </dl>
     <h2 class="title is-size-3">Classes</h1>
     <dl class="profile">
+      <dt>Current:</dt>
       {% if auth['role'] %}
-        <dt>Current:</dt><dd>{{ auth['class_name'] }} ({{ auth['role'] }})</dd>
+        <dd>{{ auth['class_name'] }} ({{ auth['role'] }})</dd>
+      {% else %}
+        <dd>None active.</dd>
       {% endif %}
+
       {% if other_classes %}
         <dt></dt><dd>
           <div class="dropdown is-hoverable">
