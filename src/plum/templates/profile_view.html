@@ -43,10 +43,8 @@ dl.profile dd { margin: 0; }
       {% endif %}
       <dt>Queries:</dt>
       <dd>{{ user.num_queries }} total, {{ user.num_recent_queries }} in the past week.</dd>
-      {% if user.query_tokens %}
-        <dt>Tokens:</dt>
-        <dd>{{ user.query_tokens }} remaining</dd>
-      {% endif %}
+      <dt>Tokens:</dt>
+      <dd>{{ user.query_tokens }} remaining.  <span class="ml-3 is-size-6 has-text-grey">(These are used to submit queries to try out {{ config['APPLICATION_TITLE'] }}.  They are used when you do not have a class active.)</span></dd>
     </dl>
     <h2 class="title is-size-3">Classes</h1>
     <dl class="profile">
