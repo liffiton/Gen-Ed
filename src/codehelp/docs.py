@@ -21,8 +21,6 @@ def serve_doc_html(filename):
     if full_path.parent != DOCS_HTML_DIR:
         abort(403)  # Return a 403 Forbidden error if the input is invalid
 
-    print(full_path)
-
     if not full_path.is_file():
         abort(404)  # Return a 404 error if the file is not found
 

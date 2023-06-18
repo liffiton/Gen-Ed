@@ -79,7 +79,6 @@ def init_app(app):
         if auth_provider in ('demo', 'local', None):
             return display_name
         elif auth_provider == 'lti':
-            print(dict(user_row))
             extra_info = user_row['email']
         elif auth_provider == 'google':
             extra_info = user_row['email']
