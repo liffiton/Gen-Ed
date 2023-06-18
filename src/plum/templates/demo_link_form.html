@@ -24,7 +24,7 @@
           {% else %}
             <div class="field">
               <div class="control">
-                <input class="input" required name="name">
+                <input class="input" required name="name" id="name">
               </div>
             </div>
           {% endif %}
@@ -51,7 +51,7 @@
         <div class="field-body">
           <div class="field">
             <div class="control">
-              <input class="input" required name="expiration" type="date" style="max-width: 20em;" value='{{ demo_link.expiration if demo_link }}'>
+              <input class="input" required name="expiration" id="expiration" type="date" style="max-width: 20em;" value='{{ demo_link.expiration if demo_link }}'>
             </div>
           </div>
         </div>
@@ -65,7 +65,7 @@
         <div class="field-body">
           <div class="field">
             <div class="control">
-              <input class="input" required name="tokens" type="number" style="max-width: 20em;" value='{{ demo_link.tokens if demo_link }}'>
+              <input class="input" required name="tokens" id="tokens" type="number" style="max-width: 20em;" value='{{ demo_link.tokens if demo_link }}'>
             </div>
           </div>
         </div>
@@ -78,7 +78,7 @@
         <div class="field-body">
           <div class="field">
             <div class="control">
-              <input style="transform: scale(2.0); margin: 0.5rem;" name="enabled" type="checkbox" {% if demo_link and demo_link.enabled %}checked{% endif %}>
+              <input style="transform: scale(2.0); margin: 0.5rem;" name="enabled" id="enabled" type="checkbox" {% if demo_link and demo_link.enabled %}checked{% endif %}>
             </div>
           </div>
         </div>

@@ -19,7 +19,7 @@
           <div class="field">
             <div class="control">
               <div class="select">
-                <select name="default_lang" required>
+                <select name="default_lang" required id="language">
                   <option value="">Please select</option>
                   {% for lang in config['LANGUAGES'] %}
                   <option value="{{lang}}" {% if lang == class_config['default_lang'] %}selected{% endif %}>{{lang | capitalize}}</option>
@@ -41,7 +41,7 @@
         <div class="field-body">
           <div class="field">
             <div class="control">
-              <textarea class="textarea is-family-monospace" name="avoid" rows=10>{{ class_config['avoid'] }}</textarea>
+              <textarea class="textarea is-family-monospace" name="avoid" id="avoid" rows=10>{{ class_config['avoid'] }}</textarea>
             </div>
           </div>
         </div>

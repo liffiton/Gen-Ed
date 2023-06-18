@@ -18,7 +18,7 @@
           <div class="field">
             <div class="control">
               <div class="select">
-                <select name="lang_id" required x-bind:disabled="loading">
+                <select name="lang_id" id="language" required x-bind:disabled="loading">
                   <option value="">Please select</option>
                   {% for lang in config['LANGUAGES'] %}
                   <option value="{{loop.index0}}" {% if lang == selected_lang %}selected{% endif %}>{{lang | capitalize}}</option>
@@ -38,7 +38,7 @@
         <div class="field-body">
           <div class="field">
             <div class="control">
-              <textarea class="textarea is-family-monospace" name="code" x-bind:disabled="loading" rows=10>{{ query.code }}</textarea>
+              <textarea class="textarea is-family-monospace" name="code" id="code" x-bind:disabled="loading" rows=10>{{ query.code }}</textarea>
             </div>
           </div>
         </div>
@@ -52,7 +52,7 @@
         <div class="field-body">
           <div class="field">
             <div class="control">
-              <textarea class="textarea" name="error" x-bind:disabled="loading" rows=4>{{ query.error }}</textarea>
+              <textarea class="textarea" name="error" id="error" x-bind:disabled="loading" rows=4>{{ query.error }}</textarea>
             </div>
           </div>
         </div>
@@ -66,7 +66,7 @@
         <div class="field-body">
           <div class="field">
             <div class="control">
-              <textarea class="textarea" name="issue" x-bind:disabled="loading" rows=6>{{ query.issue }}</textarea>
+              <textarea class="textarea" name="issue" id="issue" x-bind:disabled="loading" rows=6>{{ query.issue }}</textarea>
             </div>
           </div>
         </div>

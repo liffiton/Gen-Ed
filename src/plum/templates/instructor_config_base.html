@@ -13,7 +13,7 @@
 
       <div class="field is-horizontal">
         <div class="field-label">
-          <label class="label" for="language">Access/Join Link:</label>
+          <label class="label">Access/Join Link:</label>
         </div>
         <div class="field-body">
           <div class="field">
@@ -31,7 +31,7 @@
         <div class="field-body">
           <div class="field">
             <div class="control">
-              <input style="transform: scale(2.0); margin: 0.5rem;" name="link_reg_active" type="checkbox" onChange="this.form.submit()" {% if class_row['link_reg_active'] %}checked{% endif %}>
+              <input style="transform: scale(2.0); margin: 0.5rem;" name="link_reg_active" id="link_reg_active" type="checkbox" onChange="this.form.submit()" {% if class_row['link_reg_active'] %}checked{% endif %}>
             </div>
           </div>
         </div>
@@ -39,7 +39,7 @@
 
       <div class="field is-horizontal">
         <div class="field-label is-normal">
-          <label class="label" for="openai_key">OpenAI Key:</label>
+          <label class="label">OpenAI Key:</label>
           <p class="has-text-grey">If blank, users in this class will not be able to submit queries.</p>
         </div>
         <div class="field-body">
