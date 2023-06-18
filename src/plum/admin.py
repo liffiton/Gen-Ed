@@ -143,10 +143,15 @@ def main():
     where_clause, where_params = filters.make_where(['consumer', 'class'])
     users = db.execute(f"""
         SELECT
-            users.*,
+            users.id,
+            users.display_name,
+            users.email,
+            users.auth_name,
+            auth_providers.name AS auth_provider,
             COUNT(queries.id) AS num_queries,
             SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
         FROM users
+        LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
         LEFT JOIN roles ON roles.user_id=users.id
         LEFT JOIN classes ON roles.class_id=classes.id
         LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
@@ -161,10 +166,15 @@ def main():
     roles = db.execute(f"""
         SELECT
             roles.*,
+            users.id,
             users.display_name,
+            users.email,
+            users.auth_name,
+            auth_providers.name AS auth_provider,
             COUNT(queries.id) AS num_queries
         FROM roles
         LEFT JOIN users ON users.id=roles.user_id
+        LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
         LEFT JOIN classes ON roles.class_id=classes.id
         LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
         LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
@@ -179,9 +189,14 @@ def main():
     queries = db.execute(f"""
         SELECT
             queries.*,
-            users.display_name
+            users.id,
+            users.display_name,
+            users.email,
+            users.auth_name,
+            auth_providers.name AS auth_provider
         FROM queries
         JOIN users ON queries.user_id=users.id
+        LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
         LEFT JOIN roles ON queries.role_id=roles.id
         LEFT JOIN classes ON roles.class_id=classes.id
         LEFT JOIN classes_lti ON classes.id=classes_lti.class_id

@@ -56,10 +56,15 @@ def main():
 
     users = db.execute("""
         SELECT
-            users.*,
+            users.id,
+            users.display_name,
+            users.email,
+            users.auth_name,
+            auth_providers.name AS auth_provider,
             COUNT(queries.id) AS num_queries,
             SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
         FROM users
+        LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
         JOIN roles ON roles.user_id=users.id
         LEFT JOIN queries ON queries.role_id=roles.id
         WHERE roles.class_id=?

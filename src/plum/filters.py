@@ -13,7 +13,7 @@ def make_titled_span(title, text):
 def init_app(app):
     jinja_escape = app.jinja_env.filters['e']
 
-    # a Jinja filter for table cell contents
+    # Jinja filter for table cell contents
     @app.template_filter('tbl_cell')
     def table_cell_filter(value):
         '''Format a value to be displayed in a table cell.'''
@@ -29,7 +29,7 @@ def init_app(app):
         else:
             return value
 
-    # a Jinja filter for formatting response text
+    # Jinja filter for formatting response text
     @app.template_filter('fmt_response_txt')
     def fmt_response_txt(value):
         '''Format response text to be displayed in a table cell.'''
@@ -47,7 +47,7 @@ def init_app(app):
 
         return markupsafe.Markup(html_string)
 
-    # a Jinja filter for converting Markdown to HTML
+    # Jinja filter for converting Markdown to HTML
     # monkey-patch markdown and fenced_code extension to not escape HTML in
     # `inline code` or ``` code blocks -- we're already escaping everything,
     # code or not, so...
@@ -66,4 +66,29 @@ def init_app(app):
         '''Convert markdown to HTML (after escaping).'''
         escaped = jinja_escape(value)
         html = markdown_processor.reset().convert(escaped)
+        return markupsafe.Markup(html)
+
+    # Jinja filter for displaying users w/ dynamic info popups in datatables
+    # Expects a *tuple* of (display_name, row_object) where row_object contains
+    # 'auth_provider', 'email', and 'auth_name'.
+    @app.template_filter('user_cell')
+    def user_filter(user_tuple):
+        display_name, user_row = user_tuple
+
+        auth_provider = dict(user_row).get('auth_provider')
+        if auth_provider in ('demo', 'local', None):
+            return display_name
+        elif auth_provider == 'lti':
+            print(dict(user_row))
+            extra_info = user_row['email']
+        elif auth_provider == 'google':
+            extra_info = user_row['email']
+        elif auth_provider == 'github':
+            extra_info = f"@{user_row['auth_name']}"
+        else:
+            app.logger.error(f"Unhandled/unexpected auth provider: {auth_provider}.")
+            extra_info = ""
+
+        display_name = jinja_escape(display_name)
+        html = f"{display_name} <span class='is-size-7 has-text-grey' title='{extra_info}'>({auth_provider})</span>"
         return markupsafe.Markup(html)
