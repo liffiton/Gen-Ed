@@ -1,62 +1,66 @@
 {% extends "instructor_config_base.html" %}
 
 {% block class_config_form %}
-    <h2>
-      Queries &amp; Responses
-    </h2>
-    {% if not class_config %}
-      {# anything Falsey, including the expected {} empty dict #}
-      <p class="is-size-5 has-text-danger">(Not yet configured.  Students cannot submit queries until a configuration is saved here.)</p>
-    {% endif %}
-    <form action="{{ url_for("instructor.set_config") }}" method="post">
-      <input type="hidden" name="class_id" value="{{class_row.id}}">
+    <div class="conf_col_sep">
+    </div>
+    <div class="conf_col">
+      <h2 class="title is-size-4">
+        Queries &amp; Responses
+      </h2>
+      {% if not class_config %}
+        {# anything Falsey, including the expected {} empty dict #}
+        <p class="is-size-5 mb-2 has-text-danger">(Not yet configured.  Students cannot submit queries until a configuration is saved here.)</p>
+      {% endif %}
+      <form action="{{ url_for("instructor.set_config") }}" method="post">
+        <input type="hidden" name="class_id" value="{{class_row.id}}">
 
-      <div class="field is-horizontal">
-        <div class="field-label is-normal">
-          <label class="label" for="language">Default Language:</label>
-        </div>
-        <div class="field-body">
-          <div class="field">
-            <div class="control">
-              <div class="select">
-                <select name="default_lang" required id="language">
-                  <option value="">Please select</option>
-                  {% for lang in config['LANGUAGES'] %}
-                  <option value="{{lang}}" {% if lang == class_config['default_lang'] %}selected{% endif %}>{{lang | capitalize}}</option>
-                  {% endfor %}
-                </select>
+        <div class="field is-horizontal">
+          <div class="field-label is-normal">
+            <label class="label" for="language">Default Language:</label>
+          </div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <div class="select">
+                  <select name="default_lang" required id="language">
+                    <option value="">Please select</option>
+                    {% for lang in config['LANGUAGES'] %}
+                    <option value="{{lang}}" {% if lang == class_config['default_lang'] %}selected{% endif %}>{{lang | capitalize}}</option>
+                    {% endfor %}
+                  </select>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="field is-horizontal">
-        <div class="field-label is-normal">
-          <label class="label" for="avoid">Keywords to Avoid:</label>
-          <p class="has-text-grey">Any keywords you want the system to avoid or not use in responses for this class.</p>
-          <p class="has-text-grey">Write one per line.</p>
-          <p class="has-text-grey">Be careful!  Writing "sum" will avoid discussing summation at all, while "sum()" will avoid just the sum function.</p>
-        </div>
-        <div class="field-body">
-          <div class="field">
-            <div class="control">
-              <textarea class="textarea is-family-monospace" name="avoid" id="avoid" rows=10>{{ class_config['avoid'] }}</textarea>
+        <div class="field is-horizontal">
+          <div class="field-label is-normal">
+            <label class="label" for="avoid">Keywords to Avoid:</label>
+            <p class="has-text-grey">Any keywords you want the system to avoid or not use in responses for this class.</p>
+            <p class="has-text-grey">Write one per line.</p>
+            <p class="has-text-grey">Be careful!  Writing "sum" will avoid discussing summation at all, while "sum()" will avoid just the sum function.</p>
+          </div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <textarea class="textarea is-family-monospace" name="avoid" id="avoid" rows=10>{{ class_config['avoid'] }}</textarea>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="field is-horizontal">
-        <div class="field-label is-normal"><!-- spacing --></div>
-        <div class="field-body">
-          <div class="field">
-            <div class="control">
-              <button class="button is-link" type="submit" >Save</button>
+        <div class="field is-horizontal">
+          <div class="field-label is-normal"><!-- spacing --></div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <button class="button is-link" type="submit" >Save</button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-    </form>
+      </form>
+    </div>
 {% endblock %}
