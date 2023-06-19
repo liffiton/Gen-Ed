@@ -56,32 +56,23 @@ dl.profile dd { margin: 0; }
       {% endif %}
 
       {% if other_classes %}
-        <dt></dt><dd>
-          <div class="dropdown is-hoverable">
-            <div class="dropdown-trigger">
-              <button class="button" aria-haspopup="true" aria-controls="dropdown-menu">
-                <span>Switch to:</span>
-                <span class="icon is-small">
-                  <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down"><polyline points="6 9 12 15 18 9"/></svg>
-                </span>
-              </button>
-            </div>
-            <div class="dropdown-menu" id="dropdown-menu" role="menu">
-              <div class="dropdown-content">
-                {% for class in other_classes %}
-                  <a href="{{ url_for("classes.switch_class_handler", class_id=class.id) }}" class="dropdown-item is-size-5">
-                    {{ class.name }} ({{ class.role }})
-                  </a>
-                {% endfor %}
-              </div>
-            </div>
-          </div>
+        <dt>Other:</dt>
+        <dd>
+          {% for class in other_classes %}
+          <p>
+            {{ class.name }} ({{ class.role }})
+            <a href="{{ url_for("classes.switch_class_handler", class_id=class.id) }}" class="button is-small ml-3" style="vertical-align: center;">
+              Go to &rarr;
+            </a>
+          </p>
+          {% endfor %}
         </dd>
       {% endif %}
+      <dt></dt><dd>
+        <button class="button" onclick="document.querySelector('#new_class_dialog').showModal()">Create new class</button>
+      </dd>
     </dl>
-    <div>
-      <button class="button is-success is-dark" onclick="document.querySelector('#new_class_dialog').showModal()">Create new class</button>
-    </div>
+
     <dialog id="new_class_dialog" style="border: none; background: none; width: 75%; min-width: min(32em, 100vw);">
       <div class="content box">
         <h2>Create a New Class</h2>
