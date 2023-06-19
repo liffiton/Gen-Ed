@@ -148,6 +148,7 @@ def main():
             users.email,
             users.auth_name,
             auth_providers.name AS auth_provider,
+            users.query_tokens,
             COUNT(queries.id) AS num_queries,
             SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
         FROM users
