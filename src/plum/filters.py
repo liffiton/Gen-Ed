@@ -1,7 +1,10 @@
 import json
+
 from markdown import Markdown, util as md_util
 from markdown.extensions import fenced_code, sane_lists, smarty
+
 import markupsafe
+from flask import url_for
 
 
 def make_titled_span(title, text):
@@ -44,8 +47,7 @@ def init_app(app):
                 make_titled_span(jinja_escape(val), f"{key} ({len(val)})")
                 for key, val in text.items() if val
             )
-
-        return markupsafe.Markup(html_string)
+            return markupsafe.Markup(html_string)
 
     # Jinja filter for converting Markdown to HTML
     # monkey-patch markdown and fenced_code extension to not escape HTML in
@@ -72,8 +74,8 @@ def init_app(app):
     # Expects a *tuple* of (display_name, row_object) where row_object contains
     # 'auth_provider', 'email', and 'auth_name'.
     @app.template_filter('user_cell')
-    def user_filter(user_tuple):
-        display_name, user_row = user_tuple
+    def user_filter(user_row):
+        display_name = user_row['display_name']
 
         auth_provider = dict(user_row).get('auth_provider')
         if auth_provider in ('demo', 'local', None):
@@ -91,3 +93,43 @@ def init_app(app):
         display_name = jinja_escape(display_name)
         html = f"{display_name} <span class='is-size-7 has-text-grey' title='{extra_info}'>({auth_provider})</span>"
         return markupsafe.Markup(html)
+
+    # If I ever want to use it...  Testing (10x repeating render_template
+    # on a large instructor view page) yielded no appreciable speedup
+    # over existing tables.html macro.
+    #
+    # Usage would be:
+    #  {% set builder = columns | row_builder(edit_handler) %}
+    #  {% for row in data %}
+    #    <tr>
+    #      {% for cell_val in builder(row) %}
+    #        <td>{{ cell_val }}</td>
+    #      {% endfor %}
+    #    </tr>
+    #  {% endfor %}
+    @app.template_filter('row_builder')
+    def row_builder(columns, edit_handler):
+        jinja_filters = app.jinja_env.filters
+        col_names = [x[1] for x in columns]
+
+        def filter_for(col):
+            if 'time' in col:
+                return lambda r: jinja_filters['localtime'](r[col])
+            if 'display_name' == col:
+                return lambda r: jinja_filters['user_cell'](r)
+            if 'response_text' == col:
+                return lambda r: jinja_filters['fmt_response_txt'](r[col])
+            else:
+                return lambda r: jinja_filters['tbl_cell'](r[col])
+
+        filters = [filter_for(col) for col in col_names]
+
+        if edit_handler:
+            filters.append(lambda r: f"""
+            <a class="button is-warning is-small p-2" href="{ url_for(edit_handler, id=r['id'])}">Edit</a>
+            """)
+
+        def doit(row):
+            for filt in filters:
+                yield filt(row)
+        return doit
