@@ -108,7 +108,7 @@ def config_form():
     class_id = auth['class_id']
 
     class_row = db.execute("""
-        SELECT classes.id, classes.config, classes_user.link_ident, classes_user.link_reg_active, classes_user.openai_key
+        SELECT classes.id, classes.enabled, classes.config, classes_user.link_ident, classes_user.link_reg_active, classes_user.openai_key
         FROM classes
         LEFT JOIN classes_user
           ON classes.id = classes_user.class_id
@@ -136,11 +136,14 @@ def set_user_class_setting():
         flash("Class API key set.", "success")
 
     else:
-        link_reg_active = 1 if 'link_reg_active' in request.form else 0
-        link_reg_state = 'enabled' if link_reg_active else 'disabled'
-        db.execute("UPDATE classes_user SET link_reg_active=? WHERE class_id=?", [link_reg_active, class_id])
+        if 'link_reg_active_present' in request.form:
+            # only present for user classes, not LTI
+            link_reg_active = 1 if 'link_reg_active' in request.form else 0
+            db.execute("UPDATE classes_user SET link_reg_active=? WHERE class_id=?", [link_reg_active, class_id])
+        class_enabled = 1 if 'class_enabled' in request.form else 0
+        db.execute("UPDATE classes SET enabled=? WHERE id=?", [class_enabled, class_id])
         db.commit()
-        flash(f"Link registration {link_reg_state}.", "success")
+        flash("Class updated.", "success")
 
     return redirect(url_for(".config_form"))
 

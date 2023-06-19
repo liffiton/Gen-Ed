@@ -3,13 +3,28 @@
 {% block body %}
 <section class="section">
   <div class="container content">
-    <h1>{{ auth['class_name'] }}</h1>
+    <h1>{{ auth['class_name'] }} Configuration</h1>
 
-    {% if class_row['link_ident'] %}
-    {# link_ident only in classes_user, so will only be set for user classes. #}
-    <h2>Access &amp; Key</h2>
+    <h2>Access</h2>
     <form action="{{ url_for("instructor.set_user_class_setting") }}" method="post">
       <input type="hidden" name="class_id" value="{{class_row['id']}}">
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="class_enabled">Class Active:</label>
+          <p class="has-text-grey">When not active, a class is "archived": users can still see old queries, but no new queries can be made.</p>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <input style="transform: scale(2.0); margin: 0.5rem;" name="class_enabled" id="class_enabled" type="checkbox" onChange="this.form.submit()" {% if class_row['enabled'] %}checked{% endif %}>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% if class_row['link_ident'] %}
+      {# link_ident only in classes_user, so will only be set for user classes. #}
 
       <div class="field is-horizontal">
         <div class="field-label">
@@ -31,6 +46,7 @@
         <div class="field-body">
           <div class="field">
             <div class="control">
+              <input type="hidden" name="link_reg_active_present" value="true">
               <input style="transform: scale(2.0); margin: 0.5rem;" name="link_reg_active" id="link_reg_active" type="checkbox" onChange="this.form.submit()" {% if class_row['link_reg_active'] %}checked{% endif %}>
             </div>
           </div>
@@ -61,9 +77,9 @@
           {% endif %}
         </div>
       </div>
+      {% endif %}
 
     </form>
-    {% endif %}
 
     {% block class_config_form %}
     {% endblock %}
