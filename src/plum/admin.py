@@ -117,6 +117,7 @@ def main():
         LEFT JOIN roles ON roles.class_id=classes.id
         LEFT JOIN queries ON queries.role_id=roles.id
         GROUP BY consumers.id
+        ORDER BY consumers.id DESC
     """).fetchall()
 
     # classes, filtered by consumer
@@ -137,6 +138,7 @@ def main():
         LEFT JOIN queries ON queries.role_id=roles.id
         {where_clause}
         GROUP BY classes.id
+        ORDER BY classes.id DESC
     """, where_params).fetchall()
 
     # users, filtered by consumer and class
@@ -160,6 +162,7 @@ def main():
         LEFT JOIN queries ON queries.user_id=users.id
         {where_clause}
         GROUP BY users.id
+        ORDER BY users.id DESC
     """, where_params).fetchall()
 
     # roles, filtered by consumer, class, and user
@@ -182,6 +185,7 @@ def main():
         LEFT JOIN queries ON roles.id=queries.role_id
         {where_clause}
         GROUP BY roles.id
+        ORDER BY roles.id DESC
     """, where_params).fetchall()
 
     # queries, filtered by consumer, class, user, and role
