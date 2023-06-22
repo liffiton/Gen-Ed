@@ -1,4 +1,4 @@
-{% macro datatable(name, columns, data, link_col="", link_template=None, edit_handler=None, csv_link="") -%}
+{% macro datatable(name, columns, data, hidden_cols=[], link_col="", link_template=None, edit_handler=None, csv_link="") -%}
   <style type="text/css">
   {% for col in columns %}
     {% if col | length > 2 and col[2] == 'r' %}
@@ -18,7 +18,7 @@
     <thead>
       <tr>
       {% for col in columns %}
-        <th>{{ col[0] }}</th>
+        <th {{ "data-hidden=true" if col[0] in hidden_cols else '' }}>{{ col[0] }}</th>
       {% endfor %}
       {% if edit_handler %}
         <th data-sortable="False" data-searchable="False"></th>
