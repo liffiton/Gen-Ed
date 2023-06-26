@@ -45,7 +45,6 @@ def help_form(query_id=None):
 
 @bp.route("/view/<int:query_id>")
 @login_required
-@class_config_required
 def help_view(query_id):
     query_row, responses = get_query(query_id)
     history = get_history()
