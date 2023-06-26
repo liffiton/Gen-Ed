@@ -61,16 +61,18 @@ dl.profile dd { margin: 0; }
           {% for class in other_classes %}
           <p>
             {{ class.name }} ({{ class.role }})
-            <a href="{{ url_for("classes.switch_class_handler", class_id=class.id) }}" class="button is-small ml-3" style="vertical-align: center;">
-              Go to &rarr;
+            <a href="{{ url_for("classes.switch_class_handler", class_id=class.id) }}" class="button is-link is-small is-rounded ml-3" style="vertical-align: center;">
+              Switch to &uarr;
             </a>
           </p>
           {% endfor %}
         </dd>
       {% endif %}
-      <dt></dt><dd>
-        <button class="button" onclick="document.querySelector('#new_class_dialog').showModal()">Create new class</button>
-      </dd>
+      {% if user.provider_name != 'lti' %}
+        <dt></dt><dd>
+          <button class="button is-success has-text-dark" onclick="document.querySelector('#new_class_dialog').showModal()">➕ Create new class</button>
+        </dd>
+      {% endif %}
     </dl>
 
     <dialog id="new_class_dialog" style="border: none; background: none; width: 75%; min-width: min(32em, 100vw);">
