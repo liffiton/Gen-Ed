@@ -176,6 +176,10 @@ def class_config_required(f):
             else:
                 flash("This class is not yet configured.  Your instructor must configure it before you can use it.", "danger")
                 return render_template("error.html")
+        # And it must be active
+        if not class_row['enabled']:
+            flash("The current class is archived or disabled.  New requests cannot be made.", "warning")
+            return render_template("error.html")
 
         return f(*args, **kwargs)
 
