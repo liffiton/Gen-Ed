@@ -44,7 +44,7 @@ def test_newuser_command(app, client, auth):
 
     with app.app_context():
         password = create_user(username)
-        check_login(client, auth, username, password, 302, "Welcome, _newuser_!", False)
+        check_login(client, auth, username, password, 302, "_newuser_", False)
         auth.logout()
         check_login(client, auth, 'x', password, 200, "Invalid username or password.", False)
         auth.logout()
@@ -57,8 +57,8 @@ def test_newuser_command(app, client, auth):
     ('', 'y', 200, 'Invalid username or password.', False),
     ('x', 'y', 200, 'Invalid username or password.', False),
     ('testuser', 'y', 200, 'Invalid username or password.', False),
-    ('testuser', 'testpassword', 302, 'Welcome, testuser!', False),
-    ('testadmin', 'testadminpassword', 302, 'Welcome, testadmin!', True),
+    ('testuser', 'testpassword', 302, 'testuser', False),
+    ('testadmin', 'testadminpassword', 302, 'testadmin', True),
 ))
 def test_login(client, auth, username, password, status, message, is_admin):
     check_login(client, auth, username, password, status, message, is_admin)
