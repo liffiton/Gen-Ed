@@ -33,7 +33,7 @@ def main():
             roles.role
         FROM roles
         LEFT JOIN classes ON roles.class_id=classes.id
-        WHERE roles.user_id=? AND classes.id != ?
+        WHERE roles.user_id=? AND roles.active=1 AND classes.id != ?
     """, [user_id, class_id]).fetchall()
 
     return render_template("profile_view.html", user=user, other_classes=other_classes)

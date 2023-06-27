@@ -1,9 +1,9 @@
 {% macro datatable(name, columns, data, hidden_cols=[], link_col="", link_template=None, edit_handler=None, del_handler=None, csv_link="") -%}
   <style type="text/css">
   {% for col in columns %}
-    {% if col | length > 2 and col[2] == 'r' %}
-    table#tbl_{{name}} tr td:nth-child({{loop.index}}), 
-    table#tbl_{{name}} thead th:nth-child({{loop.index}}) {
+    {% if col | length > 2 and (col[2] == 'r' or col[2] == 'b') %}
+    table#tbl_{{name}} tr td:nth-child({{loop.index - (hidden_cols | length)}}), 
+    table#tbl_{{name}} thead th:nth-child({{loop.index - (hidden_cols | length)}}) {
       text-align: right;
     }
     {% endif %}
@@ -34,16 +34,19 @@
       {% for row in data %}
         <tr>
           {% for col in columns %}
+            <td>
             {% if 'time' in col[1] %}
-              {% set value = row[col[1]] | localtime %}
+              {{ row[col[1]] | localtime }}
             {% elif col[1] == 'display_name' %}
-              {% set value = row | user_cell %}
+              {{ row | user_cell }}
             {% elif col[1] == 'response_text' %}
-              {% set value = row[col[1]] | fmt_response_txt %}
+              {{ row[col[1]] | fmt_response_txt }}
+            {% elif col | length > 2 and col[2] == 'b' %}
+              <input type="checkbox" {{ 'checked' if row[col[1]] else '' }} onclick="set_bool_{{col[1]}}({{row.role_id}}, this.checked)">
             {% else %}
-              {% set value = row[col[1]] | tbl_cell %}
+              {{ row[col[1]] | tbl_cell }}
             {% endif %}
-            <td>{{ value }}</td>
+            </td>
           {% endfor %}
           {% if edit_handler or del_handler %}
             <td>
@@ -103,6 +106,23 @@
     </script>
   {% endif %}
   <script type="text/javascript">
+    {% for col in columns %}
+      {% if col | length > 2 and col[2] == 'b' %}
+        // handler for a 'b'ool column
+        function set_bool_{{col[1]}}(id, val) {
+          const int_val = val ? 1 : 0;
+          const url = `{{url_for(col[3])}}${id}/${int_val}`;
+          fetch(url, {method: "POST"})
+            .then(response => {
+              if (!response.ok) {
+                alert(`There was an error setting that value. [url: ${url}]`);
+              }
+            }
+          );
+        }
+      {% endif %}
+    {% endfor %}
+
     initTable("tbl_{{name}}", {{data | length}}, "{{link_col}}", value => `{{link_template}}`, "{{csv_link}}");
   </script>
   </div>

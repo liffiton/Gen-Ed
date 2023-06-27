@@ -72,12 +72,15 @@ def lti_login(lti=lti):
     else:
         role_id = role_row['id']
 
+        if not role_row['active']:
+            session.clear()
+            return abort(403)
+
     # Record them as logged in in the session
     user_row = db.execute("SELECT * FROM users WHERE id=?", [user_id]).fetchone()
-    set_session_auth(user_id, user_row['display_name'], class_id=class_id, class_name=class_name, role_id=role_id, role=role)
+    set_session_auth(user_id, user_row['display_name'], role_id=role_id)
 
     # Redirect to the app
-    #flash(f"Welcome, {email}!")
     return redirect(url_for("helper.help_form"))
 
 

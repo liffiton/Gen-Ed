@@ -8,25 +8,19 @@ from .db import get_db
 AUTH_SESSION_KEY = "__plum_auth"
 
 
-def set_session_auth(user_id, display_name, is_admin=False, is_tester=False, class_id=None, class_name=None, role_id=None, role=None):
+def set_session_auth(user_id, display_name, is_admin=False, is_tester=False, role_id=None):
     session[AUTH_SESSION_KEY] = {
         'user_id': user_id,
         'display_name': display_name,
         'is_admin': is_admin,
         'is_tester': is_tester,
-        'class_id': class_id,
-        'class_name': class_name,
         'role_id': role_id,
-        'role': role,
     }
 
 
-def set_session_auth_class(class_id, class_name, role_id, role):
-    auth = get_session_auth()
-    auth['class_id'] = class_id
-    auth['class_name'] = class_name
+def set_session_auth_role(role_id):
+    auth = session[AUTH_SESSION_KEY]
     auth['role_id'] = role_id
-    auth['role'] = role
     session[AUTH_SESSION_KEY] = auth
 
 
@@ -44,6 +38,30 @@ def get_session_auth():
     # Get the session auth dict, or an empty dict if it's not there, then
     # "override" any values in 'base' that are defined in the session auth dict.
     auth_dict = base | session.get(AUTH_SESSION_KEY, {})
+    if auth_dict['role_id']:
+        # Check the database for the current role (may be changed by another user)
+        # and populate class/role information.
+        # Uses WHERE active=1 to only allow active roles.
+        db = get_db()
+        role_row = db.execute("""
+            SELECT
+                roles.class_id,
+                classes.name,
+                roles.role
+            FROM roles
+            JOIN classes ON classes.id=roles.class_id
+            WHERE roles.id=? AND roles.active=1
+        """, [auth_dict['role_id']]).fetchone()
+        if role_row:
+            auth_dict = auth_dict | {
+                'class_id': role_row['class_id'],
+                'class_name': role_row['name'],
+                'role': role_row['role'],
+            }
+        else:
+            # drop the role_id we supposedly had
+            auth_dict['role_id'] = None
+
     return auth_dict
 
 
@@ -167,7 +185,7 @@ def class_config_required(f):
 
         # Otherwise, there's an active class, so we require it to have a non-empty configuration.
         db = get_db()
-        class_row = db.execute("SELECT * FROM classes WHERE id=?", [auth['class_id']]).fetchone()
+        class_row = db.execute("SELECT * FROM classes WHERE id=?", [class_id]).fetchone()
         if class_row['config'] == '{}':
             # Not yet configured
             if auth['role'] == 'instructor':

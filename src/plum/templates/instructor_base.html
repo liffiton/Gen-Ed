@@ -7,7 +7,8 @@
   <div class="columns is-desktop">
     <div class="column is-3">
       <h2 class="is-size-3">Users</h2>
-      {{ datatable('users', [('id', 'id'), ('user', 'display_name'), ('#queries', 'num_queries', 'r'), ('1wk', 'num_recent_queries', 'r')], users, hidden_cols=['id'], link_col=0, link_template="?user=${value}") }}
+      {{ datatable('users', [('id', 'id'), ('user', 'display_name'), ('#queries', 'num_queries', 'r'), ('1wk', 'num_recent_queries', 'r'), ('active?', 'active', 'b', 'instructor.set_role_active')], users, hidden_cols=['id'], link_col=0, link_template="?user=${value}") }}
+      <p class="box p-2 has-background-light"><em>Users set as not active will not be allowed to access this class.</em></p>
     </div>
     <div class="column is-9">
       <h2 class="is-size-3">

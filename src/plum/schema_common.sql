@@ -112,6 +112,7 @@ CREATE TABLE roles (
     user_id  INTEGER NOT NULL,
     class_id INTEGER NOT NULL,
     role     TEXT NOT NULL CHECK( role IN ('instructor', 'student') ),
+    active   BOOLEAN NOT NULL CHECK (active IN (0,1)) DEFAULT 1,  -- if not active, the user has no permissions in the class
     FOREIGN KEY(user_id) REFERENCES users(id),
     FOREIGN KEY(class_id) REFERENCES classes(id)
 );

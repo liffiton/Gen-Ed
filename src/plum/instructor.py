@@ -60,6 +60,8 @@ def main():
             users.display_name,
             users.email,
             users.auth_name,
+            roles.id AS role_id,
+            roles.active,
             auth_providers.name AS auth_provider,
             COUNT(queries.id) AS num_queries,
             SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
@@ -69,6 +71,7 @@ def main():
         LEFT JOIN queries ON queries.role_id=roles.id
         WHERE roles.class_id=?
         GROUP BY users.id
+        ORDER BY display_name
     """, [class_id]).fetchall()
 
     user = request.args.get('user', None)
@@ -146,6 +149,23 @@ def set_user_class_setting():
         flash("Class updated.", "success")
 
     return redirect(url_for(".config_form"))
+
+
+@bp.route("/role/set_active/", methods=["POST"])
+@bp.route("/role/set_active/<int:role_id>/<int:active>", methods=["POST"])
+@instructor_required
+def set_role_active(role_id, active):
+    db = get_db()
+    auth = get_session_auth()
+
+    # class_id should be redundant w/ role_id, but without it, an instructor
+    # could potentially deactivate a role in someone else's class.
+    class_id = auth['class_id']
+
+    db.execute("UPDATE roles SET active=? WHERE id=? AND class_id=?", [active, role_id, class_id])
+    db.commit()
+
+    return "okay"
 
 
 # TODO: Move this to app-specific module... #

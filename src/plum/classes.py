@@ -2,7 +2,7 @@ import secrets
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 
-from .auth import get_session_auth, login_required, set_session_auth_class
+from .auth import get_session_auth, login_required, set_session_auth_role
 from .db import get_db
 
 
@@ -113,11 +113,11 @@ def switch_class(class_id):
             classes.name AS class_name
         FROM roles
         LEFT JOIN classes ON roles.class_id=classes.id
-        WHERE roles.user_id=? AND classes.id=?
+        WHERE roles.user_id=? AND roles.active=1 AND classes.id=?
     """, [user_id, class_id]).fetchone()
 
     if row:
-        set_session_auth_class(row['class_id'], row['class_name'], row['role_id'], row['role'])
+        set_session_auth_role(row['role_id'])
         return True
 
     return False
@@ -179,8 +179,10 @@ def access_class(class_ident):
     if role_row:
         # user already has a role
         success = switch_class(class_id)
-        assert success
-        return redirect(url_for("landing"))
+        if not success:
+            return abort(403)
+        else:
+            return redirect(url_for("landing"))
 
     # user does not have a role
     if not class_row['link_reg_active']:
