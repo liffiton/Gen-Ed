@@ -14,8 +14,8 @@ VALUES
 INSERT INTO users (id, auth_provider, full_name, email, auth_name, is_admin, is_tester, query_tokens)
 VALUES
     -- provider 1 = local
-    (11, 1, null, 'testuser', null, false, true, 10),  -- testuser
-    (12, 1, null, 'testadmin', null, true, true, null),  -- testadmin
+    (11, 1, null, 'testuser', null, false, true, 0),  -- testuser
+    (12, 1, null, 'testadmin', null, true, true, 0),  -- testadmin
     -- provider 2 = lti
     (13, 2, null, 'ltiuser1@domain.edu', null, false, false, 0),
     (14, 2, null, 'ltiuser2@domain.edu', null, false, false, 0),

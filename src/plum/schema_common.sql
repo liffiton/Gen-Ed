@@ -43,7 +43,7 @@ CREATE TABLE users (
     display_name  TEXT GENERATED ALWAYS AS (COALESCE(full_name, email, auth_name)) VIRTUAL NOT NULL,  -- NOT NULL on COALESCE effectively requires one of full_name, email, and auth_name
     is_admin      BOOLEAN NOT NULL CHECK (is_admin IN (0,1)) DEFAULT 0,
     is_tester     BOOLEAN NOT NULL CHECK (is_tester IN (0,1)) DEFAULT 0,
-    query_tokens  INTEGER DEFAULT 0,  -- number of tokens left for making queries - NULL means no limit, non-NULL for SSO/demo users, 0 means cut off
+    query_tokens  INTEGER NOT NULL DEFAULT 0,  -- number of tokens left for making queries - 0 means cut off
     created       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(auth_provider) REFERENCES auth_providers(id)
 );

@@ -56,7 +56,7 @@ def init_db():
         print("Error:  INIT_PW_MARK environment variable not set.", file=sys.stderr)
         sys.exit(1)
 
-    cur = db.execute("INSERT INTO users(auth_provider, auth_name, is_admin, is_tester, query_tokens) VALUES(?, ?, True, True, NULL)", [AUTH_PROVIDER_LOCAL, "mark"])
+    cur = db.execute("INSERT INTO users(auth_provider, auth_name, is_admin, is_tester, query_tokens) VALUES(?, ?, True, True, 0)", [AUTH_PROVIDER_LOCAL, "mark"])
     db.execute("INSERT INTO auth_local(user_id, username, password) VALUES(?, ?, ?)", [cur.lastrowid, "mark", init_pw_mark])
     db.commit()
 
@@ -110,7 +110,7 @@ def create_user(username):
         raise UserExistsError
     else:
         new_password = ''.join(secrets.choice(string.ascii_letters) for _ in range(6))
-        cur = db.execute("INSERT INTO users(auth_provider, auth_name, query_tokens) VALUES(?, ?, 100)", [AUTH_PROVIDER_LOCAL, username])
+        cur = db.execute("INSERT INTO users(auth_provider, auth_name, query_tokens) VALUES(?, ?, 0)", [AUTH_PROVIDER_LOCAL, username])
         db.execute("INSERT INTO auth_local(user_id, username, password) VALUES(?, ?, ?)",
                    [cur.lastrowid, username, generate_password_hash(new_password)])
         db.commit()
