@@ -136,7 +136,6 @@ def login():
             # Success!
             set_session_auth(auth_row['id'], auth_row['display_name'], auth_row['is_admin'], auth_row['is_tester'])
             next_url = request.form['next'] or url_for("helper.help_form")
-            flash(f"Welcome, {username}!")
             return redirect(next_url)
 
     # we either have a GET request or we fell through the POST login attempt with a failure

@@ -1,4 +1,4 @@
-from flask import Blueprint, abort, current_app, flash, redirect, request, session, url_for
+from flask import Blueprint, abort, current_app, redirect, request, session, url_for
 from authlib.integrations.flask_client import OAuth
 
 from .auth import ext_login_update_or_create, set_session_auth
@@ -77,7 +77,6 @@ def auth(provider_name):
 
     # Now, either the user existed or has been created.  Log them in!
     set_session_auth(user_row['id'], user_row['display_name'])
-    flash(f"Welcome, {user_row['display_name']}!")
 
     # Redirect to stored next_url (and reset) if one has been stored, else root path
     next_url = session.get(NEXT_URL_SESSION_KEY) or "/"
