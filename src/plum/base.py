@@ -136,7 +136,7 @@ def create_app_base(import_name, app_config, instance_path):
     # Inject auth data into template contexts
     @app.context_processor
     def inject_auth_data():
-        return dict(auth=auth.get_session_auth())
+        return dict(auth=auth.get_auth())
 
     @app.route('/')
     def landing():

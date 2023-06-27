@@ -4,7 +4,7 @@ import json
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from plum.db import get_db
-from plum.auth import get_session_auth, login_required, tester_required
+from plum.auth import get_auth, login_required, tester_required
 from plum.admin import bp as bp_admin, register_admin_link
 from plum.openai import with_openai_key, get_completion
 from plum.queries import get_query
@@ -73,7 +73,7 @@ def chat_interface(chat_id):
 
 
 def create_chat(topic, context=None):
-    auth = get_session_auth()
+    auth = get_auth()
     user_id = auth['user_id']
     role_id = auth['role_id']
 
@@ -90,7 +90,7 @@ def create_chat(topic, context=None):
 def get_chat_history(limit=10):
     '''Fetch current user's chat history.'''
     db = get_db()
-    auth = get_session_auth()
+    auth = get_auth()
 
     history = db.execute("SELECT * FROM tutor_chats WHERE user_id=? ORDER BY id DESC LIMIT ?", [auth['user_id'], limit]).fetchall()
     return history
@@ -98,7 +98,7 @@ def get_chat_history(limit=10):
 
 def get_chat(chat_id):
     db = get_db()
-    auth = get_session_auth()
+    auth = get_auth()
 
     chat_row = db.execute(
         "SELECT chat_json, topic, context, tutor_chats.user_id, roles.class_id "

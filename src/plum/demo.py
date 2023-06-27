@@ -6,7 +6,7 @@ import pytz
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 
 from .db import get_db
-from .auth import get_session_auth, set_session_auth
+from .auth import get_auth, set_session_auth
 from .admin import bp as bp_admin, register_admin_link
 
 
@@ -16,7 +16,7 @@ bp = Blueprint('demo', __name__, url_prefix="/demo", template_folder='templates'
 @bp.route("/<string:demo_name>", methods=['GET'])
 def demo_register_user(demo_name):
     # Can't create a demo user if already logged in.
-    auth = get_session_auth()
+    auth = get_auth()
     if auth['user_id']:
         flash("You are already logged in.", "warning")
         return render_template("error.html")

@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template
 
-from .auth import get_session_auth, login_required
+from .auth import get_auth, login_required
 from .db import get_db
 
 
@@ -11,7 +11,7 @@ bp = Blueprint('profile', __name__, url_prefix="/profile", template_folder='temp
 @login_required
 def main():
     db = get_db()
-    auth = get_session_auth()
+    auth = get_auth()
     user_id = auth['user_id']
     user = db.execute("""
         SELECT

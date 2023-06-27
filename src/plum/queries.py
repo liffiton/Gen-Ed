@@ -3,12 +3,12 @@ import json
 from flask import flash
 
 from .db import get_db
-from .auth import get_session_auth
+from .auth import get_auth
 
 
 def get_query(query_id):
     db = get_db()
-    auth = get_session_auth()
+    auth = get_auth()
 
     query_row = None
 
@@ -35,7 +35,7 @@ def get_query(query_id):
 def get_history(limit=10):
     '''Fetch current user's query history.'''
     db = get_db()
-    auth = get_session_auth()
+    auth = get_auth()
 
     cur = db.execute("SELECT * FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT ?", [auth['user_id'], limit])
     history = cur.fetchall()

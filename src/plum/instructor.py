@@ -6,7 +6,7 @@ import json
 from flask import Blueprint, flash, make_response, redirect, render_template, request, url_for
 
 from .db import get_db
-from .auth import get_session_auth, instructor_required
+from .auth import get_auth, instructor_required
 
 
 bp = Blueprint('instructor', __name__, url_prefix="/instructor", template_folder='templates')
@@ -50,7 +50,7 @@ def get_queries(class_id, user=None):
 @instructor_required
 def main():
     db = get_db()
-    auth = get_session_auth()
+    auth = get_auth()
 
     class_id = auth['class_id']
 
@@ -84,7 +84,7 @@ def main():
 @bp.route("/queries/csv")
 @instructor_required
 def get_queries_csv():
-    auth = get_session_auth()
+    auth = get_auth()
     class_id = auth['class_id']
     queries = get_queries(class_id)
 
@@ -106,7 +106,7 @@ def get_queries_csv():
 @instructor_required
 def config_form():
     db = get_db()
-    auth = get_session_auth()
+    auth = get_auth()
 
     class_id = auth['class_id']
 
@@ -156,7 +156,7 @@ def set_user_class_setting():
 @instructor_required
 def set_role_active(role_id, active):
     db = get_db()
-    auth = get_session_auth()
+    auth = get_auth()
 
     # class_id should be redundant w/ role_id, but without it, an instructor
     # could potentially deactivate a role in someone else's class.

@@ -5,7 +5,7 @@ from flask import Blueprint, current_app, redirect, render_template, request, ur
 
 from . import prompts
 from plum.db import get_db
-from plum.auth import get_session_auth, login_required, class_config_required, tester_required
+from plum.auth import get_auth, login_required, class_config_required, tester_required
 from plum.openai import with_openai_key, get_completion
 from plum.queries import get_query, get_history
 
@@ -19,7 +19,7 @@ bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='template
 @class_config_required
 def help_form(query_id=None):
     db = get_db()
-    auth = get_session_auth()
+    auth = get_auth()
 
     # default to most recently submitted language, if available, else the default language for the current class, if available
     selected_lang = None
@@ -80,7 +80,7 @@ async def run_query_prompts(api_key, language, code, error, issue):
       2) A dictionary of response text, potentially including keys 'error', 'insufficient', and 'main'.
     '''
     db = get_db()
-    auth = get_session_auth()
+    auth = get_auth()
 
     # create "avoid set" from class configuration
     if auth['class_id'] is not None:
@@ -144,7 +144,7 @@ def run_query(api_key, language, code, error, issue):
 
 def record_query(language, code, error, issue):
     db = get_db()
-    auth = get_session_auth()
+    auth = get_auth()
     role_id = auth['role_id']
 
     cur = db.execute(
@@ -189,7 +189,7 @@ def help_request(api_key):
 @login_required
 def post_helpful():
     db = get_db()
-    auth = get_session_auth()
+    auth = get_auth()
 
     query_id = int(request.form['id'])
     value = int(request.form['value'])

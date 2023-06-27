@@ -4,7 +4,7 @@ from flask import current_app, flash, render_template
 import openai
 
 from .db import get_db
-from .auth import get_session_auth
+from .auth import get_auth
 
 
 class ClassDisabledError(Exception):
@@ -37,7 +37,7 @@ def _get_openai_key(use_system_key):
     if use_system_key:
         return current_app.config["OPENAI_API_KEY"]
 
-    auth = get_session_auth()
+    auth = get_auth()
     db = get_db()
 
     # Get class data, if there is an active class

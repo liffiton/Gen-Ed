@@ -2,7 +2,7 @@ import secrets
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 
-from .auth import get_session_auth, login_required, set_session_auth_role
+from .auth import get_auth, login_required, set_session_auth_role
 from .db import get_db
 
 
@@ -101,7 +101,7 @@ def switch_class(class_id):
     Returns bool: True if user has a role in that class and switch succeeds.
                   False otherwise.
     '''
-    auth = get_session_auth()
+    auth = get_auth()
     user_id = auth['user_id']
 
     db = get_db()
@@ -133,7 +133,7 @@ def switch_class_handler(class_id):
 @bp.route("/create/", methods=['POST'])
 @login_required
 def create_class():
-    auth = get_session_auth()
+    auth = get_auth()
     user_id = auth['user_id']
 
     class_name = request.form['class_name']
@@ -157,7 +157,7 @@ def access_class(class_ident):
     '''
     db = get_db()
 
-    auth = get_session_auth()
+    auth = get_auth()
     user_id = auth['user_id']
 
     # Get the class info

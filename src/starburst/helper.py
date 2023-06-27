@@ -5,7 +5,7 @@ from flask import Blueprint, redirect, render_template, request, url_for
 
 from . import prompts
 from plum.db import get_db
-from plum.auth import get_session_auth, login_required, class_config_required
+from plum.auth import get_auth, login_required, class_config_required
 from plum.openai import with_openai_key, get_completion
 from plum.queries import get_query, get_history
 
@@ -75,7 +75,7 @@ def run_query(api_key, assignment, topics):
 
 def record_query(assignment, topics):
     db = get_db()
-    auth = get_session_auth()
+    auth = get_auth()
     role_id = auth['role_id']
 
     cur = db.execute(
@@ -115,7 +115,7 @@ def help_request(api_key):
 @login_required
 def post_helpful():
     db = get_db()
-    auth = get_session_auth()
+    auth = get_auth()
 
     query_id = int(request.form['id'])
     value = int(request.form['value'])

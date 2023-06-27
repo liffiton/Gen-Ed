@@ -1,6 +1,6 @@
 import pytest
 
-from plum.auth import get_session_auth
+from plum.auth import get_auth
 from plum.db import create_user
 
 
@@ -12,7 +12,7 @@ def test_login_page(client):
 
 
 def check_login(client, auth, username, password, status, message, is_admin):
-    with client:  # so we can use session in get_session_auth()
+    with client:  # so we can use session in get_auth()
         response = auth.login(username, password)
         assert response.status_code == status
 
@@ -22,14 +22,15 @@ def check_login(client, auth, username, password, status, message, is_admin):
             assert response.status_code == 200
 
             # Verify session auth contains correct values for logged-in user
-            sessauth = get_session_auth()
+            sessauth = get_auth()
             assert sessauth['display_name'] == username
             assert sessauth['is_admin'] == is_admin
             assert sessauth['class_id'] is None
 
         else:
             # Verify session auth contains correct values for non-logged-in user
-            sessauth = get_session_auth()
+            sessauth = get_auth()
+            print(username, password, sessauth)
             assert sessauth['display_name'] is None
             assert sessauth['is_admin'] is False
             assert sessauth['class_id'] is None
@@ -44,11 +45,12 @@ def test_newuser_command(app, client, auth):
 
     with app.app_context():
         password = create_user(username)
-        check_login(client, auth, username, password, 302, "_newuser_", False)
-        auth.logout()
-        check_login(client, auth, 'x', password, 200, "Invalid username or password.", False)
-        auth.logout()
-        check_login(client, auth, username, 'x', 200, "Invalid username or password.", False)
+
+    check_login(client, auth, username, password, 302, "_newuser_", False)
+    auth.logout()
+    check_login(client, auth, 'x', password, 200, "Invalid username or password.", False)
+    auth.logout()
+    check_login(client, auth, username, 'x', 200, "Invalid username or password.", False)
 
 
 @pytest.mark.parametrize(('username', 'password', 'status', 'message', 'is_admin'), (
@@ -67,11 +69,11 @@ def test_login(client, auth, username, password, status, message, is_admin):
 def test_logout(client, auth):
     with client:
         auth.login()  # defaults to testuser (id 11)
-        sessauth = get_session_auth()
+        sessauth = get_auth()
         assert sessauth['display_name'] == 'testuser'
 
         auth.logout()
-        sessauth = get_session_auth()
+        sessauth = get_auth()
         assert sessauth['user_id'] is None
         assert sessauth['display_name'] is None
         assert sessauth['is_admin'] is False

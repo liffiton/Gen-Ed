@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import Blueprint, abort, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, abort, flash, g, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
 
 from .db import get_db
@@ -24,7 +24,7 @@ def set_session_auth_role(role_id):
     session[AUTH_SESSION_KEY] = auth
 
 
-def get_session_auth():
+def _get_auth_from_session():
     base = {
         'user_id': None,
         'display_name': None,
@@ -63,6 +63,13 @@ def get_session_auth():
             auth_dict['role_id'] = None
 
     return auth_dict
+
+
+def get_auth():
+    if 'auth' not in g:
+        g.auth = _get_auth_from_session()
+
+    return g.auth
 
 
 def ext_login_update_or_create(provider_name, user_normed, query_tokens=0):
@@ -154,7 +161,7 @@ def login_required(f):
     '''Redirect to login on this route if user is not logged in.'''
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        auth = get_session_auth()
+        auth = get_auth()
         if not auth['user_id']:
             flash("Login required.", "warning")
             return redirect(url_for('auth.login', next=request.full_path))
@@ -165,7 +172,7 @@ def login_required(f):
 def instructor_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        auth = get_session_auth()
+        auth = get_auth()
         if auth['role'] != "instructor":
             return abort(403)
         return f(*args, **kwargs)
@@ -175,7 +182,7 @@ def instructor_required(f):
 def class_config_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        auth = get_session_auth()
+        auth = get_auth()
         class_id = auth['class_id']
 
         if class_id is None:
@@ -207,7 +214,7 @@ def admin_required(f):
     '''Redirect to login on this route if user is not an admin.'''
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        auth = get_session_auth()
+        auth = get_auth()
         if not auth['is_admin']:
             flash("Login required.", "warning")
             return redirect(url_for('auth.login', next=request.full_path))
@@ -219,7 +226,7 @@ def tester_required(f):
     '''Return a 404 on this route (hide it, basically) if user is not a tester.'''
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        auth = get_session_auth()
+        auth = get_auth()
         if not auth['is_tester']:
             return abort(404)
         return f(*args, **kwargs)
