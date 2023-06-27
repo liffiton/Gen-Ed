@@ -43,8 +43,10 @@ dl.profile dd { margin: 0; }
       {% endif %}
       <dt>Queries:</dt>
       <dd>{{ user.num_queries }} total, {{ user.num_recent_queries }} in the past week.</dd>
+      {% if not auth['role'] %}
       <dt>Tokens:</dt>
-      <dd>{{ user.query_tokens }} remaining.  <span class="ml-3 is-size-6 has-text-grey">(These are used to submit queries to try out {{ config['APPLICATION_TITLE'] }}.  They are used when you do not have a class active.)</span></dd>
+      <dd>{{ user.query_tokens }} remaining.  <span class="ml-3 is-size-6 has-text-grey">(These are just for trying out {{ config['APPLICATION_TITLE'] }} -- each query will use one.  They are only used when you do not have a class active.)</span></dd>
+      {% endif %}
     </dl>
     <h2 class="title is-size-3">Classes</h1>
     <dl class="profile">
