@@ -12,8 +12,6 @@
         <p class="is-size-5 mb-2 has-text-danger">(Not yet configured.  Students cannot submit queries until a configuration is saved here.)</p>
       {% endif %}
       <form action="{{ url_for("instructor.set_config") }}" method="post">
-        <input type="hidden" name="class_id" value="{{class_row.id}}">
-
         <div class="field is-horizontal">
           <div class="field-label is-normal">
             <label class="label" for="language">Default Language:</label>

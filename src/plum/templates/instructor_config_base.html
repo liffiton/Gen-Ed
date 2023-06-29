@@ -37,8 +37,6 @@
     <div class="conf_col">
       <h2 class="title is-size-4">Access</h2>
       <form action="{{ url_for("instructor.set_user_class_setting") }}" method="post">
-        <input type="hidden" name="class_id" value="{{class_row['id']}}">
-
         <div class="field is-horizontal">
           <div class="field-label is-normal">
             <label class="label" for="class_enabled">Class Active:</label>
@@ -117,7 +115,6 @@
 
       <h2 class="title is-size-4 mt-5">API Key</h2>
       <form action="{{ url_for("instructor.set_user_class_setting") }}" method="post">
-        <input type="hidden" name="class_id" value="{{class_row['id']}}">
         <div class="field is-horizontal">
           <div class="field-label is-normal">
             <label class="label">OpenAI Key:</label>

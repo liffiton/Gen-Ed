@@ -137,7 +137,10 @@ def config_form():
 @instructor_required
 def set_user_class_setting():
     db = get_db()
-    class_id = request.form['class_id']
+    auth = get_auth()
+
+    # only trust class_id from auth, not from user
+    class_id = auth['class_id']
 
     if 'clear_openai_key' in request.form:
         db.execute("UPDATE classes_user SET openai_key='' WHERE class_id=?", [class_id])
@@ -177,6 +180,7 @@ def set_role_active(role_id, active):
 
     # class_id should be redundant w/ role_id, but without it, an instructor
     # could potentially deactivate a role in someone else's class.
+    # only trust class_id from auth, not from user
     class_id = auth['class_id']
 
     db.execute("UPDATE roles SET active=? WHERE id=? AND class_id=?", [active, role_id, class_id])
@@ -190,8 +194,11 @@ def set_role_active(role_id, active):
 @instructor_required
 def set_config():
     db = get_db()
+    auth = get_auth()
 
-    class_id = request.form['class_id']
+    # only trust class_id from auth, not from user
+    class_id = auth['class_id']
+
     class_config = {
         'default_lang': request.form['default_lang'],
         'avoid': request.form['avoid'],
