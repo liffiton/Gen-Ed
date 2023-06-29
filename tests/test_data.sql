@@ -5,7 +5,10 @@ VALUES
 
 INSERT INTO classes (id, name, enabled, config)
 VALUES
-    (1, 'LERN101', 1, '{"default_lang": "python", "avoid": "sum()\r\neval()\r\nzfill()\r\n+=\r\n"}');
+    (1, 'LERN101', 1, '{"default_lang": "python", "avoid": "sum()\r\neval()\r\nzfill()\r\n+=\r\n"}'),
+    (2, 'USER001', 1, '{"default_lang": "python", "avoid": ""}'),
+    (3, 'USER002', 1, '{"default_lang": "python", "avoid": ""}'),
+    (4, 'USER003', 1, '{"default_lang": "python", "avoid": ""}');
 
 INSERT INTO classes_lti (class_id, lti_consumer_id, lti_context_id)
 VALUES
@@ -20,6 +23,12 @@ VALUES
     (13, 2, null, 'ltiuser1@domain.edu', null, false, false, 0),
     (14, 2, null, 'ltiuser2@domain.edu', null, false, false, 0),
     (15, 2, null, 'ltiuser3@domain.edu', null, false, false, 0);
+
+INSERT INTO classes_user (class_id, openai_key, link_ident, link_reg_expires, creator_user_id)
+VALUES
+    (2, 'nope', 'reg_disabled', '0001-01-01', 11),
+    (3, 'nope', 'reg_expired', '2023-01-01', 11),
+    (4, 'nope', 'reg_enabled', '9999-12-31', 11);
 
 INSERT INTO auth_local (user_id, username, password)
 VALUES

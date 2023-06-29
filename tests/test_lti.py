@@ -95,7 +95,7 @@ def test_lti_auth_instructor(client):
 
     result = client.post(
         '/instructor/config/set',
-        data={'class_id': 2, 'default_lang': 1, 'avoid': ''},
+        data={'default_lang': 1, 'avoid': ''},
         follow_redirects=True
     )
     assert "Configuration set!" in result.text
