@@ -1,13 +1,11 @@
-import datetime as dt
 import random
-
-import pytz
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 
 from .db import get_db
 from .auth import get_auth, set_session_auth
 from .admin import bp as bp_admin, register_admin_link
+from .tz import date_is_past
 
 
 bp = Blueprint('demo', __name__, url_prefix="/demo", template_folder='templates')
@@ -36,10 +34,7 @@ def demo_register_user(demo_name):
             return render_template("error.html")
 
         expiration_date = demo_row['expiration']
-        expiration_datetime = dt.datetime.combine(expiration_date, dt.time.max)      # end of the day on the date specified
-        expiration_utc = pytz.utc.localize(expiration_datetime)                      # convert "naive" (timezone-less) date into UTC
-        now_utc = dt.datetime.now(dt.timezone(dt.timedelta(hours=-12), name='AOE'))  # Anywhere-On-Earth
-        if now_utc > expiration_utc:
+        if date_is_past(expiration_date):
             flash("Demo link expired.", "warning")
             return render_template("error.html")
 

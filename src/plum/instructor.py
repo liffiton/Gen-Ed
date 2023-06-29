@@ -1,5 +1,5 @@
 import csv
-import datetime
+import datetime as dt
 import io
 import json
 
@@ -7,6 +7,7 @@ from flask import Blueprint, flash, make_response, redirect, render_template, re
 
 from .db import get_db
 from .auth import get_auth, instructor_required
+from .tz import date_is_past
 
 
 bp = Blueprint('instructor', __name__, url_prefix="/instructor", template_folder='templates')
@@ -95,7 +96,7 @@ def get_queries_csv():
 
     output = make_response(stringio.getvalue())
     class_name = auth['class_name'].replace(" ","-")
-    timestamp = datetime.datetime.now().strftime("%Y%M%d")
+    timestamp = dt.datetime.now().strftime("%Y%M%d")
     output.headers["Content-Disposition"] = f"attachment; filename={timestamp}_{class_name}_queries.csv"
     output.headers["Content-type"] = "text/csv"
 
@@ -111,7 +112,7 @@ def config_form():
     class_id = auth['class_id']
 
     class_row = db.execute("""
-        SELECT classes.id, classes.enabled, classes.config, classes_user.link_ident, classes_user.link_reg_active, classes_user.openai_key
+        SELECT classes.id, classes.enabled, classes.config, classes_user.link_ident, classes_user.link_reg_expires, classes_user.openai_key
         FROM classes
         LEFT JOIN classes_user
           ON classes.id = classes_user.class_id
@@ -119,7 +120,17 @@ def config_form():
     """, [class_id]).fetchone()
     class_config = json.loads(class_row['config'])
 
-    return render_template("class_config_form.html", class_row=class_row, class_config=class_config)
+    expiration_date = class_row['link_reg_expires']
+    if expiration_date is None:
+        link_reg_state = None  # not a user-created class
+    elif date_is_past(expiration_date):
+        link_reg_state = "disabled"
+    elif expiration_date == dt.date.max:
+        link_reg_state = "enabled"
+    else:
+        link_reg_state = "date"
+
+    return render_template("class_config_form.html", class_row=class_row, link_reg_state=link_reg_state, class_config=class_config)
 
 
 @bp.route("/user_class/set", methods=["POST"])
@@ -141,8 +152,14 @@ def set_user_class_setting():
     else:
         if 'link_reg_active_present' in request.form:
             # only present for user classes, not LTI
-            link_reg_active = 1 if 'link_reg_active' in request.form else 0
-            db.execute("UPDATE classes_user SET link_reg_active=? WHERE class_id=?", [link_reg_active, class_id])
+            link_reg_active = request.form['link_reg_active']
+            if link_reg_active == "disabled":
+                new_date = dt.date.min
+            elif link_reg_active == "enabled":
+                new_date = dt.date.max
+            else:
+                new_date = request.form['link_reg_expires']
+            db.execute("UPDATE classes_user SET link_reg_expires=? WHERE class_id=?", [new_date, class_id])
         class_enabled = 1 if 'class_enabled' in request.form else 0
         db.execute("UPDATE classes SET enabled=? WHERE id=?", [class_enabled, class_id])
         db.commit()

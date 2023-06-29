@@ -24,7 +24,8 @@
   /* override bulma sizing for these forms */
   flex-grow: 2;
 }
-.conf_col input[type='checkbox'] {
+.conf_col input[type='checkbox'],
+.conf_col input[type='radio'] {
   transform: scale(2.0);
   margin: 0.5rem;
   margin-top: 0.8rem;
@@ -46,7 +47,7 @@
           <div class="field-body">
             <div class="field">
               <div class="control">
-                <input name="class_enabled" id="class_enabled" type="checkbox" onChange="this.form.submit()" {% if class_row['enabled'] %}checked{% endif %}>
+                <input name="class_enabled" id="class_enabled" type="checkbox" {% if class_row['enabled'] %}checked{% endif %}>
               </div>
             </div>
           </div>
@@ -68,20 +69,55 @@
 
         <div class="field is-horizontal">
           <div class="field-label is-normal">
-            <label class="label" for="link_reg_active">Registration via Link:</label>
+            <label class="label">Registration via Link:</label>
             <p class="has-text-grey">When enabled, any users who access the class link will be registered automatically.</p>
             <p class="has-text-grey">When disabled, only already-registered users can access the class via its link.</p>
           </div>
           <div class="field-body">
-            <div class="field">
+            <div class="field" x-data="{ link_reg_active: '{{ link_reg_state }}' }">
               <div class="control">
                 <input type="hidden" name="link_reg_active_present" value="true">
-                <input name="link_reg_active" id="link_reg_active" type="checkbox" onChange="this.form.submit()" {% if class_row['link_reg_active'] %}checked{% endif %}>
+                <label class="radio">
+                  <input name="link_reg_active" x-model="link_reg_active" id="link_reg_disabled" type="radio" value="disabled" {% if link_reg_state == "disabled" %}checked{% endif %}>
+                  Disabled
+                </label>
+              </div>
+              <div class="control">
+                <label class="radio">
+                  <input name="link_reg_active" x-model="link_reg_active" id="link_reg_expires" type="radio" value="date" {% if link_reg_state == "date" %}checked{% endif %}>
+                  Only until:
+                </label>
+                <input class="input" name="link_reg_expires" required x-bind:disabled="link_reg_active !== 'date'" type="date" style="width: inherit; vertical-align: baseline;" value="{{ class_row.link_reg_expires if link_reg_state == "date" else "" }}">
+                <em class="has-text-grey">anywhere on Earth</em>
+              </div>
+              <div class="control">
+                <label class="radio">
+                  <input name="link_reg_active" x-model="link_reg_active" id="link_reg_enabled" type="radio" value="enabled" {% if class_row.link_reg_state == "enabled" %}checked{% endif %}>
+                  Enabled
+                </label>
               </div>
             </div>
           </div>
         </div>
 
+        <div class="field is-horizontal">
+          <div class="field-label is-normal"><!-- spacing --></div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <button class="button is-link" type="submit" >Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </form>
+
+      <div class="conf_col_sep mt-5"></div>
+
+      <h2 class="title is-size-4 mt-5">API Key</h2>
+      <form action="{{ url_for("instructor.set_user_class_setting") }}" method="post">
+        <input type="hidden" name="class_id" value="{{class_row['id']}}">
         <div class="field is-horizontal">
           <div class="field-label is-normal">
             <label class="label">OpenAI Key:</label>
@@ -107,8 +143,8 @@
           </div>
         </div>
         {% endif %}
-
       </form>
+
     </div>
     {% block class_config_form %}
     {% endblock %}
