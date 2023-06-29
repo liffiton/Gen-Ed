@@ -4,6 +4,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 
 from .auth import get_auth, login_required, set_session_auth_role
 from .db import get_db
+from .tz import date_is_past
 
 
 bp = Blueprint('classes', __name__, url_prefix="/classes", template_folder='templates')
@@ -162,7 +163,7 @@ def access_class(class_ident):
 
     # Get the class info
     class_row = db.execute("""
-        SELECT classes.id, classes_user.link_reg_active
+        SELECT classes.id, classes_user.link_reg_expires
         FROM classes
         JOIN classes_user
           ON classes.id = classes_user.class_id
@@ -185,7 +186,7 @@ def access_class(class_ident):
             return redirect(url_for("landing"))
 
     # user does not have a role
-    if not class_row['link_reg_active']:
+    if date_is_past(class_row['link_reg_expires']):
         # but registration is not currently active
         flash("Registration is not active for this class.  Please contact the instructor for assistance.", "warning")
         return render_template("error.html")
