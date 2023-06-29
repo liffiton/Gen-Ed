@@ -143,13 +143,22 @@
                   .then(text => { topics_fragment = text })
               "
             >
+            </div>
           {% endif %}
         </div>
       {% endif %}
     </div>
-
     {% endif %}
+
+    <div class="container mt-6">
+      <a href="/help/" class="button is-link is-outlined is-rounded p-2 ml-1 mr-1" style="vertical-align: baseline; height: 2rem;">Ask another question</a>
+      or
+      <a href="/help/{{query.id}}" class="button is-link is-outlined is-rounded p-2 ml-1 mr-1" style="vertical-align: baseline; height: 2rem;">Retry this query</a>
+    </div>
+
     </section>
+
+
 
   </div>
 
