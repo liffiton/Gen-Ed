@@ -200,7 +200,6 @@ def post_helpful():
 
 @bp.route("/topics/html/<int:query_id>", methods=["GET", "POST"])
 @login_required
-@class_config_required
 @tester_required
 @with_openai_key()
 def get_topics_html(api_key, query_id):
@@ -213,7 +212,6 @@ def get_topics_html(api_key, query_id):
 
 @bp.route("/topics/raw/<int:query_id>", methods=["GET", "POST"])
 @login_required
-@class_config_required
 @tester_required
 @with_openai_key()
 def get_topics_raw(api_key, query_id):
