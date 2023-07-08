@@ -162,14 +162,12 @@ ${ options.searchable ?
             </div>
           {% else %}
             <div class="navbar-item">
-              <form action="/auth/login" method="get">
-                <button class="button icon-text is-link" type="submit">
-                  <span class="icon">
-                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
-                  </span>
-                  <span>Login</span>
-                </button>
-              </form>
+              <a href="/auth/login" class="button icon-text is-link">
+                <span class="icon">
+                  <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+                </span>
+                <span>Login</span>
+              </a>
             </div>
           {% endif %}
         </div>
