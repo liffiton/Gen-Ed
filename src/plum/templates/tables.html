@@ -35,17 +35,17 @@
         <tr>
           {% for col in columns %}
             <td>
-            {% if 'time' in col[1] %}
+            {%- if 'time' in col[1] -%}
               {{ row[col[1]] | localtime }}
-            {% elif col[1] == 'display_name' %}
+            {%- elif col[1] == 'display_name' -%}
               {{ row | user_cell }}
-            {% elif col[1] == 'response_text' %}
+            {%- elif col[1] == 'response_text' -%}
               {{ row[col[1]] | fmt_response_txt }}
-            {% elif col | length > 2 and col[2] == 'b' %}
+            {%- elif col | length > 2 and col[2] == 'b' -%}
               <input type="checkbox" {{ 'checked' if row[col[1]] else '' }} onclick="set_bool_{{col[1]}}({{row.role_id}}, this.checked)">
-            {% else %}
+            {%- else -%}
               {{ row[col[1]] | tbl_cell }}
-            {% endif %}
+            {%- endif -%}
             </td>
           {% endfor %}
           {% if edit_handler or del_handler %}
