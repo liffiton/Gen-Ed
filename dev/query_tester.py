@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import argparse
 import csv
 from importlib import reload
@@ -13,6 +15,10 @@ import os
 # small hack to import prompts from ..
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from codehelp import prompts  # noqa
+
+
+TEMPERATURE = 0.5
+MAX_TOKENS = 1000
 
 
 def msgs2str(messages):
@@ -92,7 +98,7 @@ class QueryView(urwid.WidgetWrap):
 
 def get_response(queries, index, test_type, model):
     '''
-    model can be either 'davinci' or 'turbo'
+    model can be either 'text-davinci-003' or 'gpt-{4, 3.5-turbo, etc.}'
     '''
     item = queries[index]
 
@@ -127,25 +133,27 @@ def get_response(queries, index, test_type, model):
             )
 
     try:
-        if model == 'davinci':
+        if model.startswith("text-davinci"):
             item['__tester_prompt'] = prompt
             response = openai.Completion.create(
-                model="text-davinci-003",
+                model=model,
                 prompt=prompt,
-                temperature=0.25,
-                max_tokens=1000,
+                temperature=TEMPERATURE,
+                max_tokens=MAX_TOKENS,
             )
             response_txt = response.choices[0].text
-        elif model == 'turbo':
+        elif model.startswith("gpt-"):
             item['__tester_prompt'] = msgs2str(messages)
             response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+                model=model,
                 messages=messages,
-                temperature=0.25,
-                max_tokens=1000,
-                n=3,
+                temperature=TEMPERATURE,
+                max_tokens=MAX_TOKENS,
+                n=2,
             )
             response_txt = '\n\n----------\n\n'.join(x.message['content'] for x in response.choices)
+        else:
+            raise Exception(f"Invalid model specified: {model}")
 
         response_reason = response.choices[-1].finish_reason  # e.g. "length" if max_tokens reached
 
@@ -178,7 +186,7 @@ def main():
     parser = argparse.ArgumentParser(description='A tool for running queries against data from a CSV file.')
     parser.add_argument('filename', type=str, help='The filename of the CSV file to be read.')
     parser.add_argument('test_type', type=str, choices=['helper', 'sufficient', 'cleanup', 'topics'], help='The type of test to run.')
-    parser.add_argument('model', type=str, choices=['davinci', 'turbo'], help='The LLM to use.')
+    parser.add_argument('model', type=str, help='The LLM to use (text-davinci-003 or gpt-{4,3.5-turbo,etc.}).')
     args = parser.parse_args()
 
     queries = load_queries(args.filename)
