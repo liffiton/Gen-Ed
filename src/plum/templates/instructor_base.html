@@ -4,13 +4,13 @@
 {% block body %}
 <section class="section p-5">
   <h1 class="title">{{ auth['class_name'] }}</h1>
-  <div class="columns is-multiline is-desktop">
-    <div class="column is-4-fullhd is-5-widescreen is-6">
+  <div class="tbl_cols">
+    <div class="tbl_col">
       <h2 class="is-size-3">Users</h2>
       {{ datatable('users', [('id', 'id'), ('user', 'display_name'), ('#queries', 'num_queries', 'r'), ('1wk', 'num_recent_queries', 'r'), ('active?', 'active', 'b', 'instructor.set_role_active')], users, hidden_cols=['id'], link_col=0, link_template="?user=${value}") }}
       <p class="box p-2 has-background-light"><em>Users that are not active will not be able to access this class.</em></p>
     </div>
-    <div class="column is-8-fullhd is-12">
+    <div class="tbl_col tbl_col_main">
       <h2 class="is-size-3">
         Queries
       <div class="tags is-inline are-medium">

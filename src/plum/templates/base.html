@@ -16,6 +16,9 @@
       main.site-content { flex: 1; } /* expand main content, push footer to bottom of page/viewport */
       span[title] { text-decoration:underline; text-decoration-style: dotted; }
       pre, .content pre { padding: 0.5rem 0.75rem; }
+      .tbl_cols { display: flex; gap: 2em; flex-wrap: wrap; }
+      .tbl_col { flex-grow: 1; flex-basis: min-content; max-width: max-content; }
+      .tbl_col_main { flex-grow: 5; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer type="text/javascript"></script>
     <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7" type="text/javascript"></script>
