@@ -4,8 +4,8 @@
 {% block admin_body %}
   <div class="buttons is-inline">
     {% for filter in filters %}
-      <a class="button is-info is-rounded p-3" href="{{ filters.filter_string_without(filter.name) | safe }}">
-        {{filter.name}} = {{filter.value}}
+      <a class="button is-info is-rounded p-3" href="{{ filters.filter_string_without(filter.spec.name) | safe }}">
+        {{filter.spec.name}} = {{filter.display_value}}
         <span class="delete is-small is-link ml-2"></span>
       </a>
     {% endfor %}

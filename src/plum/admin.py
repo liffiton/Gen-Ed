@@ -54,8 +54,8 @@ def reload_consumers():
     current_app.config['PYLTI_CONFIG']['consumers'] = consumer_dict
 
 
-FilterSpec = namedtuple('FilterSpec', ('name', 'column'))
-Filter = namedtuple('Filter', ('name', 'column', 'value'))
+FilterSpec = namedtuple('FilterSpec', ('name', 'column', 'display'))
+Filter = namedtuple('Filter', ('spec', 'value', 'display_value'))
 
 
 class Filters:
@@ -65,28 +65,37 @@ class Filters:
     def __iter__(self):
         return self._filters.__iter__()
 
-    def add_where(self, name, column, value):
-        self._filters.append(Filter(name, column, value))
+    def add(self, spec, value, display_value):
+        self._filters.append(Filter(spec, value, display_value))
 
     def make_where(self, selected):
-        filters = [f for f in self._filters if f.name in selected]
+        filters = [f for f in self._filters if f.spec.name in selected]
         if not filters:
             return "", []
         else:
             return (
-                "WHERE " + " AND ".join(f"{f.column}=?" for f in filters),
+                "WHERE " + " AND ".join(f"{f.spec.column}=?" for f in filters),
                 [f.value for f in filters]
             )
 
     def filter_string(self):
-        filter_dict = {name: value for name, column, value in self._filters}
+        filter_dict = {spec.name: value for (spec, value, _) in self._filters}
         return f"?{urlencode(filter_dict)}"
 
     def filter_string_without(self, exclude_name):
-        filter_dict = {name: value for name, column, value in self._filters if name != exclude_name}
+        filter_dict = {spec.name: value for (spec, value, _) in self._filters if spec.name != exclude_name}
         return f"?{urlencode(filter_dict)}"
 
     def template_string(self, selected_name):
+        '''
+        Return a string that will be used to create a link URL for each row in
+        a table.  This string is passed to a Javascript function as
+        `{{template_string}}`, to be used with string interpolation in
+        Javascript.  Therefore, it should contain "${{value}}" as a placeholder
+        for the value -- it is rendered by Python's f-string interpolation as
+        "${value}" in the page source, suitable for Javascript string
+        interpolation.
+        '''
         return self.filter_string_without(selected_name) + f"&{selected_name}=${{value}}"
 
 
@@ -95,15 +104,26 @@ def main():
     db = get_db()
     filters = Filters()
 
-    args_cols = [
-        FilterSpec('consumer', 'consumers.id'),
-        FilterSpec('class', 'roles.class_id'),
-        FilterSpec('user', 'users.id'),
-        FilterSpec('role', 'roles.id'),
+    specs = [
+        FilterSpec('consumer', 'consumers.id', 'consumers.lti_consumer'),
+        FilterSpec('class', 'classes.id', 'classes.name'),
+        FilterSpec('user', 'users.id', 'users.display_name'),
+        FilterSpec('role', 'roles.id', 'printf("%s (%s:%s)", users.display_name, role_class.name, roles.role)'),
     ]
-    for name, col in args_cols:
-        if name in request.args:
-            filters.add_where(name, col, request.args[name])
+    for spec in specs:
+        if spec.name in request.args:
+            value = request.args[spec.name]
+            # bit of a hack to have a single SQL query cover all different filters...
+            display_row = db.execute(f"""
+                SELECT {spec.display}
+                FROM consumers, classes, users
+                LEFT JOIN roles ON roles.user_id=users.id
+                LEFT JOIN classes AS role_class ON role_class.id=roles.class_id
+                WHERE {spec.column}=?
+                LIMIT 1
+            """, [value]).fetchone()
+            display_value = display_row[0]
+            filters.add(spec, value, display_value)
 
     # all consumers
     consumers = db.execute("""
