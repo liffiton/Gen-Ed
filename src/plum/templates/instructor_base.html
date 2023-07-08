@@ -13,14 +13,12 @@
     <div class="tbl_col tbl_col_main">
       <h2 class="is-size-3">
         Queries
-      <div class="tags is-inline are-medium">
         {% if user %}
-        <span class="tag is-info mb-0">
-          user={{user}}
-          <a class="delete is-small is-link" href="?"></a>
-        </span>
+        <a class="button is-info is-rounded p-3 mt-2" style="height: 2em;" href="?" title="Remove filter">
+          user = {{user}}
+          <span class="delete is-small is-link ml-2"></span>
+        </a>
         {% endif %}
-      </div>
       </h2>
       {% block instructor_queries %}
       {% endblock %}

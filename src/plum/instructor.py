@@ -75,9 +75,14 @@ def main():
         ORDER BY display_name
     """, [class_id]).fetchall()
 
-    user = request.args.get('user', None)
+    user_id = request.args.get('user', None)
+    if user_id:
+        user_display_row = db.execute("SELECT display_name FROM users WHERE id=?", [user_id]).fetchone()
+        user = user_display_row[0]
+    else:
+        user = None
 
-    queries = get_queries(class_id, user)
+    queries = get_queries(class_id, user_id)
 
     return render_template("instructor.html", users=users, queries=queries, user=user)
 
