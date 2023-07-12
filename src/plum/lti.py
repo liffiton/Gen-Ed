@@ -34,8 +34,12 @@ def lti_login(lti=lti):
         session.clear()
         return abort(400)
 
-    # Anything that isn't "instructor" becomes "student"
-    if role not in ["instructor"]:
+    # check for instructors
+    instructor_role_substrs = ["instructor", "teachingassistant"]
+    if any(substr in role.lower() for substr in instructor_role_substrs):
+        role = "instructor"
+    else:
+        # anything else becomes "student"
         role = "student"
 
     db = get_db()

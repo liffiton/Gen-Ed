@@ -1,3 +1,5 @@
+import pytest
+
 from oauthlib import oauth1
 
 CLASS = {
@@ -78,11 +80,15 @@ def test_lti_auth_bad_secret(client):
     assert result.text == "There was an LTI communication error"
 
 
-def test_lti_auth_instructor(client):
+@pytest.mark.parametrize(('role'), (
+    ('Instructor'),
+    ('urn:lti:role:ims/lis/TeachingAssistant'),  # canvas TA
+))
+def test_lti_auth_instructor(client, role):
     # key and secret match 'consumer.domain' consumer in test_data.sql
     lti = LTIConsumer('http://localhost/lti/', 'consumer.domain', 'seecrits1')
 
-    uri, headers, body = lti.generate_launch_request("Instructor")
+    uri, headers, body = lti.generate_launch_request(role)
 
     result = client.post(uri, headers=headers, data=body)
     assert result.text != "There was an LTI communication error"
