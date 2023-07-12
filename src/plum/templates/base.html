@@ -10,7 +10,7 @@
         from { opacity: 0; transform: translateY(-100%); }
         to   { opacity: 1; transform: translateY(0); }
       }
-      .icon-text { align-items: center; }
+      .icon-text { display: flex; align-items: center; }
       .button .icon:first-child:not(:last-child) { margin-right: 0.5em; }
       div.flash_message { animation: fadein 1s; }
       main.site-content { flex: 1; } /* expand main content, push footer to bottom of page/viewport */
@@ -121,7 +121,7 @@ ${ options.searchable ?
         <div class="navbar-end">
           {% if auth['user_id'] %}
             <a class="navbar-item is-size-6" style="flex-direction: column; justify-content: center;" href="{{ url_for('profile.main') }}">
-              <div class="icon-text" style="display: flex; align-items: center;">
+              <div class="icon-text">
                 <span class="icon">
                   <svg aria-hidden="true"><use href="#svg_user"></svg>
                 </span>
