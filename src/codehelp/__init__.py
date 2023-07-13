@@ -1,15 +1,19 @@
+from pathlib import Path
+
 from plum import base
-from . import docs, helper, tutor
+from . import helper, tutor
 
 
 def create_app(test_config=None, instance_path=None):
     ''' Flask app factory.  Create and configure the application. '''
 
     # App-specific configuration
+    module_dir = Path(__file__).resolve().parent
     app_config = dict(
         APPLICATION_TITLE='CodeHelp',
         HELP_LINK_TEXT='Get Help',
         DATABASE_NAME='codehelp.db',  # will be combined with app.instance_path in plum.create_app_base()
+        DOCS_DIR=module_dir / 'docs',
         SECRET_KEY='_oeofMFVOeT-Z730Ksz44Q',
         LANGUAGES=[
             "c",
@@ -32,7 +36,6 @@ def create_app(test_config=None, instance_path=None):
     # register blueprints specific to this application variant
     app.register_blueprint(helper.bp)
     app.register_blueprint(tutor.bp)
-    app.register_blueprint(docs.bp)
 
     # add navbar items
     app.config['NAVBAR_ITEM_TEMPLATES'].append("tutor_nav_item.html")

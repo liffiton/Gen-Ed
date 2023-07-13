@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block body %}
+<section class="section">
+  <div class="container content">
+    <h1 class="title">Documentation</h1>
+    <ul class="is-size-4">
+      {% for page in pages %}
+        <li><a href="{{ url_for("docs.page", name=page['name']) }}">{{ page['title'] }}</a> <span class="is-size-5">&mdash; {{ page['summary'] }}</span></li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endblock %}

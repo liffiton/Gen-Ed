@@ -1,7 +1,7 @@
 import json
 
 from markdown import Markdown, util as md_util
-from markdown.extensions import fenced_code, sane_lists, smarty
+from markdown.extensions import fenced_code, meta, sane_lists, smarty
 
 import markupsafe
 from flask import url_for
@@ -58,10 +58,12 @@ def init_app(app):
     # only configure/init these once, not every time the filter is called
     markdown_extensions = [
         fenced_code.makeExtension(),
+        meta.makeExtension(),
         sane_lists.makeExtension(),
         smarty.makeExtension()
     ]
     markdown_processor = Markdown(output_format="html5", extensions=markdown_extensions)
+    app.markdown_processor = markdown_processor  # make available to request handlers, not just as a Jinja filter
 
     @app.template_filter('markdown')
     def markdown_filter(value):

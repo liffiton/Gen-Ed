@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from flask import Flask, render_template
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from . import admin, auth, classes, db, demo, instructor, filters, lti, oauth, profile, tz
+from . import admin, auth, classes, db, demo, docs, instructor, filters, lti, oauth, profile, tz
 
 
 def create_app_base(import_name, app_config, instance_path):
@@ -132,6 +132,11 @@ def create_app_base(import_name, app_config, instance_path):
     app.register_blueprint(oauth.bp)
     app.register_blueprint(profile.bp)
     app.register_blueprint(classes.bp)
+
+    # Only register the docs blueprint if we're configured with a documentation directory
+    docs_dir = app.config.get('DOCS_DIR')
+    if docs_dir:
+        app.register_blueprint(docs.bp)
 
     # Inject auth data into template contexts
     @app.context_processor

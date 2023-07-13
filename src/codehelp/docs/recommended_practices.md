@@ -1,3 +1,7 @@
+title:  Recommended Practices for Instructors
+summary:  Based on our experiences using CodeHelp with students.
+
+
 # Recommended Practices for Instructors
 
 Based on our experiences, we have collected a few recommendations for integrating CodeHelp into a class effectively.
