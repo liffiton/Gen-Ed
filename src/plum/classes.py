@@ -1,3 +1,4 @@
+import datetime as dt
 import secrets
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
@@ -85,8 +86,8 @@ def create_user_class(user_id, class_name, openai_key):
     cur = db.execute("INSERT INTO classes (name) VALUES (?)", [class_name])
     class_id = cur.lastrowid
     db.execute(
-        "INSERT INTO classes_user (class_id, creator_user_id, link_ident, openai_key) VALUES (?, ?, ?, ?)",
-        [class_id, user_id, link_ident, openai_key]
+        "INSERT INTO classes_user (class_id, creator_user_id, link_ident, openai_key, link_reg_expires) VALUES (?, ?, ?, ?, ?)",
+        [class_id, user_id, link_ident, openai_key, dt.date.min]
     )
     db.execute(
         "INSERT INTO roles (user_id, class_id, role) VALUES (?, ?, ?)",
