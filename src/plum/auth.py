@@ -38,11 +38,23 @@ def _get_auth_from_session():
     # Get the session auth dict, or an empty dict if it's not there, then
     # "override" any values in 'base' that are defined in the session auth dict.
     auth_dict = base | session.get(AUTH_SESSION_KEY, {})
+
+    db = get_db()
+
+    if auth_dict['user_id']:
+        # Get the auth provider
+        provider_row = db.execute("""
+            SELECT auth_providers.name
+            FROM users
+            JOIN auth_providers ON auth_providers.id=users.auth_provider
+            WHERE users.id=?
+        """, [auth_dict['user_id']]).fetchone()
+        auth_dict['auth_provider'] = provider_row['name']
+
     if auth_dict['role_id']:
         # Check the database for the current role (may be changed by another user)
         # and populate class/role information.
         # Uses WHERE active=1 to only allow active roles.
-        db = get_db()
         role_row = db.execute("""
             SELECT
                 roles.class_id,

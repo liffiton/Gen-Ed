@@ -70,7 +70,7 @@ dl.profile dd { margin: 0; }
           {% endfor %}
         </dd>
       {% endif %}
-      {% if user.provider_name != 'lti' %}
+      {% if user.provider_name not in ['lti', 'demo'] %}
         <dt></dt><dd>
           <button class="button is-success has-text-dark" onclick="document.querySelector('#new_class_dialog').showModal()">➕ Create new class</button>
         </dd>
