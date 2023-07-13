@@ -26,16 +26,33 @@
         <div class="box content">
           <h2>For instructors:</h2>
           <p>CodeHelp helps your students any time they have a question, and it provides help <i>without writing code</i> for them.  It is made specifically to guide and explain rather than provide solution code.</p>
-          <p>You can:</p>
           <ul>
             <li>Incorporate LLMs into your teaching in a managed way, offering your students the eductional benefits LLMs can provide without compromising their learning.</li>
             <li>Gain insights into what your students are working on and the sorts of questions they are asking.</li>
             <li>Tailor responses to your class by providing keywords that responses should not use (e.g. <code>sum()</code> if you want students practicing for loops instead of using a built-in function).</li>
-            <li>Connect it to your LMS, so everyone in your class can log in via a simple link without creating and managing a separate account.</li>
           </ul>
-          <a class="button is-link" href="https://docs.google.com/forms/d/e/1FAIpQLSfsOZteMbIlIN5_MPZF-_Z-f9LwfZpfrhPOVfqcGjeJCtxHHQ/viewform?usp=sf_link">
-            Request LMS Connection
-          </a>
+          <p>Two ways to share CodeHelp with everyone in your class with a simple link:</p>
+          <div class="pl-5">
+            <a class="button button-inline is-link" href="https://docs.google.com/forms/d/e/1FAIpQLSfsOZteMbIlIN5_MPZF-_Z-f9LwfZpfrhPOVfqcGjeJCtxHHQ/viewform?usp=sf_link">
+              Request an LMS Connection
+            </a> to an LMS like Canvas, Moodle, etc.
+            <ul class="mt-1 mb-4">
+              <li>Everyone will log in automatically via a link from your course page.</li>
+              <li>Students can be identified by institution email addresses and names.</li>
+              <li>May require support from your LMS administrator to set up.</li>
+            </ul>
+            {% if auth['user_id'] %}
+              <a class="button button-inline is-link" href="{{ url_for("profile.main") }}">Go to your Profile page</a> to create a class.
+            {% else %}
+              <a class="button button-inline is-link" href="{{ url_for("auth.login", next=url_for("profile.main")) }}">Log in using Google or Github</a> and create a class from your profile page.
+            {% endif %}
+            <ul class="mt-1 mb-4">
+              <li>You will share an access link, and everyone will log in using a Google or Github account.</li>
+              <li>Students can be identified by the id and name on the account they use to log in.</li>
+            </ul>
+          </div>
+          <p><a href="{{ url_for("docs.main") }}">Our documentation</a> provides more details.</p>
+          <p><em>[In either case we will ask you to provide an OpenAI API key to be used for your students' queries.  Costs are low.  OpenAI will charge you roughly US$0.002 for each query.]</em></p>
         </div>
       </div>
       <div class="column is-half-desktop">

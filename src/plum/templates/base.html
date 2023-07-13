@@ -12,6 +12,7 @@
       }
       .icon-text { display: flex; align-items: center; }
       .button .icon:first-child:not(:last-child) { margin-right: 0.5em; }
+      a.button-inline { display: inline-block; padding: 0.2em 0.5em; vertical-align: baseline; height: auto; }
       div.flash_message { animation: fadein 1s; }
       main.site-content { flex: 1; } /* expand main content, push footer to bottom of page/viewport */
       span[title] { text-decoration:underline; text-decoration-style: dotted; }
@@ -199,9 +200,11 @@ ${ options.searchable ?
     </main>
 
     <footer class="footer has-background-dark has-text-light">
-      <div class="content has-text-right">
+      <div class="content has-text-centered">
         <p>
-        <b>{{ config['APPLICATION_TITLE'] }}</b> by Mark Liffiton.  <a href="https://forms.gle/ZvuAvgaKsnebG6G69" class="has-text-light is-underlined">Contact form</a>.
+          <b>{{ config['APPLICATION_TITLE'] }}</b> by Mark Liffiton.<br>
+          <a class="has-text-light is-underlined" href="{{ url_for("docs.main") }}">Documentation</a>.<br>
+          <a class="has-text-light is-underlined" href="https://forms.gle/ZvuAvgaKsnebG6G69">Contact form</a>.
         </p>
       </div>
     </footer>
