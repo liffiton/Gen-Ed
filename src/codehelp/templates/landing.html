@@ -43,10 +43,10 @@
             {% if auth['user_id'] and auth['auth_provider'] != 'demo' %}
               <a class="button button-inline is-link" href="{{ url_for("profile.main") }}">Go to your Profile page</a> to <b>manually</b> create a class.
             {% else %}
-              <a class="button button-inline is-link" href="{{ url_for("auth.login", next=url_for("profile.main")) }}">Log in using Google or Github</a> and <b>manually</b> create a class from your profile page.
+              <a class="button button-inline is-link" href="{{ url_for("auth.login", next=url_for("profile.main")) }}">Log in using Google, Github, or Microsoft</a> and <b>manually</b> create a class from your profile page.
             {% endif %}
             <ul class="mt-1 mb-4">
-              <li>You will share an access link, and everyone will log in using a Google or Github account.</li>
+              <li>You will share an access link, and everyone will log in using a Google, Github, or Microsoft account.</li>
             </ul>
           </div>
           <p><a href="{{ url_for("docs.main") }}">The documentation</a> provides more details.</p>

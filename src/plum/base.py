@@ -61,7 +61,9 @@ def create_app_base(import_name, app_config, instance_path):
     )
 
     # Add vars set in .env, loaded by load_dotenv() above, to config dictionary.
-    for varname in ["OPENAI_API_KEY", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"]:
+    # CLIENT_ID/CLIENT_SECRET vars are used by authlib:
+    #   https://docs.authlib.org/en/latest/client/flask.html#configuration
+    for varname in ["OPENAI_API_KEY", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET"]:
         try:
             env_var = os.environ[varname]
             base_config[varname] = env_var

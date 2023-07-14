@@ -94,7 +94,7 @@ def ext_login_update_or_create(provider_name, user_normed, query_tokens=0):
     Parameters
     ----------
     provider_name : str
-      Name of the external auth provider: in set {lti, google, github}
+      Name of the external auth provider: in set {lti, google, github, microsoft}
     user_normed : dict
       User information.
       Must contain non-null 'ext_id' key; must contain keys 'email', 'full_name', and 'auth_name', and at least one should be non-null.

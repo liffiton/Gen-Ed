@@ -1,10 +1,12 @@
 from flask import Blueprint, abort, current_app, redirect, request, session, url_for
-from authlib.integrations.flask_client import OAuth
+from authlib.integrations.flask_client import OAuth, OAuthError
 
 from .auth import ext_login_update_or_create, set_session_auth
 
 
 GOOGLE_CONF_URL = "https://accounts.google.com/.well-known/openid-configuration"
+# Microsoft docs: https://learn.microsoft.com/en-us/azure/active-directory/develop/v2-protocols-oidc
+MICROSOFT_CONF_URL = "https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration"
 NEXT_URL_SESSION_KEY = "__plum_next_url"
 
 
@@ -26,6 +28,11 @@ def init_app(app):
         authorize_url='https://github.com/login/oauth/authorize',
         userinfo_endpoint='https://api.github.com/user',
         client_kwargs={'scope': 'user:email'},
+    )
+    _oauth.register(  # automatically loads client ID and secret from app config (see base.py)
+        name='microsoft',
+        server_metadata_url=MICROSOFT_CONF_URL,
+        client_kwargs={'scope': 'openid email profile'},
     )
 
 
@@ -50,8 +57,21 @@ def auth(provider_name):
     if not client:
         abort(404)
 
-    client.authorize_access_token()
-    user = client.userinfo()
+    try:
+        if provider_name == 'microsoft':
+            # Microsoft isn't *quite* OIDC compliant:
+            #   https://github.com/MicrosoftDocs/azure-docs/issues/38427
+            # So this is a bit of a hack that disables checking the 'iss' (issuer) claim.
+            # The value in claims_options['iss'] is eventually used as 'option' in
+            #   authlib/jose/rfc7519/claims.py : BaseClaims._validate_claim_value()
+            # and providing an empty dict makes it skip any validation.
+            token = client.authorize_access_token(claims_options={'iss': {}})
+        else:
+            token = client.authorize_access_token()
+    except OAuthError:
+        return redirect(url_for("auth.login"))
+
+    user = token.get('userinfo') or client.userinfo()
 
     if not user.get('email'):
         # On Github, email will be null if user does not share email publicly, but we can enumerate
@@ -67,7 +87,7 @@ def auth(provider_name):
         'email': user.get('email'),
         'full_name': user.get('name'),
         'auth_name': user.get('login'),
-        'ext_id': user.get('sub') or user.get('id')   # 'sub' for OpenID Connect (Google); 'id' for Github
+        'ext_id': user.get('sub') or user.get('id')   # 'sub' for OpenID Connect (Google, Microsoft); 'id' for Github
     }
 
     current_app.logger.info(f"SSO login: {provider_name=} {user_normed=}")

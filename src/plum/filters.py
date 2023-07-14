@@ -82,9 +82,7 @@ def init_app(app):
         auth_provider = dict(user_row).get('auth_provider')
         if auth_provider in ('demo', 'local', None):
             return display_name
-        elif auth_provider == 'lti':
-            extra_info = user_row['email']
-        elif auth_provider == 'google':
+        elif auth_provider in ('lti', 'google', 'microsoft'):
             extra_info = user_row['email']
         elif auth_provider == 'github':
             extra_info = f"@{user_row['auth_name']}"
