@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from flask import send_from_directory
+
 from plum import base
 from . import helper, tutor
 
@@ -36,6 +38,11 @@ def create_app(test_config=None, instance_path=None):
     # register blueprints specific to this application variant
     app.register_blueprint(helper.bp)
     app.register_blueprint(tutor.bp)
+
+    # make a simple route for the .well-known directory
+    @app.route('/.well-known/<path:path>')
+    def well_known(path):
+        return send_from_directory('.well-known', path)
 
     # add navbar items
     app.config['NAVBAR_ITEM_TEMPLATES'].append("tutor_nav_item.html")
