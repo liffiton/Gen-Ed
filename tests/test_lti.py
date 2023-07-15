@@ -16,15 +16,15 @@ USER = {
 
 
 class LTIConsumer:
-    def __init__(self, url, consumer_key='', consumer_secret=''):
-        self.url = url
+    def __init__(self, consumer_key='', consumer_secret=''):
+        self.url = "http://localhost/lti/"
         self.consumer_key = consumer_key
         self.consumer_secret = consumer_secret
 
-    def generate_launch_request(self, roles):
+    def generate_launch_request(self, user_and_role):
         params = {
-            "user_id": "user54321",
-            "roles": roles,
+            "user_id": user_and_role,
+            "roles": user_and_role,
             "context_id": "course54321",
             "context_label": CLASS['label'],
             "context_title": CLASS['title'],
@@ -55,50 +55,68 @@ class LTIConsumer:
         return uri, headers, body
 
 
-def test_lti_auth_bad_communication(client):
-    lti_unconfigured = LTIConsumer('http://localhost/lti/')  # no consumer, secret set; invalid LTI communication
-    uri, headers, body = lti_unconfigured.generate_launch_request("Instructor")
-    result = client.post(uri, headers=headers, data=body)
-    assert result.text == "There was an LTI communication error"
-
-
-def test_lti_auth_bad_consumer(client):
-    # Consumer not registered in app
-    lti_unconfigured = LTIConsumer('http://localhost/lti/', 'invalid_consumer.domain', 'secret')
-
-    uri, headers, body = lti_unconfigured.generate_launch_request("Instructor")
-    result = client.post(uri, headers=headers, data=body)
-    assert result.text == "There was an LTI communication error"
-
-
-def test_lti_auth_bad_secret(client):
-    # Incorrect secret for that consumer as configured in the database (test_data.sql)
-    lti_unconfigured = LTIConsumer('http://localhost/lti/', 'consumer.domain', 'wrong_secret')
-
-    uri, headers, body = lti_unconfigured.generate_launch_request("Instructor")
-    result = client.post(uri, headers=headers, data=body)
-    assert result.text == "There was an LTI communication error"
-
-
-@pytest.mark.parametrize(('role'), (
-    ('Instructor'),
-    ('urn:lti:role:ims/lis/TeachingAssistant'),  # canvas TA
+@pytest.mark.parametrize(('consumer_key', 'consumer_secret'), (
+    ('', ''),   # no consumer, no secret: invalid LTI communication
+    ('invalid_consumer.domain', 'secret'),   # consumer not registered in app
+    ('consumer.domain', 'wrong_secret'),   # consumer registered (see test_data.sql), but wrong secret provided
 ))
-def test_lti_auth_instructor(client, role):
+def test_lti_auth_failure(client, consumer_key, consumer_secret):
+    lti = LTIConsumer(consumer_key, consumer_secret)
+    uri, headers, body = lti.generate_launch_request("Instructor")
+    result = client.post(uri, headers=headers, data=body)
+    assert result.text == "There was an LTI communication error"
+
+
+@pytest.mark.parametrize(('role', 'internal_role'), (
+    ('Instructor', 'instructor'),
+    ('urn:lti:role:ims/lis/TeachingAssistant', 'instructor'),  # canvas TA
+    ('Student', 'student'),
+))
+def test_lti_auth_success(client, role, internal_role):
     # key and secret match 'consumer.domain' consumer in test_data.sql
-    lti = LTIConsumer('http://localhost/lti/', 'consumer.domain', 'seecrits1')
+    lti = LTIConsumer('consumer.domain', 'seecrits1')
 
     uri, headers, body = lti.generate_launch_request(role)
 
     result = client.post(uri, headers=headers, data=body)
     assert result.text != "There was an LTI communication error"
-    assert result.status_code == 302  # success == redirect to help page...
+    # success == redirect to help page...
+    assert result.status_code == 302
     assert result.location == '/help/'
 
     result = client.get('/help/')
-    assert result.status_code == 302  # ... but the class is not configured, so another redirect to the instructor config page
-    assert result.location == '/instructor/config'
 
+    # ... but the class is not configured,
+    # so instructors get another redirect
+    # to the instructor config page assert.
+    if internal_role == 'instructor':
+        assert result.status_code == 302
+        assert result.location == '/instructor/config'
+        result = client.get(result.location)
+        assert result.status_code == 200
+    else:
+        assert result.status_code == 200
+
+    # regardless, everyone sees a "not yet configured" message.
+    assert "This class is not yet configured." in result.text
+
+    # check the profile for correct name, class name and role
+    result = client.get('/profile/')
+    assert result.status_code == 200
+    assert USER['fullname'] in result.text
+    assert USER['email'] in result.text
+    assert f"{CLASS['label']} ({internal_role})" in result.text
+
+
+def test_lti_instructor_and_students(client):
+    # key and secret match 'consumer.domain' consumer in test_data.sql
+    lti = LTIConsumer('consumer.domain', 'seecrits1')
+
+    # 1) instructor logs in
+    uri, headers, body = lti.generate_launch_request("instructor")
+    client.post(uri, headers=headers, data=body)
+
+    # 2) instructor configures the course
     result = client.post(
         '/instructor/config/set',
         data={'default_lang': 1, 'avoid': ''},
@@ -109,27 +127,49 @@ def test_lti_auth_instructor(client, role):
     result = client.get('/help/')
     assert result.status_code == 200  # ... and now it should work!
     assert USER['fullname'] in result.text
+    assert "This class is not yet configured." not in result.text
 
-    result = client.get('/profile/')
-    assert result.status_code == 200
-    assert f"{CLASS['label']} (instructor)" in result.text
+    client.post('/auth/logout')
 
-
-def test_lti_auth_student(client):
-    # key and secret match 'consumer.domain' consumer in test_data.sql
-    lti = LTIConsumer('http://localhost/lti/', 'consumer.domain', 'seecrits1')
-
-    uri, headers, body = lti.generate_launch_request("Student")
-
-    result = client.post(uri, headers=headers, data=body)
-    assert result.text != "There was an LTI communication error"
-    assert result.status_code == 302  # success == redirect to help page...
-    assert result.location == '/help/'
+    # 3) student 1 logs in
+    uri, headers, body = lti.generate_launch_request("student_1")
+    client.post(uri, headers=headers, data=body)
 
     result = client.get('/help/')
     assert result.status_code == 200
-    assert USER['fullname'] in result.text
+    assert "This class is not yet configured." not in result.text
 
-    result = client.get('/profile/')
+    # 4) student 1 makes a query
+    result = client.post('/help/request', data={'lang_id': 1, 'code': 'student_1_code', 'error': 'error', 'issue': 'issue'})
+    assert result.status_code == 302
+    assert result.location == "/help/view/5"  # next open query ID (test_data.sql inserts up to 4)
+    result = client.get(result.location)
     assert result.status_code == 200
-    assert f"{CLASS['label']} (student)" in result.text
+    assert 'student_1_code' in result.text
+
+    client.post('/auth/logout')
+
+    # 5) student 2 logs in
+    uri, headers, body = lti.generate_launch_request("student_2")
+    client.post(uri, headers=headers, data=body)
+
+    result = client.get('/help/')
+    assert result.status_code == 200
+    assert "This class is not yet configured." not in result.text
+
+    # 6) student 2 cannot see student 1's query
+    result = client.get('/help/view/5')
+    assert result.status_code == 200
+    assert 'student_1_code' not in result.text
+    assert 'Invalid id.' in result.text
+
+    client.post('/auth/logout')
+
+    # 1) instructor logs in again and can see student 1's query
+    uri, headers, body = lti.generate_launch_request("instructor")
+    client.post(uri, headers=headers, data=body)
+
+    result = client.get('/help/view/5')
+    assert result.status_code == 200
+    assert 'student_1_code' in result.text
+    assert 'Invalid id.' not in result.text
