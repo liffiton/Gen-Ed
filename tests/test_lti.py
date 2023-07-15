@@ -165,7 +165,7 @@ def test_lti_instructor_and_students(client):
 
     client.post('/auth/logout')
 
-    # 1) instructor logs in again and can see student 1's query
+    # 7) instructor logs in again and can see student 1's query
     uri, headers, body = lti.generate_launch_request("instructor")
     client.post(uri, headers=headers, data=body)
 
