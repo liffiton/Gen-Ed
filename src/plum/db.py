@@ -1,4 +1,3 @@
-from datetime import datetime
 import importlib
 import os
 import secrets
@@ -6,6 +5,8 @@ import shutil
 import sqlite3
 import string
 import sys
+from datetime import datetime
+from tempfile import NamedTemporaryFile
 
 import click
 from dotenv import load_dotenv
@@ -25,6 +26,17 @@ def get_db():
         g.db.row_factory = sqlite3.Row
 
     return g.db
+
+
+def get_db_backup():
+    """ Return a NamedTemporaryFile object containing a backup of the database. """
+    db = get_db()
+    tmp_file = NamedTemporaryFile()
+    tmp_db = sqlite3.connect(tmp_file.name)
+    with tmp_db:
+        db.backup(tmp_db)
+    tmp_db.close()
+    return tmp_file
 
 
 def close_db(e=None):

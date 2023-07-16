@@ -1,9 +1,11 @@
 from collections import namedtuple
+from datetime import date
+from pathlib import Path
 from urllib.parse import urlencode
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file, url_for
 
-from .db import get_db
+from .db import get_db, get_db_backup
 from .auth import admin_required
 
 
@@ -236,7 +238,11 @@ def main():
 @register_admin_link("Download DB", right=True)
 @bp.route("/get_db")
 def get_db_file():
-    return send_file(current_app.config['DATABASE'], as_attachment=True)
+    db_backup_file = get_db_backup()
+    db_name = current_app.config['DATABASE_NAME']
+    db_basename = Path(db_name).stem
+    dl_name = f"{db_basename}_{date.today().strftime('%Y%m%d')}.db"
+    return send_file(db_backup_file, mimetype='application/vnd.sqlite3', as_attachment=True, download_name=dl_name)
 
 
 @bp.route("/consumer/new")
