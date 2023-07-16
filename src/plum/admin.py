@@ -1,11 +1,12 @@
 from collections import namedtuple
 from datetime import date
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from urllib.parse import urlencode
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file, url_for
 
-from .db import get_db, get_db_backup
+from .db import get_db, backup_db
 from .auth import admin_required
 
 
@@ -238,7 +239,8 @@ def main():
 @register_admin_link("Download DB", right=True)
 @bp.route("/get_db")
 def get_db_file():
-    db_backup_file = get_db_backup()
+    db_backup_file = NamedTemporaryFile()
+    backup_db(db_backup_file.name)
     db_name = current_app.config['DATABASE_NAME']
     db_basename = Path(db_name).stem
     dl_name = f"{db_basename}_{date.today().strftime('%Y%m%d')}.db"

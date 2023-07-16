@@ -1,12 +1,12 @@
+import errno
 import importlib
 import os
 import secrets
-import shutil
 import sqlite3
 import string
 import sys
 from datetime import datetime
-from tempfile import NamedTemporaryFile
+from pathlib import Path
 
 import click
 from dotenv import load_dotenv
@@ -28,15 +28,19 @@ def get_db():
     return g.db
 
 
-def get_db_backup():
-    """ Return a NamedTemporaryFile object containing a backup of the database. """
+def backup_db(target):
+    """ Safely make a backup of the database to the given path.
+    target: str or any path-like object.  Must not exist yet or be empty.
+    """
+    target = Path(target)
+    if target.exists() and target.stat().st_size > 0:
+        raise FileExistsError(errno.EEXISTS, "File already exists or is not empty", target)
+
     db = get_db()
-    tmp_file = NamedTemporaryFile()
-    tmp_db = sqlite3.connect(tmp_file.name)
+    tmp_db = sqlite3.connect(target)
     with tmp_db:
         db.backup(tmp_db)
     tmp_db.close()
-    return tmp_file
 
 
 def close_db(e=None):
@@ -86,10 +90,12 @@ def migrate_command(migration_script):
     """Run a migration script against the instance database."""
     # Make a backup of the old database
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    backup_dir = os.path.join(current_app.instance_path, "backups")
-    os.makedirs(backup_dir, exist_ok=True)
-    backup_dest = os.path.join(backup_dir, f"codehelp.db.{timestamp}.bak")
-    shutil.copy2(current_app.config['DATABASE'], backup_dest)
+    backup_dir = Path(current_app.instance_path) / "backups"
+    backup_dir.mkdir(mode=0o770, exist_ok=True)
+    backup_dest = backup_dir / f"codehelp.db.{timestamp}.bak"
+
+    backup_db(backup_dest)
+
     click.echo(f"Backup saved in [33m{backup_dest}[m.")
 
     # Run the script
