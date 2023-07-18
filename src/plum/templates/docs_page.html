@@ -2,12 +2,12 @@
 
 {% block body %}
 <style type="text/css">
-p.hasimg { text-align: center; }
-img.docimg { max-width: min(100%, 800px); border: 2px solid #ccc; border-radius: 5px; }
+p.hasimg { display: flex; justify-content: center; margin-top: 1em; margin-bottom: 2em !important; }
+img.docimg { max-width: min(90vw, 60rem); border: 2px solid #ccc; border-radius: 5px; }
 </style>
 
 <section class="section">
-  <div class="container content">
+  <div class="container content" style="max-width: 80ch">
     <a href="{{ url_for("docs.main") }}">&lt; back to Documentation</a>
     {{ html_content | safe }}
   </div>
