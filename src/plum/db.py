@@ -1,15 +1,13 @@
 import errno
 import importlib
-import os
 import secrets
 import sqlite3
 import string
-import sys
 from datetime import datetime
+from getpass import getpass
 from pathlib import Path
 
 import click
-from dotenv import load_dotenv
 from flask import current_app, g
 from werkzeug.security import generate_password_hash
 
@@ -65,15 +63,6 @@ def init_db():
     with current_app.open_resource('schema.sql') as f:
         db.executescript(f.read().decode('utf8'))
 
-    load_dotenv()
-    try:
-        init_pw_mark = os.environ["INIT_PW_MARK"]
-    except KeyError:
-        print("Error:  INIT_PW_MARK environment variable not set.", file=sys.stderr)
-        sys.exit(1)
-
-    cur = db.execute("INSERT INTO users(auth_provider, auth_name, is_admin, is_tester, query_tokens) VALUES(?, ?, True, True, 0)", [AUTH_PROVIDER_LOCAL, "mark"])
-    db.execute("INSERT INTO auth_local(user_id, username, password) VALUES(?, ?, ?)", [cur.lastrowid, "mark", init_pw_mark])
     db.commit()
 
 
@@ -111,42 +100,57 @@ def migrate_command(migration_script):
         click.echo(f"[31;1m===Migration failed===[m  [31m{e}[m")
 
 
-class UserExistsError(Exception):
-    pass
-
-
-def create_user(username):
-    """ Add a new user to the database.
-    If it already exists, raises UserExistsError.
-    Otherwise, returns a generated password for the new user as a string.
-    """
+@click.command('newuser')
+@click.argument('username')
+@click.option('--admin', is_flag=True, help="Make the new user an admin.")
+@click.option('--tester', is_flag=True, help="Make the new user a tester.")
+def newuser_command(username, admin=False, tester=False):
+    """Add a new user to the database.  Generates and prints a random password."""
     db = get_db()
 
     # Check for pre-existing username
     existing = db.execute("SELECT username FROM auth_local WHERE username=?", [username]).fetchone()
     if existing:
-        raise UserExistsError
-    else:
-        new_password = ''.join(secrets.choice(string.ascii_letters) for _ in range(6))
-        cur = db.execute("INSERT INTO users(auth_provider, auth_name, query_tokens) VALUES(?, ?, 0)", [AUTH_PROVIDER_LOCAL, username])
-        db.execute("INSERT INTO auth_local(user_id, username, password) VALUES(?, ?, ?)",
-                   [cur.lastrowid, username, generate_password_hash(new_password)])
-        db.commit()
-        return new_password
-
-
-@click.command('newuser')
-@click.argument('username')
-def newuser_command(username):
-    """Add a new user to the database (generates a password)."""
-    try:
-        new_password = create_user(username)
-    except UserExistsError:
         click.secho(f"Error: username {username} already exists.", fg='red')
         return
 
+    new_password = ''.join(secrets.choice(string.ascii_letters) for _ in range(6))
+    cur = db.execute("INSERT INTO users(auth_provider, auth_name, is_admin, is_tester, query_tokens) VALUES(?, ?, ?, ?, 0)",
+                     [AUTH_PROVIDER_LOCAL, username, admin, tester])
+    db.execute("INSERT INTO auth_local(user_id, username, password) VALUES(?, ?, ?)",
+               [cur.lastrowid, username, generate_password_hash(new_password)])
+    db.commit()
+
     click.secho("User added to the database:", fg='green')
     click.echo(f"  username: {username}\n  password: {new_password}")
+
+
+@click.command('setpassword')
+@click.argument('username')
+def setpassword_command(username):
+    """Set the password for an existing user.  Requests the password interactively."""
+    db = get_db()
+
+    # Check for pre-existing username
+    existing = db.execute("SELECT username FROM auth_local WHERE username=?", [username]).fetchone()
+    if not existing:
+        click.secho(f"Error: username {username} does not exist as a local user.", fg='red')
+        return
+
+    password1 = getpass("New password: ")
+    if len(password1) < 3:
+        click.secho("Error: password must be at least 3 characters long.", fg='red')
+        return
+
+    password2 = getpass("      Repeat: ")
+    if password1 != password2:
+        click.secho("Error: passwords do not match.", fg='red')
+        return
+
+    db.execute("UPDATE auth_local SET password=? WHERE username=?", [generate_password_hash(password1), username])
+    db.commit()
+
+    click.secho(f"Password updated for user {username}.", fg='green')
 
 
 def init_app(app):
@@ -154,3 +158,4 @@ def init_app(app):
     app.cli.add_command(init_db_command)
     app.cli.add_command(migrate_command)
     app.cli.add_command(newuser_command)
+    app.cli.add_command(setpassword_command)

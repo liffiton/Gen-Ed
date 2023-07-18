@@ -1,7 +1,7 @@
+import re
 import pytest
 
 from plum.auth import get_auth
-from plum.db import create_user
 
 
 def test_login_page(client):
@@ -30,7 +30,6 @@ def check_login(client, auth, username, password, status, message, is_admin):
         else:
             # Verify session auth contains correct values for non-logged-in user
             sessauth = get_auth()
-            print(username, password, sessauth)
             assert sessauth['display_name'] is None
             assert sessauth['is_admin'] is False
             assert sessauth['class_id'] is None
@@ -38,13 +37,14 @@ def check_login(client, auth, username, password, status, message, is_admin):
         assert message in response.text
 
 
-def test_newuser_command(app, client, auth):
+def test_newuser_command(app, runner, client, auth):
     username = "_newuser_"
     check_login(client, auth, username, 'x', 200, "Invalid username or password.", False)
     auth.logout()
 
     with app.app_context():
-        password = create_user(username)
+        cmd_result = runner.invoke(args=['newuser', username])
+        password = re.search(r'password: (\w+)\b', cmd_result.output).group(1)
 
     check_login(client, auth, username, password, 302, "_newuser_", False)
     auth.logout()
