@@ -12,4 +12,5 @@ log_level = 'DEBUG'
 testpaths = 'tests'
 addopts = [
     "--import-mode=importlib",
+    "-n8",
 ]
