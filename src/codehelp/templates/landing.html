@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 
+{% block head %}
+  <meta name="description" content="CodeHelp is a coding and CS assistant powered by large language models with guardrails.  It acts as an automated tutor, supporting students with guidance and explanations without providing solution code.">
+{% endblock %}
+
 {% block body %}
 <style type="text/css">body {background: #ddd8d3;}</style>
 <section class="section p-5">
@@ -14,7 +18,7 @@
             <li>Ask how to start writing a program.</li>
             <li>Get an explanation of a confusing error message.</li>
             <li>Ask why your code isn't working correctly in a particular spot.</li>
-            <li>Learn more about specific syntax, functions, or techniques in your programming language of choice.</li>
+            <li>Learn more about specific syntax, functions, or techniques in your programming language.</li>
             <li>... and a lot more.</li>
           </ul>
           {% if auth['user_id'] %}
