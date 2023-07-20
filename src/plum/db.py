@@ -1,10 +1,9 @@
 import errno
-import importlib
 import secrets
 import sqlite3
 import string
-from datetime import datetime
 from getpass import getpass
+from importlib import resources
 from pathlib import Path
 
 import click
@@ -48,20 +47,34 @@ def close_db(e=None):
         db.close()
 
 
+# Functions to be called at the end of init_db().
+_on_init_db_callbacks = []
+
+
+def on_init_db(func):
+    """Decorator to mark a function as a callback to be called at the end of init_db()."""
+    _on_init_db_callbacks.append(func)
+    return func
+
+
 def init_db():
     db = get_db()
 
     # Common schema in the plum package
-    # importlib: https://stackoverflow.com/a/73497763/
+    # importlib.resources: https://stackoverflow.com/a/73497763/
     # requires Python 3.9+
-    common_schema_res = importlib.resources.files('plum').joinpath("schema_common.sql")
-    with importlib.resources.as_file(common_schema_res) as filename:
+    common_schema_res = resources.files('plum').joinpath("schema_common.sql")
+    with resources.as_file(common_schema_res) as filename:
         with open(filename) as f:
             db.executescript(f.read())
 
     # App-specific schema in the app's package
     with current_app.open_resource('schema.sql') as f:
         db.executescript(f.read().decode('utf8'))
+
+    # Mark all existing migrations as applied (since this is a fresh DB)
+    for func in _on_init_db_callbacks:
+        func()
 
     db.commit()
 
@@ -71,33 +84,6 @@ def init_db_command():
     """Clear the existing data and create new tables."""
     init_db()
     click.echo('Initialized the database.')
-
-
-@click.command('migrate')
-@click.argument('migration_script', type=click.File('r'))
-def migrate_command(migration_script):
-    """Run a migration script against the instance database."""
-    # Make a backup of the old database
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    backup_dir = Path(current_app.instance_path) / "backups"
-    backup_dir.mkdir(mode=0o770, exist_ok=True)
-    backup_dest = backup_dir / f"codehelp.db.{timestamp}.bak"
-
-    backup_db(backup_dest)
-
-    click.echo(f"Backup saved in [33m{backup_dest}[m.")
-
-    # Run the script
-    db = get_db()
-    script = migration_script.read()
-    indented = '\n'.join(f"  {x}" for x in script.split('\n'))
-    print(f"Script:\n[35m{indented}[m")
-    try:
-        db.executescript(script)
-        db.commit()
-        click.echo("[32;1m===Migration complete===[m")
-    except Exception as e:
-        click.echo(f"[31;1m===Migration failed===[m  [31m{e}[m")
 
 
 @click.command('newuser')
@@ -156,6 +142,5 @@ def setpassword_command(username):
 def init_app(app):
     app.teardown_appcontext(close_db)
     app.cli.add_command(init_db_command)
-    app.cli.add_command(migrate_command)
     app.cli.add_command(newuser_command)
     app.cli.add_command(setpassword_command)

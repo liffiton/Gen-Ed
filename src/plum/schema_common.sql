@@ -8,6 +8,7 @@ DROP TABLE IF EXISTS auth_external;
 DROP TABLE IF EXISTS roles;
 DROP TABLE IF EXISTS classes;
 DROP TABLE IF EXISTS demo_links;
+DROP TABLE IF EXISTS migrations;
 
 PRAGMA foreign_keys = ON;  -- back on for good
 
@@ -126,4 +127,13 @@ CREATE TABLE demo_links (
     expiration DATE NOT NULL,
     tokens  INTEGER NOT NULL,  -- default number of query tokens to give newly-created users
     uses    INTEGER NOT NULL DEFAULT 0
+);
+
+-- Track which migrations have been applied to this database
+CREATE TABLE migrations (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    filename    TEXT NOT NULL UNIQUE,
+    applied_on  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    skipped     BOOLEAN NOT NULL CHECK (skipped IN (0,1)) DEFAULT 0,
+    succeeded   BOOLEAN NOT NULL CHECK (skipped IN (0,1)) DEFAULT 0
 );

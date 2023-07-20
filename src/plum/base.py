@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from flask import Flask, render_template
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from . import admin, auth, classes, db, demo, docs, instructor, filters, lti, oauth, profile, tz
+from . import admin, auth, classes, db, demo, docs, instructor, filters, lti, migrate, oauth, profile, tz
 
 
 def create_app_base(import_name, app_config, instance_path):
@@ -123,6 +123,7 @@ def create_app_base(import_name, app_config, instance_path):
     admin.init_app(app)
     db.init_app(app)
     filters.init_app(app)
+    migrate.init_app(app)
     oauth.init_app(app)
     tz.init_app(app)
 
