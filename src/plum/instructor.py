@@ -94,6 +94,10 @@ def get_queries_csv():
     class_id = auth['class_id']
     queries = get_queries(class_id)
 
+    if not queries:
+        flash("There are no queries to export yet.", "warning")
+        return render_template("error.html")
+
     stringio = io.StringIO()
     writer = csv.writer(stringio)
     writer.writerow(queries[0].keys())  # column headers
