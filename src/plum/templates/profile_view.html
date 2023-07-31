@@ -64,7 +64,7 @@ dl.profile dd { margin: 0; }
           <p>
             {{ class.name }} ({{ class.role }})
             <a href="{{ url_for("classes.switch_class_handler", class_id=class.id) }}" class="button is-link is-small is-rounded ml-3" style="vertical-align: center;">
-              Switch to &uarr;
+              Switch to
             </a>
           </p>
           {% endfor %}
@@ -72,7 +72,7 @@ dl.profile dd { margin: 0; }
       {% endif %}
       {% if user.provider_name not in ['lti', 'demo'] %}
         <dt></dt><dd>
-          <button class="button is-success has-text-dark" onclick="document.querySelector('#new_class_dialog').showModal()">➕ Create new class</button>
+          <button class="button is-success" onclick="document.querySelector('#new_class_dialog').showModal()">Create new class</button>
         </dd>
       {% endif %}
     </dl>
@@ -89,10 +89,13 @@ dl.profile dd { margin: 0; }
             </div>
           </div>
           <div class="field">
-            <label class="label is-size-5" for="openai_key">OpenAI API Key:</label>
+            <label class="label is-size-5" for="openai_key">
+              OpenAI API Key:
+            </label>
             <div class="control">
-              <input class="input" required name="openai_key" id="openai_key">
+              <input class="input" name="openai_key" id="openai_key">
             </div>
+            <p>(The API key can be left blank for now, but you will need to add one to the class to submit queries.)</p>
           </div>
           <div class="field">
             <div class="control">
