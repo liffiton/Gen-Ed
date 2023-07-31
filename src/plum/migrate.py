@@ -32,6 +32,7 @@ def _do_migration(name, script):
         db.commit()
         return True, ''
     except Exception as e:
+        db.rollback()
         db.execute("UPDATE migrations SET applied_on=CURRENT_TIMESTAMP, succeeded=False WHERE filename=?", [name])
         db.commit()
         return False, str(e)
@@ -99,7 +100,11 @@ def _get_migrations():
     app_migrations = resources.files(current_app.name).joinpath("migrations").iterdir()
 
     # Collect info and sort by name and modified time (to apply migrations in order)
-    migrations = [_migration_info(res) for res in itertools.chain(plum_migrations, app_migrations)]
+    migrations = [
+        _migration_info(res)
+        for res in itertools.chain(plum_migrations, app_migrations)
+        if not res.name.startswith('.') and res.name.endswith('.sql')
+    ]
     migrations.sort(key=lambda x: (x['name'], x['mtime']))
 
     return migrations
