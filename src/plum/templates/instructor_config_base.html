@@ -103,7 +103,7 @@
           <div class="field-body">
             <div class="field">
               <div class="control">
-                <button class="button is-link" type="submit" >Save</button>
+                <button class="button is-link" type="submit" name="save_access_form">Save</button>
               </div>
             </div>
           </div>
@@ -113,11 +113,11 @@
 
       <div class="conf_col_sep mt-5"></div>
 
-      <h2 class="title is-size-4 mt-5">API Key</h2>
+      <h2 class="title is-size-4 mt-5">Language Model</h2>
       <form action="{{ url_for("instructor.set_user_class_setting") }}" method="post">
         <div class="field is-horizontal">
           <div class="field-label is-normal">
-            <label class="label">OpenAI Key:</label>
+            <label class="label">OpenAI API Key:</label>
             <p class="has-text-grey">If blank, users in this class will not be able to submit queries.</p>
           </div>
           <div class="field-body">
@@ -128,19 +128,50 @@
                 <button class="button is-danger is-small" type="submit" name="clear_openai_key" x-show="show_confirm"><b>Confirm</b>&nbsp;clear OpenAI Key</button>
               </div>
             {% else %}
-              <div class="field has-addons">
+              <div class="field">
                 <div class="control">
                   <input class="input" name="openai_key">
-                </div>
-                <div class="control">
-                  <button class="button is-link" type="submit" name="set_openai_key">Save</button>
                 </div>
               </div>
             {% endif %}
           </div>
         </div>
-        {% endif %}
+
+        <div class="field is-horizontal">
+          <div class="field-label is-normal">
+            <label class="label">Model:</label>
+            <p class="has-text-grey">Note that GPT-4 is far more expensive (roughly 20-30 times the cost of GPT-3.5).</p>
+          </div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <div class="select">
+                  <select name="model_id" required id="model_id">
+                    <option value="">Please select one</option>
+                    {% for model in models %}
+                      <option value="{{model.id}}" {% if model.id == class_row.model_id %}selected{% endif %}>{{model.name}}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field is-horizontal">
+          <div class="field-label is-normal"><!-- spacing --></div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <button class="button is-link" type="submit" name="save_llm_form">Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </form>
+
+      {% endif %}{# end if class['link_ident'] -- i.e., end of user-created class config #}
 
     </div>
     {% block class_config_form %}

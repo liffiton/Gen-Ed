@@ -78,6 +78,27 @@
       </div>
 
       <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="llm">LLM:</label>
+          <p class="has-text-grey">An LLM or family of LLMs to be used by this consumer.</p>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <div class="select">
+                <select name="model_id" required id="model_id">
+                  <option value="">Please select one</option>
+                  {% for model in models %}
+                    <option value="{{model.id}}" {% if consumer and model.id == consumer.model_id %}selected{% endif %}>{{model.name}}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
         <div class="field-label is-normal"><!-- spacing --></div>
         <div class="field-body">
           <div class="field">

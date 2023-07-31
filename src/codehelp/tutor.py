@@ -6,7 +6,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from plum.db import get_db
 from plum.auth import get_auth, login_required, tester_required
 from plum.admin import bp as bp_admin, register_admin_link
-from plum.openai import with_openai_key, get_completion
+from plum.openai import with_llm, get_completion
 from plum.queries import get_query
 
 
@@ -30,21 +30,21 @@ def tutor_form():
 
 
 @bp.route("/chat/create", methods=["POST"])
-@with_openai_key()
-def start_chat(api_key):
+@with_llm()
+def start_chat(llm_dict):
     topic = request.form['topic']
     context = request.form.get('context', None)
 
     chat_id = create_chat(topic, context)
 
-    run_chat_round(api_key, chat_id)
+    run_chat_round(llm_dict, chat_id)
 
     return redirect(url_for("tutor.chat_interface", chat_id=chat_id))
 
 
 @bp.route("/chat/create_from_query", methods=["POST"])
-@with_openai_key()
-def start_chat_from_query(api_key):
+@with_llm()
+def start_chat_from_query(llm_dict):
     topic = request.form['topic']
 
     # build context from the specified query
@@ -54,7 +54,7 @@ def start_chat_from_query(api_key):
 
     chat_id = create_chat(topic, context)
 
-    run_chat_round(api_key, chat_id)
+    run_chat_round(llm_dict, chat_id)
 
     return redirect(url_for("tutor.chat_interface", chat_id=chat_id))
 
@@ -128,7 +128,7 @@ def get_chat(chat_id):
     return chat, topic, context
 
 
-def get_response(api_key, chat):
+def get_response(llm_dict, chat):
     ''' Get a new 'assistant' completion for the specified chat.
 
     Parameters:
@@ -140,9 +140,9 @@ def get_response(api_key, chat):
       2) The response text.
     '''
     response, text = asyncio.run(get_completion(
-        api_key,
+        api_key=llm_dict['key'],
         messages=chat,
-        model='turbo',
+        model=llm_dict['chat_model'],
         n=1,
     ))
 
@@ -158,7 +158,7 @@ def save_chat(chat_id, chat):
     db.commit()
 
 
-def run_chat_round(api_key, chat_id, message=None):
+def run_chat_round(llm_dict, chat_id, message=None):
     # Get the specified chat
     chat, topic, context = get_chat(chat_id)
 
@@ -200,7 +200,7 @@ I can use Markdown formatting in my responses."""
         {'role': 'assistant', 'content': monologue},
     ]
 
-    response_obj, response_txt = get_response(api_key, expanded_chat)
+    response_obj, response_txt = get_response(llm_dict, expanded_chat)
 
     # Update the chat w/ the response
     chat.append({
@@ -211,15 +211,15 @@ I can use Markdown formatting in my responses."""
 
 
 @bp.route("/message", methods=["POST"])
-@with_openai_key()
-def new_message(api_key):
+@with_llm()
+def new_message(llm_dict):
     chat_id = request.form["id"]
     new_msg = request.form["message"]
 
     # TODO: limit length
 
     # Run a round of the chat with the given message.
-    run_chat_round(api_key, chat_id, new_msg)
+    run_chat_round(llm_dict, chat_id, new_msg)
 
     # Send the user back to the now-updated chat view
     return redirect(url_for("tutor.chat_interface", chat_id=chat_id))

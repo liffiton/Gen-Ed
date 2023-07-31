@@ -8,6 +8,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 
 from .db import get_db, backup_db
 from .auth import admin_required
+from .openai import get_models
 
 
 bp = Blueprint('admin', __name__, url_prefix="/admin", template_folder='templates')
@@ -249,14 +250,14 @@ def get_db_file():
 
 @bp.route("/consumer/new")
 def consumer_new():
-    return render_template("consumer_form.html")
+    return render_template("consumer_form.html", models=get_models())
 
 
 @bp.route("/consumer/<int:id>")
 def consumer_form(id=None):
     db = get_db()
     consumer_row = db.execute("SELECT * FROM consumers WHERE id=?", [id]).fetchone()
-    return render_template("consumer_form.html", consumer=consumer_row)
+    return render_template("consumer_form.html", consumer=consumer_row, models=get_models())
 
 
 @bp.route("/consumer/update", methods=['POST'])
@@ -287,10 +288,11 @@ def consumer_update():
         # Updating
         if request.form.get('lti_secret', ''):
             db.execute("UPDATE consumers SET lti_secret=? WHERE id=?", [request.form['lti_secret'], consumer_id])
-            db.commit()
         if request.form.get('openai_key', ''):
             db.execute("UPDATE consumers SET openai_key=? WHERE id=?", [request.form['openai_key'], consumer_id])
-            db.commit()
+        if request.form.get('model_id', ''):
+            db.execute("UPDATE consumers SET model_id=? WHERE id=?", [request.form['model_id'], consumer_id])
+        db.commit()
         flash("Consumer updated.")
 
     # anything might have changed: reload all consumers

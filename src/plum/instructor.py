@@ -7,6 +7,7 @@ from flask import Blueprint, flash, make_response, redirect, render_template, re
 
 from .db import get_db
 from .auth import get_auth, instructor_required
+from .openai import get_models
 from .tz import date_is_past
 
 
@@ -121,7 +122,7 @@ def config_form():
     class_id = auth['class_id']
 
     class_row = db.execute("""
-        SELECT classes.id, classes.enabled, classes.config, classes_user.link_ident, classes_user.link_reg_expires, classes_user.openai_key
+        SELECT classes.id, classes.enabled, classes.config, classes_user.link_ident, classes_user.link_reg_expires, classes_user.openai_key, classes_user.model_id
         FROM classes
         LEFT JOIN classes_user
           ON classes.id = classes_user.class_id
@@ -139,7 +140,7 @@ def config_form():
     else:
         link_reg_state = "date"
 
-    return render_template("class_config_form.html", class_row=class_row, link_reg_state=link_reg_state, class_config=class_config)
+    return render_template("instructor_config_form.html", class_row=class_row, link_reg_state=link_reg_state, class_config=class_config, models=get_models())
 
 
 @bp.route("/user_class/set", methods=["POST"])
@@ -156,12 +157,7 @@ def set_user_class_setting():
         db.commit()
         flash("Class API key cleared.", "success")
 
-    elif 'set_openai_key' in request.form:
-        db.execute("UPDATE classes_user SET openai_key=? WHERE class_id=?", [request.form['openai_key'], class_id])
-        db.commit()
-        flash("Class API key set.", "success")
-
-    else:
+    elif 'save_access_form' in request.form:
         if 'link_reg_active_present' in request.form:
             # only present for user classes, not LTI
             link_reg_active = request.form['link_reg_active']
@@ -175,7 +171,14 @@ def set_user_class_setting():
         class_enabled = 1 if 'class_enabled' in request.form else 0
         db.execute("UPDATE classes SET enabled=? WHERE id=?", [class_enabled, class_id])
         db.commit()
-        flash("Class updated.", "success")
+        flash("Class access configuration updated.", "success")
+
+    elif 'save_llm_form' in request.form:
+        if 'openai_key' in request.form:
+            db.execute("UPDATE classes_user SET openai_key=? WHERE class_id=?", [request.form['openai_key'], class_id])
+        db.execute("UPDATE classes_user SET model_id=? WHERE class_id=?", [request.form['model_id'], class_id])
+        db.commit()
+        flash("Class language model configuration updated.", "success")
 
     return redirect(url_for(".config_form"))
 

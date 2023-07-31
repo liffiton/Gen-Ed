@@ -9,6 +9,7 @@ DROP TABLE IF EXISTS roles;
 DROP TABLE IF EXISTS classes;
 DROP TABLE IF EXISTS demo_links;
 DROP TABLE IF EXISTS migrations;
+DROP TABLE IF EXISTS models;
 
 PRAGMA foreign_keys = ON;  -- back on for good
 
@@ -17,7 +18,9 @@ CREATE TABLE consumers (
     lti_consumer  TEXT NOT NULL UNIQUE,
     lti_secret    TEXT,
     openai_key    TEXT,
-    created       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    model_id      INTEGER NOT NULL DEFAULT 1,  -- gpt-3.5
+    created       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(model_id) REFERENCES models(id)
 );
 
 DROP INDEX IF EXISTS consumers_idx;
@@ -98,11 +101,13 @@ CREATE UNIQUE INDEX  classes_lti_by_consumer_context ON classes_lti(lti_consumer
 CREATE TABLE classes_user (
     class_id         INTEGER PRIMARY KEY,  -- references classes.id
     openai_key       TEXT,
+    model_id         INTEGER NOT NULL DEFAULT 1,  -- gpt-3.5
     link_ident       TEXT NOT NULL UNIQUE,  -- random (unguessable) identifier used in access/registration link for this class
     link_reg_expires DATE NOT NULL,  -- registration active for the class link if this date is in the future (anywhere on Earth)
     creator_user_id  INTEGER NOT NULL,  -- references users.id
     created          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(class_id) REFERENCES classes(id),
+    FOREIGN KEY(model_id) REFERENCES models(id),
     FOREIGN KEY(creator_user_id) REFERENCES users(id)
 );
 DROP INDEX IF EXISTS classes_user_by_link_ident;
@@ -137,3 +142,16 @@ CREATE TABLE migrations (
     skipped     BOOLEAN NOT NULL CHECK (skipped IN (0,1)) DEFAULT 0,
     succeeded   BOOLEAN NOT NULL CHECK (skipped IN (0,1)) DEFAULT 0
 );
+
+-- Models (LLMs via API) to be assigned per-consumer or per-class
+CREATE TABLE models (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL UNIQUE,
+    text_model  TEXT,
+    chat_model  TEXT
+);
+INSERT INTO models(name, text_model, chat_model) VALUES
+    ('OpenAI GPT-3.5', 'text-davinci-003', 'gpt-3.5-turbo'),
+    ('OpenAI GPT-4', NULL, 'gpt-4')   -- GPT-4 only has a chat completion
+;
+

@@ -6,7 +6,7 @@ from flask import Blueprint, current_app, redirect, render_template, request, ur
 from . import prompts
 from plum.db import get_db
 from plum.auth import get_auth, login_required, class_config_required, tester_required
-from plum.openai import with_openai_key, get_completion
+from plum.openai import with_llm, get_completion
 from plum.queries import get_query, get_history
 
 
@@ -72,7 +72,7 @@ def score_response(response_txt, avoid_set):
     return score
 
 
-async def run_query_prompts(api_key, language, code, error, issue):
+async def run_query_prompts(llm_dict, language, code, error, issue):
     ''' Run the given query against the coding help system of prompts.
 
     Returns a tuple containing:
@@ -81,6 +81,9 @@ async def run_query_prompts(api_key, language, code, error, issue):
     '''
     db = get_db()
     auth = get_auth()
+    api_key = llm_dict['key']
+    text_model = llm_dict['text_model'] or llm_dict['chat_model']  # some LLMs only have chat completion, so use that if there is no text completion model
+    chat_model = llm_dict['chat_model']
 
     # create "avoid set" from class configuration
     if auth['class_id'] is not None:
@@ -93,14 +96,14 @@ async def run_query_prompts(api_key, language, code, error, issue):
 
     # Launch the "sufficient detail" check concurrently with the main prompt to save time if it comes back as sufficient.
     task_sufficient = asyncio.create_task(
-        get_completion(api_key, prompt=prompts.make_sufficient_prompt(language, code, error, issue), model='turbo')
+        get_completion(api_key, prompt=prompts.make_sufficient_prompt(language, code, error, issue), model=chat_model)
     )
 
     task_main = asyncio.create_task(
         get_completion(
             api_key,
             prompt=prompts.make_main_prompt(language, code, error, issue, avoid_set),
-            model='turbo',
+            model=chat_model,
             n=2,
             score_func=lambda x: score_response(x, avoid_set)
         )
@@ -120,7 +123,8 @@ async def run_query_prompts(api_key, language, code, error, issue):
     if "```" in response_txt or "should look like" in response_txt or "should look something like" in response_txt:
         # That's probably too much code.  Let's clean it up...
         cleanup_prompt = prompts.make_cleanup_prompt(orig_response_txt=response_txt)
-        cleanup_response, cleanup_response_txt = await get_completion(api_key, prompt=cleanup_prompt, model='davinci')
+        # cleanup doesn't work reliably with gpt-3.5-turbo, so if GPT-3.5 is selected, use davinci (text_model)
+        cleanup_response, cleanup_response_txt = await get_completion(api_key, prompt=cleanup_prompt, model=text_model)
         responses.append(cleanup_response)
         response_txt = cleanup_response_txt
 
@@ -132,10 +136,10 @@ async def run_query_prompts(api_key, language, code, error, issue):
         return responses, {'insufficient': response_sufficient_txt, 'main': response_txt}
 
 
-def run_query(api_key, language, code, error, issue):
+def run_query(llm_dict, language, code, error, issue):
     query_id = record_query(language, code, error, issue)
 
-    responses, texts = asyncio.run(run_query_prompts(api_key, language, code, error, issue))
+    responses, texts = asyncio.run(run_query_prompts(llm_dict, language, code, error, issue))
 
     record_response(query_id, responses, texts)
 
@@ -170,8 +174,8 @@ def record_response(query_id, responses, texts):
 @bp.route("/request", methods=["POST"])
 @login_required
 @class_config_required
-@with_openai_key()
-def help_request(api_key):
+@with_llm()
+def help_request(llm_dict):
     lang_id = int(request.form["lang_id"])
     language = current_app.config["LANGUAGES"][lang_id]
     code = request.form["code"]
@@ -180,7 +184,7 @@ def help_request(api_key):
 
     # TODO: limit length of code/error/issue
 
-    query_id = run_query(api_key, language, code, error, issue)
+    query_id = run_query(llm_dict, language, code, error, issue)
 
     return redirect(url_for(".help_view", query_id=query_id))
 
@@ -201,9 +205,9 @@ def post_helpful():
 @bp.route("/topics/html/<int:query_id>", methods=["GET", "POST"])
 @login_required
 @tester_required
-@with_openai_key()
-def get_topics_html(api_key, query_id):
-    topics, query_row = get_topics(api_key, query_id)
+@with_llm()
+def get_topics_html(llm_dict, query_id):
+    topics, query_row = get_topics(llm_dict, query_id)
     if not topics:
         return render_template("topics_fragment.html", error=True)
     else:
@@ -213,13 +217,13 @@ def get_topics_html(api_key, query_id):
 @bp.route("/topics/raw/<int:query_id>", methods=["GET", "POST"])
 @login_required
 @tester_required
-@with_openai_key()
-def get_topics_raw(api_key, query_id):
-    topics, _ = get_topics(api_key, query_id)
+@with_llm()
+def get_topics_raw(llm_dict, query_id):
+    topics, _ = get_topics(llm_dict, query_id)
     return topics
 
 
-def get_topics(api_key, query_id):
+def get_topics(llm_dict, query_id):
     query_row, responses = get_query(query_id)
 
     messages = prompts.make_topics_prompt(
@@ -231,9 +235,9 @@ def get_topics(api_key, query_id):
     )
 
     response, response_txt = asyncio.run(get_completion(
-        api_key,
+        api_key=llm_dict['key'],
         messages=messages,
-        model='turbo',
+        model=llm_dict['chat_model'],
     ))
 
     # Verify it is actually JSON
