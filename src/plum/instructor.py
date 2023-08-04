@@ -3,7 +3,7 @@ import datetime as dt
 import io
 import json
 
-from flask import Blueprint, flash, make_response, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, make_response, redirect, render_template, request, url_for
 
 from .db import get_db
 from .auth import get_auth, instructor_required
@@ -28,6 +28,7 @@ def get_queries(class_id, user=None):
         SELECT
             queries.id,
             users.display_name,
+            users.email,
             queries.query_time,
             queries.language,
             queries.code,
@@ -48,25 +49,19 @@ def get_queries(class_id, user=None):
     return queries
 
 
-@bp.route("/")
-@instructor_required
-def main():
+def get_users(class_id):
     db = get_db()
-    auth = get_auth()
-
-    class_id = auth['class_id']
 
     users = db.execute("""
         SELECT
             users.id,
             users.display_name,
             users.email,
-            users.auth_name,
-            roles.id AS role_id,
-            roles.active,
             auth_providers.name AS auth_provider,
+            users.auth_name,
             COUNT(queries.id) AS num_queries,
-            SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
+            SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries,
+            roles.active
         FROM users
         LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
         JOIN roles ON roles.user_id=users.id
@@ -76,38 +71,57 @@ def main():
         ORDER BY display_name
     """, [class_id]).fetchall()
 
-    user_id = request.args.get('user', None)
-    if user_id:
-        user_display_row = db.execute("SELECT display_name FROM users WHERE id=?", [user_id]).fetchone()
-        user = user_display_row[0]
-    else:
-        user = None
-
-    queries = get_queries(class_id, user_id)
-
-    return render_template("instructor.html", users=users, queries=queries, user=user)
+    return users
 
 
-@bp.route("/queries/csv")
+@bp.route("/")
 @instructor_required
-def get_queries_csv():
+def main():
     auth = get_auth()
     class_id = auth['class_id']
-    queries = get_queries(class_id)
 
-    if not queries:
-        flash("There are no queries to export yet.", "warning")
+    users = get_users(class_id)
+
+    sel_user_name = None
+    sel_user_id = request.args.get('user', None)
+    if sel_user_id:
+        sel_user_row = next(filter(lambda row: row['id'] == int(sel_user_id), users), None)
+        print(sel_user_id, sel_user_row)
+        if sel_user_row:
+            sel_user_name = sel_user_row['display_name']
+
+    queries = get_queries(class_id, sel_user_id)
+
+    return render_template("instructor.html", users=users, queries=queries, user=sel_user_name)
+
+
+@bp.route("/csv/<string:kind>")
+@instructor_required
+def get_csv(kind):
+    if kind not in ('queries', 'users'):
+        return abort(404)
+
+    auth = get_auth()
+    class_id = auth['class_id']
+
+    if kind == "queries":
+        table = get_queries(class_id)
+    elif kind == "users":
+        table = get_users(class_id)
+
+    if not table:
+        flash("There are no rows to export yet.", "warning")
         return render_template("error.html")
 
     stringio = io.StringIO()
     writer = csv.writer(stringio)
-    writer.writerow(queries[0].keys())  # column headers
-    writer.writerows(queries)
+    writer.writerow(table[0].keys())  # column headers
+    writer.writerows(table)
 
     output = make_response(stringio.getvalue())
     class_name = auth['class_name'].replace(" ","-")
-    timestamp = dt.datetime.now().strftime("%Y%M%d")
-    output.headers["Content-Disposition"] = f"attachment; filename={timestamp}_{class_name}_queries.csv"
+    timestamp = dt.datetime.now().strftime("%Y%m%d")
+    output.headers["Content-Disposition"] = f"attachment; filename={timestamp}_{class_name}_{kind}.csv"
     output.headers["Content-type"] = "text/csv"
 
     return output

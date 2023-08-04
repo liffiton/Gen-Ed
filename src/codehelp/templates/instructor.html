@@ -17,7 +17,7 @@ datatable('queries', [
   hidden_cols=['id'],
   link_col=0,
   link_template="/help/view/${value}",
-  csv_link="/instructor/queries/csv"
+  csv_link=url_for("instructor.get_csv", kind="queries")
 )
 }}
 {% endblock %}
