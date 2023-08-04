@@ -1,10 +1,17 @@
 PLuM: Prompted Language Model Applications
 ==========================================
 
-Setup & Install
----------------
+PLuM is a framework for LLM-based web applications for education (i.e., with a
+focus on instructors and their classes of students as users).
+The repository contains two different applications that use PLuM as a
+foundation.
 
-1. Populate .env (instance path, OpenAI key, initial password(s))
+
+Install
+-------
+
+1. Create and activate a Python virtual environment.
+
 2. Install dependencies
 
   pip install -r requirements.txt
@@ -14,20 +21,44 @@ Setup & Install
   pip install -e .
 
 
+Set Up an Application
+---------------------
+
+1. In the root of the repository, create .env and populate it:
+
+  FLASK_INSTANCE_PATH=instance
+  OPENAI_API_KEY=[your OpenAI API key]
+  GOOGLE_CLIENT_ID=[...]
+  GOOGLE_CLIENT_SECRET=[...]
+  GITHUB_CLIENT_ID=[...]
+  GITHUB_CLIENT_SECRET=[...]
+  MICROSOFT_CLIENT_ID=[...]
+  MICROSOFT_CLIENT_SECRET=[...]
+
+Then, to set up the CodeHelp app, for example:
+
+2. Initialize database
+
+  flask --app codehelp initdb
+
+3. Create at least one admin user
+
+  flask --app codehelp newuser --admin [username]
+
+This will create and display a randomly-generated password.
+To change the password:
+
+  flask --app codehelp setpassword [username]
+
+
 Running an Application
 ----------------------
 
-For example, the codehelp app:
-
-1. Initialize database
-
-  flask --app codehelp initdb
-  flask --app codehelp newuser [username]  # will prompt for password
-
-2. Start the application
+For example, to run the CodeHelp app:
 
   flask --app codehelp run
-  # or
+  
+  # or, during development:
   flask --app codehelp --debug run
 
 
@@ -41,9 +72,14 @@ For code coverage report (assuming 'coverage' package is installed):
   coverage run -m pytest && coverage html && xdg-open htmlcov/index.html
 
 
-Credit
+Author
 ------
 
-PLuM and included applications developed by Mark Liffiton.
+PLuM and the included applications are written by Mark Liffiton.
 
-Brand icons from Simple Icons [https://simpleicons.org/]; other icons from Lucide [https://lucide.dev/].
+
+Acknowledgements
+----------------
+
+Brand icons from Simple Icons [https://simpleicons.org/] (CC0 license).
+Other icons from Lucide [https://lucide.dev/] (MIT license).
