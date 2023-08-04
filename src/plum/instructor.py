@@ -49,11 +49,12 @@ def get_queries(class_id, user=None):
     return queries
 
 
-def get_users(class_id):
+def get_users(class_id, for_export=False):
     db = get_db()
 
-    users = db.execute("""
+    users = db.execute(f"""
         SELECT
+            {'roles.id AS role_id,' if not for_export else ''}
             users.id,
             users.display_name,
             users.email,
@@ -61,7 +62,8 @@ def get_users(class_id):
             users.auth_name,
             COUNT(queries.id) AS num_queries,
             SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries,
-            roles.active
+            roles.active,
+            roles.role = "instructor" AS instructor_role
         FROM users
         LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
         JOIN roles ON roles.user_id=users.id
@@ -107,7 +109,7 @@ def get_csv(kind):
     if kind == "queries":
         table = get_queries(class_id)
     elif kind == "users":
-        table = get_users(class_id)
+        table = get_users(class_id, for_export=True)
 
     if not table:
         flash("There are no rows to export yet.", "warning")
@@ -197,19 +199,47 @@ def set_user_class_setting():
     return redirect(url_for(".config_form"))
 
 
-@bp.route("/role/set_active/", methods=["POST"])
-@bp.route("/role/set_active/<int:role_id>/<int:active>", methods=["POST"])
+@bp.route("/role/set_active", methods=["POST"])  # just for url_for in the Javascript code
+@bp.route("/role/set_active/<int:role_id>/<int:bool_active>", methods=["POST"])
 @instructor_required
-def set_role_active(role_id, active):
+def set_role_active(role_id, bool_active):
     db = get_db()
     auth = get_auth()
+
+    # prevent instructors from mistakenly making themselves not active and locking themselves out
+    if role_id == auth['role_id']:
+        return "You cannot make yourself inactive."
 
     # class_id should be redundant w/ role_id, but without it, an instructor
     # could potentially deactivate a role in someone else's class.
     # only trust class_id from auth, not from user
     class_id = auth['class_id']
 
-    db.execute("UPDATE roles SET active=? WHERE id=? AND class_id=?", [active, role_id, class_id])
+    db.execute("UPDATE roles SET active=? WHERE id=? AND class_id=?", [bool_active, role_id, class_id])
+    db.commit()
+
+    return "okay"
+
+
+@bp.route("/role/set_instructor", methods=["POST"])  # just for url_for in the Javascript code
+@bp.route("/role/set_instructor/<int:role_id>/<int:bool_instructor>", methods=["POST"])
+@instructor_required
+def set_role_instructor(role_id, bool_instructor):
+    db = get_db()
+    auth = get_auth()
+
+    # prevent instructors from mistakenly making themselves not instructors and locking themselves out
+    if role_id == auth['role_id']:
+        return "You cannot change your own role."
+
+    # class_id should be redundant w/ role_id, but without it, an instructor
+    # could potentially deactivate a role in someone else's class.
+    # only trust class_id from auth, not from user
+    class_id = auth['class_id']
+
+    new_role = 'instructor' if bool_instructor else 'student'
+
+    db.execute("UPDATE roles SET role=? WHERE id=? AND class_id=?", [new_role, role_id, class_id])
     db.commit()
 
     return "okay"

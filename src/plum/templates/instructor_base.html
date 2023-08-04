@@ -14,7 +14,8 @@
              ('user', 'display_name'),
              ('#queries', 'num_queries', 'r'),
              ('1wk', 'num_recent_queries', 'r'),
-             ('active?', 'active', 'b', 'instructor.set_role_active')
+             ('active?', 'active', 'b', 'instructor.set_role_active'),
+             ('instructor?', 'instructor_role', 'b', 'instructor.set_role_instructor')
            ],
            users,
            hidden_cols=['id'],

@@ -111,11 +111,12 @@
         // handler for a 'b'ool column
         function set_bool_{{col[1]}}(id, val) {
           const int_val = val ? 1 : 0;
-          const url = `{{url_for(col[3])}}${id}/${int_val}`;
+          const url = `{{url_for(col[3])}}/${id}/${int_val}`;
           fetch(url, {method: "POST"})
-            .then(response => {
-              if (!response.ok) {
-                alert(`There was an error setting that value. [url: ${url}]`);
+            .then(response => response.text())
+            .then(text => {
+              if (text !== 'okay') {
+                alert(`Error: ${text}\nURL: ${url}`);
               }
             }
           );
