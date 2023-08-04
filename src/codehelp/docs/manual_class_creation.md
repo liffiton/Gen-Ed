@@ -10,7 +10,7 @@ These instructions explain how to create and share a class manually.
 Compared to connecting via LTI, this has the following drawbacks:
 
   1. Every user (student and instructor) must log in to CodeHelp with a Google, Microsoft, or Github account.  <i>[LTI handles authentication automatically.]</i>
-  2. A class can only have one instructor (the user who creates it).  <i>[An LTI connection automatically gives any instructor or TA instructor-level access in CodeHelp.]</i>
+  2. Additional instructors (beyond the user who creates the class) must be manually assigned after they have joined the class.  <i>[An LTI connection automatically gives any instructor or TA instructor-level access in CodeHelp.]</i>
   3. Students will be identified by their login account and the name registered to it.  This may not correspond to their school email or the name they use in class.  <i>[LTI provides institution email addresses and names from your LMS.]</i>
 
 ## Creation
@@ -24,6 +24,7 @@ Under the "Classes" heading, press "Create new class."
 This will bring up a dialog asking for a class name and an OpenAI API key.
 
 The OpenAI API key will be used for your students' queries in CodeHelp.
+If you don't have an API key yet, you can leave it blank for now, but it will be required for anyone to submit queries in your class.
 You can create an API key using an account at <a href="https://openai.com/">openai.com</a>.
 OpenAI will charge you directly for your students' usage, so you will need to provide them a credit card to bill.
 The cost is low.
@@ -44,4 +45,4 @@ In the configuration screen, you can also archive the class (so students can see
 ## Switching Between Classes
 
 If you have multiple classes in CodeHelp, you can switch between them from your user profile page.
-If you are an instructor for your currently selected class, links to the class configuration page and the instructor view will be in the navigation bar.
+When you are an instructor in your currently selected class, links to the class configuration page and the instructor view will be in the navigation bar.
