@@ -7,6 +7,8 @@ DROP TABLE IF EXISTS auth_local;
 DROP TABLE IF EXISTS auth_external;
 DROP TABLE IF EXISTS roles;
 DROP TABLE IF EXISTS classes;
+DROP TABLE IF EXISTS classes_lti;
+DROP TABLE IF EXISTS classes_user;
 DROP TABLE IF EXISTS demo_links;
 DROP TABLE IF EXISTS migrations;
 DROP TABLE IF EXISTS models;
