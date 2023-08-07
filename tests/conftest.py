@@ -3,6 +3,8 @@ from pathlib import Path
 import tempfile
 
 import pytest
+from dotenv import find_dotenv, load_dotenv
+
 from plum.admin import reload_consumers
 from plum.db import get_db, init_db
 import codehelp
@@ -12,6 +14,12 @@ import codehelp
 test_sql = Path(__file__).parent / 'test_data.sql'
 with test_sql.open('rb') as f:
     _test_data_sql = f.read().decode('utf8')
+
+
+@pytest.fixture(scope='session', autouse=True)
+def load_env():
+    env_file = find_dotenv('.env.test')
+    load_dotenv(env_file)
 
 
 @pytest.fixture
