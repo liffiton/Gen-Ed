@@ -1,10 +1,14 @@
-PLuM: Prompted Language Model Applications
+Plum: Prompted Language Model Applications
 ==========================================
 
-PLuM is a framework for LLM-based web applications for education (i.e., with a
+Plum is a framework for LLM-based web applications for education (i.e., with a
 focus on instructors and their classes of students as users).
-The repository contains two different applications that use PLuM as a
-foundation.
+The repository contains two different applications that use Plum as a
+foundation:
+
+1. CodeHelp: A tool for assisting students in computer science classes without
+   giving them solution code.
+2. Starburst: A topic-exploration tool for writing assignments.
 
 
 Install
@@ -75,7 +79,7 @@ For code coverage report (assuming 'coverage' package is installed):
 Author
 ------
 
-PLuM and the included applications are written by Mark Liffiton.
+Plum and the included applications are by Mark Liffiton.
 
 
 Acknowledgements

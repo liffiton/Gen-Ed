@@ -11,7 +11,7 @@ from . import admin, auth, classes, db, demo, docs, instructor, filters, lti, mi
 
 
 def create_app_base(import_name, app_config, instance_path):
-    ''' Create a base PLuM application.
+    ''' Create a base Plum application.
     Args:
         module_name: The name of the application's package (preferred) or module.
                      E.g., call this as plum.create_app_base(__name__, ...) from package/__init__.py.
