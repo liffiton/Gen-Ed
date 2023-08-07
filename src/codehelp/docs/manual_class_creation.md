@@ -16,7 +16,7 @@ Compared to connecting via LTI, this has the following drawbacks:
 ## Creation
 
 First, log in to CodeHelp using a Google, Microsoft, or Github account.
-Whatever account you use to connect will be the account registered as an "instructor" for the new class.
+Whatever account you use to connect will be registered as an "instructor" for the new class.
 
 Once logged in, go to your <a href="/profile/">profile page</a> (also accessible by clicking on your user info in the navigation bar at the top of the page).
 
@@ -42,7 +42,13 @@ Before your students can use CodeHelp, you will need to provide a configuration 
 
 In the configuration screen, you can also archive the class (so students can see their past queries but not make new ones) and change the OpenAI API key you have connected to it.
 
+## Adding Instructors
+
+To add instructors to the course, you can give other users the "instructor" role in your class.
+First, have them join the class via the "Access/Join Link" found in the class configuration screen.
+Then, to give them the instructor role, go to the instructor view and check the box in the "Instructor?" column for their user in the Users table.
+
 ## Switching Between Classes
 
 If you have multiple classes in CodeHelp, you can switch between them from your user profile page.
-When you are an instructor in your currently selected class, links to the class configuration page and the instructor view will be in the navigation bar.
+When you have selected a class in which you are an instructor, the navigation bar will contain links to its class configuration and instructor view pages.
