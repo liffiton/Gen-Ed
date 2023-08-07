@@ -12,6 +12,4 @@ venv/
 
 .coverage
 
-lib/pylti/
-
 *.egg-info/
