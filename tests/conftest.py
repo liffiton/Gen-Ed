@@ -31,7 +31,7 @@ def app(monkeypatch):
             'TESTING': True,
             'DATABASE': db_path,
         },
-        instance_path='tests/instance',
+        instance_path=Path(db_path).absolute().parent,
     )
 
     with app.app_context():
