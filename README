@@ -28,7 +28,11 @@ Install
 Set Up an Application
 ---------------------
 
-1. In the root of the repository, create .env and populate it:
+1. In the root of the repository, create an instance folder for the database:
+
+  mkdir instance
+
+2. In the root of the repository, create .env and populate it:
 
   FLASK_INSTANCE_PATH=instance
   OPENAI_API_KEY=[your OpenAI API key]
@@ -41,11 +45,11 @@ Set Up an Application
 
 Then, to set up the CodeHelp app, for example:
 
-2. Initialize database
+3. Initialize database
 
   flask --app codehelp initdb
 
-3. Create at least one admin user
+4. Create at least one admin user
 
   flask --app codehelp newuser --admin [username]
 
