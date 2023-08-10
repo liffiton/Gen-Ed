@@ -1,12 +1,12 @@
 import asyncio
 import json
 
-from flask import Blueprint, current_app, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
 
 from . import prompts
 from plum.db import get_db
 from plum.auth import get_auth, login_required, class_config_required, tester_required
-from plum.openai import with_llm, get_completion
+from plum.openai import with_llm, get_completion, TEST_API_KEY
 from plum.queries import get_query, get_history
 
 
@@ -183,6 +183,27 @@ def help_request(llm_dict):
     issue = request.form["issue"]
 
     # TODO: limit length of code/error/issue
+
+    query_id = run_query(llm_dict, language, code, error, issue)
+
+    return redirect(url_for(".help_view", query_id=query_id))
+
+
+@bp.route("/load_test", methods=["POST"])
+@with_llm(use_system_key=True)  # just to get a correctly-populated llm_dict
+def load_test(llm_dict):
+    # Require that we're logged in as the load_test user
+    auth = get_auth()
+    if auth['display_name'] != 'load_test':
+        return abort(404)
+
+    # Ensure test path is triggered in get_completion()
+    llm_dict['key'] = TEST_API_KEY
+
+    language = "Python"
+    code = "Code"
+    error = "Error"
+    issue = "Issue"
 
     query_id = run_query(llm_dict, language, code, error, issue)
 

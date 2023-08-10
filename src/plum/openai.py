@@ -1,3 +1,4 @@
+import time
 from functools import wraps
 
 from flask import current_app, flash, render_template
@@ -5,6 +6,11 @@ import openai
 
 from .db import get_db
 from .auth import get_auth
+
+
+# When this is provided as an API key to get_completion(), no API call will be made.
+# The function will sleep to simulate a request, then return test data.
+TEST_API_KEY = '__TESTING__'
 
 
 class ClassDisabledError(Exception):
@@ -163,6 +169,10 @@ async def get_completion(api_key, prompt=None, messages=None, model=None, n=1, s
     assert prompt is None or messages is None
     if model == 'text-davinci-003':
         assert prompt is not None
+
+    if api_key == TEST_API_KEY:
+        time.sleep(2)  # simulate a 2 second delay for a network request
+        return "TEST DATA: " + "x "*500, "TEST DATA: " + "x "*500,
 
     try:
         if model == 'text-davinci-003':
