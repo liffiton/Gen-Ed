@@ -1,4 +1,4 @@
-import time
+import asyncio
 from functools import wraps
 
 from flask import current_app, flash, render_template
@@ -171,7 +171,7 @@ async def get_completion(api_key, prompt=None, messages=None, model=None, n=1, s
         assert prompt is not None
 
     if api_key == TEST_API_KEY:
-        time.sleep(2)  # simulate a 2 second delay for a network request
+        asyncio.sleep(2)  # simulate a 2 second delay for a network request
         return "TEST DATA: " + "x "*500, "TEST DATA: " + "x "*500,
 
     try:
