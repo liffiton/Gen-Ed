@@ -85,20 +85,14 @@ def test_lti_auth_success(client, role, internal_role):
     assert result.location == '/help/'
 
     result = client.get('/help/')
+    assert result.status_code == 200
 
-    # ... but the class is not configured,
-    # so instructors get another redirect
-    # to the instructor config page assert.
+    # we can configure the class iff we're an instructor
+    result = client.get('/instructor/config/')
     if internal_role == 'instructor':
-        assert result.status_code == 302
-        assert result.location == '/instructor/config/'
-        result = client.get(result.location)
         assert result.status_code == 200
     else:
-        assert result.status_code == 200
-
-    # regardless, everyone sees a "not yet configured" message.
-    assert "This class is not yet configured." in result.text
+        assert result.status_code == 403  # forbidden (as non-instructor)
 
     # check the profile for correct name, class name and role
     result = client.get('/profile/')
