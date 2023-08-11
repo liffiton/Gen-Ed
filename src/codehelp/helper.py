@@ -6,7 +6,7 @@ from flask import Blueprint, abort, redirect, render_template, request, url_for
 from . import prompts
 from .class_config import get_class_config
 from plum.db import get_db
-from plum.auth import get_auth, login_required, class_config_required, tester_required
+from plum.auth import get_auth, login_required, class_enabled_required, tester_required
 from plum.openai import with_llm, get_completion, TEST_API_KEY
 from plum.queries import get_query, get_history
 
@@ -17,7 +17,7 @@ bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='template
 @bp.route("/")
 @bp.route("/<int:query_id>")
 @login_required
-@class_config_required
+@class_enabled_required
 def help_form(query_id=None):
     db = get_db()
     auth = get_auth()
@@ -165,7 +165,7 @@ def record_response(query_id, responses, texts):
 
 @bp.route("/request", methods=["POST"])
 @login_required
-@class_config_required
+@class_enabled_required
 @with_llm()
 def help_request(llm_dict):
     class_config = get_class_config()

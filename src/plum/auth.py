@@ -191,7 +191,7 @@ def instructor_required(f):
     return decorated_function
 
 
-def class_config_required(f):
+def class_enabled_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         auth = get_auth()
@@ -201,18 +201,9 @@ def class_config_required(f):
             # No active class, no problem
             return f(*args, **kwargs)
 
-        # Otherwise, there's an active class, so we require it to have a non-empty configuration.
+        # Otherwise, there's an active class, so we require it to be enabled.
         db = get_db()
         class_row = db.execute("SELECT * FROM classes WHERE id=?", [class_id]).fetchone()
-        if class_row['config'] == '{}':
-            # Not yet configured
-            if auth['role'] == 'instructor':
-                flash("This class is not yet configured.  Please configure it so that you and your students can use it.", "danger")
-                return redirect(url_for("class_config.config_form"))
-            else:
-                flash("This class is not yet configured.  Your instructor must configure it before you can use it.", "danger")
-                return render_template("error.html")
-        # And it must be active
         if not class_row['enabled']:
             flash("The current class is archived or disabled.  New requests cannot be made.", "warning")
             return render_template("error.html")

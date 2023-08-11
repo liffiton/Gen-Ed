@@ -8,7 +8,7 @@
         Queries &amp; Responses
       </h2>
       {% if not class_config or (class_config.languages and not class_config.default_lang) %}
-        <p class="is-size-5 mb-2 has-text-danger">(Not yet configured.  Students cannot submit queries until a configuration is saved here.)</p>
+        <p class="is-size-5 mb-2 has-text-danger">[We recommended configuring the language(s) for your class before your students use CodeHelp.]</p>
       {% endif %}
       <form action="{{ url_for("class_config.set_config") }}" method="post">
         <div class="field is-horizontal">
@@ -38,7 +38,7 @@
                 <tr><th>Default</th><th>Language</th><th class="has-text-grey"><small>remove</small></th></tr>
               </thead>
               <tbody>
-                <template x-for="lang in languages">
+                <template x-for="lang in languages" x-bind:key="lang">
                   <tr>
                     <input type="hidden" name="languages[]" x-bind:value="lang">
                     <td class="has-text-centered">
