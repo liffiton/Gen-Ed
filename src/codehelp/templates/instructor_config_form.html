@@ -7,8 +7,7 @@
       <h2 class="title is-size-4">
         Queries &amp; Responses
       </h2>
-      {% if not class_config %}
-        {# anything Falsey, including the expected {} empty dict #}
+      {% if not class_config or (class_config.languages and not class_config.default_lang) %}
         <p class="is-size-5 mb-2 has-text-danger">(Not yet configured.  Students cannot submit queries until a configuration is saved here.)</p>
       {% endif %}
       <form action="{{ url_for("class_config.set_config") }}" method="post">
