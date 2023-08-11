@@ -112,9 +112,12 @@
             </div>
           </div>
         </div>
+        {% endif %}{# end if class['link_ident'] -- i.e., end of user-created class config #}
 
       </form>
 
+      {% if class_row['link_ident'] %}
+      {# link_ident only in classes_user, so will only be set for user classes. #}
       <div class="conf_col_sep mt-5"></div>
 
       <h2 class="title is-size-4 mt-5">Language Model</h2>
