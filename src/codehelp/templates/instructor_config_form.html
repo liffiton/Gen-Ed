@@ -11,24 +11,60 @@
         {# anything Falsey, including the expected {} empty dict #}
         <p class="is-size-5 mb-2 has-text-danger">(Not yet configured.  Students cannot submit queries until a configuration is saved here.)</p>
       {% endif %}
-      <form action="{{ url_for("instructor.set_config") }}" method="post">
+      <form action="{{ url_for("class_config.set_config") }}" method="post">
         <div class="field is-horizontal">
           <div class="field-label is-normal">
-            <label class="label" for="language">Default Language:</label>
+            <label class="label">Languages:</label>
           </div>
           <div class="field-body">
-            <div class="field">
-              <div class="control">
-                <div class="select">
-                  <select name="default_lang" required id="language">
-                    <option value="">Please select</option>
-                    {% for lang in config['LANGUAGES'] %}
-                    <option value="{{lang}}" {% if lang == class_config['default_lang'] %}selected{% endif %}>{{lang | capitalize}}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-              </div>
-            </div>
+            <script type="text/javascript">
+              document.addEventListener('alpine:init', () => {
+                Alpine.data('lang_config', () => ({
+                  languages: {{ class_config.languages | tojson }},
+                  default_lang: {{ class_config.default_lang | tojson }},
+                  new_language: null,
+
+                  add_lang() {
+                    const newlang = this.new_language;
+                    if (newlang && !this.languages.includes(newlang)) {
+                      this.languages.push(newlang);
+                      this.new_language = null;
+                    }
+                  }
+                }));
+              });
+            </script>
+            <table class="table is-narrow" x-data="lang_config">
+              <thead>
+                <tr><th>Default</th><th>Language</th><th class="has-text-grey"><small>remove</small></th></tr>
+              </thead>
+              <tbody>
+                <template x-for="lang in languages">
+                  <tr>
+                    <input type="hidden" name="languages[]" x-bind:value="lang">
+                    <td class="has-text-centered">
+                      <input type="radio" name="default_lang" required x-bind:value="lang" x-model="default_lang">
+                    </td>
+                    <td x-text="lang"></td>
+                    <td class="has-text-centered">
+                      <span class="delete mt-1 mb-1" @click="languages = languages.filter(item => item !== lang)"></span>
+                    </td>
+                  </tr>
+                </template>
+                <tr>
+                  <td colspan=3>
+                    <div class="field has-addons">
+                      <div class="control">
+                        <input class="input is-small" x-model="new_language" @keydown.enter.prevent="add_lang()">
+                      </div>
+                      <div class="control">
+                        <button class="button is-success is-small" type="button" @click="add_lang()">add</button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 

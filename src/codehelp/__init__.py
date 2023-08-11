@@ -3,7 +3,7 @@ from pathlib import Path
 from flask import send_from_directory
 
 from plum import base
-from . import helper, tutor
+from . import class_config, helper, tutor
 
 
 def create_app(test_config=None, instance_path=None):
@@ -17,14 +17,14 @@ def create_app(test_config=None, instance_path=None):
         DATABASE_NAME='codehelp.db',  # will be combined with app.instance_path in plum.create_app_base()
         DOCS_DIR=module_dir / 'docs',
         SECRET_KEY='_oeofMFVOeT-Z730Ksz44Q',
-        LANGUAGES=[
-            "c",
-            "c++",
-            "java",
-            "javascript",
-            "ocaml",
-            "python",
-            "rust",
+        DEFAULT_LANGUAGES=[
+            "C",
+            "C++",
+            "Java",
+            "Javascript",
+            "OCaml",
+            "Python",
+            "Rust",
         ],
     )
 
@@ -36,6 +36,7 @@ def create_app(test_config=None, instance_path=None):
     app = base.create_app_base(__name__, app_config, instance_path)
 
     # register blueprints specific to this application variant
+    app.register_blueprint(class_config.bp)
     app.register_blueprint(helper.bp)
     app.register_blueprint(tutor.bp)
 

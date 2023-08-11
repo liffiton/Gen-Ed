@@ -1,13 +1,11 @@
 import csv
 import datetime as dt
 import io
-import json
 
-from flask import Blueprint, abort, flash, make_response, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, make_response, redirect, render_template, request
 
 from .db import get_db
 from .auth import get_auth, instructor_required
-from .openai import get_models
 from .tz import date_is_past
 
 
@@ -29,14 +27,7 @@ def get_queries(class_id, user=None):
             queries.id,
             users.display_name,
             users.email,
-            queries.query_time,
-            queries.language,
-            queries.code,
-            queries.error,
-            queries.issue,
-            queries.response_text,
-            queries.helpful,
-            queries.helpful_emoji
+            queries.*
         FROM queries
         JOIN users
             ON queries.user_id=users.id
@@ -129,22 +120,19 @@ def get_csv(kind):
     return output
 
 
-@bp.route("/config")
-@instructor_required
-def config_form():
+def get_common_class_settings():
     db = get_db()
     auth = get_auth()
 
     class_id = auth['class_id']
 
     class_row = db.execute("""
-        SELECT classes.id, classes.enabled, classes.config, classes_user.link_ident, classes_user.link_reg_expires, classes_user.openai_key, classes_user.model_id
+        SELECT classes.id, classes.enabled, classes_user.link_ident, classes_user.link_reg_expires, classes_user.openai_key, classes_user.model_id
         FROM classes
         LEFT JOIN classes_user
           ON classes.id = classes_user.class_id
         WHERE classes.id=?
     """, [class_id]).fetchone()
-    class_config = json.loads(class_row['config'])
 
     expiration_date = class_row['link_reg_expires']
     if expiration_date is None:
@@ -156,7 +144,7 @@ def config_form():
     else:
         link_reg_state = "date"
 
-    return render_template("instructor_config_form.html", class_row=class_row, link_reg_state=link_reg_state, class_config=class_config, models=get_models())
+    return class_row, link_reg_state
 
 
 @bp.route("/user_class/set", methods=["POST"])
@@ -196,7 +184,7 @@ def set_user_class_setting():
         db.commit()
         flash("Class language model configuration updated.", "success")
 
-    return redirect(url_for(".config_form"))
+    return redirect(request.referrer)
 
 
 @bp.route("/role/set_active", methods=["POST"])  # just for url_for in the Javascript code
@@ -243,26 +231,3 @@ def set_role_instructor(role_id, bool_instructor):
     db.commit()
 
     return "okay"
-
-
-# TODO: Move this to app-specific module... #
-@bp.route("/config/set", methods=["POST"])
-@instructor_required
-def set_config():
-    db = get_db()
-    auth = get_auth()
-
-    # only trust class_id from auth, not from user
-    class_id = auth['class_id']
-
-    class_config = {
-        'default_lang': request.form['default_lang'],
-        'avoid': request.form['avoid'],
-    }
-    class_config_json = json.dumps(class_config)
-
-    db.execute("UPDATE classes SET config=? WHERE id=?", [class_config_json, class_id])
-    db.commit()
-
-    flash("Configuration set!", "success")
-    return redirect(url_for(".config_form"))

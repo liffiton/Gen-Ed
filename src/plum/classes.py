@@ -145,7 +145,7 @@ def create_class():
     success = switch_class(class_id)
     assert success
 
-    return redirect(url_for("instructor.config_form"))
+    return redirect(url_for("class_config.config_form"))
 
 
 @bp.route("/access/<string:class_ident>")

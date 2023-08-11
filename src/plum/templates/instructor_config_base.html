@@ -30,6 +30,10 @@
   margin: 0.5rem;
   margin-top: 0.8rem;
 }
+.conf_col table input[type='radio'] {
+  transform: scale(1.5);
+  margin: 0;
+}
 </style>
 <section class="section">
   <h1 class="title">{{ auth['class_name'] }} Configuration</h1>
@@ -174,7 +178,7 @@
       {% endif %}{# end if class['link_ident'] -- i.e., end of user-created class config #}
 
     </div>
-    {% block class_config_form %}
+    {% block class_config_form %}{# needs to be defined in app-specific instructor_config_form.html that extends this template #}
     {% endblock %}
   </div>
 

@@ -28,14 +28,16 @@
         </div>
       </div>
 
+      {% if query.language %}
       <div class="field is-horizontal">
         <div class="field-label">
           <label class="label">Language:</label>
         </div>
         <div class="field-body">
-          {{ query.language | capitalize }}
+          {{ query.language }}
         </div>
       </div>
+      {% endif %}
 
       <div class="field is-horizontal">
         <div class="field-label is-normal">

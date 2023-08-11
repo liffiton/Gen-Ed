@@ -1,9 +1,10 @@
 import asyncio
 import json
 
-from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
+from flask import Blueprint, abort, redirect, render_template, request, url_for
 
 from . import prompts
+from .class_config import get_class_config
 from plum.db import get_db
 from plum.auth import get_auth, login_required, class_config_required, tester_required
 from plum.openai import with_llm, get_completion, TEST_API_KEY
@@ -20,27 +21,25 @@ bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='template
 def help_form(query_id=None):
     db = get_db()
     auth = get_auth()
+    class_config = get_class_config()
 
-    # default to most recently submitted language, if available, else the default language for the current class, if available
-    selected_lang = None
+    languages = class_config.languages
+    selected_lang = class_config.default_lang
+
+    # Select most recently submitted language, if available
     lang_row = db.execute("SELECT language FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT 1", [auth['user_id']]).fetchone()
-    if lang_row:
+    if lang_row and lang_row['language'] in languages:
         selected_lang = lang_row['language']
-    elif auth['class_id'] is not None:
-        config_row = db.execute("SELECT config FROM classes WHERE id=?", [auth['class_id']]).fetchone()
-        class_config = json.loads(config_row['config'])
-        selected_lang = class_config['default_lang']
-
-    query_row = None
 
     # populate with a query+response if one is specified in the query string
+    query_row = None
     if query_id is not None:
         query_row, _ = get_query(query_id)   # _ because we don't need responses here
         selected_lang = query_row['language']
 
     history = get_history()
 
-    return render_template("help_form.html", query=query_row, history=history, selected_lang=selected_lang)
+    return render_template("help_form.html", query=query_row, history=history, languages=languages, selected_lang=selected_lang)
 
 
 @bp.route("/view/<int:query_id>")
@@ -79,20 +78,13 @@ async def run_query_prompts(llm_dict, language, code, error, issue):
       1) A list of response objects from the OpenAI completion (to be stored in the database)
       2) A dictionary of response text, potentially including keys 'error', 'insufficient', and 'main'.
     '''
-    db = get_db()
-    auth = get_auth()
     api_key = llm_dict['key']
     text_model = llm_dict['text_model'] or llm_dict['chat_model']  # some LLMs only have chat completion, so use that if there is no text completion model
     chat_model = llm_dict['chat_model']
 
     # create "avoid set" from class configuration
-    if auth['class_id'] is not None:
-        class_id = auth['class_id']
-        class_row = db.execute("SELECT * FROM classes WHERE id=?", [class_id]).fetchone()
-        class_config = json.loads(class_row['config'])
-        avoid_set = set(x.strip() for x in class_config.get('avoid', '').split('\n') if x.strip() != '')
-    else:
-        avoid_set = set()
+    class_config = get_class_config()
+    avoid_set = set(x.strip() for x in class_config.avoid.split('\n') if x.strip() != '')
 
     # Launch the "sufficient detail" check concurrently with the main prompt to save time if it comes back as sufficient.
     task_sufficient = asyncio.create_task(
@@ -176,8 +168,12 @@ def record_response(query_id, responses, texts):
 @class_config_required
 @with_llm()
 def help_request(llm_dict):
-    lang_id = int(request.form["lang_id"])
-    language = current_app.config["LANGUAGES"][lang_id]
+    class_config = get_class_config()
+    if class_config.languages:
+        lang_id = int(request.form["lang_id"])
+        language = class_config.languages[lang_id]
+    else:
+        language = ""
     code = request.form["code"]
     error = request.form["error"]
     issue = request.form["issue"]

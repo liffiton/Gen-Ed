@@ -5,10 +5,10 @@ VALUES
 
 INSERT INTO classes (id, name, enabled, config)
 VALUES
-    (1, 'LERN101', 1, '{"default_lang": "python", "avoid": "sum()\r\neval()\r\nzfill()\r\n+=\r\n"}'),
-    (2, 'USER001', 1, '{"default_lang": "python", "avoid": ""}'),
-    (3, 'USER002', 1, '{"default_lang": "python", "avoid": ""}'),
-    (4, 'USER003', 1, '{"default_lang": "python", "avoid": ""}');
+    (1, 'LERN101', 1, '{"languages": ["Python", "C++", "OCaml"], "default_lang": "Python", "avoid": "sum()\r\neval()\r\nzfill()\r\n+=\r\n"}'),
+    (2, 'USER001', 1, '{"languages": ["Python"], "default_lang": "Python", "avoid": ""}'),
+    (3, 'USER002', 1, '{"languages": ["Python"], "default_lang": "Python", "avoid": ""}'),
+    (4, 'USER003', 1, '{"languages": ["Python"], "default_lang": "Python", "avoid": ""}');
 
 INSERT INTO classes_lti (class_id, lti_consumer_id, lti_context_id)
 VALUES

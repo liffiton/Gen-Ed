@@ -1,7 +1,7 @@
 import pytest
 
 
-@pytest.mark.parametrize(('lang_id'), (0, 2, 4, 6))
+@pytest.mark.parametrize(('lang_id'), (0, 1, 2))
 def test_saved_language(app, client, auth, lang_id):
     """ Check that previously-used language is auto-selected in help interface. """
     auth.login()
@@ -12,7 +12,7 @@ def test_saved_language(app, client, auth, lang_id):
     client.post('/help/request', data={'lang_id': lang_id, 'code': 'code', 'error': 'error', 'issue': 'issue'})
 
     response = client.get("/help/")
-    language = app.config['LANGUAGES'][lang_id].capitalize()
+    language = app.config['DEFAULT_LANGUAGES'][lang_id]
     assert f"selected>{language}" in response.text
 
 

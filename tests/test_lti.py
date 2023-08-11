@@ -91,7 +91,7 @@ def test_lti_auth_success(client, role, internal_role):
     # to the instructor config page assert.
     if internal_role == 'instructor':
         assert result.status_code == 302
-        assert result.location == '/instructor/config'
+        assert result.location == '/instructor/config/'
         result = client.get(result.location)
         assert result.status_code == 200
     else:
