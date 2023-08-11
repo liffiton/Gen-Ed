@@ -204,7 +204,9 @@ ${ options.searchable ?
       <div class="content has-text-centered">
         <p>
           <b>{{ config['APPLICATION_TITLE'] }}</b> by Mark Liffiton.<br>
+          {% if config['DOCS_DIR'] %}
           <a class="has-text-light is-underlined" href="{{ url_for("docs.main") }}">Documentation</a>.<br>
+          {% endif %}
           <a class="has-text-light is-underlined" href="https://forms.gle/ZvuAvgaKsnebG6G69">Contact form</a>.
         </p>
       </div>
