@@ -174,6 +174,7 @@ async def get_completion(api_key, prompt=None, messages=None, model=None, n=1, s
         await asyncio.sleep(2)  # simulate a 2 second delay for a network request
         return "TEST DATA: " + "x "*500, "TEST DATA: " + "x "*500,
 
+    common_error_text = "Error ({error_type}).  Something went wrong with this query.  The error has been logged, and we'll work on it.  For now, please try again."
     try:
         if model == 'text-davinci-003':
             response = await openai.Completion.acreate(
@@ -213,28 +214,35 @@ async def get_completion(api_key, prompt=None, messages=None, model=None, n=1, s
 
     except openai.error.APIError as e:
         response = str(e)
-        response_txt = "Error (APIError).  Something went wrong on our side.  Please try again, and if it repeats, let us know using the contact form at the bottom of the page."
+        response_txt = common_error_text.format(error_type='APIError')
         current_app.logger.error(f"OpenAI APIError: {e}")
     except openai.error.Timeout as e:
         response = str(e)
-        response_txt = "Error (Timeout).  Something went wrong on our side.  Please try again, and if it repeats, let us know using the contact form at the bottom of the page."
+        response_txt = common_error_text.format(error_type='Timeout')
         current_app.logger.error(f"OpenAI Timeout: {e}")
     except openai.error.ServiceUnavailableError as e:
         current_app.logger.error(e)
         response = str(e)
-        response_txt = "Error (ServiceUnavailableError).  Something went wrong on our side.  Please try again, and if it repeats, let us know using the contact form at the bottom of the page."
-        current_app.logger.error(f"OpenAI RateLimitError: {e}")
+        response_txt = common_error_text.format(error_type='ServiceUnavailableError')
+        current_app.logger.error(f"OpenAI ServiceUnavailableError: {e}")
     except openai.error.RateLimitError as e:
         response = str(e)
-        response_txt = "Error (RateLimitError).  The system is receiving too many requests right now.  Please try again in one minute.  If it does not resolve, please let us know using the contact form at the bottom of the page."
+        response_txt = "Error (RateLimitError).  The system is receiving too many requests right now.  Please try again in one minute."
         current_app.logger.error(f"OpenAI RateLimitError: {e}")
     except openai.error.AuthenticationError as e:
         response = str(e)
         response_txt = "Error (AuthenticationError).  The API key is invalid, expired, or revoked.  If you are a student, please inform the instructor for your class."
         current_app.logger.error(f"OpenAI AuthenticationError: {e}")
+    except openai.error.InvalidRequestError as e:
+        response = str(e)
+        if "maximum context length" in response:
+            response_txt = "Error (InvalidRequestError).  Your query is too long for the model to process.  Please reduce the length of your input."
+        else:
+            response_txt = common_error_text.format(error_type='InvalidRequestError')
+        current_app.logger.error(f"OpenAI InvalidRequestError: {e}")
     except Exception as e:
         response = str(e)
-        response_txt = "Error (Exception).  Something went wrong on our side.  Please try again, and if it repeats, let us know using the contact form at the bottom of the page."
+        response_txt = common_error_text.format(error_type='Exception')
         current_app.logger.error(f"Exception (OpenAI {type(e).__name__}, but I don't handle that specifically yet): {e}")
 
     return response, response_txt.strip()
