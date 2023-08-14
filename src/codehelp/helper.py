@@ -86,11 +86,7 @@ async def run_query_prompts(llm_dict, language, code, error, issue):
     class_config = get_class_config()
     avoid_set = set(x.strip() for x in class_config.avoid.split('\n') if x.strip() != '')
 
-    # Launch the "sufficient detail" check concurrently with the main prompt to save time if it comes back as sufficient.
-    task_sufficient = asyncio.create_task(
-        get_completion(api_key, prompt=prompts.make_sufficient_prompt(language, code, error, issue), model=chat_model)
-    )
-
+    # Launch the "sufficient detail" check concurrently with the main prompt to save time
     task_main = asyncio.create_task(
         get_completion(
             api_key,
@@ -100,25 +96,33 @@ async def run_query_prompts(llm_dict, language, code, error, issue):
             score_func=lambda x: score_response(x, avoid_set)
         )
     )
+    task_sufficient = asyncio.create_task(
+        get_completion(
+            api_key,
+            prompt=prompts.make_sufficient_prompt(language, code, error, issue),
+            model=chat_model
+        )
+    )
 
     # Store all responses received
     responses = []
 
-    # Check whether there is sufficient information
-    response_sufficient, response_sufficient_txt = await task_sufficient
-    responses.append(response_sufficient)
-
-    # And let's get the main response.
+    # Let's get the main response.
     response, response_txt = await task_main
     responses.append(response)
 
     if "```" in response_txt or "should look like" in response_txt or "should look something like" in response_txt:
         # That's probably too much code.  Let's clean it up...
         cleanup_prompt = prompts.make_cleanup_prompt(orig_response_txt=response_txt)
-        # cleanup doesn't work reliably with gpt-3.5-turbo, so if GPT-3.5 is selected, use davinci (text_model)
+        # cleanup doesn't work reliably with gpt-3.5-turbo, so use text_model so that if GPT-3.5 is selected, we use davinci
         cleanup_response, cleanup_response_txt = await get_completion(api_key, prompt=cleanup_prompt, model=text_model)
         responses.append(cleanup_response)
         response_txt = cleanup_response_txt
+
+    # Check whether there is sufficient information
+    # Checking after processing main+cleanup prevents this from holding up the start of cleanup if this was slow
+    response_sufficient, response_sufficient_txt = await task_sufficient
+    responses.append(response_sufficient)
 
     if response_sufficient_txt.endswith("OK") or "OK." in response_sufficient_txt or response_sufficient_txt.startswith("Error ("):
         # We're using just the main response.
