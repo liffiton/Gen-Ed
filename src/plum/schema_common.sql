@@ -1,3 +1,5 @@
+PRAGMA journal_mode = WAL;  -- to enable Litestream backups
+
 PRAGMA foreign_keys = OFF;  -- just for not worrying about table deletion order
 
 DROP TABLE IF EXISTS consumers;
