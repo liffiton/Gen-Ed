@@ -134,6 +134,8 @@ def main():
         SELECT
             consumers.*,
             COUNT(queries.id) AS num_queries,
+            COUNT(DISTINCT classes.id) AS num_classes,
+            COUNT(DISTINCT roles.id) AS num_users,
             SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
         FROM consumers
         LEFT JOIN classes_lti ON classes_lti.lti_consumer_id=consumers.id
@@ -151,6 +153,7 @@ def main():
             classes.id,
             classes.name,
             COALESCE(consumers.lti_consumer, class_owner.display_name) AS owner,
+            COUNT(DISTINCT roles.id) AS num_users,
             COUNT(queries.id) AS num_queries,
             SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
         FROM classes
