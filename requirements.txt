@@ -10,4 +10,5 @@ pytz
 coverage 
 oauthlib
 pytest
+pytest-cov
 pytest-xdist
