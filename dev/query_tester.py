@@ -105,7 +105,7 @@ def get_response(queries, index, test_type, model):
     match test_type:
         case "helper":
             prompt = prompts.make_main_prompt(
-                language="python",
+                language=item['language'],
                 code=item['code'],
                 error=item['error'],
                 issue=item['issue'],
@@ -113,7 +113,7 @@ def get_response(queries, index, test_type, model):
             messages = [{"role": "user", "content": prompt}]
         case "sufficient":
             prompt = prompts.make_sufficient_prompt(
-                language="python",
+                language=item['language'],
                 code=item['code'],
                 error=item['error'],
                 issue=item['issue'],
@@ -125,7 +125,7 @@ def get_response(queries, index, test_type, model):
         case "topics":
             assert model != "davinci"
             messages = prompts.make_topics_prompt(
-                language="python",
+                language=item['language'],
                 code=item['code'],
                 error=item['error'],
                 issue=item['issue'],
@@ -193,11 +193,11 @@ def main():
 
     match args.test_type:
         case "helper" | "sufficient":
-            fields = ['code', 'error', 'issue']
+            fields = ['language', 'code', 'error', 'issue']
         case "cleanup":
             fields = ['response_text']
         case "topics":
-            fields = ['code', 'error', 'issue', 'response_text']
+            fields = ['language', 'code', 'error', 'issue', 'response_text']
 
     # Make the UI
     header = urwid.AttrMap(urwid.Text("Query Tester"), 'header')
