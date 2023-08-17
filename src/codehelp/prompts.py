@@ -57,41 +57,51 @@ System Response:
 
 
 sufficient_template = jinja_env.from_string("""\
-You are a system for assisting students like me with programming.
-
-My inputs provide:
- - the programming language
- - a snippet of code if relevant
+You are a system for assisting a student with programming.
+The students provide:
+ - the programming language (in "<lang>" delimiters)
+{% if code %}
+ - a relevant snippet of their code (in "<code>")
+{% endif %}
 {% if error %}
- - an error message if relevant
+ - an error message they are seeing (in "<error>")
 {% endif %}
- - an issue or question I need help with.
-{% if error and not issue %}
-When I provide an error message but the issue is empty, then I am asking for help understanding the error.
-{% endif %}
-{% if error and issue %}
-If the error message and issue do not seem to relate to each other, your first goal is to help me understand the error.
+{% if issue %}
+ - their issue or question and how they want assistance (in "<issue>")
 {% endif %}
 
-Please assess the following submission to determine whether it is sufficient for you to provide help or if you need additional information.
-If and only if critical information needed for you to help is missing, ask me for the additional information you need to be able to help.  State your reasoning first.
-Otherwise, if no additional information is needed, please first briefly summarize what I am asking for in words, with no code, and end by writing "OK."
-
-Inputs:
-<lang>{{language}}</lang>
+<lang>
+{{language if language != 'C' else 'the C language'}}
+</lang>
+{% if code %}
 <code>
 {{code}}
 </code>
+{% endif %}
 {% if error %}
 <error>
 {{error}}
 </error>
 {% endif %}
+{% if issue %}
 <issue>
 {{issue}}
 </issue>
+{% endif %}
 
-Response:
+{% if error and issue %}
+If the error message and issue do not seem to relate to each other, your first goal is to help them understand the error.
+{% endif %}
+
+Please assess the student submission and tell the student whether it is sufficient for you to provide help or if you need additional information.
+
+First, if possible, repeat the request back to the student summarized in a single sentence.
+Then, explain your reasoning to the student.
+Then:
+ - If important information needed for you to help is missing, ask them for the additional information you need to be able to help.
+ - If the submission is sufficient and you are able to help, end by writing "OK."
+
+System Response:
 """)
 
 
