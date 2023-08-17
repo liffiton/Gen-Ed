@@ -124,7 +124,7 @@ async def run_query_prompts(llm_dict, language, code, error, issue):
     response_sufficient, response_sufficient_txt = await task_sufficient
     responses.append(response_sufficient)
 
-    if response_sufficient_txt.endswith("OK") or "OK." in response_sufficient_txt or response_sufficient_txt.startswith("Error ("):
+    if response_sufficient_txt.endswith("OK") or "OK." in response_sufficient_txt or "```" in response_sufficient_txt or "is sufficient for me" in response_sufficient_txt or response_sufficient_txt.startswith("Error ("):
         # We're using just the main response.
         return responses, {'main': response_txt}
     else:
