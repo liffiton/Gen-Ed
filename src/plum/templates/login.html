@@ -6,6 +6,7 @@
     <div class="panel-heading">
       Log In
     </div>
+    {% if "GOOGLE_CLIENT_SECRET" in config %}
     <div class="panel-block">
       <a href="{{ url_for('oauth.login', provider_name='google', next=next_url) }}" class="button icon-text is-large is-fullwidth">
         <span class="icon is-large">
@@ -14,6 +15,8 @@
         <span>Log in with Google</span>
       </a>
     </div>
+    {% endif %}
+    {% if "GITHUB_CLIENT_SECRET" in config %}
     <div class="panel-block">
       <a href="{{ url_for('oauth.login', provider_name='github', next=next_url) }}" class="button icon-text is-large is-fullwidth">
         <span class="icon is-large">
@@ -22,6 +25,8 @@
         <span>Log in with Github</span>
       </a>
     </div>
+    {% endif %}
+    {% if "MICROSOFT_CLIENT_SECRET" in config %}
     <div class="panel-block">
       <a href="{{ url_for('oauth.login', provider_name='microsoft', next=next_url) }}" class="button icon-text is-large is-fullwidth">
         <span class="icon is-large">
@@ -30,6 +35,7 @@
         <span>Log in with Microsoft</span>
       </a>
     </div>
+    {% endif %}
     <div class="panel-block has-background-light">
       <form style="width: 100%;" action="{{ url_for('auth.login', next=next_url) }}" method="post">
         <input type="hidden" name="next" value="{{ next_url }}">

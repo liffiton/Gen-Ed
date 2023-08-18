@@ -61,15 +61,27 @@ def create_app_base(import_name, app_config, instance_path):
     )
 
     # Add vars set in .env, loaded by load_dotenv() above, to config dictionary.
-    # CLIENT_ID/CLIENT_SECRET vars are used by authlib:
-    #   https://docs.authlib.org/en/latest/client/flask.html#configuration
-    for varname in ["OPENAI_API_KEY", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET"]:
+    # Required variables:
+    for varname in ["OPENAI_API_KEY"]:
         try:
             env_var = os.environ[varname]
             base_config[varname] = env_var
         except KeyError:
             app.logger.error(f"{varname} environment variable not set.")
             sys.exit(1)
+    # CLIENT_ID/CLIENT_SECRET vars are used by authlib:
+    #   https://docs.authlib.org/en/latest/client/flask.html#configuration
+    # But the application will run without them; it just won't provide login
+    # options for any providers where the keys are missing.
+    for provider in ["GOOGLE", "MICROSOFT", "GITHUB"]:
+        try:
+            client_id_key = f"{provider}_CLIENT_ID"
+            client_secret_key = f"{provider}_CLIENT_SECRET"
+            base_config[client_id_key] = os.environ[client_id_key]
+            base_config[client_secret_key] = os.environ[client_secret_key]
+        except KeyError:
+            # Just warn, but continue
+            app.logger.warn(f"{provider}_CLIENT_ID and/or {provider}_CLIENT_SECRET environment variables not set.  SSO from {provider} will not be enabled.")
 
     # build total configuration
     total_config = base_config | app_config

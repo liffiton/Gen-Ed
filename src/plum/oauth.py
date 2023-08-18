@@ -15,25 +15,32 @@ _oauth = OAuth()
 
 
 def init_app(app):
+    """Register SSO handlers with authlib.
+    Note: _oauth.register() automatically loads client ID and secret from app config (see base.py)
+    """
     _oauth.init_app(app)
-    _oauth.register(  # automatically loads client ID and secret from app config (see base.py)
-        name='google',
-        server_metadata_url=GOOGLE_CONF_URL,
-        client_kwargs={'scope': 'openid email profile'},
-    )
-    _oauth.register(
-        name='github',
-        api_base_url='https://api.github.com/',
-        access_token_url='https://github.com/login/oauth/access_token',
-        authorize_url='https://github.com/login/oauth/authorize',
-        userinfo_endpoint='https://api.github.com/user',
-        client_kwargs={'scope': 'user:email'},
-    )
-    _oauth.register(  # automatically loads client ID and secret from app config (see base.py)
-        name='microsoft',
-        server_metadata_url=MICROSOFT_CONF_URL,
-        client_kwargs={'scope': 'openid email profile'},
-    )
+    conf = app.config
+    if "GOOGLE_CLIENT_SECRET" in conf:
+        _oauth.register(
+            name='google',
+            server_metadata_url=GOOGLE_CONF_URL,
+            client_kwargs={'scope': 'openid email profile'},
+        )
+    if "GITHUB_CLIENT_SECRET" in conf:
+        _oauth.register(
+            name='github',
+            api_base_url='https://api.github.com/',
+            access_token_url='https://github.com/login/oauth/access_token',
+            authorize_url='https://github.com/login/oauth/authorize',
+            userinfo_endpoint='https://api.github.com/user',
+            client_kwargs={'scope': 'user:email'},
+        )
+    if "MICROSOFT_CLIENT_SECRET" in conf:
+        _oauth.register(
+            name='microsoft',
+            server_metadata_url=MICROSOFT_CONF_URL,
+            client_kwargs={'scope': 'openid email profile'},
+        )
 
 
 @bp.route('/login/<string:provider_name>')
