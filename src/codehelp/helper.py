@@ -76,7 +76,7 @@ async def run_query_prompts(llm_dict, language, code, error, issue):
 
     Returns a tuple containing:
       1) A list of response objects from the OpenAI completion (to be stored in the database)
-      2) A dictionary of response text, potentially including keys 'error', 'insufficient', and 'main'.
+      2) A dictionary of response text, potentially including keys 'insufficient' and 'main'.
     '''
     api_key = llm_dict['key']
     text_model = llm_dict['text_model'] or llm_dict['chat_model']  # some LLMs only have chat completion, so use that if there is no text completion model
