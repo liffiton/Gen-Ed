@@ -8,7 +8,7 @@ def create_app(test_config=None, instance_path=None):
     # App-specific configuration
     app_config = dict(
         APPLICATION_TITLE='Starburst',
-        HELP_LINK_TEXT='Get Ideas',
+        HELP_LINK_TEXT='Generate Ideas',
         DATABASE_NAME='starburst.db',
         SECRET_KEY='qAg_CIdh0RqvpF1nvC79ng',
     )

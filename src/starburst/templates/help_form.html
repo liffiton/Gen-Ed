@@ -7,13 +7,18 @@
     <section class="section">
 
     <div class="container">
+      <div class="content">
+        <h1 class="title">Generate Ideas</h1>
+        <p>Enter the assignment prompt to provide the <i>context</i> and a few topics, keywords, or ideas as <i>seeds</i>.</p>
+      </div>
+
       {# debounce on the submit handler so that the form's actual submit fires *before* the form elements are disabled #}
       <form action="{{url_for('helper.help_request')}}" method="post" x-data="{loading: false}" x-on:submit.debounce.10ms="loading = true">
 
       <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label" for="assignment">Assignment Prompt:</label>
-          <p class="has-text-grey">Copy the assignment prompt here.  This should be the <i>most relevant</i> part of the assignment, focused on the topic you choose and any constraints placed on it.  Responses will be much more helpful when you include only the relevant part.</p>
+          <p class="has-text-grey">Copy the assignment <b>prompt</b> here.  This should be only the <i>most relevant</i> part of the assignment, where it discusses your topic and any constraints placed on it.</p>
         </div>
         <div class="field-body">
           <div class="field">
