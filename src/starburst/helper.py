@@ -38,18 +38,20 @@ def help_view(query_id):
     return render_template("help_view.html", query=query_row, responses=responses, history=history)
 
 
-async def run_query_prompts(api_key, assignment, topics):
+async def run_query_prompts(llm_dict, assignment, topics):
     ''' Run the given query against the coding help system of prompts.
 
     Returns a tuple containing:
       1) A list of response objects from the OpenAI completion (to be stored in the database)
-      2) A dictionary of response text, potentially including keys 'error', 'insufficient', and 'main'.
+      2) A dictionary of response text, potentially including the key 'main'.
     '''
+    api_key = llm_dict['key']
+    chat_model = llm_dict['chat_model']
     task_main = asyncio.create_task(
         get_completion(
             api_key=api_key,
             prompt=prompts.make_main_prompt(assignment, topics),
-            model='turbo'
+            model=chat_model,
         )
     )
 
@@ -63,10 +65,10 @@ async def run_query_prompts(api_key, assignment, topics):
     return responses, {'main': response_txt}
 
 
-def run_query(api_key, assignment, topics):
+def run_query(llm_dict, assignment, topics):
     query_id = record_query(assignment, topics)
 
-    responses, texts = asyncio.run(run_query_prompts(api_key, assignment, topics))
+    responses, texts = asyncio.run(run_query_prompts(llm_dict, assignment, topics))
 
     record_response(query_id, responses, texts)
 
