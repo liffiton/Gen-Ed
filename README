@@ -35,6 +35,7 @@ Set Up an Application
 2. In the root of the repository, create .env and populate it:
 
   FLASK_INSTANCE_PATH=instance
+  SECRET_KEY=[a secure random string -- used to sign session cookies]
   OPENAI_API_KEY=[your OpenAI API key]
 
 Optionally, set any of the following pairs with IDs/secrets obtained from

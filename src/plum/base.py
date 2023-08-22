@@ -62,7 +62,9 @@ def create_app_base(import_name, app_config, instance_path):
 
     # Add vars set in .env, loaded by load_dotenv() above, to config dictionary.
     # Required variables:
-    for varname in ["OPENAI_API_KEY"]:
+    #  - SECRET_KEY: used by Flask to sign session cookies
+    #  - OPENAI_API_KEY: the "system" API key used in certain situations
+    for varname in ["SECRET_KEY", "OPENAI_API_KEY"]:
         try:
             env_var = os.environ[varname]
             base_config[varname] = env_var

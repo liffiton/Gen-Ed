@@ -16,7 +16,6 @@ def create_app(test_config=None, instance_path=None):
         HELP_LINK_TEXT='Get Help',
         DATABASE_NAME='codehelp.db',  # will be combined with app.instance_path in plum.create_app_base()
         DOCS_DIR=module_dir / 'docs',
-        SECRET_KEY='_oeofMFVOeT-Z730Ksz44Q',
         DEFAULT_LANGUAGES=[
             "C",
             "C++",

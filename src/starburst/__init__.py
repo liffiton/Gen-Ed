@@ -10,7 +10,6 @@ def create_app(test_config=None, instance_path=None):
         APPLICATION_TITLE='Starburst',
         HELP_LINK_TEXT='Generate Ideas',
         DATABASE_NAME='starburst.db',
-        SECRET_KEY='qAg_CIdh0RqvpF1nvC79ng',
     )
 
     # load test config if provided, potentially overriding above config
