@@ -10,11 +10,18 @@ from .classes import get_or_create_lti_class
 bp = Blueprint('lti', __name__, url_prefix="/lti", template_folder='templates')
 
 
+# An LTI-specific error handler
+def lti_error(exception=None):
+    """Log the error and render a simple error page."""
+    current_app.logger.error(f"LTI exception: {exception['exception']=} {exception['kwargs']=} {exception['args']=}")
+    return "There was an LTI communication error", 500
+
+
 # Handles LTI 1.0/1.1 initial request / login
 # https://github.com/mitodl/pylti/blob/master/pylti/flask.py
 # https://github.com/mitodl/mit_lti_flask_sample
 @bp.route("/", methods=['GET', 'POST'])
-@lti(request='initial')
+@lti(request='initial', error=lti_error)
 def lti_login(lti=lti):
     authenticated = session.get("lti_authenticated", False)
     role = session.get("roles", "").lower()
