@@ -17,11 +17,12 @@ If adding CodeHelp as an External Tool is not possible at your institution, you 
   </p>
 
 2. In the screen for adding the new External Tool, configure the tool with the following values (you will need to press "Show more..." to reach some of them):
-  * Activity name: CodeHelp (or whatever you want it to be named in your course)
-  * Secure tool URL: https://codehelp.app/lti/
-  * Launch container: New window
-  * Consumer Key and Shared Secret: (these will be provided to you by CodeHelp when you register to integrate with your LMS)
-  * Accept grades from the tool: Unchecked
+  * **Activity name:** CodeHelp (or whatever you want it to be named in your course)
+  * **Secure tool URL:** https://codehelp.app/lti/
+    * The warning it shows you saying "Tool configuration not found..." is not a problem.
+  * **Launch container:** New window
+  * **Consumer Key and Shared Secret:** (these will be provided to you by CodeHelp when you register to integrate with your LMS)
+  * **Privacy &gt; Accept grades from the tool:** Unchecked
   * All other fields can be left with their default values.
 
   <p class="hasimg">
