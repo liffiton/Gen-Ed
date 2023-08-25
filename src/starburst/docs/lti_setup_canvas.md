@@ -6,7 +6,7 @@ summary:  Step-by-step instructions for creating an LTI connection to Starburst 
 
 To set up your Canvas course to use Starburst, you need to register Starburst as a new "App" in Canvas.
 
-1. First, find the Settings page for Apps, and if you aren't already at the App configurations page, choose "View App Configurations":
+1. First, go to the course settings, find the Settings page for Apps, and if you aren't already at the App configurations page, choose "View App Configurations":
 
   <p class="hasimg">
   <img class="docimg" alt='"Apps" page in Canvas settings' src='/static/canvas_LTI_01_settings.svg'>
