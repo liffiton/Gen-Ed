@@ -46,9 +46,14 @@ def _get_auth_from_session():
         provider_row = db.execute("""
             SELECT auth_providers.name
             FROM users
-            JOIN auth_providers ON auth_providers.id=users.auth_provider
+            LEFT JOIN auth_providers ON auth_providers.id=users.auth_provider
             WHERE users.id=?
         """, [auth_dict['user_id']]).fetchone()
+
+        if not provider_row:
+            # fall-through if user_id is not in database (deleted from DB?)
+            return base
+
         auth_dict['auth_provider'] = provider_row['name']
 
     if auth_dict['role_id']:
