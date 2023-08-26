@@ -95,7 +95,7 @@ def lti_login(lti=lti):
     return redirect(url_for("helper.help_form"))
 
 
-@bp.route("debug", methods=['GET'])
-@lti(request='session')
-def lti_debug(lti=lti):
-    return {var: session[var] for var in session}
+#@bp.route("debug", methods=['GET'])
+#@lti(request='session')
+#def lti_debug(lti=lti):
+#    return {var: session[var] for var in session}
