@@ -140,7 +140,7 @@ def with_llm(use_system_key=False):
                 flash("Error: No API key set.  Request cannot be submitted.")
                 return render_template("error.html")
             except NoTokensError:
-                flash("You have used all of your query tokens.  Please use the contact form at the bottom of the page if you want to continue using this application.", "warning")
+                flash("You have used all of your free tokens.  Please create a class and add an OpenAI API key or contact us if you want to continue using this application.", "warning")
                 return render_template("error.html")
 
             return f(*args, **kwargs, llm_dict=llm_dict)
