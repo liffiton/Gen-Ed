@@ -40,7 +40,7 @@ def test_valid_demo_link(client):
         else:
             # those without tokens remaining return an error page directly
             assert response.status_code == 200
-            assert "You have used all of your query tokens." in response.text
+            assert "You have used all of your free tokens." in response.text
             assert test_code not in response.text
             assert '_test_error_' not in response.text
             assert '_test_issue_' not in response.text
