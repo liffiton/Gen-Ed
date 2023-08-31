@@ -37,6 +37,9 @@ def init_app(app):
     @app.template_filter('fmt_response_txt')
     def fmt_response_txt(value):
         '''Format response text to be displayed in a table cell.'''
+        if not value:
+            return ""
+
         text = json.loads(value)
 
         if isinstance(text, str):
