@@ -57,18 +57,21 @@ System Response:
 
 
 sufficient_template = jinja_env.from_string("""\
-You are a system for assisting a student with programming.
-The students provide:
+You are a system for assisting students with programming.
+
+I provide:
  - the programming language (in "<lang>" delimiters)
 {% if code %}
- - a relevant snippet of their code (in "<code>")
+ - a relevant snippet of my code (in "<code>")
 {% endif %}
 {% if error %}
- - an error message they are seeing (in "<error>")
+ - an error message I am seeing (in "<error>")
 {% endif %}
-{% if issue %}
- - their issue or question and how they want assistance (in "<issue>")
+{% if issue or not error %}
+ - my issue or question and how I want assistance (in "<issue>")
 {% endif %}
+
+Here is my submission:
 
 <lang>
 {{language if language != 'C' else 'the C language'}}
@@ -83,25 +86,18 @@ The students provide:
 {{error}}
 </error>
 {% endif %}
-{% if issue %}
+{% if issue or not error %}
 <issue>
 {{issue}}
 </issue>
 {% endif %}
 
-{% if error and issue %}
-If the error message and issue do not seem to relate to each other, your first goal is to help them understand the error.
-{% endif %}
+Please assess my submission and tell me whether it is sufficient for you to potentially provide help (write "OK.") or if you cannot help without additional information.
 
-Please assess the student submission and tell the student whether it is sufficient for you to provide help or if you need additional information.
-
-First, if possible, repeat the request back to the student summarized in a single sentence.
-Then, explain your reasoning to the student.
-Then:
- - If important information needed for you to help is missing, ask them for the additional information you need to be able to help.
- - If the submission is sufficient and you are able to help, end by writing "OK."
-
-System Response:
+First, repeat the request back to me summarized in a single sentence.
+Second, either:
+ - If the submission is sufficient and you might be able to help, write "OK."
+ - Or, if important information required for you to help is missing, ask me for the additional information you need before you can help.
 """)
 
 
