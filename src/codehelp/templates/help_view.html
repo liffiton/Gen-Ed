@@ -43,7 +43,7 @@
         <div class="field-label is-normal">
           <label class="label">Code:</label>
         </div>
-        <div class="field-body" style="overflow-x: auto;">
+        <div class="field-body" style="overflow: auto; max-height: 30em;">
           <pre>
             {{- query.code -}}
           </pre>
@@ -65,8 +65,8 @@
         <div class="field-label">
           <label class="label">Issue / Question:</label>
         </div>
-        <div class="field-body">
-          {{ query.issue }}
+        <div class="field-body" style="white-space: pre-wrap;">
+          {{- query.issue | trim -}}
         </div>
       </div>
 
