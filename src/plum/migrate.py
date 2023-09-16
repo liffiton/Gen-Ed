@@ -96,13 +96,16 @@ def _migration_info(resource):
 
 def _get_migrations():
     # Pull shared Plum migrations and app-specific migrations
-    plum_migrations = resources.files('plum').joinpath("migrations").iterdir()
-    app_migrations = resources.files(current_app.name).joinpath("migrations").iterdir()
+    plum_migrations = resources.files('plum').joinpath("migrations")
+    app_migrations = resources.files(current_app.name).joinpath("migrations")
+    migration_files = itertools.chain(
+        *(x.iterdir() for x in (plum_migrations, app_migrations) if x.is_dir())
+    )
 
     # Collect info and sort by name and modified time (to apply migrations in order)
     migrations = [
         _migration_info(res)
-        for res in itertools.chain(plum_migrations, app_migrations)
+        for res in migration_files
         if not res.name.startswith('.') and res.name.endswith('.sql')
     ]
     migrations.sort(key=lambda x: (x['name'], x['mtime']))
