@@ -105,16 +105,16 @@ def make_sufficient_prompt(language, code, error, issue):
     return sufficient_template.render(language=language, code=code, error=error, issue=issue)
 
 
-def make_cleanup_prompt(orig_response_txt):
+def make_cleanup_prompt(response_text):
     return f"""The following was written to help a student in a CS class.  However, any example code (such as in ``` Markdown delimiters) can give the student an assignment's answer rather than help them figure it out themselves.  We need to provide help without including example code.  To do this, rewrite the following to remove any code blocks so that the response explains what the student should do but does not provide solution code.
 ---
-{orig_response_txt}
+{response_text}
 ---
 Rewritten:
 """
 
 
-def make_topics_prompt(language, code, error, issue, response):
+def make_topics_prompt(language, code, error, issue, response_text):
     messages = [
         {'role': 'user', 'content': f"""\
 <language>{language}</language>
@@ -122,7 +122,7 @@ def make_topics_prompt(language, code, error, issue, response):
 <error>{error}</error>
 <issue>{issue}</issue>
 """},
-        {'role': 'assistant', 'content': response},
+        {'role': 'assistant', 'content': response_text},
         {'role': 'user', 'content': "Please give me a list of specific concepts I appear to be having difficulty with in the above exchange.  Write each in title case."},
         {'role': 'assistant', 'content': "[inner monologue] I need to respond with a JSON-formatted list with NO other text, like: ['Item1','Item2','Item3','Item4']"}
     ]
