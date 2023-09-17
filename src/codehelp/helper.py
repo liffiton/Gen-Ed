@@ -113,7 +113,7 @@ async def run_query_prompts(llm_dict, language, code, error, issue):
 
     if "```" in response_txt or "should look like" in response_txt or "should look something like" in response_txt:
         # That's probably too much code.  Let's clean it up...
-        cleanup_prompt = prompts.make_cleanup_prompt(orig_response_txt=response_txt)
+        cleanup_prompt = prompts.make_cleanup_prompt(response_text=response_txt)
         # cleanup doesn't work reliably with gpt-3.5-turbo, so use text_model so that if GPT-3.5 is selected, we use davinci
         cleanup_response, cleanup_response_txt = await get_completion(api_key, prompt=cleanup_prompt, model=text_model)
         responses.append(cleanup_response)
