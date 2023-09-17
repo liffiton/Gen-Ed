@@ -56,27 +56,34 @@ def _get_auth_from_session():
 
         auth_dict['auth_provider'] = provider_row['name']
 
-    if auth_dict['role_id']:
-        # Check the database for the current role (may be changed by another user)
+        # Check the database for any active roles (may be changed by another user)
         # and populate class/role information.
         # Uses WHERE active=1 to only allow active roles.
-        role_row = db.execute("""
+        role_rows = db.execute("""
             SELECT
+                roles.id,
                 roles.class_id,
                 classes.name,
                 roles.role
             FROM roles
             JOIN classes ON classes.id=roles.class_id
-            WHERE roles.id=? AND roles.active=1
-        """, [auth_dict['role_id']]).fetchone()
-        if role_row:
-            auth_dict = auth_dict | {
-                'class_id': role_row['class_id'],
-                'class_name': role_row['name'],
-                'role': role_row['role'],
-            }
+            WHERE roles.user_id=? AND roles.active=1
+        """, [auth_dict['user_id']]).fetchall()
+        if role_rows:
+            auth_dict['other_classes'] = []  # for storing active classes that are not the user's currently chosen class
+            for row in role_rows:
+                class_dict = {
+                    'class_id': row['class_id'],
+                    'class_name': row['name'],
+                    'role': row['role'],
+                }
+                if row['id'] == auth_dict['role_id']:
+                    # set values for the current role
+                    auth_dict = auth_dict | class_dict
+                else:
+                    auth_dict['other_classes'].append(class_dict)
         else:
-            # drop the role_id we supposedly had
+            # ensure we don't keep a role_id
             auth_dict['role_id'] = None
 
     return auth_dict

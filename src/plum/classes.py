@@ -129,7 +129,10 @@ def switch_class(class_id):
 @login_required
 def switch_class_handler(class_id):
     switch_class(class_id)
-    return redirect(url_for("profile.main"))
+    if 'next' in request.args:
+        return redirect(request.args['next'])
+    else:
+        return redirect(url_for("profile.main"))
 
 
 @bp.route("/create/", methods=['POST'])
