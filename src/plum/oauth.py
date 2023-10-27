@@ -1,7 +1,7 @@
 from flask import Blueprint, abort, current_app, redirect, request, session, url_for
 from authlib.integrations.flask_client import OAuth, OAuthError
 
-from .auth import ext_login_update_or_create, set_session_auth
+from .auth import ext_login_update_or_create, get_last_role, set_session_auth
 
 
 GOOGLE_CONF_URL = "https://accounts.google.com/.well-known/openid-configuration"
@@ -102,8 +102,11 @@ def auth(provider_name):
     # Given 10 tokens by default if creating an account on first login.
     user_row = ext_login_update_or_create(provider_name, user_normed, query_tokens=10)
 
+    # Get their last active role, if there is one (and it still exists and is active)
+    last_role_id = get_last_role(user_row['id'])
+
     # Now, either the user existed or has been created.  Log them in!
-    set_session_auth(user_row['id'], user_row['display_name'])
+    set_session_auth(user_row['id'], user_row['display_name'], role_id=last_role_id)
 
     # Redirect to stored next_url (and reset) if one has been stored, else root path
     next_url = session.get(NEXT_URL_SESSION_KEY) or "/"

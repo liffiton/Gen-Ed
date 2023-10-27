@@ -100,7 +100,7 @@ def create_user_class(user_id, class_name, openai_key):
 
 def switch_class(class_id):
     '''Switch the current user to their role in the given class.
-    Returns bool: True if user has a role in that class and switch succeeds.
+    Returns bool: True if user has an active role in that class and switch succeeds.
                   False otherwise.
     '''
     auth = get_auth()
@@ -119,7 +119,11 @@ def switch_class(class_id):
     """, [user_id, class_id]).fetchone()
 
     if row:
-        set_session_auth_role(row['role_id'])
+        role_id = row['role_id']
+        set_session_auth_role(role_id)
+        # record as user's latest active role
+        db.execute("UPDATE users SET last_role_id=? WHERE users.id=?", [role_id, user_id])
+        db.commit()
         return True
 
     return False
@@ -182,7 +186,7 @@ def access_class(class_ident):
     role_row = db.execute("SELECT * FROM roles WHERE class_id=? AND user_id=?", [class_id, user_id]).fetchone()
 
     if role_row:
-        # user already has a role
+        # user already has a role, but it may not be active
         success = switch_class(class_id)
         if not success:
             return abort(403)

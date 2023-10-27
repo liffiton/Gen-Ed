@@ -46,6 +46,7 @@ INSERT INTO auth_providers(name) VALUES
 CREATE TABLE users (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     auth_provider INTEGER NOT NULL,
+    last_role_id  INTEGER,  -- most recently activated role (note: may no longer exist if deleted) used to re-activate on login
     full_name     TEXT,
     email         TEXT,
     auth_name     TEXT,

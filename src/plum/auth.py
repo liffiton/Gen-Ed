@@ -96,6 +96,29 @@ def get_auth():
     return g.auth
 
 
+def get_last_role(user_id):
+    """ Find and return the last role (as a role ID) for the given user,
+        as long as that role still exists and is currently active.
+
+        Returns the role_id or None if nothing is found / matches.
+    """
+    db = get_db()
+
+    role_row = db.execute("""
+        SELECT roles.id AS role_id
+        FROM roles
+        JOIN users ON roles.user_id=users.id
+        WHERE users.id=?
+          AND users.last_role_id=roles.id
+          AND roles.active=1
+    """, [user_id]).fetchone()
+
+    if role_row:
+        return role_row['role_id']
+    else:
+        return None
+
+
 def ext_login_update_or_create(provider_name, user_normed, query_tokens=0):
     """
     For an external authentication login:
@@ -165,7 +188,8 @@ def login():
             flash("Invalid username or password.", "warning")
         else:
             # Success!
-            set_session_auth(auth_row['id'], auth_row['display_name'], auth_row['is_admin'], auth_row['is_tester'])
+            last_role_id = get_last_role(auth_row['id'])
+            set_session_auth(auth_row['id'], auth_row['display_name'], is_admin=auth_row['is_admin'], is_tester=auth_row['is_tester'], role_id=last_role_id)
             next_url = request.form['next'] or url_for("helper.help_form")
             return redirect(next_url)
 
