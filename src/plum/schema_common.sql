@@ -156,7 +156,7 @@ CREATE TABLE models (
     chat_model  TEXT
 );
 INSERT INTO models(name, text_model, chat_model) VALUES
-    ('OpenAI GPT-3.5', 'text-davinci-003', 'gpt-3.5-turbo'),
+    ('OpenAI GPT-3.5', 'text-davinci-003', 'gpt-3.5-turbo-1106'),
     ('OpenAI GPT-4', NULL, 'gpt-4')   -- GPT-4 only has a chat completion
 ;
 
