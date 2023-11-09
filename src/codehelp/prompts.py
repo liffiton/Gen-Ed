@@ -92,12 +92,9 @@ Here is my submission:
 </issue>
 {% endif %}
 
-Please assess my submission and tell me whether it is sufficient for you to potentially provide help (write "OK.") or if you cannot help without additional information.
-
-First, repeat the request back to me summarized in a single sentence.
-Second, either:
- - If the submission is sufficient and you might be able to help, write "OK."
- - Or, if important information required for you to help is missing, ask me for the additional information you need before you can help.
+Do not tell me how to correct anything.  Instead, please assess my submission and tell me whether it is sufficient for you to potentially provide help (write "OK.") or if you cannot help without additional information.
+ - If important information required for you to help is missing, tell me what additional information you need.
+ - Or, if the submission is sufficient and you might be able to help, write "OK."
 """)
 
 
