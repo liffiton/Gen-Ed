@@ -140,7 +140,7 @@ def get_response(item, prompt, messages, model):
     model can be either 'text-davinci-003' or 'gpt-{4, 3.5-turbo, etc.}'
     '''
     try:
-        if model.startswith("text-davinci"):
+        if model.startswith("text-davinci") or model.endswith("-instruct"):
             assert (prompt is not None), "Invalid prompt function for using with text-davinci (outputs messages for a chat completion only)."
             response = openai.Completion.create(
                 model=model,
