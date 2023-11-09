@@ -2,7 +2,7 @@ authlib
 flask
 markdown
 mdx_truly_sane_lists
-openai
+openai<1.0
 git+https://github.com/liffiton/pylti
 python-dotenv
 pytz
