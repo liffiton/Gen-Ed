@@ -11,5 +11,5 @@ SELECT
          AND queries.response_json NOT LIKE "%""]"  -- filter out lists w/ an error message at the end
 		 GROUP BY queries.id
 		 ORDER BY queries.id DESC
-		 LIMIT 2000
+		 LIMIT 2500
 	)
