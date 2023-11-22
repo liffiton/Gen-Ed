@@ -40,7 +40,7 @@
       <h1 class="is-size-3">Roles</h1>
       {{ datatable(
           'roles',
-          [('id', 'id'), ('user', 'display_name'), ('role', 'role'), ('class_id', 'class_id')],
+          [('id', 'id'), ('user', 'display_name'), ('role', 'role'), ('class', 'class_name'), ('class owner', 'class_owner')],
           roles,
           link_col=0,
           link_template=filters.template_string('role') | safe,
