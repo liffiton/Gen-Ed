@@ -9,9 +9,9 @@ summary:  How to create a class "manually," logging in with a Google, Microsoft,
 These instructions explain how to create and share a class manually.
 Compared to connecting via LTI, this has the following drawbacks:
 
-  1. Every user (student and instructor) must log in to CodeHelp with a Google, Microsoft, or Github account.  <i>[LTI handles authentication automatically.]</i>
-  2. Additional instructors (beyond the user who creates the class) must be manually assigned after they have joined the class.  <i>[An LTI connection automatically gives any instructor or TA instructor-level access in CodeHelp.]</i>
-  3. Students will be identified by their login account and the name registered to it.  This may not correspond to their school email or the name they use in class.  <i>[LTI provides institution email addresses and names from your LMS.]</i>
+1. Every user (student and instructor) must log in to CodeHelp with a Google, Microsoft, or Github account.  <i>[LTI handles authentication automatically.]</i>
+2. Additional instructors (beyond the user who creates the class) must be manually assigned after they have joined the class.  <i>[An LTI connection automatically gives any instructor or TA instructor-level access in CodeHelp.]</i>
+3. Students will be identified by their login account and the name registered to it.  This may not correspond to their school email or the name they use in class.  <i>[LTI provides institution email addresses and names from your LMS.]</i>
 
 ## Creation
 
