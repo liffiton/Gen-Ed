@@ -46,12 +46,12 @@ async def run_query_prompts(llm_dict, assignment, topics):
       2) A dictionary of response text, potentially including the key 'main'.
     '''
     api_key = llm_dict['key']
-    chat_model = llm_dict['chat_model']
+    model = llm_dict['model']
     task_main = asyncio.create_task(
         get_completion(
             api_key=api_key,
             prompt=prompts.make_main_prompt(assignment, topics),
-            model=chat_model,
+            model=model,
         )
     )
 

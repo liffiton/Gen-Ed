@@ -43,21 +43,23 @@ def _get_llm(use_system_key):
              key is used with GPT-3.5.
 
     Returns:
-      Dictionary with keys 'key', 'text_model', and 'chat_model'.
+      Dictionary with keys 'key' and 'model'.
 
     Raises various exceptions in cases where a key and model are not available.
     '''
+    db = get_db()
+
+    # Get the default model (TODO: better control than just id=1)
+    model_row = db.execute("SELECT models.model FROM models WHERE models.id=1").fetchone()
     system_default = {
         'key': current_app.config["OPENAI_API_KEY"],
-        'text_model': 'text-davinci-003',
-        'chat_model': 'gpt-3.5-turbo',
+        'model': model_row['model'],
     }
 
     if use_system_key:
         return system_default
 
     auth = get_auth()
-    db = get_db()
 
     # Get class data, if there is an active class
     if auth['class_id']:
@@ -66,8 +68,7 @@ def _get_llm(use_system_key):
                 classes.enabled,
                 COALESCE(consumers.openai_key, classes_user.openai_key) AS openai_key,
                 COALESCE(consumers.model_id, classes_user.model_id) AS _model_id,
-                models.text_model,
-                models.chat_model
+                models.model
             FROM classes
             LEFT JOIN classes_lti
               ON classes.id = classes_lti.class_id
@@ -87,8 +88,7 @@ def _get_llm(use_system_key):
         else:
             return {
                 'key': class_row['openai_key'],
-                'text_model': class_row['text_model'],
-                'chat_model': class_row['chat_model'],
+                'model': class_row['model'],
             }
 
     # Get user data for tokens, auth_provider
@@ -140,7 +140,7 @@ def with_llm(use_system_key=False):
                 flash("Error: No API key set.  Request cannot be submitted.")
                 return render_template("error.html")
             except NoTokensError:
-                flash("You have used all of your free tokens.  Please create a class and add an OpenAI API key or contact us if you want to continue using this application.", "warning")
+                flash("You have used all of your free tokens.  If you are using this application in a class, please connect using the link from your class.  Otherwise, you can create a class and add an OpenAI API key or contact us if you want to continue using this application.", "warning")
                 return render_template("error.html")
 
             return f(*args, **kwargs, llm_dict=llm_dict)

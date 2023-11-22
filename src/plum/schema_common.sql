@@ -152,11 +152,10 @@ CREATE TABLE migrations (
 CREATE TABLE models (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     name        TEXT NOT NULL UNIQUE,
-    text_model  TEXT,
-    chat_model  TEXT
+    model       TEXT
 );
-INSERT INTO models(name, text_model, chat_model) VALUES
-    ('OpenAI GPT-3.5', 'text-davinci-003', 'gpt-3.5-turbo-1106'),
-    ('OpenAI GPT-4', NULL, 'gpt-4')   -- GPT-4 only has a chat completion
+INSERT INTO models(name, model) VALUES
+    ('OpenAI GPT-3.5', 'gpt-3.5-turbo-1106'),
+    ('OpenAI GPT-4', 'gpt-4')
 ;
 
