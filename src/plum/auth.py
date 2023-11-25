@@ -64,10 +64,12 @@ def _get_auth_from_session():
                 roles.id,
                 roles.class_id,
                 classes.name,
+                classes.enabled,
                 roles.role
             FROM roles
             JOIN classes ON classes.id=roles.class_id
             WHERE roles.user_id=? AND roles.active=1
+            ORDER BY roles.id DESC
         """, [auth_dict['user_id']]).fetchall()
         if role_rows:
             auth_dict['other_classes'] = []  # for storing active classes that are not the user's currently chosen class
@@ -80,7 +82,7 @@ def _get_auth_from_session():
                 if row['id'] == auth_dict['role_id']:
                     # set values for the current role
                     auth_dict = auth_dict | class_dict
-                else:
+                elif row['enabled']:
                     auth_dict['other_classes'].append(class_dict)
         else:
             # ensure we don't keep a role_id

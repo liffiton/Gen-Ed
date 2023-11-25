@@ -48,7 +48,12 @@ dl.profile dd { margin: 0; }
       <dd>{{ user.query_tokens }} remaining.  <span class="ml-3 is-size-6 has-text-grey">(These are just for trying out {{ config['APPLICATION_TITLE'] }} -- each query will use one.  They are only used when you do not have a class active.)</span></dd>
       {% endif %}
     </dl>
-    <h2 class="title is-size-3">Classes</h1>
+    <h2 class="title is-size-3">
+      Classes
+      {% if user.provider_name not in ['lti', 'demo'] %}
+        <button class="button ml-5 is-light is-success" onclick="document.querySelector('#new_class_dialog').showModal()">Create new class</button>
+      {% endif %}
+    </h2>
     <dl class="profile">
       <dt>Current:</dt>
       {% if auth['role'] %}
@@ -70,9 +75,18 @@ dl.profile dd { margin: 0; }
           {% endfor %}
         </dd>
       {% endif %}
-      {% if user.provider_name not in ['lti', 'demo'] %}
-        <dt></dt><dd>
-          <button class="button is-success" onclick="document.querySelector('#new_class_dialog').showModal()">Create new class</button>
+
+      {% if archived_classes %}
+        <dt>Archived:</dt>
+        <dd>
+          {% for class in archived_classes %}
+          <p>
+            {{ class.name }} ({{ class.role }})
+            <a href="{{ url_for("classes.switch_class_handler", class_id=class.id) }}" class="button is-link is-small is-rounded ml-3" style="vertical-align: center;">
+              Switch to
+            </a>
+          </p>
+          {% endfor %}
         </dd>
       {% endif %}
     </dl>
@@ -102,7 +116,7 @@ dl.profile dd { margin: 0; }
               <button class="button is-link" type="submit" >Submit</button>
             </div>
           </div>
-        <form>
+        </form>
       </div>
     </dialog>
     <script type="text/JavaScript">
