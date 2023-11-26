@@ -93,7 +93,7 @@ ${ options.searchable ?
   </head>
   <body>
     {% include "icons.html" %}
-    <nav class="navbar is-dark is-size-5" role="navigation" aria-label="main navigation" x-data="{menu_open: false}">
+    <nav class="navbar is-dark is-size-5" style="z-index: auto;" role="navigation" aria-label="main navigation" x-data="{menu_open: false}">
       <div class="navbar-brand">
         <a class="navbar-item is-size-3" href="/">
           {% include "logo.html" %}
@@ -139,7 +139,7 @@ ${ options.searchable ?
                   </span>
                 </div>
                 {% if auth['other_classes'] %}
-                  <div class="dropdown-menu" id="classes-menu" role="menu">
+                  <div class="dropdown-menu" style="z-index: 999;" id="classes-menu" role="menu">
                     <div class="dropdown-content">
                       <div class="dropdown-item">
                         Switch class:
