@@ -44,7 +44,7 @@ table.datatable-table tbdody td { overflow-wrap: break-word; }
 
 /* PAGER */
 .datatable-pagination {
-	border: 1px solid #aaa;
+    border: 1px solid #aaa;
     border-radius: 0.3rem;
 }
 
@@ -58,49 +58,59 @@ table.datatable-table tbdody td { overflow-wrap: break-word; }
 	float: left;
 }
 
-.datatable-pagination a {
+.datatable-pagination li.datatable-hidden {
+    /*visibility: hidden;*/
+}
+
+.datatable-pagination a,
+.datatable-pagination button {
 	float: left;
-	padding: 0.1rem 0.5rem;
+	padding: 0.2rem 0.5rem;
 	position: relative;
 	text-decoration: none;
 	color: #333;
+    cursor: pointer;
 }
 
-.datatable-pagination a:hover {
+.datatable-pagination a:hover,
+.datatable-pagination button:hover {
 	background-color: #d9d9d9;
-}
-
-/* TODO in 7.0.0: remove */
-.datatable-pagination .active a,
-.datatable-pagination .active a:focus,
-.datatable-pagination .active a:hover {
-	background-color: #d9d9d9;
-	cursor: default;
 }
 
 .datatable-pagination .datatable-active a,
 .datatable-pagination .datatable-active a:focus,
-.datatable-pagination .datatable-active a:hover {
+.datatable-pagination .datatable-active a:hover,
+.datatable-pagination .datatable-active button,
+.datatable-pagination .datatable-active button:focus,
+.datatable-pagination .datatable-active button:hover {
 	background-color: #d9d9d9;
 	cursor: default;
 }
 
 .datatable-pagination .datatable-ellipsis a,
-.datatable-pagination .ellipsis a, /* TODO in 7.0.0: remove */
-.datatable-pagination .disabled a,
-.datatable-pagination .disabled a:focus,
-.datatable-pagination .disabled a:hover {
-	cursor: not-allowed;
+.datatable-pagination .datatable-disabled a,
+.datatable-pagination .datatable-disabled a:focus,
+.datatable-pagination .datatable-disabled a:hover,
+.datatable-pagination .datatable-ellipsis button,
+.datatable-pagination .datatable-disabled button,
+.datatable-pagination .datatable-disabled button:focus,
+.datatable-pagination .datatable-disabled button:hover {
+    pointer-events: none;
+    cursor: default;
 }
 
-.datatable-pagination .disabled a,
-.datatable-pagination .disabled a:focus,
-.datatable-pagination .disabled a:hover {
+.datatable-pagination .datatable-disabled a,
+.datatable-pagination .datatable-disabled a:focus,
+.datatable-pagination .datatable-disabled a:hover,
+.datatable-pagination .datatable-disabled button,
+.datatable-pagination .datatable-disabled button:focus,
+.datatable-pagination .datatable-disabled button:hover {
 	cursor: not-allowed;
 	opacity: 0.4;
 }
 
-.datatable-pagination .pager a {
+.datatable-pagination .datatable-pagination a,
+.datatable-pagination .datatable-pagination button {
 	font-weight: bold;
 }
 
@@ -149,7 +159,18 @@ table.datatable-table tbdody td { overflow-wrap: break-word; }
 	color: inherit;
 }
 
-.datatable-sorter {
+.datatable-table th button,
+.datatable-pagination-list button {
+    color: inherit;
+    border: 0;
+    background-color: inherit;
+    cursor: pointer;
+    text-align: inherit;
+    font-weight: inherit;
+    font-size: inherit;
+}
+
+.datatable-sorter, .datatable-filter {
 	display: inline-block;
 	height: 100%;
 	position: relative;
@@ -179,9 +200,29 @@ table.datatable-table tbdody td { overflow-wrap: break-word; }
 	top: 0px;
 }
 
-.asc .datatable-sorter::after,
-.desc .datatable-sorter::before {
+.datatable-ascending .datatable-sorter::after,
+.datatable-descending .datatable-sorter::before,
+.datatable-ascending .datatable-filter::after,
+.datatable-descending .datatable-filter::before {
 	opacity: 0.6;
+}
+
+.datatable-filter::before {
+    content: "";
+    position: absolute;
+    right: 4px;
+    opacity: 0.2;
+    width: 0;
+    height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+	border-radius: 50%;
+    border-top: 10px solid #000;
+    top: 25%;
+}
+
+.datatable-filter-active .datatable-filter::before {
+    opacity: 0.6;
 }
 
 .datatable-empty {
