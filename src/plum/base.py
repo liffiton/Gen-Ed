@@ -48,6 +48,11 @@ def create_app_base(import_name, app_config, instance_path):
 
     # base config for all applications
     base_config = dict(
+        # Some simple/weak XSS/CSRF protection
+        SESSION_COOKIE_SECURE=True,
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE='Lax',
+        # Free query tokens given to new users
         DEFAULT_TOKENS=10,
         PYLTI_CONFIG={
             # will be loaded from the consumers table in the database
