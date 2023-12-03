@@ -5,16 +5,18 @@ import string
 from getpass import getpass
 from importlib import resources
 from pathlib import Path
+from typing import Callable, Optional
 
 import click
 from flask import current_app, g
+from flask.app import Flask
 from werkzeug.security import generate_password_hash
 
 
 AUTH_PROVIDER_LOCAL = 1
 
 
-def get_db():
+def get_db() -> sqlite3.Connection:
     if 'db' not in g:
         g.db = sqlite3.connect(
             current_app.config['DATABASE'],
@@ -22,16 +24,17 @@ def get_db():
         )
         g.db.row_factory = sqlite3.Row
 
+    assert isinstance(g.db, sqlite3.Connection)
     return g.db
 
 
-def backup_db(target):
+def backup_db(target_str: str) -> None:
     """ Safely make a backup of the database to the given path.
     target: str or any path-like object.  Must not exist yet or be empty.
     """
-    target = Path(target)
+    target = Path(target_str)
     if target.exists() and target.stat().st_size > 0:
-        raise FileExistsError(errno.EEXISTS, "File already exists or is not empty", target)
+        raise FileExistsError(errno.EEXIST, "File already exists or is not empty", target)
 
     db = get_db()
     tmp_db = sqlite3.connect(target)
@@ -40,7 +43,7 @@ def backup_db(target):
     tmp_db.close()
 
 
-def close_db(e=None):
+def close_db(e: Optional[BaseException] = None) -> None:
     db = g.pop('db', None)
 
     if db is not None:
@@ -48,16 +51,16 @@ def close_db(e=None):
 
 
 # Functions to be called at the end of init_db().
-_on_init_db_callbacks = []
+_on_init_db_callbacks: list[Callable[[], None]] = []
 
 
-def on_init_db(func):
+def on_init_db(func: Callable[[], None]) -> Callable[[], None]:
     """Decorator to mark a function as a callback to be called at the end of init_db()."""
     _on_init_db_callbacks.append(func)
     return func
 
 
-def init_db():
+def init_db() -> None:
     db = get_db()
 
     # Common schema in the plum package
@@ -69,8 +72,8 @@ def init_db():
             db.executescript(f.read())
 
     # App-specific schema in the app's package
-    with current_app.open_resource('schema.sql') as f:
-        db.executescript(f.read().decode('utf8'))
+    with current_app.open_resource('schema.sql', 'r') as f:
+        db.executescript(f.read())
 
     # Mark all existing migrations as applied (since this is a fresh DB)
     for func in _on_init_db_callbacks:
@@ -80,7 +83,7 @@ def init_db():
 
 
 @click.command('initdb')
-def init_db_command():
+def init_db_command() -> None:
     """Clear the existing data and create new tables."""
     init_db()
     click.echo('Initialized the database.')
@@ -90,7 +93,7 @@ def init_db_command():
 @click.argument('username')
 @click.option('--admin', is_flag=True, help="Make the new user an admin.")
 @click.option('--tester', is_flag=True, help="Make the new user a tester.")
-def newuser_command(username, admin=False, tester=False):
+def newuser_command(username: str, admin: bool = False, tester: bool = False) -> None:
     """Add a new user to the database.  Generates and prints a random password."""
     db = get_db()
 
@@ -113,7 +116,7 @@ def newuser_command(username, admin=False, tester=False):
 
 @click.command('setpassword')
 @click.argument('username')
-def setpassword_command(username):
+def setpassword_command(username: str) -> None:
     """Set the password for an existing user.  Requests the password interactively."""
     db = get_db()
 
@@ -139,7 +142,7 @@ def setpassword_command(username):
     click.secho(f"Password updated for user {username}.", fg='green')
 
 
-def init_app(app):
+def init_app(app: Flask) -> None:
     app.teardown_appcontext(close_db)
     app.cli.add_command(init_db_command)
     app.cli.add_command(newuser_command)
