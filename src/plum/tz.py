@@ -3,12 +3,13 @@ import datetime as dt
 import pytz
 
 from flask import request, session
+from flask.app import Flask
 
 # Anywhere-On-Earth timezone for checking expirations
 tz_aoe = dt.timezone(dt.timedelta(hours=-12), name="AOE")
 
 
-def date_is_past(date):
+def date_is_past(date: dt.date) -> bool:
     """Return True if the given date object is in the past everywhere on Earth.
     Put another way: return True if the current time in the anywhere-on-Earth
     timezone is later than the given date."""
@@ -18,22 +19,22 @@ def date_is_past(date):
 
 
 # Set up route for getting user's local timezone and filter for converting UTC to their timezone
-def init_app(app):
+def init_app(app: Flask) -> None:
     @app.route('/set_timezone', methods=['POST'])
-    def set_timezone():
+    def set_timezone() -> str:
         '''Get timezone from the browser and store it in the session object.'''
         timezone = request.data.decode('utf-8')
         session['timezone'] = timezone
         return ""
 
     @app.template_filter('localtime')
-    def localtime_filter(value):
+    def localtime_filter(value: dt.datetime) -> str:
         '''Use timezone from the session object, if available, to localize datetimes from UTC.'''
-        if 'timezone' not in session:
-            return value
-
         # https://stackoverflow.com/a/34832184
         utc_dt = pytz.utc.localize(value)
-        local_tz = pytz.timezone(session['timezone'])
-        local_dt = utc_dt.astimezone(local_tz)
-        return local_dt.strftime("%Y-%m-%d %-I:%M%P")
+        if 'timezone' not in session:
+            return utc_dt.strftime("%Y-%m-%d %-I:%M%P %Z")  # %Z to include 'UTC'
+        else:
+            local_tz = pytz.timezone(session['timezone'])
+            local_dt = utc_dt.astimezone(local_tz)
+            return local_dt.strftime("%Y-%m-%d %-I:%M%P")
