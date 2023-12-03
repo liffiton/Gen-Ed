@@ -11,6 +11,8 @@ def create_app(test_config=None, instance_path=None):
     module_dir = Path(__file__).resolve().parent
     app_config = dict(
         APPLICATION_TITLE='Starburst',
+        APPLICATION_AUTHOR='Mark Liffiton',
+        SUPPORT_EMAIL='mliffito@iwu.edu',
         HELP_LINK_TEXT='Generate Ideas',
         DATABASE_NAME='starburst.db',
         DOCS_DIR=module_dir / 'docs',

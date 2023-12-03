@@ -221,13 +221,13 @@ ${ options.searchable ?
 
     <footer class="footer has-background-dark has-text-light">
       <div class="content has-text-centered">
-        <p>
-          <b>{{ config['APPLICATION_TITLE'] }}</b> by Mark Liffiton.<br>
-          {% if config['DOCS_DIR'] %}
-          <a class="has-text-light is-underlined" href="{{ url_for("docs.main") }}">Documentation</a>.<br>
-          {% endif %}
-          <a class="has-text-light is-underlined" href="https://forms.gle/ZvuAvgaKsnebG6G69">Contact form</a>.
-        </p>
+        <p><b>{{ config['APPLICATION_TITLE'] }}</b> by {{ config['APPLICATION_AUTHOR'] }}.<br></p>
+        {% if config['DOCS_DIR'] %}
+        <p><a class="has-text-light is-underlined" href="{{ url_for("docs.main") }}">Documentation</a></p>
+        {% endif %}
+        {% if config['SUPPORT_EMAIL'] %}
+        <p>Contact: <a class="has-text-light is-underlined" href="mailto:{{ config['SUPPORT_EMAIL'] }}">{{ config['SUPPORT_EMAIL'] }}</a></p>
+        {% endif %}
       </div>
     </footer>
   </body>

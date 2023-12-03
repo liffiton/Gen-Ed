@@ -1,18 +1,23 @@
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 from flask import send_from_directory
+from flask.app import Flask
+from flask.wrappers import Response
 
 from plum import base
 from . import class_config, helper, tutor
 
 
-def create_app(test_config=None, instance_path=None):
+def create_app(test_config: Optional[Dict[str, Any]] = None, instance_path: Optional[Path] = None) -> Flask:
     ''' Flask app factory.  Create and configure the application. '''
 
     # App-specific configuration
     module_dir = Path(__file__).resolve().parent
     app_config = dict(
         APPLICATION_TITLE='CodeHelp',
+        APPLICATION_AUTHOR='Mark Liffiton',
+        SUPPORT_EMAIL='support@codehelp.app',
         HELP_LINK_TEXT='Get Help',
         DATABASE_NAME='codehelp.db',  # will be combined with app.instance_path in plum.create_app_base()
         DOCS_DIR=module_dir / 'docs',
@@ -41,7 +46,7 @@ def create_app(test_config=None, instance_path=None):
 
     # make a simple route for the .well-known directory
     @app.route('/.well-known/<path:path>')
-    def well_known(path):
+    def well_known(path: Path) -> Response:
         return send_from_directory('.well-known', path)
 
     # add navbar items
