@@ -156,6 +156,7 @@ CREATE TABLE models (
 );
 INSERT INTO models(name, model) VALUES
     ('OpenAI GPT-3.5', 'gpt-3.5-turbo-1106'),
-    ('OpenAI GPT-4', 'gpt-4')
+    ('OpenAI GPT-4', 'gpt-4'),
+    ('OpenAI GPT-4 Turbo', 'gpt-4-1106-preview')
 ;
 
