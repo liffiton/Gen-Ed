@@ -91,7 +91,7 @@ async def run_query_prompts(llm_dict, language, code, error, issue):
             api_key,
             prompt=prompts.make_main_prompt(language, code, error, issue, avoid_set),
             model=model,
-            n=2,
+            n=1,
             score_func=lambda x: score_response(x, avoid_set)
         )
     )
