@@ -1,15 +1,8 @@
-authlib
-flask
-markdown
-mdx_truly_sane_lists
+Authlib~=1.3.0
+Flask~=3.0.0
+Markdown~=3.5.1
+mdx-truly-sane-lists~=1.3
 openai<1.0
 git+https://github.com/liffiton/pylti
-python-dotenv
+python-dotenv~=1.0.0
 pytz
-
-# for testing
-coverage 
-oauthlib
-pytest
-pytest-cov
-pytest-xdist

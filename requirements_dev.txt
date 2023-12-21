@@ -1,0 +1,6 @@
+# for testing
+coverage~=7.3.4
+oauthlib~=3.2.2
+pytest~=7.4.3
+pytest-cov~=4.1.0
+pytest-xdist~=3.5.0

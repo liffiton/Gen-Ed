@@ -79,6 +79,12 @@ For example, to run the CodeHelp app:
 Running Tests
 -------------
 
+First, install test dependencies:
+
+  pip install -r requirements_dev.txt
+
+Run all tests:
+
   pytest
 
 For code coverage report:
