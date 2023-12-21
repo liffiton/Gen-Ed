@@ -14,3 +14,20 @@ addopts = [
     "--import-mode=importlib",
     "-n8",
 ]
+
+[tool.ruff]
+target-version = "py39"  # let ruff know we require 3.9+
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "E501",   # line too long
+    "COM812", # missing trailing comma
+    "ERA001", # commented-out code
+    "S101",   # assert statements
+    "T20",    # Flake8-print (print statements)
+    "Q",      # string quoting
+    "D",      # docstrings
+    "ANN",    # type annotation
+    "TD",     # TODOs
+]
