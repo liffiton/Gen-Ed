@@ -17,12 +17,14 @@ VALUES
 INSERT INTO users (id, auth_provider, full_name, email, auth_name, is_admin, is_tester, query_tokens)
 VALUES
     -- provider 1 = local
-    (11, 1, null, 'testuser', null, false, true, 0),  -- testuser
-    (12, 1, null, 'testadmin', null, true, true, 0),  -- testadmin
+    (11, 1, null, null, 'testuser', false, true, 0),  -- testuser
+    (12, 1, null, null, 'testadmin', true, true, 0),  -- testadmin
+    (13, 1, null, 'instructor@example.com', 'testinstructor', false, true, 0),  -- testinstructor
+    (14, 1, null, 'user2@example.com', 'testuser2', false, false, 0),  -- testuser2
     -- provider 2 = lti
-    (13, 2, null, 'ltiuser1@domain.edu', null, false, false, 0),
-    (14, 2, null, 'ltiuser2@domain.edu', null, false, false, 0),
-    (15, 2, null, 'ltiuser3@domain.edu', null, false, false, 0);
+    (21, 2, null, 'ltiuser1@domain.edu', null, false, false, 0),
+    (22, 2, null, 'ltiuser2@domain.edu', null, false, false, 0),
+    (23, 2, null, 'ltiuser3@domain.edu', null, false, false, 0);
 
 INSERT INTO classes_user (class_id, openai_key, link_ident, link_reg_expires, creator_user_id)
 VALUES
@@ -32,30 +34,35 @@ VALUES
 
 INSERT INTO auth_local (user_id, username, password)
 VALUES
+    -- Generate with werkzeug.security.generate_password_hash("password")
     -- testuser:testpassword
     (11, 'testuser', 'pbkdf2:sha256:260000$sGEKFQJ2UbGkHl1i$97032d72ed006da449a04a9e636cd4baba6133b6df3c5cdba09ddb0465c5e812'),
     -- testadmin:testadminpassword
-    (12, 'testadmin', 'pbkdf2:sha256:260000$kIcsNgDntNvCz7D0$3c517ee1ebd6402852e47e0ed16827e99a3144ca27024634e6ada8cd836028a4');
+    (12, 'testadmin', 'pbkdf2:sha256:260000$kIcsNgDntNvCz7D0$3c517ee1ebd6402852e47e0ed16827e99a3144ca27024634e6ada8cd836028a4'),
+    -- testinstructor:testinstructorpassword
+    (13, 'testinstructor', 'scrypt:32768:8:1$7rbBwwiV9lXPVVsz$721c41bdea527a131442f371d66e690bcfb51dad30857951f439a075fce01b3c4a9ddc84999480ebf42d25ad1d06d9d5420c1ca34fc8c273c0fe0671129759a6'),
+    -- testuser2:testuser2password
+    (14, 'testuser2', 'scrypt:32768:8:1$x6JpBekAfzh3gHMo$dc53d5e24c325a9917f9718bf3d822283f664bd9004a5f9c57621d75535566bccc2a587e75c37a1f87ab4dae9bd0f34d718b3abdcb88a2a3251acf028d0b28a8');
 
 INSERT INTO auth_external (user_id, auth_provider, ext_id)
 VALUES
     -- provider 2 = lti
-    (13, 2, 'domain.edu_1234_ltiuser1@domain.edu'),
-    (14, 2, 'domain.edu_5678_ltiuser2@domain.edu'),
-    (15, 2, 'domain.edu_ABCD_ltiuser3@domain.edu');
+    (21, 2, 'domain.edu_1234_ltiuser1@domain.edu'),
+    (22, 2, 'domain.edu_5678_ltiuser2@domain.edu'),
+    (23, 2, 'domain.edu_ABCD_ltiuser3@domain.edu');
 
 INSERT INTO roles (id, user_id, class_id, role)
 VALUES
-    (1, 13, 1, 'student'), -- ltiuser1
-    (2, 14, 1, 'student'), -- ltiuser2
-    (3, 15, 1, 'instructor'); -- ltiuser3 is an instructor
+    (1, 21, 1, 'student'), -- ltiuser1
+    (2, 22, 1, 'student'), -- ltiuser2
+    (3, 23, 1, 'instructor'); -- ltiuser3 is an instructor
 
 INSERT INTO queries (id, language, code, error, issue, response_json, response_text, helpful, user_id, role_id)
 VALUES
-    (1, 'python', 'code1', '', '', '{}', '{"main": "response1"}', 0, 13, 1),
-    (2, 'python', 'code2', '', '', '{}', '{"main": "response2"}', 0, 14, 2),
-    (3, 'python', 'code3', '', '', '{}', '{"main": "response3"}', 0, 13, 1),
-    (4, 'python', 'code4', '', '', '{}', '{"main": "response4"}', 0, 15, 3);
+    (1, 'python', 'code1', '', '', '{}', '{"main": "response1"}', 0, 21, 1),
+    (2, 'python', 'code2', '', '', '{}', '{"main": "response2"}', 0, 22, 2),
+    (3, 'python', 'code3', '', '', '{}', '{"main": "response3"}', 0, 21, 1),
+    (4, 'python', 'code4', '', '', '{}', '{"main": "response4"}', 0, 23, 3);
 
 INSERT INTO demo_links (id, name, enabled, expiration, tokens, uses)
 VALUES
