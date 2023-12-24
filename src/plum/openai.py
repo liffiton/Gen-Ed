@@ -172,9 +172,7 @@ def get_models() -> list[Row]:
 
 async def get_completion(api_key: str, prompt: str | None = None, messages: list[dict[str, str]] | None = None, model: str | None = None, n: int = 1, score_func: Callable[[str], int] | None = None) -> tuple[dict[str, str], str]:
     '''
-    model can be any valid OpenAI model name.
-    If it is 'text-davinci-003', it is treated as a text completion model.
-    Otherwise, it's used as a chat completion model.
+    model can be any valid OpenAI model name that can be used via the chat completion API.
 
     Returns:
        - A tuple containing:
@@ -188,39 +186,25 @@ async def get_completion(api_key: str, prompt: str | None = None, messages: list
 
     common_error_text = "Error ({error_type}).  Something went wrong with this query.  The error has been logged, and we'll work on it.  For now, please try again."
     try:
-        if model == 'text-davinci-003':
+        if messages is None:
             assert prompt is not None
-            response = await openai.Completion.acreate(
-                api_key=api_key,
-                model=model,
-                prompt=prompt,
-                temperature=0.25,
-                max_tokens=1000,
-                n=n,
-                # TODO: add user= parameter w/ unique ID of user (e.g., hash of username+email or similar)
-            )
-            get_text = lambda choice: choice.text  # noqa
-        else:
-            if messages is None:
-                assert prompt is not None
-                messages = [{"role": "user", "content": prompt}]
-            response = await openai.ChatCompletion.acreate(
-                api_key=api_key,
-                model=model,
-                messages=messages,
-                temperature=0.25,
-                max_tokens=1000,
-                n=n,
-                # TODO: add user= parameter w/ unique ID of user (e.g., hash of username+email or similar)
-            )
-            get_text = lambda choice: choice.message['content']  # noqa
+            messages = [{"role": "user", "content": prompt}]
+        response = await openai.ChatCompletion.acreate(
+            api_key=api_key,
+            model=model,
+            messages=messages,
+            temperature=0.25,
+            max_tokens=1000,
+            n=n,
+            # TODO: add user= parameter w/ unique ID of user (e.g., hash of username+email or similar)
+        )
 
         if n > 1:
             assert score_func is not None
-            best_choice = max(response.choices, key=lambda choice: score_func(get_text(choice)))
+            best_choice = max(response.choices, key=lambda choice: score_func(choice.message['content']))
         else:
             best_choice = response.choices[0]
-        response_txt = get_text(best_choice)
+        response_txt = best_choice.message['content']
 
         response_reason = best_choice.finish_reason  # e.g. "length" if max_tokens reached
 
