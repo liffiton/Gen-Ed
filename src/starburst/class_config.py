@@ -10,7 +10,7 @@ bp = Blueprint('class_config', __name__, url_prefix="/instructor/config", templa
 
 @bp.route("/")
 @instructor_required
-def config_form():
+def config_form() -> str:
     class_row, link_reg_state = get_common_class_settings()
 
     return render_template("instructor_config_form.html", class_row=class_row, link_reg_state=link_reg_state, models=get_models())

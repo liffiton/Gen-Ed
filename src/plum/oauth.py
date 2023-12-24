@@ -1,8 +1,9 @@
-from flask import Blueprint, abort, current_app, redirect, request, session, url_for
 from authlib.integrations.flask_client import OAuth, OAuthError
+from flask import Blueprint, abort, current_app, redirect, request, session, url_for
+from flask.app import Flask
+from werkzeug.wrappers.response import Response
 
 from .auth import ext_login_update_or_create, get_last_role, set_session_auth
-
 
 GOOGLE_CONF_URL = "https://accounts.google.com/.well-known/openid-configuration"
 # Microsoft docs: https://learn.microsoft.com/en-us/azure/active-directory/develop/v2-protocols-oidc
@@ -14,7 +15,7 @@ bp = Blueprint('oauth', __name__, url_prefix="/oauth")
 _oauth = OAuth()
 
 
-def init_app(app):
+def init_app(app: Flask) -> None:
     """Register SSO handlers with authlib.
     Note: _oauth.register() automatically loads client ID and secret from app config (see base.py)
     """
@@ -44,7 +45,7 @@ def init_app(app):
 
 
 @bp.route('/login/<string:provider_name>')
-def login(provider_name):
+def login(provider_name: str) -> Response:
     client = _oauth.create_client(provider_name)
     if not client:
         abort(404)
@@ -59,7 +60,7 @@ def login(provider_name):
 
 
 @bp.route('/auth/<string:provider_name>')
-def auth(provider_name):
+def auth(provider_name: str) -> Response:
     client = _oauth.create_client(provider_name)
     if not client:
         abort(404)

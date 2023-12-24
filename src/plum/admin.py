@@ -1,29 +1,45 @@
-from collections import namedtuple
+from collections.abc import Callable, Iterator
 from datetime import date
+from dataclasses import dataclass
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from typing import Any, ParamSpec, TypeVar
 from urllib.parse import urlencode
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file, url_for
+from flask import (
+    Blueprint,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    url_for,
+)
+from flask.app import Flask
+from werkzeug.wrappers.response import Response
 
-from .db import get_db, backup_db
 from .auth import admin_required
+from .db import backup_db, get_db
 from .openai import get_models
-
 
 bp = Blueprint('admin', __name__, url_prefix="/admin", template_folder='templates')
 
 
 @bp.before_request
 @admin_required
-def before_request():
+def before_request() -> None:
     """ Apply decorator to protect all admin blueprint endpoints. """
-    pass
 
 
 # A module-level list of registered admin pages.  Updated by register_admin_link()
-_admin_links = []
-_admin_links_right = []
+_admin_links: list[tuple[str, str]] = []
+_admin_links_right: list[tuple[str, str]] = []
+
+
+# For decorator type hints
+P = ParamSpec('P')
+R = TypeVar('R')
 
 
 # Decorator function for registering routes as admin pages.
@@ -31,8 +47,8 @@ _admin_links_right = []
 #   @register_admin_link("Demo Links")
 #   @[route stuff]
 #   def handler():  [...]
-def register_admin_link(display_name, right=False):
-    def decorator(route_func):
+def register_admin_link(display_name: str, right: bool = False) -> Callable[[Callable[P, R]], Callable[P, R]]:
+    def decorator(route_func: Callable[P, R]) -> Callable[P, R]:
         handler_name = f"admin.{route_func.__name__}"
         if right:
             _admin_links_right.append((handler_name, display_name))
@@ -42,14 +58,14 @@ def register_admin_link(display_name, right=False):
     return decorator
 
 
-def init_app(app):
+def init_app(app: Flask) -> None:
     # inject admin pages into template contexts
     @app.context_processor
-    def inject_admin_links():
+    def inject_admin_links() -> dict[str, list[tuple[str, str]]]:
         return dict(admin_links=_admin_links, admin_links_right=_admin_links_right)
 
 
-def reload_consumers():
+def reload_consumers() -> None:
     db = get_db()
     consumer_rows = db.execute("SELECT * FROM consumers").fetchall()
     consumer_dict = {
@@ -58,21 +74,30 @@ def reload_consumers():
     current_app.config['PYLTI_CONFIG']['consumers'] = consumer_dict
 
 
-FilterSpec = namedtuple('FilterSpec', ('name', 'column', 'display'))
-Filter = namedtuple('Filter', ('spec', 'value', 'display_value'))
+@dataclass(frozen=True)
+class FilterSpec:
+    name: str
+    column: str
+    display: str
+
+@dataclass(frozen=True)
+class Filter:
+    spec: FilterSpec
+    value: str
+    display_value: str
 
 
 class Filters:
-    def __init__(self):
-        self._filters = []
+    def __init__(self) -> None:
+        self._filters: list[Filter] = []
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Filter]:
         return self._filters.__iter__()
 
-    def add(self, spec, value, display_value):
+    def add(self, spec: FilterSpec, value: str, display_value: str) -> None:
         self._filters.append(Filter(spec, value, display_value))
 
-    def make_where(self, selected):
+    def make_where(self, selected: list[str]) -> tuple[str, list[Any]]:
         filters = [f for f in self._filters if f.spec.name in selected]
         if not filters:
             return "", []
@@ -82,15 +107,15 @@ class Filters:
                 [f.value for f in filters]
             )
 
-    def filter_string(self):
-        filter_dict = {spec.name: value for (spec, value, _) in self._filters}
+    def filter_string(self) -> str:
+        filter_dict = {f.spec.name: f.value for f in self._filters}
         return f"?{urlencode(filter_dict)}"
 
-    def filter_string_without(self, exclude_name):
-        filter_dict = {spec.name: value for (spec, value, _) in self._filters if spec.name != exclude_name}
+    def filter_string_without(self, exclude_name: str) -> str:
+        filter_dict = {f.spec.name: f.value for f in self._filters if f.spec.name != exclude_name}
         return f"?{urlencode(filter_dict)}"
 
-    def template_string(self, selected_name):
+    def template_string(self, selected_name: str) -> str:
         '''
         Return a string that will be used to create a link URL for each row in
         a table.  This string is passed to a Javascript function as
@@ -104,7 +129,7 @@ class Filters:
 
 
 @bp.route("/")
-def main():
+def main() -> str:
     db = get_db()
     filters = Filters()
 
@@ -246,7 +271,7 @@ def main():
 
 @register_admin_link("Download DB", right=True)
 @bp.route("/get_db")
-def get_db_file():
+def get_db_file() -> Response:
     db_backup_file = NamedTemporaryFile()
     backup_db(db_backup_file.name)
     db_name = current_app.config['DATABASE_NAME']
@@ -256,22 +281,22 @@ def get_db_file():
 
 
 @bp.route("/consumer/new")
-def consumer_new():
+def consumer_new() -> str:
     return render_template("consumer_form.html", models=get_models())
 
 
 @bp.route("/consumer/<int:id>")
-def consumer_form(id=None):
+def consumer_form(id: int | None = None) -> str:
     db = get_db()
     consumer_row = db.execute("SELECT * FROM consumers WHERE id=?", [id]).fetchone()
     return render_template("consumer_form.html", consumer=consumer_row, models=get_models())
 
 
 @bp.route("/consumer/update", methods=['POST'])
-def consumer_update():
+def consumer_update() -> Response:
     db = get_db()
 
-    consumer_id = request.form.get("consumer_id", None)
+    consumer_id = request.form.get("consumer_id", type=int)
 
     if consumer_id is None:
         # Adding a new consumer

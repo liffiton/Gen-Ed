@@ -2,13 +2,13 @@ import asyncio
 import json
 
 from flask import Blueprint, redirect, render_template, request, url_for
+from plum.auth import class_enabled_required, get_auth, login_required
+from plum.db import get_db
+from plum.openai import LLMDict, get_completion, with_llm
+from plum.queries import get_history, get_query
+from werkzeug.wrappers.response import Response
 
 from . import prompts
-from plum.db import get_db
-from plum.auth import get_auth, login_required, class_enabled_required
-from plum.openai import with_llm, get_completion
-from plum.queries import get_query, get_history
-
 
 bp = Blueprint('helper', __name__, url_prefix="/ideas", template_folder='templates')
 
@@ -17,7 +17,7 @@ bp = Blueprint('helper', __name__, url_prefix="/ideas", template_folder='templat
 @bp.route("/<int:query_id>")
 @login_required
 @class_enabled_required
-def help_form(query_id=None):
+def help_form(query_id: int | None = None) -> str:
     query_row = None
 
     # populate with a query+response if one is specified
@@ -31,14 +31,14 @@ def help_form(query_id=None):
 
 @bp.route("/view/<int:query_id>")
 @login_required
-def help_view(query_id):
+def help_view(query_id: int) -> str:
     query_row, responses = get_query(query_id)
     history = get_history()
 
     return render_template("help_view.html", query=query_row, responses=responses, history=history)
 
 
-async def run_query_prompts(llm_dict, assignment, topics):
+async def run_query_prompts(llm_dict: LLMDict, assignment: str, topics: str) -> tuple[list[dict[str, str]], dict[str, str]]:
     ''' Run the given query against the coding help system of prompts.
 
     Returns a tuple containing:
@@ -65,7 +65,7 @@ async def run_query_prompts(llm_dict, assignment, topics):
     return responses, {'main': response_txt}
 
 
-def run_query(llm_dict, assignment, topics):
+def run_query(llm_dict: LLMDict, assignment: str, topics: str) -> int:
     query_id = record_query(assignment, topics)
 
     responses, texts = asyncio.run(run_query_prompts(llm_dict, assignment, topics))
@@ -75,7 +75,7 @@ def run_query(llm_dict, assignment, topics):
     return query_id
 
 
-def record_query(assignment, topics):
+def record_query(assignment: str, topics: str) -> int:
     db = get_db()
     auth = get_auth()
     role_id = auth['role_id']
@@ -87,10 +87,11 @@ def record_query(assignment, topics):
     new_row_id = cur.lastrowid
     db.commit()
 
+    assert new_row_id is not None
     return new_row_id
 
 
-def record_response(query_id, responses, texts):
+def record_response(query_id: int, responses: list[dict[str, str]], texts: dict[str, str]) -> None:
     db = get_db()
 
     db.execute(
@@ -104,7 +105,7 @@ def record_response(query_id, responses, texts):
 @login_required
 @class_enabled_required
 @with_llm(use_system_key=True)
-def help_request(llm_dict):
+def help_request(llm_dict: LLMDict) -> Response:
     assignment = request.form["assignment"]
     topics = request.form["topics"]
 
@@ -115,7 +116,7 @@ def help_request(llm_dict):
 
 @bp.route("/post_helpful", methods=["POST"])
 @login_required
-def post_helpful():
+def post_helpful() -> str:
     db = get_db()
     auth = get_auth()
 

@@ -1,15 +1,29 @@
 import itertools
+from collections.abc import Iterable
 from datetime import datetime
 from importlib import resources
+from importlib.abc import Traversable
 from pathlib import Path
+from typing import TypedDict
 
 import click
 from flask import current_app
+from flask.app import Flask
 
-from .db import get_db, backup_db, on_init_db
+from .db import backup_db, get_db, on_init_db
 
 
-def _do_migration(name, script):
+class MigrationDict(TypedDict):
+    name: str
+    path: Path
+    contents: str
+    mtime: float
+    applied_on: str | None
+    skipped: bool | None
+    succeeded: bool | None
+
+
+def _do_migration(name: str, script: str) -> tuple[bool, str]:
     """
     Run a migration script against the instance database, recording and returning success or failure.
 
@@ -38,7 +52,7 @@ def _do_migration(name, script):
         return False, str(e)
 
 
-def _apply_migrations(migrations):
+def _apply_migrations(migrations: Iterable[MigrationDict]) -> None:
     """
     Apply a list of migrations in the order provided.
 
@@ -52,29 +66,29 @@ def _apply_migrations(migrations):
 
     backup_db(backup_dest)
 
-    click.echo(f"Database backup saved in [33m{backup_dest}[m.")
+    click.echo(f"Database backup saved in \x1B[33m{backup_dest}\x1B[m.")
 
     # Run the scripts
     for migration in migrations:
         name = migration['name']
         script = migration['contents']
-        click.echo(f"[35;1m═╦═Applying {name}═══[m")
+        click.echo(f"\x1B[35;1m═╦═Applying {name}═══\x1B[m")
         indented = '\n'.join(f" ║ {x}" for x in script.split('\n'))
         click.echo(indented)
         success, err = _do_migration(name, script)
         if success:
-            click.echo("[32;1m═╩═Migration succeeded═══[m")
+            click.echo("\x1B[32;1m═╩═Migration succeeded═══\x1B[m")
         else:
-            click.echo(f"[31;1m═╩═Migration failed═══[m  [31m{err}[m")
+            click.echo(f"\x1B[31;1m═╩═Migration failed═══\x1B[m  \x1B[31m{err}\x1B[m")
             return  # End here
 
 
-def _migration_info(resource):
+def _migration_info(resource: Traversable) -> MigrationDict:
     """Get info on a migration, provided as an importlib.resources resource."""
     db = get_db()
-    with resources.as_file(resource) as path, open(path) as f:
+    with resources.as_file(resource) as path, path.open() as f:
         name = path.name
-        info = {
+        info: MigrationDict = {
             'name': name,
             'path': path,
             'contents': f.read(),
@@ -85,16 +99,14 @@ def _migration_info(resource):
         }
         row = db.execute("SELECT * FROM migrations WHERE filename=?", [name]).fetchone()
         if row:
-            info = info | {
-                'applied_on': row['applied_on'],
-                'skipped': row['skipped'],
-                'succeeded': row['succeeded'],
-            }
+            info['applied_on'] = row['applied_on']
+            info['skipped'] = row['skipped']
+            info['succeeded'] = row['succeeded']
 
         return info
 
 
-def _get_migrations():
+def _get_migrations() -> list[MigrationDict]:
     # Pull shared Plum migrations and app-specific migrations
     plum_migrations = resources.files('plum').joinpath("migrations")
     app_migrations = resources.files(current_app.name).joinpath("migrations")
@@ -114,7 +126,7 @@ def _get_migrations():
 
 
 @on_init_db
-def _mark_all_as_applied():
+def _mark_all_as_applied() -> None:
     db = get_db()
     for migration in _get_migrations():
         db.execute("INSERT OR IGNORE INTO migrations (filename) VALUES (?)", [migration['name']])
@@ -123,16 +135,16 @@ def _mark_all_as_applied():
 
 
 @click.command('migrate')
-def migrate_command():
-    """???"""
+def migrate_command() -> None:
+    """ Launch a simple text interface for managing migration scripts. """
     migrations = _get_migrations()
 
     click.echo("  # status  script file")
     click.echo("--- ------  --------------------")
     status_new = "☐"
-    status_success = "[32m☑[m"
-    status_skipped = "[33m☑[m"
-    status_failed = "[31m☒[m"
+    status_success = "\x1B[32m☑\x1B[m"
+    status_skipped = "\x1B[33m☑\x1B[m"
+    status_failed = "\x1B[31m☒\x1B[m"
     for i, migration in enumerate(migrations):
         status = status_new
         if migration['succeeded']:
@@ -163,5 +175,5 @@ def migrate_command():
             _apply_migrations(m for m in migrations if not m['succeeded'] and not m['skipped'])
 
 
-def init_app(app):
+def init_app(app: Flask) -> None:
     app.cli.add_command(migrate_command)

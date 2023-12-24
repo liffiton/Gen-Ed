@@ -1,12 +1,14 @@
 import asyncio
+from collections.abc import Callable
 from functools import wraps
+from sqlite3 import Row
+from typing import ParamSpec, TypedDict, TypeVar
 
-from flask import current_app, flash, render_template
 import openai
+from flask import current_app, flash, render_template
 
-from .db import get_db
 from .auth import get_auth
-
+from .db import get_db
 
 # When this is provided as an API key to get_completion(), no API call will be made.
 # The function will sleep to simulate a request, then return test data.
@@ -25,7 +27,12 @@ class NoTokensError(Exception):
     pass
 
 
-def _get_llm(use_system_key):
+class LLMDict(TypedDict):
+    key: str
+    model: str
+
+
+def _get_llm(use_system_key: bool) -> LLMDict:
     ''' Get model details and an OpenAI key based on the arguments and the
     current user and class.
 
@@ -51,7 +58,7 @@ def _get_llm(use_system_key):
 
     # Get the default model (TODO: better control than just id=1)
     model_row = db.execute("SELECT models.model FROM models WHERE models.id=1").fetchone()
-    system_default = {
+    system_default: LLMDict = {
         'key': current_app.config["OPENAI_API_KEY"],
         'model': model_row['model'],
     }
@@ -82,14 +89,15 @@ def _get_llm(use_system_key):
         """, [auth['class_id']]).fetchone()
 
         if not class_row['enabled']:
-            raise ClassDisabledError()
-        elif not class_row['openai_key']:
-            raise NoKeyFoundError()
-        else:
-            return {
-                'key': class_row['openai_key'],
-                'model': class_row['model'],
-            }
+            raise ClassDisabledError
+
+        if not class_row['openai_key']:
+            raise NoKeyFoundError
+
+        return {
+            'key': class_row['openai_key'],
+            'model': class_row['model'],
+        }
 
     # Get user data for tokens, auth_provider
     user_row = db.execute("""
@@ -107,7 +115,7 @@ def _get_llm(use_system_key):
 
     tokens = user_row['query_tokens']
     if tokens == 0:
-        raise NoTokensError()
+        raise NoTokensError
 
     # user.tokens > 0, so decrement it and use the system key
     db.execute("UPDATE users SET query_tokens=query_tokens-1 WHERE id=?", [auth['user_id']])
@@ -115,7 +123,12 @@ def _get_llm(use_system_key):
     return system_default
 
 
-def with_llm(use_system_key=False):
+# For decorator type hints
+P = ParamSpec('P')
+R = TypeVar('R')
+
+
+def with_llm(use_system_key: bool = False) -> Callable[[Callable[P, R]], Callable[P, str | R]]:
     '''Decorate a view function that requires an LLM and API key.
 
     Assigns an 'llm_dict' named argument.
@@ -127,12 +140,13 @@ def with_llm(use_system_key=False):
     If use_system_key is True, all users can access this, and they use the
     system API key and GPT-3.5.
     '''
-    def decorator(f):
+    def decorator(f: Callable[P, R]) -> Callable[P, str | R]:
         @wraps(f)
-        def decorated_function(*args, **kwargs):
+        def decorated_function(*args: P.args, **kwargs: P.kwargs) -> str | R:
             try:
                 llm_dict = _get_llm(use_system_key)
-                assert isinstance(llm_dict['key'], str) and llm_dict['key'] != ''
+                assert isinstance(llm_dict['key'], str)
+                assert llm_dict['key'] != ''
             except ClassDisabledError:
                 flash("Error: The current class is archived or disabled.  Request cannot be submitted.")
                 return render_template("error.html")
@@ -143,19 +157,20 @@ def with_llm(use_system_key=False):
                 flash("You have used all of your free tokens.  If you are using this application in a class, please connect using the link from your class.  Otherwise, you can create a class and add an OpenAI API key or contact us if you want to continue using this application.", "warning")
                 return render_template("error.html")
 
-            return f(*args, **kwargs, llm_dict=llm_dict)
+            kwargs['llm_dict'] = llm_dict
+            return f(*args, **kwargs)
         return decorated_function
     return decorator
 
 
-def get_models():
+def get_models() -> list[Row]:
     """Enumerate the models available in the database."""
     db = get_db()
     models = db.execute("SELECT * FROM models ORDER BY id ASC").fetchall()
     return models
 
 
-async def get_completion(api_key, prompt=None, messages=None, model=None, n=1, score_func=None):
+async def get_completion(api_key: str, prompt: str | None = None, messages: list[dict[str, str]] | None = None, model: str | None = None, n: int = 1, score_func: Callable[[str], int] | None = None) -> tuple[dict[str, str], str]:
     '''
     model can be any valid OpenAI model name.
     If it is 'text-davinci-003', it is treated as a text completion model.
@@ -166,17 +181,15 @@ async def get_completion(api_key, prompt=None, messages=None, model=None, n=1, s
            - An OpenAI response object
            - The response text (stripped)
     '''
-    assert prompt is None or messages is None
-    if model == 'text-davinci-003':
-        assert prompt is not None
 
     if api_key == TEST_API_KEY:
         await asyncio.sleep(2)  # simulate a 2 second delay for a network request
-        return "TEST DATA: " + "x "*500, "TEST DATA: " + "x "*500,
+        return {"TEST DATA" : "x "*500}, "TEST DATA: " + "x "*500
 
     common_error_text = "Error ({error_type}).  Something went wrong with this query.  The error has been logged, and we'll work on it.  For now, please try again."
     try:
         if model == 'text-davinci-003':
+            assert prompt is not None
             response = await openai.Completion.acreate(
                 api_key=api_key,
                 model=model,
@@ -189,6 +202,7 @@ async def get_completion(api_key, prompt=None, messages=None, model=None, n=1, s
             get_text = lambda choice: choice.text  # noqa
         else:
             if messages is None:
+                assert prompt is not None
                 messages = [{"role": "user", "content": prompt}]
             response = await openai.ChatCompletion.acreate(
                 api_key=api_key,
@@ -202,6 +216,7 @@ async def get_completion(api_key, prompt=None, messages=None, model=None, n=1, s
             get_text = lambda choice: choice.message['content']  # noqa
 
         if n > 1:
+            assert score_func is not None
             best_choice = max(response.choices, key=lambda choice: score_func(get_text(choice)))
         else:
             best_choice = response.choices[0]

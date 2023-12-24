@@ -1,5 +1,7 @@
 import random
 
+from collections.abc import Iterable
+
 from jinja2 import Environment
 
 
@@ -9,7 +11,7 @@ jinja_env = Environment(
 )
 
 
-def make_main_prompt(language, code, error, issue, avoid_set=None):
+def make_main_prompt(language: str, code: str, error: str, issue: str, avoid_set: Iterable[str] | None = None) -> str:
     # generate the extra / avoidance instructions
     if avoid_set is not None:
         extra_text = f"Do not use in your response: {', '.join(avoid_set)}."
@@ -98,11 +100,11 @@ Do not tell me how to correct anything.  Instead, please assess my submission an
 """)
 
 
-def make_sufficient_prompt(language, code, error, issue):
+def make_sufficient_prompt(language: str, code: str, error: str, issue: str) -> str:
     return sufficient_template.render(language=language, code=code, error=error, issue=issue)
 
 
-def make_cleanup_prompt(response_text):
+def make_cleanup_prompt(response_text: str) -> str:
     return f"""The following was written to help a student in a CS class.  However, any example code (such as in ``` Markdown delimiters) can give the student an assignment's answer rather than help them figure it out themselves.  We need to provide help without including example code.  To do this, rewrite the following to remove any code blocks so that the response explains what the student should do but does not provide solution code.
 ---
 {response_text}
@@ -111,7 +113,7 @@ Rewritten:
 """
 
 
-def make_topics_prompt(language, code, error, issue, response_text):
+def make_topics_prompt(language: str, code: str, error: str, issue: str, response_text: str) -> list[dict[str, str]]:
     messages = [
         {'role': 'user', 'content': f"""\
 <language>{language}</language>

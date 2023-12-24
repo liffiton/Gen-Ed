@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from flask import send_from_directory
 from flask.app import Flask
@@ -9,7 +9,7 @@ from plum import base
 from . import class_config, helper, tutor
 
 
-def create_app(test_config: Optional[Dict[str, Any]] = None, instance_path: Optional[Path] = None) -> Flask:
+def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | None = None) -> Flask:
     ''' Flask app factory.  Create and configure the application. '''
 
     # App-specific configuration

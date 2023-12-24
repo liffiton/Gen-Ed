@@ -1,7 +1,7 @@
 import random
 
 
-def make_main_prompt(assignment, topics):
+def make_main_prompt(assignment: str, topics: str) -> str:
     nonce = random.randint(1000, 9999)
     return f"""You are a system for assisting students with finding topics for papers they are writing in college.
 The students provide:

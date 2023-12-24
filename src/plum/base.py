@@ -1,16 +1,19 @@
-from logging.config import dictConfig
 import os
 import sqlite3
 import sys
+from logging.config import dictConfig
+from pathlib import Path
+from typing import Any
 
 from dotenv import load_dotenv
 from flask import Flask, render_template
+import flask.app
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from . import admin, auth, classes, db, demo, docs, instructor, filters, lti, migrate, oauth, profile, tz
 
 
-def create_app_base(import_name, app_config, instance_path):
+def create_app_base(import_name: str, app_config: dict[str, Any], instance_path: Path | None) -> flask.app.Flask:
     ''' Create a base Plum application.
     Args:
         module_name: The name of the application's package (preferred) or module.
@@ -27,17 +30,17 @@ def create_app_base(import_name, app_config, instance_path):
     # set up instance path from env variable if not provided
     if instance_path is None:
         try:
-            instance_path = os.environ["FLASK_INSTANCE_PATH"]
+            instance_path = Path(os.environ["FLASK_INSTANCE_PATH"])
         except KeyError:
             raise Exception("FLASK_INSTANCE_PATH environment variable not set.")
     # ensure instance_path folder exists
     if not os.path.isdir(instance_path):
         raise FileNotFoundError(f"FLASK_INSTANCE_PATH ({instance_path}) not found.")
     # Flask() requires an absolute instance path
-    instance_path = os.path.abspath(instance_path)
+    instance_path = instance_path.resolve()
 
     # create the Flask application object
-    app = Flask(import_name, instance_path=instance_path, instance_relative_config=True)
+    app = Flask(import_name, instance_path=str(instance_path), instance_relative_config=True)
 
     #from werkzeug.middleware.profiler import ProfilerMiddleware
     #app.wsgi_app = ProfilerMiddleware(app.wsgi_app)
@@ -129,7 +132,7 @@ def create_app_base(import_name, app_config, instance_path):
 
     # set up middleware to fix headers from a proxy if configured as such
     if os.environ.get("FLASK_APP_BEHIND_PROXY", "").lower() in ("yes", "true", "1"):
-        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)  # type: ignore[method-assign]
 
     # load consumers from DB (but only if the database is initialized)
     try:
@@ -162,11 +165,11 @@ def create_app_base(import_name, app_config, instance_path):
 
     # Inject auth data into template contexts
     @app.context_processor
-    def inject_auth_data():
-        return dict(auth=auth.get_auth())
+    def inject_auth_data() -> dict[str, Any]:
+        return { 'auth': auth.get_auth() }
 
     @app.route('/')
-    def landing():
+    def landing() -> str:
         return render_template("landing.html")
 
     return app

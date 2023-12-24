@@ -1,15 +1,16 @@
 import asyncio
 import json
+from collections.abc import Iterable
 
 from flask import Blueprint, abort, redirect, render_template, request, url_for
+from plum.auth import class_enabled_required, get_auth, login_required, tester_required
+from plum.db import get_db
+from plum.openai import TEST_API_KEY, LLMDict, get_completion, with_llm
+from plum.queries import get_history, get_query
+from werkzeug.wrappers.response import Response
 
 from . import prompts
 from .class_config import get_class_config
-from plum.db import get_db
-from plum.auth import get_auth, login_required, class_enabled_required, tester_required
-from plum.openai import with_llm, get_completion, TEST_API_KEY
-from plum.queries import get_query, get_history
-
 
 bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='templates')
 
@@ -18,7 +19,7 @@ bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='template
 @bp.route("/<int:query_id>")
 @login_required
 @class_enabled_required
-def help_form(query_id=None):
+def help_form(query_id: int | None = None) -> str:
     db = get_db()
     auth = get_auth()
     class_config = get_class_config()
@@ -35,7 +36,8 @@ def help_form(query_id=None):
     query_row = None
     if query_id is not None:
         query_row, _ = get_query(query_id)   # _ because we don't need responses here
-        selected_lang = query_row['language']
+        if query_row is not None:
+            selected_lang = query_row['language']
 
     history = get_history()
 
@@ -44,7 +46,7 @@ def help_form(query_id=None):
 
 @bp.route("/view/<int:query_id>")
 @login_required
-def help_view(query_id):
+def help_view(query_id: int) -> str:
     query_row, responses = get_query(query_id)
     history = get_history()
     if query_row and query_row['topics_json']:
@@ -55,7 +57,7 @@ def help_view(query_id):
     return render_template("help_view.html", query=query_row, responses=responses, history=history, topics=topics)
 
 
-def score_response(response_txt, avoid_set):
+def score_response(response_txt: str, avoid_set: Iterable[str]) -> int:
     ''' Return an integer score for a given response text.
     Returns:
         0 = best.
@@ -71,7 +73,7 @@ def score_response(response_txt, avoid_set):
     return score
 
 
-async def run_query_prompts(llm_dict, language, code, error, issue):
+async def run_query_prompts(llm_dict: LLMDict, language: str, code: str, error: str, issue: str) -> tuple[list[dict[str, str]], dict[str, str]]:
     ''' Run the given query against the coding help system of prompts.
 
     Returns a tuple containing:
@@ -130,7 +132,7 @@ async def run_query_prompts(llm_dict, language, code, error, issue):
         return responses, {'insufficient': response_sufficient_txt, 'main': response_txt}
 
 
-def run_query(llm_dict, language, code, error, issue):
+def run_query(llm_dict: LLMDict, language: str, code: str, error: str, issue: str) -> int:
     query_id = record_query(language, code, error, issue)
 
     responses, texts = asyncio.run(run_query_prompts(llm_dict, language, code, error, issue))
@@ -140,7 +142,7 @@ def run_query(llm_dict, language, code, error, issue):
     return query_id
 
 
-def record_query(language, code, error, issue):
+def record_query(language: str, code: str, error: str, issue: str) -> int:
     db = get_db()
     auth = get_auth()
     role_id = auth['role_id']
@@ -152,10 +154,12 @@ def record_query(language, code, error, issue):
     new_row_id = cur.lastrowid
     db.commit()
 
+    assert new_row_id is not None
+
     return new_row_id
 
 
-def record_response(query_id, responses, texts):
+def record_response(query_id: int, responses: list[dict[str, str]], texts: dict[str, str]) -> None:
     db = get_db()
 
     db.execute(
@@ -169,7 +173,7 @@ def record_response(query_id, responses, texts):
 @login_required
 @class_enabled_required
 @with_llm()
-def help_request(llm_dict):
+def help_request(llm_dict: LLMDict) -> Response:
     class_config = get_class_config()
     if class_config.languages:
         lang_id = int(request.form["lang_id"])
@@ -189,7 +193,7 @@ def help_request(llm_dict):
 
 @bp.route("/load_test", methods=["POST"])
 @with_llm(use_system_key=True)  # just to get a correctly-populated llm_dict
-def load_test(llm_dict):
+def load_test(llm_dict: LLMDict) -> Response:
     # Require that we're logged in as the load_test user
     auth = get_auth()
     if auth['display_name'] != 'load_test':
@@ -210,7 +214,7 @@ def load_test(llm_dict):
 
 @bp.route("/post_helpful", methods=["POST"])
 @login_required
-def post_helpful():
+def post_helpful() -> str:
     db = get_db()
     auth = get_auth()
 
@@ -225,25 +229,28 @@ def post_helpful():
 @login_required
 @tester_required
 @with_llm()
-def get_topics_html(llm_dict, query_id):
-    topics, query_row = get_topics(llm_dict, query_id)
+def get_topics_html(llm_dict: LLMDict, query_id: int) -> str:
+    topics = get_topics(llm_dict, query_id)
     if not topics:
         return render_template("topics_fragment.html", error=True)
     else:
-        return render_template("topics_fragment.html", query=query_row, topics=topics)
+        return render_template("topics_fragment.html", query_id=query_id, topics=topics)
 
 
 @bp.route("/topics/raw/<int:query_id>", methods=["GET", "POST"])
 @login_required
 @tester_required
 @with_llm()
-def get_topics_raw(llm_dict, query_id):
-    topics, _ = get_topics(llm_dict, query_id)
+def get_topics_raw(llm_dict: LLMDict, query_id: int) -> list[str]:
+    topics = get_topics(llm_dict, query_id)
     return topics
 
 
-def get_topics(llm_dict, query_id):
+def get_topics(llm_dict: LLMDict, query_id: int) -> list[str]:
     query_row, responses = get_query(query_id)
+
+    if not query_row or not responses:
+        return []
 
     messages = prompts.make_topics_prompt(
         query_row['language'],
@@ -262,14 +269,12 @@ def get_topics(llm_dict, query_id):
     # Verify it is actually JSON
     # May be "Error (..." if an API error occurs, or every now and then may get "Here is the JSON: ..." or similar.
     try:
-        json.loads(response_txt)
+        topics: list[str] = json.loads(response_txt)
     except json.decoder.JSONDecodeError:
-        return None, None
+        return []
 
     # Save topics into queries table for the given query
     db = get_db()
     db.execute("UPDATE queries SET topics_json=? WHERE id=?", [response_txt, query_id])
     db.commit()
-    # Return a Python list
-    topics = json.loads(response_txt)
-    return topics, query_row
+    return topics

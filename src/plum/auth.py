@@ -1,6 +1,21 @@
+from collections.abc import Callable
 from functools import wraps
-from flask import Blueprint, abort, flash, g, redirect, render_template, request, session, url_for
+from sqlite3 import Row
+from typing import ParamSpec, TypedDict, TypeVar
+
+from flask import (
+    Blueprint,
+    abort,
+    flash,
+    g,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from werkzeug.security import check_password_hash
+from werkzeug.wrappers.response import Response
 
 from .db import get_db
 
@@ -8,24 +23,44 @@ from .db import get_db
 AUTH_SESSION_KEY = "__plum_auth"
 
 
-def set_session_auth(user_id, display_name, is_admin=False, is_tester=False, role_id=None):
-    session[AUTH_SESSION_KEY] = {
+class ClassDict(TypedDict):
+    class_id: int
+    class_name: str
+    role: str
+
+
+class AuthDict(TypedDict, total=False):
+    user_id: int | None
+    display_name: str | None
+    is_admin: bool
+    is_tester: bool
+    class_id: int | None
+    class_name: str | None
+    role_id: int | None
+    role: str | None
+    auth_provider: str
+    other_classes: list[ClassDict]
+
+
+def set_session_auth(user_id: int, display_name: str, is_admin: bool = False, is_tester: bool = False, role_id: int | None = None) -> None:
+    auth: AuthDict = {
         'user_id': user_id,
         'display_name': display_name,
         'is_admin': is_admin,
         'is_tester': is_tester,
         'role_id': role_id,
     }
+    session[AUTH_SESSION_KEY] = auth
 
 
-def set_session_auth_role(role_id):
-    auth = session[AUTH_SESSION_KEY]
+def set_session_auth_role(role_id: int) -> None:
+    auth: AuthDict = session[AUTH_SESSION_KEY]
     auth['role_id'] = role_id
     session[AUTH_SESSION_KEY] = auth
 
 
-def _get_auth_from_session():
-    base = {
+def _get_auth_from_session() -> AuthDict:
+    base: AuthDict = {
         'user_id': None,
         'display_name': None,
         'is_admin': False,
@@ -37,7 +72,7 @@ def _get_auth_from_session():
     }
     # Get the session auth dict, or an empty dict if it's not there, then
     # "override" any values in 'base' that are defined in the session auth dict.
-    auth_dict = base | session.get(AUTH_SESSION_KEY, {})
+    auth_dict: AuthDict = base | session.get(AUTH_SESSION_KEY, {})
 
     db = get_db()
 
@@ -74,14 +109,16 @@ def _get_auth_from_session():
         if role_rows:
             auth_dict['other_classes'] = []  # for storing active classes that are not the user's currently chosen class
             for row in role_rows:
-                class_dict = {
+                class_dict: ClassDict = {
                     'class_id': row['class_id'],
                     'class_name': row['name'],
                     'role': row['role'],
                 }
                 if row['id'] == auth_dict['role_id']:
                     # set values for the current role
-                    auth_dict = auth_dict | class_dict
+                    auth_dict['class_id'] = class_dict['class_id']
+                    auth_dict['class_name'] = class_dict['class_name']
+                    auth_dict['role'] = class_dict['role']
                 elif row['enabled']:
                     auth_dict['other_classes'].append(class_dict)
         else:
@@ -91,14 +128,14 @@ def _get_auth_from_session():
     return auth_dict
 
 
-def get_auth():
+def get_auth() -> AuthDict:
     if 'auth' not in g:
         g.auth = _get_auth_from_session()
 
     return g.auth
 
 
-def get_last_role(user_id):
+def get_last_role(user_id: int) -> int | None:
     """ Find and return the last role (as a role ID) for the given user,
         as long as that role still exists and is currently active.
 
@@ -116,12 +153,14 @@ def get_last_role(user_id):
     """, [user_id]).fetchone()
 
     if role_row:
-        return role_row['role_id']
+        role_id = role_row['role_id']
+        assert isinstance(role_id, int)
+        return role_id
     else:
         return None
 
 
-def ext_login_update_or_create(provider_name, user_normed, query_tokens=0):
+def ext_login_update_or_create(provider_name: str, user_normed: dict[str, str | None], query_tokens: int=0) -> Row:
     """
     For an external authentication login:
       1. Create an account for the user if they do not already have an account (entry in users)
@@ -170,6 +209,7 @@ def ext_login_update_or_create(provider_name, user_normed, query_tokens=0):
 
     # get all values in newly updated/inserted row
     user_row = db.execute("SELECT * FROM users WHERE id=?", [user_id]).fetchone()
+    assert isinstance(user_row, Row)
     return user_row
 
 
@@ -177,7 +217,7 @@ bp = Blueprint('auth', __name__, url_prefix="/auth", template_folder='templates'
 
 
 @bp.route("/login", methods=['GET', 'POST'])
-def login():
+def login() -> str | Response:
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -201,16 +241,21 @@ def login():
 
 
 @bp.route("/logout", methods=['POST'])
-def logout():
+def logout() -> Response:
     session.clear()  # clear the entire session to be safest here.
     flash("You have been logged out.")
     return redirect(url_for(".login"))
 
 
-def login_required(f):
+# For decorator type hints
+P = ParamSpec('P')
+R = TypeVar('R')
+
+
+def login_required(f: Callable[P, R]) -> Callable[P, Response | R]:
     '''Redirect to login on this route if user is not logged in.'''
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def decorated_function(*args: P.args, **kwargs: P.kwargs) -> Response | R:
         auth = get_auth()
         if not auth['user_id']:
             flash("Login required.", "warning")
@@ -219,9 +264,9 @@ def login_required(f):
     return decorated_function
 
 
-def instructor_required(f):
+def instructor_required(f: Callable[P, R]) -> Callable[P, Response | R]:
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def decorated_function(*args: P.args, **kwargs: P.kwargs) -> Response | R:
         auth = get_auth()
         if auth['role'] != "instructor":
             return abort(403)
@@ -229,9 +274,9 @@ def instructor_required(f):
     return decorated_function
 
 
-def class_enabled_required(f):
+def class_enabled_required(f: Callable[P, R]) -> Callable[P, str | R]:
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def decorated_function(*args: P.args, **kwargs: P.kwargs) -> str | R:
         auth = get_auth()
         class_id = auth['class_id']
 
@@ -251,10 +296,10 @@ def class_enabled_required(f):
     return decorated_function
 
 
-def admin_required(f):
+def admin_required(f: Callable[P, R]) -> Callable[P, Response | R]:
     '''Redirect to login on this route if user is not an admin.'''
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def decorated_function(*args: P.args, **kwargs: P.kwargs) -> Response | R:
         auth = get_auth()
         if not auth['is_admin']:
             flash("Login required.", "warning")
@@ -263,10 +308,10 @@ def admin_required(f):
     return decorated_function
 
 
-def tester_required(f):
+def tester_required(f: Callable[P, R]) -> Callable[P, Response | R]:
     '''Return a 404 on this route (hide it, basically) if user is not a tester.'''
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def decorated_function(*args: P.args, **kwargs: P.kwargs) -> Response | R:
         auth = get_auth()
         if not auth['is_tester']:
             return abort(404)

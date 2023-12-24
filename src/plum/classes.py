@@ -2,16 +2,16 @@ import datetime as dt
 import secrets
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from werkzeug.wrappers.response import Response
 
 from .auth import get_auth, login_required, set_session_auth_role
 from .db import get_db
 from .tz import date_is_past
 
-
 bp = Blueprint('classes', __name__, url_prefix="/classes", template_folder='templates')
 
 
-def get_or_create_lti_class(lti_consumer_id, lti_context_id, class_name):
+def get_or_create_lti_class(lti_consumer_id: int, lti_context_id: str, class_name: str) -> int:
     """
     Get a class (by id) for a given LTI connection, creating the class
     if it does not already exist.
@@ -52,10 +52,11 @@ def get_or_create_lti_class(lti_consumer_id, lti_context_id, class_name):
         )
         db.commit()
 
+        assert class_id is not None
         return class_id
 
 
-def create_user_class(user_id, class_name, openai_key):
+def create_user_class(user_id: int, class_name: str, openai_key: str) -> int:
     """
     Create a user class.  Assign the given user an 'instructor' role in it.
 
@@ -85,6 +86,7 @@ def create_user_class(user_id, class_name, openai_key):
 
     cur = db.execute("INSERT INTO classes (name) VALUES (?)", [class_name])
     class_id = cur.lastrowid
+    assert class_id is not None
     db.execute(
         "INSERT INTO classes_user (class_id, creator_user_id, link_ident, openai_key, link_reg_expires) VALUES (?, ?, ?, ?, ?)",
         [class_id, user_id, link_ident, openai_key, dt.date.min]
@@ -98,7 +100,7 @@ def create_user_class(user_id, class_name, openai_key):
     return class_id
 
 
-def switch_class(class_id):
+def switch_class(class_id: int) -> bool:
     '''Switch the current user to their role in the given class.
     Returns bool: True if user has an active role in that class and switch succeeds.
                   False otherwise.
@@ -131,7 +133,7 @@ def switch_class(class_id):
 
 @bp.route("/switch/<int:class_id>")
 @login_required
-def switch_class_handler(class_id):
+def switch_class_handler(class_id: int) -> Response:
     switch_class(class_id)
     if 'next' in request.args:
         return redirect(request.args['next'])
@@ -141,9 +143,10 @@ def switch_class_handler(class_id):
 
 @bp.route("/create/", methods=['POST'])
 @login_required
-def create_class():
+def create_class() -> Response:
     auth = get_auth()
     user_id = auth['user_id']
+    assert user_id is not None
 
     class_name = request.form['class_name']
     openai_key = request.form['openai_key']
@@ -157,7 +160,7 @@ def create_class():
 
 @bp.route("/access/<string:class_ident>")
 @login_required
-def access_class(class_ident):
+def access_class(class_ident: str) -> str | Response:
     '''Join a class or just login/access it.
 
     If the user already has a role in the class, just access it.

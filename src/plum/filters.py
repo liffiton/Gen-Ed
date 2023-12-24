@@ -1,41 +1,45 @@
 import json
-
-from markdown import Markdown, util as md_util
-from markdown.extensions import fenced_code, meta, smarty
-import mdx_truly_sane_lists
+from collections.abc import Callable, Generator
+from sqlite3 import Row
+from typing import Any
 
 import markupsafe
+import mdx_truly_sane_lists
 from flask import url_for
+from flask.app import Flask
+from markdown import Markdown
+from markdown import util as md_util
+from markdown.extensions import fenced_code, meta, smarty
 
 
-def make_titled_span(title, text):
+def make_titled_span(title: str, text: str) -> str:
     title = title.replace('\n', markupsafe.Markup('&#13;'))
     title = title.replace('\'', markupsafe.Markup('&#39;'))
     return markupsafe.Markup(f"<span title='{title}'>{text}</span>")
 
 
-def init_app(app):
+def init_app(app: Flask) -> None:
     jinja_escape = app.jinja_env.filters['e']
 
     # Jinja filter for table cell contents
     @app.template_filter('tbl_cell')
-    def table_cell_filter(value):
+    def table_cell_filter(value: Any) -> str:
         '''Format a value to be displayed in a table cell.'''
-        value = str(value)
+        strval = str(value)
 
-        if value == "None":
+        if strval == "None":
             return ""
-        elif len(value) > 30:
-            value = value.strip().replace('\r', '')
-            value = jinja_escape(value)
-            value_trunc = value[:30] + " ..."
-            return make_titled_span(value, value_trunc)
+        elif len(strval) > 30:
+            strval = strval.strip().replace('\r', '')
+            strval = jinja_escape(strval)
+            strval_trunc = strval[:30] + " ..."
+            return make_titled_span(strval, strval_trunc)
         else:
-            return value
+            return strval
 
     # Jinja filter for formatting response text
     @app.template_filter('fmt_response_txt')
-    def fmt_response_txt(value):
+    def fmt_response_txt(value: str) -> str:
         '''Format response text to be displayed in a table cell.'''
         if not value:
             return ""
@@ -43,7 +47,7 @@ def init_app(app):
         text = json.loads(value)
 
         if isinstance(text, str):
-            return make_titled_span(jinja_escape(text), len(text))
+            return make_titled_span(jinja_escape(text), str(len(text)))
 
         else:
             # assume a dictionary
@@ -57,8 +61,8 @@ def init_app(app):
     # monkey-patch markdown and fenced_code extension to not escape HTML in
     # `inline code` or ``` code blocks -- we're already escaping everything,
     # code or not, so...
-    md_util.code_escape = lambda x: x
-    fenced_code.FencedBlockPreprocessor._escape = lambda self, x: x
+    md_util.code_escape = lambda text: text
+    fenced_code.FencedBlockPreprocessor._escape = lambda self, text: text  # type: ignore[attr-defined]
     # only configure/init these once, not every time the filter is called
     markdown_extensions = [
         fenced_code.makeExtension(),
@@ -67,22 +71,24 @@ def init_app(app):
         mdx_truly_sane_lists.makeExtension(),
         smarty.makeExtension(),
     ]
-    markdown_processor = Markdown(output_format="html5", extensions=markdown_extensions)
-    app.markdown_processor = markdown_processor  # make available to request handlers, not just as a Jinja filter
+    markdown_processor = Markdown(output_format="html", extensions=markdown_extensions)
+    # make available to request handlers, not just as a Jinja filter
+    app.markdown_processor = markdown_processor  # type: ignore[attr-defined]
 
     @app.template_filter('markdown')
-    def markdown_filter(value):
+    def markdown_filter(value: str) -> str:
         '''Convert markdown to HTML (after escaping).'''
         escaped = jinja_escape(value)
         html = markdown_processor.reset().convert(escaped)
         return markupsafe.Markup(html)
 
     # Jinja filter for displaying users w/ dynamic info popups in datatables
-    # Expects a *tuple* of (display_name, row_object) where row_object contains
+    # Expects a database row that contains
     # 'auth_provider', 'email', and 'auth_name'.
     @app.template_filter('user_cell')
-    def user_filter(user_row):
+    def user_filter(user_row: Row) -> str:
         display_name = user_row['display_name']
+        assert isinstance(display_name, str)
 
         auth_provider = dict(user_row).get('auth_provider')
         if auth_provider in ('demo', 'local', None):
@@ -113,16 +119,16 @@ def init_app(app):
     #    </tr>
     #  {% endfor %}
     @app.template_filter('row_builder')
-    def row_builder(columns, edit_handler):
+    def row_builder(columns: list[list[str]], edit_handler: str | None) -> Callable[[Row], Generator[str, None, None]]:
         jinja_filters = app.jinja_env.filters
         col_names = [x[1] for x in columns]
 
-        def filter_for(col):
+        def filter_for(col: str) -> Callable[[Any], str]:
             if 'time' in col:
                 return lambda r: jinja_filters['localtime'](r[col])
-            if 'display_name' == col:
+            if col == 'display_name':
                 return lambda r: jinja_filters['user_cell'](r)
-            if 'response_text' == col:
+            if col == 'response_text':
                 return lambda r: jinja_filters['fmt_response_txt'](r[col])
             else:
                 return lambda r: jinja_filters['tbl_cell'](r[col])
@@ -134,7 +140,7 @@ def init_app(app):
             <a class="button is-warning is-small p-2" href="{ url_for(edit_handler, id=r['id'])}">Edit</a>
             """)
 
-        def doit(row):
+        def doit(row: Row) -> Generator[str, None, None]:
             for filt in filters:
                 yield filt(row)
         return doit

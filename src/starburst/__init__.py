@@ -1,10 +1,12 @@
 from pathlib import Path
 
+from flask.app import Flask
+
 from plum import base
 from . import class_config, helper
 
 
-def create_app(test_config=None, instance_path=None):
+def create_app(test_config: dict[str, str] | None = None, instance_path: Path | None = None) -> Flask:
     ''' Flask app factory.  Create and configure the application. '''
 
     # App-specific configuration

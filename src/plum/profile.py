@@ -9,7 +9,7 @@ bp = Blueprint('profile', __name__, url_prefix="/profile", template_folder='temp
 
 @bp.route("/")
 @login_required
-def main():
+def main() -> str:
     db = get_db()
     auth = get_auth()
     user_id = auth['user_id']

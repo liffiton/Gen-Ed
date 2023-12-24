@@ -1,12 +1,13 @@
 import json
+from sqlite3 import Row
 
 from flask import flash
 
-from .db import get_db
 from .auth import get_auth
+from .db import get_db
 
 
-def get_query(query_id):
+def get_query(query_id: int) -> tuple[Row, dict[str, str]] | tuple[None, None]:
     db = get_db()
     auth = get_auth()
 
@@ -20,19 +21,19 @@ def get_query(query_id):
         cur = db.execute("SELECT queries.*, users.display_name FROM queries JOIN users ON queries.user_id=users.id WHERE queries.user_id=? AND queries.id=?", [auth['user_id'], query_id])
     query_row = cur.fetchone()
 
-    if query_row:
-        if query_row['response_text']:
-            responses = json.loads(query_row['response_text'])
-        else:
-            responses = {'error': "*No response -- an error occurred.  Please try again.*"}
-    else:
+    if not query_row:
         flash("Invalid id.", "warning")
-        responses = None
+        return None, None
 
+    if query_row['response_text']:
+        responses = json.loads(query_row['response_text'])
+    else:
+        responses = {'error': "*No response -- an error occurred.  Please try again.*"}
     return query_row, responses
 
 
-def get_history(limit=10):
+
+def get_history(limit: int = 10) -> list[Row]:
     '''Fetch current user's query history.'''
     db = get_db()
     auth = get_auth()

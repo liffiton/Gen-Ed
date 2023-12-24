@@ -5,7 +5,7 @@ import string
 from getpass import getpass
 from importlib import resources
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable
 
 import click
 from flask import current_app, g
@@ -28,11 +28,11 @@ def get_db() -> sqlite3.Connection:
     return g.db
 
 
-def backup_db(target_str: str) -> None:
+def backup_db(target: str | Path) -> None:
     """ Safely make a backup of the database to the given path.
     target: str or any path-like object.  Must not exist yet or be empty.
     """
-    target = Path(target_str)
+    target = Path(target)
     if target.exists() and target.stat().st_size > 0:
         raise FileExistsError(errno.EEXIST, "File already exists or is not empty", target)
 
@@ -43,7 +43,7 @@ def backup_db(target_str: str) -> None:
     tmp_db.close()
 
 
-def close_db(e: Optional[BaseException] = None) -> None:
+def close_db(e: BaseException | None = None) -> None:
     db = g.pop('db', None)
 
     if db is not None:

@@ -1,18 +1,28 @@
 import csv
 import datetime as dt
 import io
+from sqlite3 import Row
 
-from flask import Blueprint, abort, flash, make_response, redirect, render_template, request
+from flask import (
+    Blueprint,
+    abort,
+    flash,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
+from werkzeug.wrappers.response import Response
 
-from .db import get_db
 from .auth import get_auth, instructor_required
+from .db import get_db
 from .tz import date_is_past
-
 
 bp = Blueprint('instructor', __name__, url_prefix="/instructor", template_folder='templates')
 
 
-def get_queries(class_id, user=None):
+def get_queries(class_id: int, user: int | None = None) -> list[Row]:
     db = get_db()
 
     where_clause = "WHERE roles.class_id=?"
@@ -40,7 +50,7 @@ def get_queries(class_id, user=None):
     return queries
 
 
-def get_users(class_id, for_export=False):
+def get_users(class_id: int, for_export: bool = False) -> list[Row]:
     db = get_db()
 
     users = db.execute(f"""
@@ -69,15 +79,16 @@ def get_users(class_id, for_export=False):
 
 @bp.route("/")
 @instructor_required
-def main():
+def main() -> str | Response:
     auth = get_auth()
     class_id = auth['class_id']
+    assert class_id is not None
 
     users = get_users(class_id)
 
     sel_user_name = None
-    sel_user_id = request.args.get('user', None)
-    if sel_user_id:
+    sel_user_id = request.args.get('user', type=int)
+    if sel_user_id is not None:
         sel_user_row = next(filter(lambda row: row['id'] == int(sel_user_id), users), None)
         print(sel_user_id, sel_user_row)
         if sel_user_row:
@@ -90,12 +101,15 @@ def main():
 
 @bp.route("/csv/<string:kind>")
 @instructor_required
-def get_csv(kind):
+def get_csv(kind: str) -> str | Response:
     if kind not in ('queries', 'users'):
         return abort(404)
 
     auth = get_auth()
     class_id = auth['class_id']
+    class_name = auth['class_name']
+    assert class_id is not None
+    assert class_name is not None
 
     if kind == "queries":
         table = get_queries(class_id)
@@ -112,7 +126,7 @@ def get_csv(kind):
     writer.writerows(table)
 
     output = make_response(stringio.getvalue())
-    class_name = auth['class_name'].replace(" ","-")
+    class_name = class_name.replace(" ","-")
     timestamp = dt.datetime.now().strftime("%Y%m%d")
     output.headers["Content-Disposition"] = f"attachment; filename={timestamp}_{class_name}_{kind}.csv"
     output.headers["Content-type"] = "text/csv"
@@ -120,7 +134,7 @@ def get_csv(kind):
     return output
 
 
-def get_common_class_settings():
+def get_common_class_settings() -> tuple[Row, str | None]:
     db = get_db()
     auth = get_auth()
 
@@ -149,7 +163,7 @@ def get_common_class_settings():
 
 @bp.route("/user_class/set", methods=["POST"])
 @instructor_required
-def set_user_class_setting():
+def set_user_class_setting() -> Response:
     db = get_db()
     auth = get_auth()
 
@@ -166,9 +180,9 @@ def set_user_class_setting():
             # only present for user classes, not LTI
             link_reg_active = request.form['link_reg_active']
             if link_reg_active == "disabled":
-                new_date = dt.date.min
+                new_date = str(dt.date.min)
             elif link_reg_active == "enabled":
-                new_date = dt.date.max
+                new_date = str(dt.date.max)
             else:
                 new_date = request.form['link_reg_expires']
             db.execute("UPDATE classes_user SET link_reg_expires=? WHERE class_id=?", [new_date, class_id])
@@ -190,7 +204,7 @@ def set_user_class_setting():
 @bp.route("/role/set_active", methods=["POST"])  # just for url_for in the Javascript code
 @bp.route("/role/set_active/<int:role_id>/<int:bool_active>", methods=["POST"])
 @instructor_required
-def set_role_active(role_id, bool_active):
+def set_role_active(role_id: int, bool_active: int) -> str:
     db = get_db()
     auth = get_auth()
 
@@ -212,7 +226,7 @@ def set_role_active(role_id, bool_active):
 @bp.route("/role/set_instructor", methods=["POST"])  # just for url_for in the Javascript code
 @bp.route("/role/set_instructor/<int:role_id>/<int:bool_instructor>", methods=["POST"])
 @instructor_required
-def set_role_instructor(role_id, bool_instructor):
+def set_role_instructor(role_id: int, bool_instructor: int) -> str:
     db = get_db()
     auth = get_auth()
 

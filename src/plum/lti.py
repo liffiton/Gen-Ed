@@ -1,17 +1,18 @@
+from typing import Any
+
 from flask import Blueprint, abort, current_app, redirect, session, url_for
-
 from pylti.flask import lti
+from werkzeug.wrappers.response import Response
 
-from .db import get_db
 from .auth import ext_login_update_or_create, set_session_auth
 from .classes import get_or_create_lti_class
-
+from .db import get_db
 
 bp = Blueprint('lti', __name__, url_prefix="/lti", template_folder='templates')
 
 
 # An LTI-specific error handler
-def lti_error(exception=None):
+def lti_error(exception: dict[str, Any]) -> tuple[str, int]:
     """Log the error and render a simple error page."""
     current_app.logger.error(f"LTI exception: {exception['exception']=} {exception['kwargs']=} {exception['args']=}")
     return "There was an LTI communication error", 500
@@ -22,7 +23,7 @@ def lti_error(exception=None):
 # https://github.com/mitodl/mit_lti_flask_sample
 @bp.route("/", methods=['GET', 'POST'])
 @lti(request='initial', error=lti_error)
-def lti_login(lti=lti):
+def lti_login(lti=lti) -> Response:
     authenticated = session.get("lti_authenticated", False)
     role = session.get("roles", "").lower()
     email = session.get("lis_person_contact_email_primary", "")
