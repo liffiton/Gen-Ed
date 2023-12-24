@@ -91,6 +91,10 @@ For code coverage report:
 
   pytest --cov=src/plum --cov=src/codehelp --cov-report=html && xdg-open htmlcov/index.html
 
+For mypy type checking:
+
+  mypy src
+
 
 Author
 ------
