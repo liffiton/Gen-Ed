@@ -43,7 +43,7 @@ def _create_user_class(client, class_name):
     assert response.location == "/instructor/config/"
 
     response = client.get(response.location)
-    match = re.search(r"https?:\/\/\S+\/classes\/access\/(\w+)", response.text)
+    match = re.search(r"https?:\/\/\S+\/classes\/access\/(\S+)", response.text)
     assert match is not None
     assert match.group(1)
 
