@@ -44,9 +44,11 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
     app = base.create_app_base(__name__, app_config, instance_path)
 
     # register blueprints specific to this application variant
-    app.register_blueprint(class_config.bp)
     app.register_blueprint(helper.bp)
     app.register_blueprint(tutor.bp)
+
+    # register our custom class configuration with Plum
+    class_config.register_with_plum()
 
     # make a simple route for the .well-known directory
     @app.route('/.well-known/<path:path>')

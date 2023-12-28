@@ -187,8 +187,8 @@ SPDX-License-Identifier: AGPL-3.0-only
       {% endif %}{# end if class['link_ident'] -- i.e., end of user-created class config #}
 
     </div>
-    {% block class_config_form %}{# needs to be defined in app-specific instructor_config_form.html that extends this template #}
-    {% endblock %}
+
+    {% include "class_config_form.html" ignore missing %}{# include an app-specific class_config_form.html *if* it exists #}
   </div>
 
 </section>

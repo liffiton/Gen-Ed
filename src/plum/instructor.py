@@ -20,7 +20,6 @@ from werkzeug.wrappers.response import Response
 
 from .auth import get_auth, instructor_required
 from .db import get_db
-from .tz import date_is_past
 
 bp = Blueprint('instructor', __name__, url_prefix="/instructor", template_folder='templates')
 
@@ -93,7 +92,6 @@ def main() -> str | Response:
     sel_user_id = request.args.get('user', type=int)
     if sel_user_id is not None:
         sel_user_row = next(filter(lambda row: row['id'] == int(sel_user_id), users), None)
-        print(sel_user_id, sel_user_row)
         if sel_user_row:
             sel_user_name = sel_user_row['display_name']
 
@@ -135,33 +133,6 @@ def get_csv(kind: str) -> str | Response:
     output.headers["Content-type"] = "text/csv"
 
     return output
-
-
-def get_common_class_settings() -> tuple[Row, str | None]:
-    db = get_db()
-    auth = get_auth()
-
-    class_id = auth['class_id']
-
-    class_row = db.execute("""
-        SELECT classes.id, classes.enabled, classes_user.link_ident, classes_user.link_reg_expires, classes_user.openai_key, classes_user.model_id
-        FROM classes
-        LEFT JOIN classes_user
-          ON classes.id = classes_user.class_id
-        WHERE classes.id=?
-    """, [class_id]).fetchone()
-
-    expiration_date = class_row['link_reg_expires']
-    if expiration_date is None:
-        link_reg_state = None  # not a user-created class
-    elif date_is_past(expiration_date):
-        link_reg_state = "disabled"
-    elif expiration_date == dt.date.max:
-        link_reg_state = "enabled"
-    else:
-        link_reg_state = "date"
-
-    return class_row, link_reg_state
 
 
 @bp.route("/user_class/set", methods=["POST"])

@@ -7,7 +7,7 @@ from pathlib import Path
 from flask.app import Flask
 from plum import base
 
-from . import class_config, helper
+from . import helper
 
 
 def create_app(test_config: dict[str, str] | None = None, instance_path: Path | None = None) -> Flask:
@@ -32,7 +32,6 @@ def create_app(test_config: dict[str, str] | None = None, instance_path: Path | 
     app = base.create_app_base(__name__, app_config, instance_path)
 
     # register blueprints specific to this application variant
-    app.register_blueprint(class_config.bp)
     app.register_blueprint(helper.bp)
 
     return app

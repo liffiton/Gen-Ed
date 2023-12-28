@@ -17,6 +17,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from . import (
     admin,
     auth,
+    class_config,
     classes,
     db,
     demo,
@@ -177,6 +178,7 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
     app.register_blueprint(oauth.bp)
     app.register_blueprint(profile.bp)
     app.register_blueprint(classes.bp)
+    app.register_blueprint(class_config.bp)
 
     # Only register the docs blueprint if we're configured with a documentation directory
     docs_dir = app.config.get('DOCS_DIR')
