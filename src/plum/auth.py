@@ -152,12 +152,12 @@ def get_last_role(user_id: int) -> int | None:
           AND roles.active=1
     """, [user_id]).fetchone()
 
-    if role_row:
-        role_id = role_row['role_id']
-        assert isinstance(role_id, int)
-        return role_id
-    else:
+    if not role_row:
         return None
+
+    role_id = role_row['role_id']
+    assert isinstance(role_id, int)
+    return role_id
 
 
 def ext_login_update_or_create(provider_name: str, user_normed: dict[str, str | None], query_tokens: int=0) -> Row:
@@ -224,9 +224,7 @@ def login() -> str | Response:
         db = get_db()
         auth_row = db.execute("SELECT * FROM auth_local JOIN users ON auth_local.user_id=users.id WHERE username=?", [username]).fetchone()
 
-        if not auth_row:
-            flash("Invalid username or password.", "warning")
-        elif not check_password_hash(auth_row['password'], password):
+        if not auth_row or not check_password_hash(auth_row['password'], password):
             flash("Invalid username or password.", "warning")
         else:
             # Success!

@@ -5,12 +5,26 @@ from logging.config import dictConfig
 from pathlib import Path
 from typing import Any
 
+import flask.app
 from dotenv import load_dotenv
 from flask import Flask, render_template
-import flask.app
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from . import admin, auth, classes, db, demo, docs, instructor, filters, lti, migrate, oauth, profile, tz
+from . import (
+    admin,
+    auth,
+    classes,
+    db,
+    demo,
+    docs,
+    filters,
+    instructor,
+    lti,
+    migrate,
+    oauth,
+    profile,
+    tz,
+)
 
 
 def create_app_base(import_name: str, app_config: dict[str, Any], instance_path: Path | None) -> flask.app.Flask:
@@ -32,9 +46,9 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
         try:
             instance_path = Path(os.environ["FLASK_INSTANCE_PATH"])
         except KeyError:
-            raise Exception("FLASK_INSTANCE_PATH environment variable not set.")
+            raise KeyError("FLASK_INSTANCE_PATH environment variable not set.") from None
     # ensure instance_path folder exists
-    if not os.path.isdir(instance_path):
+    if not instance_path.is_dir():
         raise FileNotFoundError(f"FLASK_INSTANCE_PATH ({instance_path}) not found.")
     # Flask() requires an absolute instance path
     instance_path = instance_path.resolve()
@@ -91,7 +105,7 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
             base_config[client_secret_key] = os.environ[client_secret_key]
         except KeyError:
             # Just warn, but continue
-            app.logger.warn(f"{provider}_CLIENT_ID and/or {provider}_CLIENT_SECRET environment variables not set.  SSO from {provider} will not be enabled.")
+            app.logger.warning(f"{provider}_CLIENT_ID and/or {provider}_CLIENT_SECRET environment variables not set.  SSO from {provider} will not be enabled.")
 
     # build total configuration
     total_config = base_config | app_config

@@ -24,11 +24,14 @@ ignore = [
     "E501",   # line too long
     "COM812", # missing trailing comma
     "ERA001", # commented-out code
-    "RET504", # unecessary assignment before return
+    "RET504", # unnecessary assignment before return
+    "RET505", # unnecessary else after return
     "S101",   # assert statements
     "S311",   # pseudo-random number generators
     "T20",    # Flake8-print (print statements)
     "TRY400", # logger.error() inside except block
+    "G004",   # f-string in logging statement
+    "EM",     # Exceptions with string literals
     "Q",      # string quoting
     "D",      # docstrings
     "ANN",    # type annotation

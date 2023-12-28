@@ -1,9 +1,7 @@
 import random
-
 from collections.abc import Iterable
 
 from jinja2 import Environment
-
 
 jinja_env = Environment(
     trim_blocks=True,

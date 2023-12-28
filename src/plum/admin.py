@@ -1,6 +1,6 @@
 from collections.abc import Callable, Iterator
-from datetime import date
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Any, ParamSpec, TypeVar
@@ -62,7 +62,10 @@ def init_app(app: Flask) -> None:
     # inject admin pages into template contexts
     @app.context_processor
     def inject_admin_links() -> dict[str, list[tuple[str, str]]]:
-        return dict(admin_links=_admin_links, admin_links_right=_admin_links_right)
+        return {
+            'admin_links': _admin_links,
+            'admin_links_right': _admin_links_right
+        }
 
 
 def reload_consumers() -> None:
@@ -264,7 +267,7 @@ def main() -> str:
         LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
         {where_clause}
         ORDER BY query_time DESC LIMIT ?
-    """, where_params + [queries_limit]).fetchall()
+    """, [*where_params, queries_limit]).fetchall()
 
     return render_template("admin.html", consumers=consumers, classes=classes, users=users, roles=roles, queries=queries, filters=filters)
 

@@ -1,9 +1,7 @@
 from flask import Blueprint, render_template
-
 from plum.auth import instructor_required
 from plum.instructor import get_common_class_settings
 from plum.openai import get_models
-
 
 bp = Blueprint('class_config', __name__, url_prefix="/instructor/config", template_folder='templates')
 

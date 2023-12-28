@@ -3,7 +3,6 @@ from flask import Blueprint, render_template
 from .auth import get_auth, login_required
 from .db import get_db
 
-
 bp = Blueprint('profile', __name__, url_prefix="/profile", template_folder='templates')
 
 

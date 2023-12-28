@@ -1,8 +1,8 @@
 from pathlib import Path
 
 from flask.app import Flask
-
 from plum import base
+
 from . import class_config, helper
 
 

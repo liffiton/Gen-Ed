@@ -25,14 +25,15 @@ def init_app(app: Flask) -> None:
     @app.template_filter('tbl_cell')
     def table_cell_filter(value: Any) -> str:
         '''Format a value to be displayed in a table cell.'''
+        _maxlen = 30
         strval = str(value)
 
         if strval == "None":
             return ""
-        elif len(strval) > 30:
+        elif len(strval) > _maxlen:
             strval = strval.strip().replace('\r', '')
             strval = jinja_escape(strval)
-            strval_trunc = strval[:30] + " ..."
+            strval_trunc = strval[:_maxlen] + " ..."
             return make_titled_span(strval, strval_trunc)
         else:
             return strval

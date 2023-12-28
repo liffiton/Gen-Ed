@@ -11,7 +11,6 @@ from flask import (
     redirect,
     render_template,
     request,
-    url_for,
 )
 from werkzeug.wrappers.response import Response
 

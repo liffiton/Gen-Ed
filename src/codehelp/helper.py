@@ -85,7 +85,7 @@ async def run_query_prompts(llm_dict: LLMDict, language: str, code: str, error: 
 
     # create "avoid set" from class configuration
     class_config = get_class_config()
-    avoid_set = set(x.strip() for x in class_config.avoid.split('\n') if x.strip() != '')
+    avoid_set = {x.strip() for x in class_config.avoid.split('\n') if x.strip() != ''}
 
     # Launch the "sufficient detail" check concurrently with the main prompt to save time
     task_main = asyncio.create_task(

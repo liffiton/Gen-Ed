@@ -2,16 +2,15 @@ import errno
 import secrets
 import sqlite3
 import string
+from collections.abc import Callable
 from getpass import getpass
 from importlib import resources
 from pathlib import Path
-from typing import Callable
 
 import click
 from flask import current_app, g
 from flask.app import Flask
 from werkzeug.security import generate_password_hash
-
 
 AUTH_PROVIDER_LOCAL = 1
 
@@ -43,7 +42,7 @@ def backup_db(target: str | Path) -> None:
     tmp_db.close()
 
 
-def close_db(e: BaseException | None = None) -> None:
+def close_db(e: BaseException | None = None) -> None:  # noqa: ARG001 - unused function argument
     db = g.pop('db', None)
 
     if db is not None:
@@ -67,9 +66,8 @@ def init_db() -> None:
     # importlib.resources: https://stackoverflow.com/a/73497763/
     # requires Python 3.9+
     common_schema_res = resources.files('plum').joinpath("schema_common.sql")
-    with resources.as_file(common_schema_res) as filename:
-        with open(filename) as f:
-            db.executescript(f.read())
+    with resources.as_file(common_schema_res) as file_path, file_path.open() as f:
+        db.executescript(f.read())
 
     # App-specific schema in the app's package
     with current_app.open_resource('schema.sql', 'r') as f:

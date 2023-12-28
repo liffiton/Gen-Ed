@@ -1,7 +1,6 @@
 import datetime as dt
 
 import pytz
-
 from flask import request, session
 from flask.app import Flask
 

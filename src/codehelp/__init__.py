@@ -4,8 +4,8 @@ from typing import Any
 from flask import send_from_directory
 from flask.app import Flask
 from flask.wrappers import Response
-
 from plum import base
+
 from . import class_config, helper, tutor
 
 
