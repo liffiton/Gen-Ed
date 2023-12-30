@@ -104,8 +104,10 @@ def create_user_class(user_id: int, class_name: str, openai_key: str) -> int:
     return class_id
 
 
-def switch_class(class_id: int) -> bool:
+def switch_class(class_id: int | None) -> bool:
     '''Switch the current user to their role in the given class.
+       Or switch them to no class / no role if class_id is None.
+
     Returns bool: True if user has an active role in that class and switch succeeds.
                   False otherwise.
     '''
@@ -113,32 +115,49 @@ def switch_class(class_id: int) -> bool:
     user_id = auth['user_id']
 
     db = get_db()
-    row = db.execute("""
-        SELECT
-            roles.id AS role_id,
-            roles.role,
-            classes.id AS class_id,
-            classes.name AS class_name
-        FROM roles
-        LEFT JOIN classes ON roles.class_id=classes.id
-        WHERE roles.user_id=? AND roles.active=1 AND classes.id=?
-    """, [user_id, class_id]).fetchone()
+    role_id = None  # will be used if class_id is None
 
-    if row:
+    if class_id:
+        # check for a valid role in the new class
+        row = db.execute("""
+            SELECT
+                roles.id AS role_id,
+                roles.role,
+                classes.id AS class_id,
+                classes.name AS class_name
+            FROM roles
+            LEFT JOIN classes ON roles.class_id=classes.id
+            WHERE roles.user_id=? AND roles.active=1 AND classes.id=?
+        """, [user_id, class_id]).fetchone()
+
+        if not row:
+            # no valid row found; change nothing and return failure
+            return False
+
+        # otherwise, here's our new role ID
         role_id = row['role_id']
-        set_session_auth_role(role_id)
-        # record as user's latest active role
-        db.execute("UPDATE users SET last_role_id=? WHERE users.id=?", [role_id, user_id])
-        db.commit()
-        return True
 
-    return False
+    set_session_auth_role(role_id)
+    # record as user's latest active role
+    db.execute("UPDATE users SET last_role_id=? WHERE users.id=?", [role_id, user_id])
+    db.commit()
+    return True
 
 
 @bp.route("/switch/<int:class_id>")
 @login_required
 def switch_class_handler(class_id: int) -> Response:
     switch_class(class_id)
+    if 'next' in request.args:
+        return redirect(request.args['next'])
+    else:
+        return redirect(url_for("profile.main"))
+
+
+@bp.route("/leave/")
+@login_required
+def leave_class_handler() -> Response:
+    switch_class(None)
     if 'next' in request.args:
         return redirect(request.args['next'])
     else:

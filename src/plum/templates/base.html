@@ -129,36 +129,40 @@ ${ options.searchable ?
         </div>
         <div class="navbar-end">
           {% if auth['user_id'] %}
-            <a class="navbar-item dropdown is-hoverable is-size-6" style="flex-direction: column; justify-content: center;" href="{{ url_for('profile.main') }}">
+            {% set class_name=auth['class_name'] %}
+            {% set has_dropdown=(class_name and auth['is_admin']) or (auth['other_classes']) %}
+            <a class="navbar-item dropdown dropdown-trigger is-hoverable is-size-6" {% if has_dropdown %}aria-haspopup="true" aria-controls="classes-menu"{% endif %} style="flex-direction: column; justify-content: center;" href="{{ url_for('profile.main') }}">
               <div class="icon-text">
                 <span class="icon">
                   <svg aria-hidden="true"><use href="#svg_user"></svg>
                 </span>
                 <span class="is-italic">{{ auth['display_name'] }}</span>
               </div>
-              {% set class_name=auth['class_name'] %}
               {% if class_name %}
-                <div class="dropdown-trigger">
-                  <span class="icon-text" aria-haspopup="true" aria-controls="classes-menu">
-                    <span class="is-italic" {% if class_name | length > 20 %}title="{{ class_name }}"{% endif %}>
-                      {{ class_name | truncate(20) }}
-                    </span>
+                <div>
+                  <span class="is-italic" {% if class_name | length > 20 %}title="{{ class_name }}"{% endif %}>
+                    {{ class_name | truncate(20) }}
                   </span>
                 </div>
-                {% if auth['other_classes'] %}
-                  <div class="dropdown-menu" style="z-index: 999;" id="classes-menu" role="menu">
-                    <div class="dropdown-content">
-                      <div class="dropdown-item">
-                        Switch class:
-                      </div>
-                      {% for class in auth['other_classes'] %}
-                      <div class="dropdown-item">
-                        <button class="button is-rounded is-link is-outlined is-small" type="button" onclick="location.assign('{{ url_for("classes.switch_class_handler", class_id=class['class_id'], next=request.path) }}'); return false;">{{ class['class_name'] }} ({{ class['role'] }})</button>
-                      </div>
-                      {% endfor %}
+              {% endif %}
+              {% if has_dropdown %}
+                <div class="dropdown-menu" style="z-index: 999;" id="classes-menu" role="menu">
+                  <div class="dropdown-content">
+                    <div class="dropdown-item">
+                      Switch class:
                     </div>
+                    {% for class in auth['other_classes'] %}
+                    <div class="dropdown-item">
+                      <button class="button is-rounded is-link is-outlined is-small" type="button" onclick="location.assign('{{ url_for("classes.switch_class_handler", class_id=class['class_id'], next=request.path) }}'); return false;">{{ class['class_name'] }} ({{ class['role'] }})</button>
+                    </div>
+                    {% endfor %}
+                    {% if auth['is_admin'] and class_name %}
+                    <div class="dropdown-item">
+                      <button class="button is-rounded is-danger is-light is-outlined is-small" type="button" onclick="location.assign('{{ url_for("classes.leave_class_handler", next=request.path) }}'); return false;">Leave class</button>
+                    </div>
+                    {% endif %}
                   </div>
-                {% endif %}
+                </div>
               {% endif %}
             </a>
 
