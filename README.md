@@ -3,12 +3,13 @@ Plum: Prompted Language Model Applications
 
 Plum is a framework for LLM-based web applications for education (i.e., with a
 focus on instructors and their classes of students as users).
-The repository contains two different applications that use Plum as a
-foundation:
+
+This repository also contains two applications that are built on Plum:
 
 1. CodeHelp: A tool for assisting students in computer science classes without
-   giving them solution code.
+   giving them solution code. <https://codehelp.app/>
 2. Starburst: A topic-exploration tool for writing assignments.
+   <https://strbrst.xyz/>
 
 
 Install
@@ -104,7 +105,8 @@ Licenses
 Plum and the included applications are licensed under the GNU Affero General
 Public License version 3 (AGPL-3.0-only).
 
-Brand icons from Simple Icons [https://simpleicons.org/] are licensed under CC0-1.0.
-Other icons from Lucide [https://lucide.dev/] are licensed under the Lucide ISC license.
+Brand icons from [Simple Icons](https://simpleicons.org/) are licensed under
+CC0-1.0.  Other icons from [Lucide](https://lucide.dev/) are licensed under the
+Lucide ISC license.
 
 For the text of these licenses, see the LICENSES directory.
