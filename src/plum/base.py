@@ -73,6 +73,8 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
         SESSION_COOKIE_SECURE=True,
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE='Lax',
+        # Cache timeout for static files (seconds)
+        SEND_FILE_MAX_AGE_DEFAULT=3*60*60,  # 3 hours
         # Free query tokens given to new users
         DEFAULT_TOKENS=10,
         PYLTI_CONFIG={
