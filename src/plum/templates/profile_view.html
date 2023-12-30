@@ -57,7 +57,12 @@ dl.profile dd { margin: 0; }
     <h2 class="title is-size-3">
       Classes
       {% if user.provider_name not in ['lti', 'demo'] %}
-        <button class="button ml-5 is-light is-success" onclick="document.querySelector('#new_class_dialog').showModal()">Create new class</button>
+        <button class="button ml-5 icon-text is-light is-link" onclick="document.querySelector('#new_class_dialog').showModal()">
+            <span class="icon">
+                <svg aria-hidden="true"><use href="#svg_plus"></svg>
+            </span>
+            <span>Create new class</span>
+        </button>
       {% endif %}
     </h2>
     <dl class="profile">
