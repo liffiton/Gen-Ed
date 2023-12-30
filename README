@@ -17,11 +17,7 @@ Install
 1. Create and activate a Python virtual environment.
    Requires Python 3.9 or higher.
 
-2. Install dependencies
-
-  pip install -r requirements.txt
-
-3. Install the plum package and apps in 'editable' mode
+2. Install the plum package and apps in 'editable' mode
 
   pip install -e .
 
@@ -81,7 +77,7 @@ Running Tests
 
 First, install test dependencies:
 
-  pip install -r requirements_dev.txt
+  pip install -e .[test]
 
 Run all tests:
 
@@ -93,13 +89,14 @@ For code coverage report:
 
 For mypy type checking:
 
-  mypy src
+  mypy
 
 
 Author
 ------
 
 Plum and the included applications are by Mark Liffiton.
+
 
 Licenses
 --------
