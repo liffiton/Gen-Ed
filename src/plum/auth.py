@@ -35,99 +35,137 @@ class ClassDict(TypedDict):
 
 class AuthDict(TypedDict, total=False):
     user_id: int | None
-    display_name: str | None
+    auth_provider: str
+    display_name: str
     is_admin: bool
     is_tester: bool
-    class_id: int | None
-    class_name: str | None
-    role_id: int | None
-    role: str | None
-    auth_provider: str
-    other_classes: list[ClassDict]
+    role_id: int | None     # current role
+    role: str | None        # current role name (e.g., 'instructor')
+    class_id: int | None    # current class ID
+    class_name: str | None  # current class name
+    other_classes: list[ClassDict]  # for storing active classes that are not the user's current class
 
 
-def set_session_auth(user_id: int, display_name: str, is_admin: bool = False, is_tester: bool = False, role_id: int | None = None) -> None:
+def _invalidate_g_auth() -> None:
+    """ Ensure no auth data is cached in the g object.
+        Use after modifying auth data stored in the session,
+        so g.auth will be regenerated on next access in get_auth().
+    """
+    g.pop('auth', None)
+
+
+def set_session_auth_user(user_id: int) -> None:
+    """ Set the current session's user (on login, after authentication).
+        Clears all other auth data in the session.
+    """
     auth: AuthDict = {
         'user_id': user_id,
-        'display_name': display_name,
-        'is_admin': is_admin,
-        'is_tester': is_tester,
-        'role_id': role_id,
     }
     session[AUTH_SESSION_KEY] = auth
+    _invalidate_g_auth()
 
 
-def set_session_auth_role(role_id: int) -> None:
+def set_session_auth_role(role_id: int | None) -> None:
+    """ Set the current session's active role (on login or class switch).
+        Adds to any existing auth data in the session.
+    """
     auth: AuthDict = session[AUTH_SESSION_KEY]
     auth['role_id'] = role_id
     session[AUTH_SESSION_KEY] = auth
+    _invalidate_g_auth()
 
 
 def _get_auth_from_session() -> AuthDict:
+    """ Populate auth data for the current session based on its current
+        user_id and role_id (if any).
+    """
     base: AuthDict = {
         'user_id': None,
-        'display_name': None,
         'is_admin': False,
         'is_tester': False,
-        'class_id': None,
-        'class_name': None,
         'role_id': None,
-        'role': None,
     }
-    # Get the session auth dict, or an empty dict if it's not there, then
-    # "override" any values in 'base' that are defined in the session auth dict.
-    auth_dict: AuthDict = base | session.get(AUTH_SESSION_KEY, {})
+    # Get the session auth dict, or an empty dict if it's not there, to find
+    # current user_id and role_id (if any).
+    sess_auth = session.get(AUTH_SESSION_KEY, {})
+    sess_user = sess_auth.get('user_id', None)
+    sess_role = sess_auth.get('role_id', None)
+
+    if not sess_user:
+        # No logged in user; return the base/empty auth data
+        return base
 
     db = get_db()
 
-    if auth_dict['user_id']:
-        # Get the auth provider
-        provider_row = db.execute("""
-            SELECT auth_providers.name
-            FROM users
-            LEFT JOIN auth_providers ON auth_providers.id=users.auth_provider
-            WHERE users.id=?
-        """, [auth_dict['user_id']]).fetchone()
+    # Get user's data
+    user_row = db.execute("""
+        SELECT
+            users.display_name,
+            users.is_admin,
+            users.is_tester,
+            auth_providers.name AS auth_provider
+        FROM users
+        LEFT JOIN auth_providers ON auth_providers.id=users.auth_provider
+        WHERE users.id=?
+    """, [sess_user]).fetchone()
 
-        if not provider_row:
-            # fall-through if user_id is not in database (deleted from DB?)
-            return base
+    if not user_row:
+        # Fall through if user_id is not in database (deleted from DB?)
+        return base
 
-        auth_dict['auth_provider'] = provider_row['name']
+    # Create a new AuthDict and populate with data from the database
+    auth_dict: AuthDict = {
+        # from session
+        'user_id': sess_user,
+        'role_id': sess_role,
+        # from DB
+        'display_name': user_row['display_name'],
+        'is_admin': user_row['is_admin'],
+        'is_tester': user_row['is_tester'],
+        'auth_provider': user_row['auth_provider'],
+        # to be filled
+        'class_id': None,
+        'class_name': None,
+        'role': None,
+        'other_classes': [],
+    }
 
-        # Check the database for any active roles (may be changed by another user)
-        # and populate class/role information.
-        # Uses WHERE active=1 to only allow active roles.
-        role_rows = db.execute("""
-            SELECT
-                roles.id,
-                roles.class_id,
-                classes.name,
-                classes.enabled,
-                roles.role
-            FROM roles
-            JOIN classes ON classes.id=roles.class_id
-            WHERE roles.user_id=? AND roles.active=1
-            ORDER BY roles.id DESC
-        """, [auth_dict['user_id']]).fetchall()
-        if role_rows:
-            auth_dict['other_classes'] = []  # for storing active classes that are not the user's currently chosen class
-            for row in role_rows:
+    # Check the database for any active roles (may be changed by another user)
+    # and populate class/role information.
+    # Uses WHERE active=1 to only allow active roles.
+    role_rows = db.execute("""
+        SELECT
+            roles.id,
+            roles.class_id,
+            classes.name,
+            classes.enabled,
+            roles.role
+        FROM roles
+        JOIN classes ON classes.id=roles.class_id
+        WHERE roles.user_id=? AND roles.active=1
+        ORDER BY roles.id DESC
+    """, [auth_dict['user_id']]).fetchall()
+
+    found_role = False  # track whether the current role from auth is actually found as an active role
+    if role_rows:
+        for row in role_rows:
+            if row['id'] == auth_dict['role_id']:
+                found_role = True
+                auth_dict['class_id'] = row['class_id']
+                auth_dict['class_name'] = row['name']
+                auth_dict['role'] = row['role']
+            elif row['enabled']:
+                # store a list of any other classes that are enabled (for switching UI)
                 class_dict: ClassDict = {
                     'class_id': row['class_id'],
                     'class_name': row['name'],
                     'role': row['role'],
                 }
-                if row['id'] == auth_dict['role_id']:
-                    # set values for the current role
-                    auth_dict['class_id'] = class_dict['class_id']
-                    auth_dict['class_name'] = class_dict['class_name']
-                    auth_dict['role'] = class_dict['role']
-                elif row['enabled']:
-                    auth_dict['other_classes'].append(class_dict)
-        else:
-            # ensure we don't keep a role_id
-            auth_dict['role_id'] = None
+                auth_dict['other_classes'].append(class_dict)
+
+    if not found_role:
+        # ensure we don't keep a role_id in auth if it's not a valid/active one
+        auth_dict['role_id'] = None
 
     return auth_dict
 
@@ -233,7 +271,8 @@ def login() -> str | Response:
         else:
             # Success!
             last_role_id = get_last_role(auth_row['id'])
-            set_session_auth(auth_row['id'], auth_row['display_name'], is_admin=auth_row['is_admin'], is_tester=auth_row['is_tester'], role_id=last_role_id)
+            set_session_auth_user(auth_row['id'])
+            set_session_auth_role(last_role_id)
             next_url = request.form['next'] or url_for("helper.help_form")
             return redirect(next_url)
 

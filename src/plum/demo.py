@@ -17,7 +17,7 @@ from werkzeug.wrappers.response import Response
 
 from .admin import bp as bp_admin
 from .admin import register_admin_link
-from .auth import get_auth, set_session_auth
+from .auth import get_auth, set_session_auth_role, set_session_auth_user
 from .db import get_db
 from .tz import date_is_past
 
@@ -67,7 +67,7 @@ def demo_register_user(demo_name: str) -> str | Response:
     db.commit()
 
     assert(user_id is not None)
-    set_session_auth(user_id, new_username)
+    set_session_auth_user(user_id)
 
     current_app.logger.info(f"Demo login: {demo_name=} {user_id=} {new_username=}")
 

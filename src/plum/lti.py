@@ -8,7 +8,11 @@ from flask import Blueprint, abort, current_app, redirect, session, url_for
 from pylti.flask import lti
 from werkzeug.wrappers.response import Response
 
-from .auth import ext_login_update_or_create, set_session_auth
+from .auth import (
+    ext_login_update_or_create,
+    set_session_auth_role,
+    set_session_auth_user,
+)
 from .classes import get_or_create_lti_class
 from .db import get_db
 
@@ -93,8 +97,8 @@ def lti_login(lti=lti) -> Response:
             return abort(403)
 
     # Record them as logged in in the session
-    user_row = db.execute("SELECT * FROM users WHERE id=?", [user_id]).fetchone()
-    set_session_auth(user_id, user_row['display_name'], role_id=role_id)
+    set_session_auth_user(user_id)
+    set_session_auth_role(role_id)
 
     # Redirect to the app
     return redirect(url_for("helper.help_form"))

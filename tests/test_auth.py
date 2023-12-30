@@ -27,6 +27,7 @@ def check_login(client, auth, username, password, status, message, is_admin):
 
             # Verify session auth contains correct values for logged-in user
             sessauth = get_auth()
+            assert sessauth['user_id']
             assert sessauth['display_name'] == username
             assert sessauth['is_admin'] == is_admin
             assert sessauth['class_id'] is None
@@ -34,9 +35,11 @@ def check_login(client, auth, username, password, status, message, is_admin):
         else:
             # Verify session auth contains correct values for non-logged-in user
             sessauth = get_auth()
-            assert sessauth['display_name'] is None
+            assert sessauth['user_id'] is None
+            assert sessauth['role_id'] is None
             assert sessauth['is_admin'] is False
-            assert sessauth['class_id'] is None
+            assert 'display_name' not in sessauth
+            assert 'class_id' not in sessauth
 
         assert message in response.text
 
@@ -79,9 +82,10 @@ def test_logout(client, auth):
         auth.logout()
         sessauth = get_auth()
         assert sessauth['user_id'] is None
-        assert sessauth['display_name'] is None
+        assert sessauth['role_id'] is None
         assert sessauth['is_admin'] is False
-        assert sessauth['class_id'] is None
+        assert 'display_name' not in sessauth
+        assert 'class_id' not in sessauth
 
 
 @pytest.mark.parametrize(('path', 'nologin', 'withlogin', 'withadmin'), (

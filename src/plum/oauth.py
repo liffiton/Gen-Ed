@@ -7,7 +7,12 @@ from flask import Blueprint, abort, current_app, redirect, request, session, url
 from flask.app import Flask
 from werkzeug.wrappers.response import Response
 
-from .auth import ext_login_update_or_create, get_last_role, set_session_auth
+from .auth import (
+    ext_login_update_or_create,
+    get_last_role,
+    set_session_auth_role,
+    set_session_auth_user,
+)
 
 GOOGLE_CONF_URL = "https://accounts.google.com/.well-known/openid-configuration"
 # Microsoft docs: https://learn.microsoft.com/en-us/azure/active-directory/develop/v2-protocols-oidc
@@ -111,7 +116,8 @@ def auth(provider_name: str) -> Response:
     last_role_id = get_last_role(user_row['id'])
 
     # Now, either the user existed or has been created.  Log them in!
-    set_session_auth(user_row['id'], user_row['display_name'], role_id=last_role_id)
+    set_session_auth_user(user_row['id'])
+    set_session_auth_role(last_role_id)
 
     # Redirect to stored next_url (and reset) if one has been stored, else root path
     next_url = session.get(NEXT_URL_SESSION_KEY) or "/"
