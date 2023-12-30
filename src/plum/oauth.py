@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Mark Liffiton <liffiton@gmail.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
 from authlib.integrations.flask_client import OAuth, OAuthError
 from flask import Blueprint, abort, current_app, redirect, request, session, url_for
 from flask.app import Flask

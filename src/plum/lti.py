@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Mark Liffiton <liffiton@gmail.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
 from typing import Any
 
 from flask import Blueprint, abort, current_app, redirect, session, url_for

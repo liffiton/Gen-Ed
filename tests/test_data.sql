@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2023 Mark Liffiton <liffiton@gmail.com>
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
 INSERT INTO consumers (id, lti_consumer, lti_secret, openai_key)
 VALUES
     (1, 'consumer.domain', 'seecrits1', 'keeeez1'),

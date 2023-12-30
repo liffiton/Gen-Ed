@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Mark Liffiton <liffiton@gmail.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import date

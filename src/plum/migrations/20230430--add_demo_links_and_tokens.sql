@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2023 Mark Liffiton <liffiton@gmail.com>
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
 BEGIN;
 
 ALTER TABLE users ADD COLUMN query_tokens INTEGER;

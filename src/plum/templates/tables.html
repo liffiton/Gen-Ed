@@ -1,3 +1,9 @@
+{#
+SPDX-FileCopyrightText: 2023 Mark Liffiton <liffiton@gmail.com>
+
+SPDX-License-Identifier: AGPL-3.0-only
+#}
+
 {% macro datatable(name, columns, data, hidden_cols=[], link_col="", link_template=None, edit_handler=None, del_handler=None, csv_link="") -%}
   <style type="text/css">
   {% for col in columns %}

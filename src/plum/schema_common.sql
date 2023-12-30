@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2023 Mark Liffiton <liffiton@gmail.com>
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
 PRAGMA journal_mode = WAL;  -- to enable Litestream backups
 
 PRAGMA foreign_keys = OFF;  -- just for not worrying about table deletion order

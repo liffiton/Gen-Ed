@@ -1,3 +1,9 @@
+{#
+SPDX-FileCopyrightText: 2023 Mark Liffiton <liffiton@gmail.com>
+
+SPDX-License-Identifier: AGPL-3.0-only
+#}
+
 {% if auth['user_id'] and auth['is_tester'] %}
   <a class="navbar-item icon-text has-text-success" href="{{ url_for('tutor.tutor_form') }}">
     <span class="icon">

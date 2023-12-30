@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Mark Liffiton <liffiton@gmail.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
 from flask import Blueprint, render_template
 from plum.auth import instructor_required
 from plum.instructor import get_common_class_settings

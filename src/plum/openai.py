@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Mark Liffiton <liffiton@gmail.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
 import asyncio
 from collections.abc import Callable
 from functools import wraps
