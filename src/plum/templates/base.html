@@ -108,11 +108,13 @@ ${ options.searchable ?
           {{ config['APPLICATION_TITLE'] }}
         </a>
         {% if auth['user_id'] %}
-          <a class="navbar-item icon-text has-text-success" href="{{ url_for('helper.help_form') }}">
-            <span class="icon">
-              <svg aria-hidden="true"><use href="#svg_qmark_circle"></svg>
-            </span>
-            <span>{{ config['HELP_LINK_TEXT'] }}</span>
+          <a class="navbar-item has-text-success" href="{{ url_for('helper.help_form') }}">
+            <div class="icon-text">
+              <span class="icon">
+                <svg aria-hidden="true"><use href="#svg_qmark_circle"></svg>
+              </span>
+              <span>{{ config['HELP_LINK_TEXT'] }}</span>
+            </div>
           </a>
         {% endif %}
         <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" x-bind:class="menu_open ? 'is-active' : ''" x-on:click="menu_open = ! menu_open">
@@ -167,25 +169,31 @@ ${ options.searchable ?
             </a>
 
             {% if auth['role'] == 'instructor' %}
-              <a class="navbar-item icon-text is-size-6 has-text-success" href="/instructor/config">
-                <span class="icon">
-                  <svg aria-hidden="true"><use href="#svg_config"></svg>
-                </span>
-                <span>Configure Class</span>
+              <a class="navbar-item is-size-6 has-text-success" href="/instructor/config">
+                <div class="icon-text">
+                  <span class="icon">
+                    <svg aria-hidden="true"><use href="#svg_config"></svg>
+                  </span>
+                  <span>Configure Class</span>
+                </div>
               </a>
-              <a class="navbar-item icon-text is-size-6 has-text-warning" href="/instructor/">
-                <span class="icon">
-                  <svg aria-hidden="true"><use href="#svg_table_grid"></svg>
-                </span>
-                <span>Instructor View</span>
+              <a class="navbar-item is-size-6 has-text-warning" href="/instructor/">
+                <div class="icon-text">
+                  <span class="icon">
+                    <svg aria-hidden="true"><use href="#svg_table_grid"></svg>
+                  </span>
+                  <span>Instructor View</span>
+                </div>
               </a>
             {% endif %}
             {% if auth['is_admin'] %}
-              <a class="navbar-item icon-text is-size-6 has-text-danger" href="/admin/">
-                <span class="icon">
-                  <svg aria-hidden="true"><use href="#svg_admin"></svg>
-                </span>
-                <span>Admin</span>
+              <a class="navbar-item is-size-6 has-text-danger" href="/admin/">
+                <div class="icon-text">
+                  <span class="icon">
+                    <svg aria-hidden="true"><use href="#svg_admin"></svg>
+                  </span>
+                  <span>Admin</span>
+                </div>
               </a>
             {% endif %}
             <div class="navbar-item">
