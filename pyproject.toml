@@ -4,11 +4,12 @@
 
 [project]
 name = 'plum'
+description = "A framework for building web applications using generative AI (LLMs) for education."
 version = '0.1.0'
 authors = [
     { name='Mark Liffiton', email='liffiton@gmail.com' }
 ]
-readme = 'README'
+readme = 'README.md'
 requires-python = '>=3.9'
 
 classifiers = [
