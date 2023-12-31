@@ -19,9 +19,11 @@ Install
 1. Create and activate a Python virtual environment.
    Requires Python 3.9 or higher.
 
-2. Install the Gen-Ed package and bundled applications in 'editable' mode
+2. Install the Gen-Ed package and bundled applications in 'editable' mode:
 
-  pip install -e .
+```sh
+pip install -e .
+```
 
 
 Set Up an Application
@@ -29,38 +31,50 @@ Set Up an Application
 
 1. In the root of the repository, create an instance folder for the database:
 
-  mkdir instance
+```sh
+mkdir instance
+```
 
 2. In the root of the repository, create .env and populate it:
 
-  FLASK_INSTANCE_PATH=instance
-  SECRET_KEY=[a secure random string -- used to sign session cookies]
-  OPENAI_API_KEY=[your OpenAI API key]
+```
+FLASK_INSTANCE_PATH=instance
+SECRET_KEY=[a secure random string -- used to sign session cookies]
+OPENAI_API_KEY=[your OpenAI API key]
+```
 
 Optionally, set any of the following pairs with IDs/secrets obtained from
 registering your application with the given authentication provider:
 
-  GOOGLE_CLIENT_ID=[...]
-  GOOGLE_CLIENT_SECRET=[...]
-  GITHUB_CLIENT_ID=[...]
-  GITHUB_CLIENT_SECRET=[...]
-  MICROSOFT_CLIENT_ID=[...]
-  MICROSOFT_CLIENT_SECRET=[...]
+```
+GOOGLE_CLIENT_ID=[...]
+GOOGLE_CLIENT_SECRET=[...]
+GITHUB_CLIENT_ID=[...]
+GITHUB_CLIENT_SECRET=[...]
+MICROSOFT_CLIENT_ID=[...]
+MICROSOFT_CLIENT_SECRET=[...]
+```
 
 Then, to set up the CodeHelp app, for example:
 
-3. Initialize database
+3. Initialize database:
 
-  flask --app codehelp initdb
+```sh
+flask --app codehelp initdb
+```
 
-4. Create at least one admin user
+4. Create at least one admin user:
 
-  flask --app codehelp newuser --admin [username]
+```sh
+flask --app codehelp newuser --admin [username]
+```
 
 This will create and display a randomly-generated password.
 To change the password:
 
-  flask --app codehelp setpassword [username]
+```sh
+flask --app codehelp setpassword [username]
+```
 
 
 Running an Application
@@ -68,10 +82,12 @@ Running an Application
 
 For example, to run the CodeHelp app:
 
-  flask --app codehelp run
-  
-  # or, during development:
-  flask --app codehelp --debug run
+```sh
+flask --app codehelp run
+
+# or, during development:
+flask --app codehelp --debug run
+```
 
 
 Running Tests
@@ -79,19 +95,27 @@ Running Tests
 
 First, install test dependencies:
 
-  pip install -e .[test]
+```sh
+pip install -e .[test]
+```
 
 Run all tests:
 
-  pytest
+```sh
+pytest
+```
 
 For code coverage report:
 
-  pytest --cov=src/gened --cov=src/codehelp --cov-report=html && xdg-open htmlcov/index.html
+```sh
+pytest --cov=src/gened --cov=src/codehelp --cov-report=html && xdg-open htmlcov/index.html
+```
 
 For mypy type checking:
 
-  mypy
+```sh
+mypy
+```
 
 
 Author
