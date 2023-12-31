@@ -240,10 +240,11 @@ ${ options.searchable ?
 
     <footer class="footer has-background-dark has-text-light">
       <div class="content has-text-centered">
-        <p><b>{{ config['APPLICATION_TITLE'] }}</b> by {{ config['APPLICATION_AUTHOR'] }}.<br></p>
+        <p><b>{{ config['APPLICATION_TITLE'] }}</b> by {{ config['APPLICATION_AUTHOR'] }}.</p>
         {% if config['DOCS_DIR'] %}
         <p><a class="has-text-light is-underlined" href="{{ url_for("docs.main") }}">Documentation</a></p>
         {% endif %}
+        <p><b>{{ config['APPLICATION_TITLE'] }} is open source</b>, part of the Gen-Ed framework: <a class="has-text-light is-underlined" href="https://github.com/liffiton/GenEd">code on GitHub</a>.</p>
         {% if config['SUPPORT_EMAIL'] %}
         <p>Contact: <a class="has-text-light is-underlined" href="mailto:{{ config['SUPPORT_EMAIL'] }}">{{ config['SUPPORT_EMAIL'] }}</a></p>
         {% endif %}
