@@ -7,9 +7,9 @@ students for use in teaching and learning contexts).
 
 This repository also contains two applications that are built on Gen-Ed:
 
-1. CodeHelp: A tool for assisting students in computer science classes without
+1. **CodeHelp**: A tool for assisting students in computer science classes without
    giving them solution code. <https://codehelp.app/>
-2. Starburst: A topic-exploration tool for writing assignments.
+2. **Starburst**: A topic-exploration tool for writing assignments.
    <https://strbrst.xyz/>
 
 
