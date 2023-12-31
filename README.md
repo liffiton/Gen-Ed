@@ -16,8 +16,9 @@ This repository also contains two applications that are built on Gen-Ed:
 Install
 -------
 
+Requires Python 3.9 or higher.
+
 1. Create and activate a Python virtual environment.
-   Requires Python 3.9 or higher.
 
 2. Install the Gen-Ed package and bundled applications in 'editable' mode:
 
@@ -35,7 +36,7 @@ Set Up an Application
 mkdir instance
 ```
 
-2. In the root of the repository, create .env and populate it:
+2. In the root of the repository, create `.env` and populate it:
 
 ```
 FLASK_INSTANCE_PATH=instance
