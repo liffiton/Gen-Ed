@@ -5,7 +5,7 @@
 import re
 import pytest
 
-from plum.auth import get_auth
+from gened.auth import get_auth
 
 
 def test_login_page(client):

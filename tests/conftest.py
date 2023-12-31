@@ -9,8 +9,8 @@ import tempfile
 import pytest
 from dotenv import find_dotenv, load_dotenv
 
-from plum.admin import reload_consumers
-from plum.db import get_db, init_db
+from gened.admin import reload_consumers
+from gened.db import get_db, init_db
 import codehelp
 
 

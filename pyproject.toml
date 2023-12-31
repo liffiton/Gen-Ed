@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 [project]
-name = 'plum'
+name = 'Gen-Ed'
 description = "A framework for building web applications using generative AI (LLMs) for education."
 version = '0.1.0'
 authors = [

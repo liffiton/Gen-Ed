@@ -24,7 +24,7 @@ from werkzeug.wrappers.response import Response
 from .db import get_db
 
 # Constants
-AUTH_SESSION_KEY = "__plum_auth"
+AUTH_SESSION_KEY = "__gened_auth"
 
 
 class ClassDict(TypedDict):

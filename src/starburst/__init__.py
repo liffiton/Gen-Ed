@@ -5,7 +5,7 @@
 from pathlib import Path
 
 from flask.app import Flask
-from plum import base
+from gened import base
 
 from . import helper
 

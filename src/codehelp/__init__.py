@@ -8,7 +8,7 @@ from typing import Any
 from flask import send_from_directory
 from flask.app import Flask
 from flask.wrappers import Response
-from plum import base
+from gened import base
 
 from . import class_config, helper, tutor
 
@@ -23,7 +23,7 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
         APPLICATION_AUTHOR='Mark Liffiton',
         SUPPORT_EMAIL='support@codehelp.app',
         HELP_LINK_TEXT='Get Help',
-        DATABASE_NAME='codehelp.db',  # will be combined with app.instance_path in plum.create_app_base()
+        DATABASE_NAME='codehelp.db',  # will be combined with app.instance_path in gened.create_app_base()
         DOCS_DIR=module_dir / 'docs',
         DEFAULT_LANGUAGES=[
             "C",
@@ -47,8 +47,8 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
     app.register_blueprint(helper.bp)
     app.register_blueprint(tutor.bp)
 
-    # register our custom class configuration with Plum
-    class_config.register_with_plum()
+    # register our custom class configuration with Gen-Ed
+    class_config.register_with_gened()
 
     # make a simple route for the .well-known directory
     @app.route('/.well-known/<path:path>')

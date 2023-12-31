@@ -66,10 +66,10 @@ def on_init_db(func: Callable[[], None]) -> Callable[[], None]:
 def init_db() -> None:
     db = get_db()
 
-    # Common schema in the plum package
+    # Common schema in the gened package
     # importlib.resources: https://stackoverflow.com/a/73497763/
     # requires Python 3.9+
-    common_schema_res = resources.files('plum').joinpath("schema_common.sql")
+    common_schema_res = resources.files('gened').joinpath("schema_common.sql")
     with resources.as_file(common_schema_res) as file_path, file_path.open() as f:
         db.executescript(f.read())
 

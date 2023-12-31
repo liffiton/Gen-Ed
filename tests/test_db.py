@@ -5,7 +5,7 @@
 import pytest
 import sqlite3
 
-from plum.db import get_db
+from gened.db import get_db
 
 
 def test_get_close_db(app):
@@ -26,7 +26,7 @@ def test_init_db_command(runner, monkeypatch):
     def fake_init_db():
         Recorder.called = True
 
-    monkeypatch.setattr('plum.db.init_db', fake_init_db)
+    monkeypatch.setattr('gened.db.init_db', fake_init_db)
     result = runner.invoke(args=['initdb'])
     assert 'Initialized' in result.output
     assert Recorder.called

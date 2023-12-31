@@ -5,8 +5,8 @@
 from dataclasses import dataclass, field
 
 from flask import current_app
-from plum.class_config import get_class_config as plum_get_config
-from plum.class_config import register_class_config
+from gened.class_config import get_class_config as gened_get_config
+from gened.class_config import register_class_config
 from typing_extensions import Self
 from werkzeug.datastructures import ImmutableMultiDict
 
@@ -31,8 +31,8 @@ class ClassConfig:
 
 
 def get_class_config() -> ClassConfig:
-    return plum_get_config(ClassConfig)
+    return gened_get_config(ClassConfig)
 
 
-def register_with_plum() -> None:
+def register_with_gened() -> None:
     register_class_config(ClassConfig)

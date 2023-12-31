@@ -43,7 +43,7 @@ def _process_doc(md: Markdown, docfile_path: Path) -> Document:
 def main() -> str:
     ''' Show an index of documentation pages. '''
     docs_dir = current_app.config.get('DOCS_DIR')
-    assert docs_dir  # plum/base.py shouldn't load this blueprint if we have no documentation directory configured
+    assert docs_dir  # base.py shouldn't load this blueprint if we have no documentation directory configured
 
     md = current_app.markdown_processor  # type: ignore[attr-defined]
 
@@ -64,7 +64,7 @@ def main() -> str:
 def page(name: str) -> str:
     ''' Serve up a doc page based on matching a filename into the docs directory. '''
     docs_dir = current_app.config.get('DOCS_DIR')
-    assert docs_dir  # plum/base.py shouldn't load this blueprint if we have no documentation directory configured
+    assert docs_dir  # base.py shouldn't load this blueprint if we have no documentation directory configured
 
     # Validate and sanitize the input
     if '/' in name or '\\' in name or '..' in name:

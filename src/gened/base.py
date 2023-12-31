@@ -33,10 +33,10 @@ from . import (
 
 
 def create_app_base(import_name: str, app_config: dict[str, Any], instance_path: Path | None) -> flask.app.Flask:
-    ''' Create a base Plum application.
+    ''' Create a base Gen-Ed application.
     Args:
         module_name: The name of the application's package (preferred) or module.
-                     E.g., call this as plum.create_app_base(__name__, ...) from package/__init__.py.
+                     E.g., call this as gened.create_app_base(__name__, ...) from package/__init__.py.
         app_config: A dictionary containing application-specific configuration for the Flask object (w/ CAPITALIZED keys)
         instance_path: A path to the instance folder (for the database file, primarily)
 

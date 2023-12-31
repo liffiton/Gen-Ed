@@ -111,11 +111,11 @@ def _migration_info(resource: Traversable) -> MigrationDict:
 
 
 def _get_migrations() -> list[MigrationDict]:
-    # Pull shared Plum migrations and app-specific migrations
-    plum_migrations = resources.files('plum').joinpath("migrations")
+    # Pull shared Gen-ed migrations and app-specific migrations
+    gened_migrations = resources.files('gened').joinpath("migrations")
     app_migrations = resources.files(current_app.name).joinpath("migrations")
     migration_files = itertools.chain(
-        *(x.iterdir() for x in (plum_migrations, app_migrations) if x.is_dir())
+        *(x.iterdir() for x in (gened_migrations, app_migrations) if x.is_dir())
     )
 
     # Collect info and sort by name and modified time (to apply migrations in order)

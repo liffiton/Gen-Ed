@@ -17,7 +17,7 @@ from .auth import (
 GOOGLE_CONF_URL = "https://accounts.google.com/.well-known/openid-configuration"
 # Microsoft docs: https://learn.microsoft.com/en-us/azure/active-directory/develop/v2-protocols-oidc
 MICROSOFT_CONF_URL = "https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration"
-NEXT_URL_SESSION_KEY = "__plum_next_url"
+NEXT_URL_SESSION_KEY = "__gened_next_url"
 
 
 bp = Blueprint('oauth', __name__, url_prefix="/oauth")

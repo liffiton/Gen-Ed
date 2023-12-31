@@ -1,10 +1,11 @@
-Plum: Prompted Language Model Applications
-==========================================
+Gen-Ed: Generative AI for Education
+===================================
 
-Plum is a framework for LLM-based web applications for education (i.e., with a
-focus on instructors and their classes of students as users).
+Gen-Ed is a framework for building web applications that use generative AI
+(LLMs) for education (i.e., organized around instructors and their classes of
+students for use in teaching and learning contexts).
 
-This repository also contains two applications that are built on Plum:
+This repository also contains two applications that are built on Gen-Ed:
 
 1. CodeHelp: A tool for assisting students in computer science classes without
    giving them solution code. <https://codehelp.app/>
@@ -18,7 +19,7 @@ Install
 1. Create and activate a Python virtual environment.
    Requires Python 3.9 or higher.
 
-2. Install the plum package and apps in 'editable' mode
+2. Install the Gen-Ed package and bundled applications in 'editable' mode
 
   pip install -e .
 
@@ -86,7 +87,7 @@ Run all tests:
 
 For code coverage report:
 
-  pytest --cov=src/plum --cov=src/codehelp --cov-report=html && xdg-open htmlcov/index.html
+  pytest --cov=src/gened --cov=src/codehelp --cov-report=html && xdg-open htmlcov/index.html
 
 For mypy type checking:
 
@@ -96,13 +97,13 @@ For mypy type checking:
 Author
 ------
 
-Plum and the included applications are by Mark Liffiton.
+Gen-Ed and the included applications are by Mark Liffiton.
 
 
 Licenses
 --------
 
-Plum and the included applications are licensed under the GNU Affero General
+Gen-Ed and the included applications are licensed under the GNU Affero General
 Public License version 3 (AGPL-3.0-only).
 
 Brand icons from [Simple Icons](https://simpleicons.org/) are licensed under

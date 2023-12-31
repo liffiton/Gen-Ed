@@ -7,11 +7,11 @@ import json
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
-from plum.db import get_db
-from plum.auth import get_auth, login_required, tester_required
-from plum.admin import bp as bp_admin, register_admin_link
-from plum.openai import with_llm, get_completion
-from plum.queries import get_query
+from gened.db import get_db
+from gened.auth import get_auth, login_required, tester_required
+from gened.admin import bp as bp_admin, register_admin_link
+from gened.openai import with_llm, get_completion
+from gened.queries import get_query
 
 
 bp = Blueprint('tutor', __name__, url_prefix="/tutor", template_folder='templates')
