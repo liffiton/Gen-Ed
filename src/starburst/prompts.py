@@ -19,13 +19,12 @@ The students provide:
 {topics}
 </topics_{nonce}>
 
-If the student input is off-topic, respond with an error.
+Assist the student in brainstorming topics and themes for their paper.
 
-Otherwise, assist the student by providing a set of keywords or concepts that relate to the topics of interest.  Make sure they are within the scope of the assignment prompt, if it places any constraints on the student's choice of topic.
+1. For each of the individual topics the student mentions, suggest a set of keywords, phrases, or concepts that relate to that topic.  Make sure they are within the scope of the assignment prompt, if it places any constraints on the student's choice of topic.
+2. Produce a set of keywords, phrases, or concepts that tie together the student's topics in some way as well.
 
-Provide a set of suggestions related to each of the individual topics the student mentions, and try to produce a set of keywords or phrases that tie together the student's topics in some way as well.
+Use Markdown formatting.  Place a blank line before the start of any list, and indent each additional nested level by four more spaces.
 
-Use Markdown formatting.  Place a blank line before the start of any list, and indent each additional nested level by four more spaces.  Do not reproduce the student's inputs.
-
-System Response:
+Do not reproduce the student's inputs.
 """
