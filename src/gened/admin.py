@@ -6,6 +6,7 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+from sqlite3 import Row
 from tempfile import NamedTemporaryFile
 from typing import Any, ParamSpec, TypeVar
 from urllib.parse import urlencode
@@ -24,6 +25,7 @@ from flask.app import Flask
 from werkzeug.wrappers.response import Response
 
 from .auth import admin_required
+from .csv import csv_response
 from .db import backup_db, get_db
 from .openai import get_models
 
@@ -133,6 +135,54 @@ class Filters:
         interpolation.
         '''
         return self.filter_string_without(selected_name) + f"&{selected_name}=${{value}}"
+
+
+def get_queries_filtered(where_clause: str, where_params: list[str], queries_limit: int | None = None) -> list[Row]:
+    db = get_db()
+    sql = f"""
+        SELECT
+            queries.*,
+            users.id AS user_id,
+            users.display_name,
+            users.email,
+            users.auth_name,
+            auth_providers.name AS auth_provider
+        FROM queries
+        JOIN users ON queries.user_id=users.id
+        LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
+        LEFT JOIN roles ON queries.role_id=roles.id
+        LEFT JOIN classes ON roles.class_id=classes.id
+        LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
+        LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
+        {where_clause}
+        ORDER BY query_time DESC
+    """
+    if queries_limit is not None:
+        sql += f"LIMIT {int(queries_limit)}"
+    queries = db.execute(sql, [*where_params]).fetchall()
+    return queries
+
+
+@bp.route("/csv/queries/")
+def get_queries_csv() -> str | Response:
+    filters = Filters()
+
+    specs = [
+        FilterSpec('consumer', 'consumers.id', 'consumers.lti_consumer'),
+        FilterSpec('class', 'classes.id', 'classes.name'),
+        FilterSpec('user', 'users.id', 'users.display_name'),
+        FilterSpec('role', 'roles.id', 'printf("%s (%s:%s)", users.display_name, role_class.name, roles.role)'),
+    ]
+    for spec in specs:
+        if spec.name in request.args:
+            value = request.args[spec.name]
+            filters.add(spec, value, "dummy value")  # display value not used in CSV export
+
+    # queries, filtered by consumer, class, user, and role
+    where_clause, where_params = filters.make_where(['consumer', 'class', 'user', 'role'])
+    queries = get_queries_filtered(where_clause, where_params)
+
+    return csv_response('admin_export', 'queries', queries)
 
 
 @bp.route("/")
@@ -253,25 +303,7 @@ def main() -> str:
 
     # queries, filtered by consumer, class, user, and role
     where_clause, where_params = filters.make_where(['consumer', 'class', 'user', 'role'])
-    queries_limit = 200
-    queries = db.execute(f"""
-        SELECT
-            queries.*,
-            users.id,
-            users.display_name,
-            users.email,
-            users.auth_name,
-            auth_providers.name AS auth_provider
-        FROM queries
-        JOIN users ON queries.user_id=users.id
-        LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
-        LEFT JOIN roles ON queries.role_id=roles.id
-        LEFT JOIN classes ON roles.class_id=classes.id
-        LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
-        LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
-        {where_clause}
-        ORDER BY query_time DESC LIMIT ?
-    """, [*where_params, queries_limit]).fetchall()
+    queries = get_queries_filtered(where_clause, where_params, queries_limit=200)
 
     return render_template("admin.html", consumers=consumers, classes=classes, users=users, roles=roles, queries=queries, filters=filters)
 
