@@ -1,5 +1,6 @@
 import datetime as dt
 import json
+from collections.abc import Callable
 from dataclasses import Field, asdict
 from sqlite3 import Row
 from typing import Any, ClassVar, TypeVar
@@ -26,6 +27,23 @@ from .tz import date_is_past
 bp = Blueprint('class_config', __name__, url_prefix="/instructor/config", template_folder='templates')
 
 
+# This module handles common class configuration (access control, LLM
+# selection) and also provides a generic interface to manage
+# application-specific class configuration.
+#
+# App-specific class configuration data are stored in dataclasses.  The
+# dataclass must define the config's fields and their types, as well as
+# implement a `from_request_form()` class method that generates a config object
+# based on inputs in request.form.
+#
+# Any application can register a dataclass with this module using
+# `register_class_config()`.  The application itself must provide a template
+# for a configuration set/update form named class_config_form.html for the
+# instructor class config page.  This module handles that form's submission (in
+# `set()`).  The application itself must implement any other logic for using
+# the configuration throughout the app.
+
+# For type checking classes for storing a class configuration:
 class IsClassConfig(Protocol):
     # So it looks like a dataclass:
     __dataclass_fields__: ClassVar[dict[str, Field[Any]]]
@@ -34,11 +52,31 @@ class IsClassConfig(Protocol):
     def from_request_form(cls, form: ImmutableMultiDict[str, str]) -> Self:
         pass
 
+# Store a registered config class.
 _class_config_class: type[IsClassConfig] | None = None
 
-def register_class_config(cls: type[IsClassConfig]) -> None:
+def register_class_config(cls: type[IsClassConfig]) -> type[IsClassConfig]:
+    """ Register a class configuration dataclass with this module.
+    Used by each specific application that needs app-specific class configuration.
+    May be used as a decorator (returns the given class unmodified).
+    """
     global _class_config_class  # noqa: PLW0603 (global statement)
     _class_config_class = cls
+    return cls
+
+
+# Applications can also register additional forms/UI for including in the class
+# configuration page.  Each should must be provided as a request-handler
+# function that renders *only* its portion of the configuration screen's UI.
+_extra_config_handlers: list[Callable[[], str]] = []
+
+def register_extra_handler(func: Callable[[], str]) -> Callable[[], str]:
+    """ Register a request handler that renders a portion of the class
+    configuration UI.
+    May be used as a decorator (returns the given function unmodified).
+    """
+    _extra_config_handlers.append(func)
+    return func
 
 
 def get_common_class_settings() -> tuple[Row, str | None]:
@@ -93,7 +131,9 @@ def config_form() -> str:
 
     class_row, link_reg_state = get_common_class_settings()
 
-    return render_template("instructor_class_config.html", class_row=class_row, link_reg_state=link_reg_state, class_config=class_config, models=get_models())
+    extra = [handler() for handler in _extra_config_handlers]  # rendered HTML for any extra config sections
+
+    return render_template("instructor_class_config.html", class_row=class_row, link_reg_state=link_reg_state, models=get_models(), class_config=class_config, extra=extra)
 
 
 @bp.route("/set", methods=["POST"])
