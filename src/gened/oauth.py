@@ -107,7 +107,7 @@ def auth(provider_name: str) -> Response:
         'ext_id': user.get('sub') or user.get('id')   # 'sub' for OpenID Connect (Google, Microsoft); 'id' for Github
     }
 
-    current_app.logger.info(f"SSO login: {provider_name=} {user_normed=}")
+    current_app.logger.info(f"SSO login: {provider_name=} email='{user_normed['email']}' full_name='{user_normed['full_name']}'")
 
     # Given 10 tokens by default if creating an account on first login.
     user_row = ext_login_update_or_create(provider_name, user_normed, query_tokens=10)

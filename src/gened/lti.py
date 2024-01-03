@@ -40,7 +40,7 @@ def lti_login(lti=lti) -> Response:
     lti_context_id = session.get("context_id", "")
     class_name = session.get("context_label", "")
 
-    current_app.logger.info(f"LTI login: {lti_consumer=} {email=} {lti_user_id=} {role=} {lti_context_id=} {class_name=}")
+    current_app.logger.info(f"LTI login: {lti_consumer=} {email=} {role=} {class_name=}")
 
     # sanity checks
     if not authenticated:
