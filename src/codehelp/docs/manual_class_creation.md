@@ -4,7 +4,7 @@ summary:  How to create a class "manually," logging in with a Google, Microsoft,
 
 # Manual Class Creation
 
-<p class="notification is-info"><b>Note:</b> We recommend using an LTI connection from your LMS over this manual approach.  Creating and sharing a class manually from CodeHelp has some drawbacks compared to LTI.  It is an alternative for cases where LTI is not an option.</p>
+<p class="notification is-info"><b>Note:</b> We recommend using an LTI connection from your LMS over this manual approach.  Creating and sharing a class manually from CodeHelp has some drawbacks compared to LTI.  However, manual creation is faster, and it is an alternative for cases where LTI is not an option.</p>
 
 These instructions explain how to create and share a class manually.
 Compared to connecting via LTI, this has the following drawbacks:
@@ -16,11 +16,11 @@ Compared to connecting via LTI, this has the following drawbacks:
 ## Creation
 
 First, log in to CodeHelp using a Google, Microsoft, or Github account.
-Whatever account you use to connect will be registered as an "instructor" for the new class.
+Whatever account you use will be registered as an "instructor" for the new class.
 
 Once logged in, go to your <a href="/profile/">profile page</a> (also accessible by clicking on your user info in the navigation bar at the top of the page).
 
-Under the "Classes" heading, press "Create new class."
+In the "Classes" section, press "Create new class."
 This will bring up a dialog asking for a class name and an OpenAI API key.
 
 The OpenAI API key will be used for your students' queries in CodeHelp.
@@ -28,19 +28,19 @@ If you don't have an API key yet, you can leave it blank for now, but it will be
 You can create an API key using an account at <a href="https://openai.com/">openai.com</a>.
 OpenAI will charge you directly for your students' usage, so you will need to provide them a credit card to bill.
 The cost is low.
-One query from CodeHelp costs roughly US$0.002 (two tenths of a cent).
+One query from CodeHelp costs roughly US$0.002 (two tenths of a cent) if using GPT-3.5 or $0.03 for GPT-4-turbo.
 
 ## Configuration
 
 After submitting the new class form, you will be brought to the configuration screen for the class you created.
 Here, you will see an <b>access/join link</b> that can be shared with your students.
 Anyone using the link will register as a student in the class if "Registration via Link" is enabled.
-You can control whether registration is allowed by manually enabling and disabling it or by setting a date up until which registration will be enabled.
-Once they have registered, students can use the same link to access CodeHelp and make queries connected to your class.
+You can control whether registration is allowed by manually enabling and disabling it or by setting a date up through which registration will be enabled.
+Once students have registered, they can use the same link to access CodeHelp and make queries connected to your class.
 
 Before your students can use CodeHelp, you will need to provide a configuration under "Queries &amp; Responses," at least selecting a default language.
 
-In the configuration screen, you can also archive the class (so students can see their past queries but not make new ones) and change the OpenAI API key you have connected to it.
+In the configuration screen, you can also archive the class (so students can see their past queries but not make new ones) and change or delete the OpenAI API key you have connected to it.
 
 ## Adding Instructors
 
@@ -50,5 +50,5 @@ Then, to give them the instructor role, go to the instructor view and check the 
 
 ## Switching Between Classes
 
-If you have multiple classes in CodeHelp, you can switch between them from your user profile page.
+If you have multiple classes in CodeHelp, you can switch between them using a drop-down menu under the profile link in the navigation bar or from your user profile page.
 When you have selected a class in which you are an instructor, the navigation bar will contain links to its class configuration and instructor view pages.
