@@ -36,7 +36,7 @@ def get_or_create_lti_class(lti_consumer_id: int, lti_context_id: str, class_nam
     db = get_db()
 
     class_row = db.execute("""
-        SELECT classes.id
+        SELECT classes.id, classes.name
         FROM classes
         JOIN classes_lti
           ON classes.id=classes_lti.class_id
@@ -45,6 +45,11 @@ def get_or_create_lti_class(lti_consumer_id: int, lti_context_id: str, class_nam
     """, [lti_consumer_id, lti_context_id]).fetchone()
 
     if class_row:
+        # update class name if it has changed on the remote
+        if class_row['name'] != class_name:
+            db.execute("UPDATE classes SET name=? WHERE id=?", [class_name, class_row['id']])
+            db.commit()
+
         return class_row['id']
 
     else:

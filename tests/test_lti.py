@@ -25,13 +25,13 @@ class LTIConsumer:
         self.consumer_key = consumer_key
         self.consumer_secret = consumer_secret
 
-    def generate_launch_request(self, user_and_role):
+    def generate_launch_request(self, user_and_role, class_config=CLASS):
         params = {
             "user_id": user_and_role,
             "roles": user_and_role,
             "context_id": "course54321",
-            "context_label": CLASS['label'],
-            "context_title": CLASS['title'],
+            "context_label": class_config['label'],
+            "context_title": class_config['title'],
             "lis_person_name_given": USER['given'],
             "lis_person_name_family": USER['family'],
             "lis_person_name_full": USER['fullname'],
@@ -83,7 +83,7 @@ def test_lti_auth_success(client, role, internal_role):
     uri, headers, body = lti.generate_launch_request(role)
 
     result = client.post(uri, headers=headers, data=body)
-    assert result.text != "There was an LTI communication error"
+    assert "LTI communication error" not in result.text
     # success == redirect to help page...
     assert result.status_code == 302
     assert result.location == '/help/'
@@ -104,6 +104,53 @@ def test_lti_auth_success(client, role, internal_role):
     assert USER['fullname'] in result.text
     assert USER['email'] in result.text
     assert f"{CLASS['label']} ({internal_role})" in result.text
+
+
+def test_lti_class_name_change(client):
+    # key and secret match 'consumer.domain' consumer in test_data.sql
+    lti = LTIConsumer('consumer.domain', 'seecrits1')
+
+    role = "Student"
+    internal_role = "student"
+    class_config = CLASS
+    uri, headers, body = lti.generate_launch_request(role, class_config=class_config)
+
+    result = client.post(uri, headers=headers, data=body)
+    assert "LTI communication error" not in result.text
+    # success == redirect to help page...
+    assert result.status_code == 302
+    assert result.location == '/help/'
+
+    result = client.get('/help/')
+    assert result.status_code == 200
+
+    # check the profile for correct name, class name and role
+    result = client.get('/profile/')
+    assert result.status_code == 200
+    assert USER['fullname'] in result.text
+    assert USER['email'] in result.text
+    assert f"{class_config['label']} ({internal_role})" in result.text
+
+    # log out, then log in with a different class name to verify the name changes
+    client.post('/auth/logout')
+
+    prev_label = class_config['label']
+    class_config['label'] = "Completely Different"
+    uri, headers, body = lti.generate_launch_request(role, class_config=class_config)
+
+    result = client.post(uri, headers=headers, data=body)
+    assert "LTI communication error" not in result.text
+    # success == redirect to help page...
+    assert result.status_code == 302
+    assert result.location == '/help/'
+
+    # check the profile for correct name, class name and role
+    result = client.get('/profile/')
+    assert result.status_code == 200
+    assert USER['fullname'] in result.text
+    assert USER['email'] in result.text
+    assert f"{class_config['label']} ({internal_role})" in result.text
+    assert prev_label not in result.text
 
 
 def test_lti_instructor_and_students(client):
