@@ -35,6 +35,7 @@ def lti_login(lti=lti) -> Response:
     authenticated = session.get("lti_authenticated", False)
     role = session.get("roles", "").lower()
     email = session.get("lis_person_contact_email_primary", "")
+    full_name = session.get("lis_person_name_full", "")
     lti_user_id = session.get("user_id", "")
     lti_consumer = session.get("oauth_consumer_key", "")
     lti_context_id = session.get("context_id", "")
@@ -46,7 +47,7 @@ def lti_login(lti=lti) -> Response:
     if not authenticated:
         session.clear()
         return abort(403)
-    if '@' not in email or not lti_user_id or not lti_consumer or not lti_context_id or not class_name:
+    if ('@' not in email and full_name == "")  or not lti_user_id or not lti_consumer or not lti_context_id or not class_name:
         session.clear()
         return abort(400)
 
@@ -71,7 +72,7 @@ def lti_login(lti=lti) -> Response:
     lti_id = f"{lti_consumer}_{lti_user_id}_{email}"
     user_normed = {
         'email': email,
-        'full_name': session.get('lis_person_name_full'),
+        'full_name': full_name,
         'auth_name': None,
         'ext_id': lti_id,
     }
