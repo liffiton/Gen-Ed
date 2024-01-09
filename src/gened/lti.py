@@ -4,7 +4,16 @@
 
 from typing import Any
 
-from flask import Blueprint, abort, current_app, redirect, session, url_for
+from flask import (
+    Blueprint,
+    abort,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    session,
+    url_for,
+)
 from pylti.flask import lti
 from werkzeug.wrappers.response import Response
 
@@ -31,25 +40,34 @@ def lti_error(exception: dict[str, Any]) -> tuple[str, int]:
 # https://github.com/mitodl/mit_lti_flask_sample
 @bp.route("/", methods=['GET', 'POST'])
 @lti(request='initial', error=lti_error)
-def lti_login(lti=lti) -> Response:
+def lti_login(lti=lti) -> Response | tuple[str, int]:
     authenticated = session.get("lti_authenticated", False)
     role = session.get("roles", "").lower()
-    email = session.get("lis_person_contact_email_primary", "")
-    full_name = session.get("lis_person_name_full", "")
+    full_name = session.get("lis_person_name_full", None)
+    email = session.get("lis_person_contact_email_primary", None)
     lti_user_id = session.get("user_id", "")
     lti_consumer = session.get("oauth_consumer_key", "")
     lti_context_id = session.get("context_id", "")
     class_name = session.get("context_label", "")
 
-    current_app.logger.info(f"LTI login: {lti_consumer=} {email=} {role=} {class_name=}")
+    current_app.logger.info(f"LTI login: {lti_consumer=} {full_name=} {email=} {role=} {class_name=}")
 
     # sanity checks
     if not authenticated:
+        current_app.logger.warning("LTI login not authenticated.")
         session.clear()
         return abort(403)
-    if ('@' not in email and full_name == "")  or not lti_user_id or not lti_consumer or not lti_context_id or not class_name:
+
+    if not lti_user_id or not lti_consumer or not lti_context_id or not class_name:
+        current_app.logger.warning(f"LTI login missing one of: {lti_user_id=} {lti_consumer=} {lti_context_id=} {class_name=}")
         session.clear()
         return abort(400)
+
+    if not full_name and (not email or '@' not in email):
+        current_app.logger.warning(f"LTI login missing name or email: {lti_consumer=} {full_name=} {email=}")
+        session.clear()
+        flash("LTI login missing name and email (at least one required).", "danger")
+        return render_template("error.html"), 400
 
     # check for instructors
     instructor_role_substrs = ["instructor", "teachingassistant"]
