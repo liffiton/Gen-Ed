@@ -27,7 +27,7 @@ If adding CodeHelp as an App is not possible at your institution, you can use th
   * **Name:** "CodeHelp" (this is how you will identify it in the list of apps available to you)
   * **Consumer Key and Shared Secret:** (these will be provided to you by CodeHelp when you register to integrate with your LMS)
   * **Launch URL:** https://codehelp.app/lti/
-  * **Privacy:** E-Mail Only (or Public to see student names in the instructor view instead of just email addresses)
+  * **Privacy:** either "Public" (to see student names in the instructor view) or "E-Mail Only" (to see just email addresses)
   * All other fields can be left blank.
 
   <p class="hasimg">
