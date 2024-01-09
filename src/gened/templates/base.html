@@ -10,6 +10,9 @@ SPDX-License-Identifier: AGPL-3.0-only
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {% block head %}{% endblock %}
+    {% if 'FAVICON' in config %}
+      <link rel="icon" type="image/png" href="{{url_for('static', filename=config['FAVICON'])}}">
+    {% endif %}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <style type="text/css">
       body { display: flex; min-height: 100vh; flex-direction: column; }
