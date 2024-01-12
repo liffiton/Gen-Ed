@@ -231,7 +231,7 @@ async def get_completion(api_key: str, prompt: str | None = None, messages: list
     except openai.error.RateLimitError as e:
         response = str(e)
         if "exceeded your current quota" in response:
-            response_txt = "Error (RateLimitError).  The API key for this class has exceeded its current quota.  Check your API plan and billing details."
+            response_txt = "Error (RateLimitError).  The API key for this class has exceeded its current quota (https://platform.openai.com/docs/guides/rate-limits).  Check your API plan and billing details."
         else:
             response_txt = "Error (RateLimitError).  The system is receiving too many requests right now.  Please try again in one minute."
         current_app.logger.error(f"OpenAI RateLimitError: {e}")
