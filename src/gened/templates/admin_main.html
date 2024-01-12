@@ -30,7 +30,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <h1 class="is-size-3">Classes</h1>
       {{ datatable(
           'classes',
-          [('id', 'id'), ('name', 'name'), ('owner', 'owner'), ('#users', 'num_users', 'r'), ('#queries', 'num_queries', 'r'), ('1wk', 'num_recent_queries', 'r')],
+          [('id', 'id'), ('name', 'name'), ('owner', 'owner'), ('model', 'model'), ('#users', 'num_users', 'r'), ('#queries', 'num_queries', 'r'), ('1wk', 'num_recent_queries', 'r')],
           classes,
           link_col=0,
           link_template=filters.template_string('class') | safe,

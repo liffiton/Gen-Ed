@@ -235,12 +235,14 @@ def main() -> str:
             classes.id,
             classes.name,
             COALESCE(consumers.lti_consumer, class_owner.display_name) AS owner,
+            models.name AS model,
             COUNT(DISTINCT roles.id) AS num_users,
             COUNT(queries.id) AS num_queries,
             SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
         FROM classes
         LEFT JOIN classes_user ON classes.id=classes_user.class_id
         LEFT JOIN users AS class_owner ON classes_user.creator_user_id=class_owner.id
+        LEFT JOIN models ON models.id=classes_user.model_id
         LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
         LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
         LEFT JOIN roles ON roles.class_id=classes.id
