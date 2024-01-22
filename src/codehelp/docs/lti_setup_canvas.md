@@ -23,18 +23,21 @@ If adding CodeHelp as an App is not possible at your institution, you can use th
   </p>
 
 3. In the form that pops up, configure the application with the following values:
-  * **Configuration Type:** Manual Entry
-  * **Name:** "CodeHelp" (this is how you will identify it in the list of apps available to you)
-  * **Consumer Key and Shared Secret:** (these will be provided to you by CodeHelp when you register to integrate with your LMS)
-  * **Launch URL:** https://codehelp.app/lti/
-  * **Privacy:** either "Public" (to see student names in the instructor view) or "E-Mail Only" (to see just email addresses)
-  * All other fields can be left blank.
+  * **Configuration Type:** By URL
+  * **Name:** "CodeHelp" (this is how it will show up in the course navigation menu and in the list of apps available to you)
+  * **Consumer Key** and **Shared Secret** will be provided to you by CodeHelp when you register to integrate with your LMS.
+  * **Config URL:** https://codehelp.app/lti/config.xml
 
   <p class="hasimg">
   <img class="docimg" alt='"Add App" form in Canvas settings' src='/static/canvas_LTI_03_add_app_form.svg'>
   </p>
 
-4. Finally, add an item to a module in your course, select "External Tool" as the type, and locate "CodeHelp" in the list of applications shown.  This will add a link to your course that anyone (student, TA, or instructor) can use to access CodeHelp and authenticate automatically.  Anyone registered with the course as a TA or instructor will have access to CodeHelp's instructor interfaces.
+4. By default, CodeHelp will now show up as an item in the course navigation menu (on the left of each course page).
+   You can reorder it in that menu or hide it in the "Navigation" tab of the course settings.
+   Anyone (student, TA, or instructor) can use this link to access CodeHelp and authenticate automatically.
+   Anyone registered with the course as a TA or instructor will have access to CodeHelp's instructor interfaces.
+
+5. **Optional:** If you want to add CodeHelp as an item to a module in your course, select "External Tool" as the type when adding the new item, and locate "CodeHelp" in the list of applications shown.
 
   <p class="hasimg">
   <img class="docimg" alt='Adding an item to a Canvas Module, highlighting how to add CodeHelp as an External Tool' src='/static/canvas_LTI_04_add_item.svg'>
