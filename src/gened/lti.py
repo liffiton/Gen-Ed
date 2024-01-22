@@ -123,6 +123,11 @@ def lti_login(lti=lti) -> Response | tuple[str, int]:
     return redirect(url_for("helper.help_form"))
 
 
+@bp.route("/config.xml")
+def lti_config() -> tuple[str, int, dict[str, str]]:
+    return render_template("lti_config.xml"), 200, {'Content-Type': 'text/xml'}
+
+
 #@bp.route("debug", methods=['GET'])
 #@lti(request='session')
 #def lti_debug(lti=lti):
