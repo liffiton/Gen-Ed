@@ -12,6 +12,11 @@ SPDX-License-Identifier: AGPL-3.0-only
     <div class="panel-heading">
       Log In
     </div>
+    {% if not request.args.get('next') %}
+    <div class="panel-block has-background-link-light">
+        If you access {{ config['APPLICATION_TITLE'] }} through Canvas, Moodle, or another LMS, please use the link there to log in.
+    </div>
+    {% endif %}
     {% if "GOOGLE_CLIENT_SECRET" in config %}
     <div class="panel-block">
       <a href="{{ url_for('oauth.login', provider_name='google', next=next_url) }}" class="button icon-text is-large is-fullwidth">

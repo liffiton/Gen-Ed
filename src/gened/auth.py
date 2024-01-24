@@ -84,6 +84,7 @@ def _get_auth_from_session() -> AuthDict:
         'is_admin': False,
         'is_tester': False,
         'role_id': None,
+        'role': None,
     }
     # Get the session auth dict, or an empty dict if it's not there, to find
     # current user_id and role_id (if any).
@@ -310,7 +311,8 @@ def instructor_required(f: Callable[P, R]) -> Callable[P, Response | R]:
     def decorated_function(*args: P.args, **kwargs: P.kwargs) -> Response | R:
         auth = get_auth()
         if auth['role'] != "instructor":
-            return abort(403)
+            flash("Instructor login required.", "warning")
+            return redirect(url_for('auth.login', next=request.full_path))
         return f(*args, **kwargs)
     return decorated_function
 
