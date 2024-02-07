@@ -19,7 +19,7 @@ This repository also contains two applications that are built on Gen-Ed:
 in Programming Classes](https://arxiv.org/abs/2308.06921). Mark Liffiton, Brad
 Sheese, Jaromir Savelka, and Paul Denny. 2023. In Proceedings of the 23rd Koli
 Calling International Conference on Computing Education Research (Koli Calling
-'23).
+'23).  DOI: [10.1145/3631802.3631830](https://doi.org/10.1145/3631802.3631830)
 
 [2] [Patterns of Student Help-Seeking When Using a Large Language Model-Powered
 Programming Assistant](https://arxiv.org/abs/2310.16984). Brad Sheese, Mark
