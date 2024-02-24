@@ -282,3 +282,10 @@ def get_topics(llm_dict: LLMDict, query_id: int) -> list[str]:
     db.execute("UPDATE queries SET topics_json=? WHERE id=?", [response_txt, query_id])
     db.commit()
     return topics
+
+
+
+@bp.route("/all_queries")
+@login_required
+def get_all_queries():
+    return render_template("all_queries.html")
