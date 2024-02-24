@@ -1,24 +1,41 @@
-{#
-SPDX-FileCopyrightText: 2023 Mark Liffiton <liffiton@gmail.com>
+{# SPDX-FileCopyrightText: 2023 Mark Liffiton
+<liffiton@gmail.com>
+  SPDX-License-Identifier: AGPL-3.0-only #} {% macro recent_queries(history) -%}
+  <div class="p-4">
+    <div class="columns is-vcentered is-gapless">
+      <div class="column is-7">
+        <h1 class="is-size-5">Your recent queries:</h1>
+      </div>
+      <div class="column">
+        <a href="" class="button is-link is-light ">View All Queries</a>
+      </div>
+    </div>
 
-SPDX-License-Identifier: AGPL-3.0-only
-#}
-
-{% macro recent_queries(history) -%}
-<div class="p-4">
-  <h2 class="is-size-5">Your recent queries:</h2>
-  {% for prev in history %}
+    {% for prev in history %}
     <div class="box p-3">
       <div class="buttons has-addons are-small is-pulled-right">
-        <a href="{{url_for('helper.help_view', query_id=prev.id)}}" class="button is-link is-outlined is-rounded p-2">View</a>
-        <a href="{{url_for('helper.help_form', query_id=prev.id)}}" class="button is-link is-outlined is-rounded p-2">Retry</a>
+        <a
+          href="{{url_for('helper.help_view', query_id=prev.id)}}"
+          class="button is-link is-outlined is-rounded p-2"
+          >View</a
+        >
+        <a
+          href="{{url_for('helper.help_form', query_id=prev.id)}}"
+          class="button is-link is-outlined is-rounded p-2"
+          >Retry</a
+        >
       </div>
-      {{prev.language}}: <code>{{prev.code | truncate(50)}}</code> | <code>{{prev.error | truncate(50)}}</code>
-      <br>
-      <span {% if prev.issue | length > 100 %}title="{{prev.issue}}"{% endif %}>{{prev.issue | truncate(100)}}</span>
+      {{prev.language}}: <code>{{prev.code | truncate(50)}}</code> |
+      <code>{{prev.error | truncate(50)}}</code>
+      <br />
+      <span {% if prev.issue | length>
+        100 %}title="{{prev.issue}}"{% endif %}>{{prev.issue |
+        truncate(100)}}</span
+      >
     </div>
-  {% else %}
+    {% else %}
     <p class="is-italic">No previous queries...</p>
-  {% endfor %}
-</div>
-{%- endmacro %}
+    {% endfor %}
+  </div>
+  {%- endmacro %}
+</liffiton@gmail.com>
