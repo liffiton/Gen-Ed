@@ -1,1 +1,16 @@
+{% extends "base.html" %} 
 
+
+{% from "tables.html" import datatable %}
+
+{{
+    datatable ('queries', [
+    ('time', 'query_time'),
+    ('lang', 'language'), 
+    ('code', 'code'), 
+    ('error', 'error'), 
+    ('issue', 'issue'),
+    ('response (len)', 'response_text'), 
+    ('helpful', 'helpful_emoji')
+    ], queries)
+}}

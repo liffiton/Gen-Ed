@@ -16,7 +16,7 @@ from werkzeug.wrappers.response import Response
 from . import prompts
 from .class_config import get_class_config
 
-bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='templates')
+bp = Blueprint("helper", __name__, url_prefix="/help", template_folder="templates")
 
 
 @bp.route("/")
@@ -32,20 +32,29 @@ def help_form(query_id: int | None = None) -> str:
     selected_lang = class_config.default_lang
 
     # Select most recently submitted language, if available
-    lang_row = db.execute("SELECT language FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT 1", [auth['user_id']]).fetchone()
-    if lang_row and lang_row['language'] in languages:
-        selected_lang = lang_row['language']
+    lang_row = db.execute(
+        "SELECT language FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT 1",
+        [auth["user_id"]],
+    ).fetchone()
+    if lang_row and lang_row["language"] in languages:
+        selected_lang = lang_row["language"]
 
     # populate with a query+response if one is specified in the query string
     query_row = None
     if query_id is not None:
-        query_row, _ = get_query(query_id)   # _ because we don't need responses here
+        query_row, _ = get_query(query_id)  # _ because we don't need responses here
         if query_row is not None:
-            selected_lang = query_row['language']
+            selected_lang = query_row["language"]
 
     history = get_history()
 
-    return render_template("help_form.html", query=query_row, history=history, languages=languages, selected_lang=selected_lang)
+    return render_template(
+        "help_form.html",
+        query=query_row,
+        history=history,
+        languages=languages,
+        selected_lang=selected_lang,
+    )
 
 
 @bp.route("/view/<int:query_id>")
@@ -53,43 +62,51 @@ def help_form(query_id: int | None = None) -> str:
 def help_view(query_id: int) -> str:
     query_row, responses = get_query(query_id)
     history = get_history()
-    if query_row and query_row['topics_json']:
-        topics = json.loads(query_row['topics_json'])
+    if query_row and query_row["topics_json"]:
+        topics = json.loads(query_row["topics_json"])
     else:
         topics = []
 
-    return render_template("help_view.html", query=query_row, responses=responses, history=history, topics=topics)
+    return render_template(
+        "help_view.html",
+        query=query_row,
+        responses=responses,
+        history=history,
+        topics=topics,
+    )
 
 
 def score_response(response_txt: str, avoid_set: Iterable[str]) -> int:
-    ''' Return an integer score for a given response text.
+    """Return an integer score for a given response text.
     Returns:
         0 = best.
         Negative values for responses including indications of code blocks or keywords in the avoid set.
         Indications of code blocks are weighted most heavily.
-    '''
+    """
     score = 0
     for bad_kw in avoid_set:
         score -= response_txt.count(bad_kw)
-    for code_indication in ['```', 'should look like', 'should look something like']:
+    for code_indication in ["```", "should look like", "should look something like"]:
         score -= 100 * response_txt.count(code_indication)
 
     return score
 
 
-async def run_query_prompts(llm_dict: LLMDict, language: str, code: str, error: str, issue: str) -> tuple[list[dict[str, str]], dict[str, str]]:
-    ''' Run the given query against the coding help system of prompts.
+async def run_query_prompts(
+    llm_dict: LLMDict, language: str, code: str, error: str, issue: str
+) -> tuple[list[dict[str, str]], dict[str, str]]:
+    """Run the given query against the coding help system of prompts.
 
     Returns a tuple containing:
       1) A list of response objects from the OpenAI completion (to be stored in the database)
       2) A dictionary of response text, potentially including keys 'insufficient' and 'main'.
-    '''
-    api_key = llm_dict['key']
-    model = llm_dict['model']
+    """
+    api_key = llm_dict["key"]
+    model = llm_dict["model"]
 
     # create "avoid set" from class configuration
     class_config = get_class_config()
-    avoid_set = {x.strip() for x in class_config.avoid.split('\n') if x.strip() != ''}
+    avoid_set = {x.strip() for x in class_config.avoid.split("\n") if x.strip() != ""}
 
     # Launch the "sufficient detail" check concurrently with the main prompt to save time
     task_main = asyncio.create_task(
@@ -98,14 +115,14 @@ async def run_query_prompts(llm_dict: LLMDict, language: str, code: str, error: 
             prompt=prompts.make_main_prompt(language, code, error, issue, avoid_set),
             model=model,
             n=1,
-            score_func=lambda x: score_response(x, avoid_set)
+            score_func=lambda x: score_response(x, avoid_set),
         )
     )
     task_sufficient = asyncio.create_task(
         get_completion(
             api_key,
             prompt=prompts.make_sufficient_prompt(language, code, error, issue),
-            model=model
+            model=model,
         )
     )
 
@@ -116,10 +133,16 @@ async def run_query_prompts(llm_dict: LLMDict, language: str, code: str, error: 
     response, response_txt = await task_main
     responses.append(response)
 
-    if "```" in response_txt or "should look like" in response_txt or "should look something like" in response_txt:
+    if (
+        "```" in response_txt
+        or "should look like" in response_txt
+        or "should look something like" in response_txt
+    ):
         # That's probably too much code.  Let's clean it up...
         cleanup_prompt = prompts.make_cleanup_prompt(response_text=response_txt)
-        cleanup_response, cleanup_response_txt = await get_completion(api_key, prompt=cleanup_prompt, model=model)
+        cleanup_response, cleanup_response_txt = await get_completion(
+            api_key, prompt=cleanup_prompt, model=model
+        )
         responses.append(cleanup_response)
         response_txt = cleanup_response_txt
 
@@ -128,18 +151,31 @@ async def run_query_prompts(llm_dict: LLMDict, language: str, code: str, error: 
     response_sufficient, response_sufficient_txt = await task_sufficient
     responses.append(response_sufficient)
 
-    if response_sufficient_txt.endswith("OK") or "OK." in response_sufficient_txt or "```" in response_sufficient_txt or "is sufficient for me" in response_sufficient_txt or response_sufficient_txt.startswith("Error ("):
+    if (
+        response_sufficient_txt.endswith("OK")
+        or "OK." in response_sufficient_txt
+        or "```" in response_sufficient_txt
+        or "is sufficient for me" in response_sufficient_txt
+        or response_sufficient_txt.startswith("Error (")
+    ):
         # We're using just the main response.
-        return responses, {'main': response_txt}
+        return responses, {"main": response_txt}
     else:
         # Give them the request for more information plus the main response, in case it's helpful.
-        return responses, {'insufficient': response_sufficient_txt, 'main': response_txt}
+        return responses, {
+            "insufficient": response_sufficient_txt,
+            "main": response_txt,
+        }
 
 
-def run_query(llm_dict: LLMDict, language: str, code: str, error: str, issue: str) -> int:
+def run_query(
+    llm_dict: LLMDict, language: str, code: str, error: str, issue: str
+) -> int:
     query_id = record_query(language, code, error, issue)
 
-    responses, texts = asyncio.run(run_query_prompts(llm_dict, language, code, error, issue))
+    responses, texts = asyncio.run(
+        run_query_prompts(llm_dict, language, code, error, issue)
+    )
 
     record_response(query_id, responses, texts)
 
@@ -149,11 +185,11 @@ def run_query(llm_dict: LLMDict, language: str, code: str, error: str, issue: st
 def record_query(language: str, code: str, error: str, issue: str) -> int:
     db = get_db()
     auth = get_auth()
-    role_id = auth['role_id']
+    role_id = auth["role_id"]
 
     cur = db.execute(
         "INSERT INTO queries (language, code, error, issue, user_id, role_id) VALUES (?, ?, ?, ?, ?, ?)",
-        [language, code, error, issue, auth['user_id'], role_id]
+        [language, code, error, issue, auth["user_id"], role_id],
     )
     new_row_id = cur.lastrowid
     db.commit()
@@ -163,12 +199,14 @@ def record_query(language: str, code: str, error: str, issue: str) -> int:
     return new_row_id
 
 
-def record_response(query_id: int, responses: list[dict[str, str]], texts: dict[str, str]) -> None:
+def record_response(
+    query_id: int, responses: list[dict[str, str]], texts: dict[str, str]
+) -> None:
     db = get_db()
 
     db.execute(
         "UPDATE queries SET response_json=?, response_text=? WHERE id=?",
-        [json.dumps(responses), json.dumps(texts), query_id]
+        [json.dumps(responses), json.dumps(texts), query_id],
     )
     db.commit()
 
@@ -200,11 +238,11 @@ def help_request(llm_dict: LLMDict) -> Response:
 def load_test(llm_dict: LLMDict) -> Response:
     # Require that we're logged in as the load_test user
     auth = get_auth()
-    if auth['display_name'] != 'load_test':
+    if auth["display_name"] != "load_test":
         return abort(404)
 
     # Ensure test path is triggered in get_completion()
-    llm_dict['key'] = TEST_API_KEY
+    llm_dict["key"] = TEST_API_KEY
 
     language = "Python"
     code = "Code"
@@ -222,9 +260,12 @@ def post_helpful() -> str:
     db = get_db()
     auth = get_auth()
 
-    query_id = int(request.form['id'])
-    value = int(request.form['value'])
-    db.execute("UPDATE queries SET helpful=? WHERE id=? AND user_id=?", [value, query_id, auth['user_id']])
+    query_id = int(request.form["id"])
+    value = int(request.form["value"])
+    db.execute(
+        "UPDATE queries SET helpful=? WHERE id=? AND user_id=?",
+        [value, query_id, auth["user_id"]],
+    )
     db.commit()
     return ""
 
@@ -257,18 +298,20 @@ def get_topics(llm_dict: LLMDict, query_id: int) -> list[str]:
         return []
 
     messages = prompts.make_topics_prompt(
-        query_row['language'],
-        query_row['code'],
-        query_row['error'],
-        query_row['issue'],
-        responses['main']
+        query_row["language"],
+        query_row["code"],
+        query_row["error"],
+        query_row["issue"],
+        responses["main"],
     )
 
-    response, response_txt = asyncio.run(get_completion(
-        api_key=llm_dict['key'],
-        messages=messages,
-        model=llm_dict['model'],
-    ))
+    response, response_txt = asyncio.run(
+        get_completion(
+            api_key=llm_dict["key"],
+            messages=messages,
+            model=llm_dict["model"],
+        )
+    )
 
     # Verify it is actually JSON
     # May be "Error (..." if an API error occurs, or every now and then may get "Here is the JSON: ..." or similar.
@@ -284,8 +327,8 @@ def get_topics(llm_dict: LLMDict, query_id: int) -> list[str]:
     return topics
 
 
-
-@bp.route("/all_queries")
+@bp.route("/view/queries")
 @login_required
 def get_all_queries():
-    return render_template("all_queries.html")
+    queries = get_history(1000000)
+    return render_template("all_queries.html", queries=queries)
