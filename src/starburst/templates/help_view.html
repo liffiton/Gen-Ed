@@ -81,7 +81,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         </div>
       </div>
 
-      {% if auth['user_id'] == query.user_id %}
+      {% if auth['user_id'] == query.user_id and 'main' in responses %}
       <div class="card-content p-2 pl-5" style="background: #e5e5e5;" x-data="{helpful: {{"null" if query.helpful == None else query.helpful}}}">
         <script type="text/javascript">
           function post_helpful(value) {

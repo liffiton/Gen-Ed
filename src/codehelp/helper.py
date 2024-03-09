@@ -119,8 +119,8 @@ async def run_query_prompts(llm_dict: LLMDict, language: str, code: str, error: 
     responses = []
 
     # Let's get the main response.
-    response, response_txt = await task_main
-    responses.append(response)
+    response_main, response_txt = await task_main
+    responses.append(response_main)
 
     if "```" in response_txt or "should look like" in response_txt or "should look something like" in response_txt:
         # That's probably too much code.  Let's clean it up...
@@ -134,7 +134,9 @@ async def run_query_prompts(llm_dict: LLMDict, language: str, code: str, error: 
     response_sufficient, response_sufficient_txt = await task_sufficient
     responses.append(response_sufficient)
 
-    if response_sufficient_txt.endswith("OK") or "OK." in response_sufficient_txt or "```" in response_sufficient_txt or "is sufficient for me" in response_sufficient_txt or response_sufficient_txt.startswith("Error ("):
+    if 'error' in response_main:
+        return responses, {'error': response_txt}
+    elif response_sufficient_txt.endswith("OK") or "OK." in response_sufficient_txt or "```" in response_sufficient_txt or "is sufficient for me" in response_sufficient_txt or response_sufficient_txt.startswith("Error ("):
         # We're using just the main response.
         return responses, {'main': response_txt}
     else:
@@ -263,7 +265,7 @@ def get_topics_raw(llm_dict: LLMDict, query_id: int) -> list[str]:
 def get_topics(llm_dict: LLMDict, query_id: int) -> list[str]:
     query_row, responses = get_query(query_id)
 
-    if not query_row or not responses:
+    if not query_row or not responses or 'main' not in responses:
         return []
 
     messages = prompts.make_topics_prompt(

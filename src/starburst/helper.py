@@ -61,8 +61,11 @@ async def run_query_prompts(llm_dict: LLMDict, assignment: str, topics: str) -> 
     responses = []
 
     # And let's get the main response.
-    response, response_txt = await task_main
-    responses.append(response)
+    response_main, response_txt = await task_main
+    responses.append(response_main)
+
+    if 'error' in response_main:
+        return responses, {'error': response_txt}
 
     return responses, {'main': response_txt}
 
