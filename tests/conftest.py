@@ -6,11 +6,13 @@ import os
 from pathlib import Path
 import tempfile
 
+import openai
 import pytest
 from dotenv import find_dotenv, load_dotenv
 
 from gened.admin import reload_consumers
 from gened.db import get_db, init_db
+from gened.openai import mock_async_completion, mock_completion
 import codehelp
 
 
@@ -28,12 +30,9 @@ def load_env():
 
 @pytest.fixture
 def app(monkeypatch):
-    # Mock get_completion() to not hit OpenAI's API
-    async def mock_completion(*args, **kwargs):
-        prompt = kwargs['prompt'] if 'prompt' in kwargs else args[1]
-        txt = f"Mocked completion with {prompt=}"
-        return {'main': txt}, txt
-    monkeypatch.setattr(codehelp.helper, 'get_completion', mock_completion)
+    # Mock OpenAI completions to not hit OpenAI's API  (0 delay for testing)
+    monkeypatch.setattr(openai.resources.chat.Completions, "create", mock_completion(0.0))
+    monkeypatch.setattr(openai.resources.chat.AsyncCompletions, "create", mock_async_completion(0.0))
 
     # Create an app and initialize the DB
     db_fd, db_path = tempfile.mkstemp()

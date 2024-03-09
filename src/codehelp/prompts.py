@@ -6,6 +6,7 @@ import random
 from collections.abc import Iterable
 
 from jinja2 import Environment
+from openai.types.chat import ChatCompletionMessageParam
 
 jinja_env = Environment(
     trim_blocks=True,
@@ -115,8 +116,8 @@ Rewritten:
 """
 
 
-def make_topics_prompt(language: str, code: str, error: str, issue: str, response_text: str) -> list[dict[str, str]]:
-    messages = [
+def make_topics_prompt(language: str, code: str, error: str, issue: str, response_text: str) -> list[ChatCompletionMessageParam]:
+    messages : list[ChatCompletionMessageParam] = [
         {'role': 'user', 'content': f"""\
 <language>{language}</language>
 <code>{code}</code>
@@ -125,7 +126,7 @@ def make_topics_prompt(language: str, code: str, error: str, issue: str, respons
 """},
         {'role': 'assistant', 'content': response_text},
         {'role': 'user', 'content': "Please give me a list of specific concepts I appear to be having difficulty with in the above exchange.  Write each in title case."},
-        {'role': 'assistant', 'content': "[inner monologue] I need to respond with a JSON-formatted list with NO other text, like: ['Item1','Item2','Item3','Item4']"}
+        {'role': 'assistant', 'content': "[inner monologue] I need to respond with a JSON-formatted array of strings with NO other text, like: ['Item1','Item2','Item3','Item4']"}
     ]
 
     return messages

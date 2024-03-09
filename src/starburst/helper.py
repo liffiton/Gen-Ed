@@ -49,13 +49,11 @@ async def run_query_prompts(llm_dict: LLMDict, assignment: str, topics: str) -> 
       1) A list of response objects from the OpenAI completion (to be stored in the database)
       2) A dictionary of response text, potentially including the key 'main'.
     '''
-    api_key = llm_dict['key']
-    model = llm_dict['model']
     task_main = asyncio.create_task(
         get_completion(
-            api_key=api_key,
+            client=llm_dict['client'],
+            model=llm_dict['model'],
             prompt=prompts.make_main_prompt(assignment, topics),
-            model=model,
         )
     )
 

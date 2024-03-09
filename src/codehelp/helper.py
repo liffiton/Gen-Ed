@@ -5,12 +5,14 @@
 import asyncio
 import json
 from collections.abc import Iterable
+from unittest.mock import patch
 
 from flask import Blueprint, abort, redirect, render_template, request, url_for
 from gened.auth import class_enabled_required, get_auth, login_required, tester_required
 from gened.db import get_db
-from gened.openai import TEST_API_KEY, LLMDict, get_completion, with_llm
+from gened.openai import LLMDict, mock_async_completion, get_completion, with_llm
 from gened.queries import get_history, get_query
+from openai.types.chat.chat_completion import ChatCompletion
 from werkzeug.wrappers.response import Response
 
 from . import prompts
@@ -61,13 +63,17 @@ def help_view(query_id: int) -> str:
     return render_template("help_view.html", query=query_row, responses=responses, history=history, topics=topics)
 
 
-def score_response(response_txt: str, avoid_set: Iterable[str]) -> int:
+def score_response(response_txt: str | None, avoid_set: Iterable[str]) -> int:
     ''' Return an integer score for a given response text.
     Returns:
         0 = best.
         Negative values for responses including indications of code blocks or keywords in the avoid set.
         Indications of code blocks are weighted most heavily.
     '''
+    if not response_txt:
+        # Empty/None response is pretty bad.
+        return -100
+
     score = 0
     for bad_kw in avoid_set:
         score -= response_txt.count(bad_kw)
@@ -84,7 +90,7 @@ async def run_query_prompts(llm_dict: LLMDict, language: str, code: str, error: 
       1) A list of response objects from the OpenAI completion (to be stored in the database)
       2) A dictionary of response text, potentially including keys 'insufficient' and 'main'.
     '''
-    api_key = llm_dict['key']
+    client = llm_dict['client']
     model = llm_dict['model']
 
     # create "avoid set" from class configuration
@@ -94,18 +100,18 @@ async def run_query_prompts(llm_dict: LLMDict, language: str, code: str, error: 
     # Launch the "sufficient detail" check concurrently with the main prompt to save time
     task_main = asyncio.create_task(
         get_completion(
-            api_key,
-            prompt=prompts.make_main_prompt(language, code, error, issue, avoid_set),
+            client,
             model=model,
+            prompt=prompts.make_main_prompt(language, code, error, issue, avoid_set),
             n=1,
             score_func=lambda x: score_response(x, avoid_set)
         )
     )
     task_sufficient = asyncio.create_task(
         get_completion(
-            api_key,
+            client,
+            model=model,
             prompt=prompts.make_sufficient_prompt(language, code, error, issue),
-            model=model
         )
     )
 
@@ -119,7 +125,7 @@ async def run_query_prompts(llm_dict: LLMDict, language: str, code: str, error: 
     if "```" in response_txt or "should look like" in response_txt or "should look something like" in response_txt:
         # That's probably too much code.  Let's clean it up...
         cleanup_prompt = prompts.make_cleanup_prompt(response_text=response_txt)
-        cleanup_response, cleanup_response_txt = await get_completion(api_key, prompt=cleanup_prompt, model=model)
+        cleanup_response, cleanup_response_txt = await get_completion(client, model, prompt=cleanup_prompt)
         responses.append(cleanup_response)
         response_txt = cleanup_response_txt
 
@@ -196,22 +202,26 @@ def help_request(llm_dict: LLMDict) -> Response:
 
 
 @bp.route("/load_test", methods=["POST"])
-@with_llm(use_system_key=True)  # just to get a correctly-populated llm_dict
+@with_llm(use_system_key=True)  # get a populated LLMDict
 def load_test(llm_dict: LLMDict) -> Response:
+    # TODO: Untested since openai library 1.0 upgrade ...
+
     # Require that we're logged in as the load_test user
     auth = get_auth()
     if auth['display_name'] != 'load_test':
         return abort(404)
-
-    # Ensure test path is triggered in get_completion()
-    llm_dict['key'] = TEST_API_KEY
 
     language = "Python"
     code = "Code"
     error = "Error"
     issue = "Issue"
 
-    query_id = run_query(llm_dict, language, code, error, issue)
+    # Monkey-patch to not call the API but simulate it with a delay
+    with patch("openai.resources.chat.AsyncCompletions.create") as mocked:
+        # simulate a 2 second delay for a network request
+        mocked.side_effect = mock_async_completion(delay=2.0)
+
+        query_id = run_query(llm_dict, language, code, error, issue)
 
     return redirect(url_for(".help_view", query_id=query_id))
 
@@ -265,9 +275,9 @@ def get_topics(llm_dict: LLMDict, query_id: int) -> list[str]:
     )
 
     response, response_txt = asyncio.run(get_completion(
-        api_key=llm_dict['key'],
-        messages=messages,
+        client=llm_dict['client'],
         model=llm_dict['model'],
+        messages=messages,
     ))
 
     # Verify it is actually JSON

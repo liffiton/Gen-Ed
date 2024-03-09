@@ -144,9 +144,9 @@ def get_response(llm_dict, chat):
       2) The response text.
     '''
     response, text = asyncio.run(get_completion(
-        api_key=llm_dict['key'],
-        messages=chat,
+        client=llm_dict['client'],
         model=llm_dict['model'],
+        messages=chat,
         n=1,
     ))
 

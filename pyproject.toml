@@ -29,7 +29,7 @@ dependencies = [
     "Flask~=3.0.0",
     "Markdown~=3.5.1",
     "mdx-truly-sane-lists~=1.3",
-    "openai<1.0",
+    "openai~=1.0",
     "pylti@git+https://github.com/liffiton/pylti",
     "python-dotenv~=1.0.0",
     "pytz",
@@ -37,9 +37,9 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
-    "coverage~=7.3.4",
+    "coverage~=7.0",
     "oauthlib~=3.2.2",
-    "pytest~=7.4.3",
+    "pytest~=8.0",
     "pytest-cov~=4.1.0",
     "pytest-xdist~=3.5.0",
     "mypy",

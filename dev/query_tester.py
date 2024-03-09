@@ -6,18 +6,17 @@
 
 import argparse
 import csv
-import itertools
-
-from dotenv import load_dotenv
-import openai
-import pyperclip
-import urwid
-
-from inspect import Parameter
 import importlib
 import inspect
-import sys
+import itertools
 import os
+import sys
+from inspect import Parameter
+
+import pyperclip
+import urwid
+from dotenv import load_dotenv
+from openai import OpenAI
 
 
 TEMPERATURE = 0.5
@@ -40,7 +39,7 @@ def load_prompt(app, csv_headers):
     # Let the user choose a prompt function from the specified app
     prompts_module = importlib.import_module(f"{app}.prompts")
     prompt_functions = inspect.getmembers(prompts_module, inspect.isfunction)
-    print("[33mChoose a prompt function:[m")
+    print("\x1B[33mChoose a prompt function:\x1B[m")
     for i, (name, func) in enumerate(prompt_functions):
         print(f" {i+1}: {name}")
     choice = int(input("Choice: "))
@@ -53,7 +52,7 @@ def load_prompt(app, csv_headers):
     # Check for headers in the given CSV matching the prompt's arguments
     missing = [field for field in fields if field not in csv_headers]
     if missing:
-        print(f"[31mMissing columns in CSV needed for prompt:[m {missing}")
+        print(f"\x1B[31mMissing columns in CSV needed for prompt:\x1B[m {missing}")
         sys.exit(1)
 
     return prompt_func, fields
@@ -130,52 +129,42 @@ def get_prompt(item, prompt_func):
     if isinstance(prompt_gen, list):
         # The prompt function outputs in the chat completion format, not a string,
         # and the davinci model does not handle chat completions.
-        prompt = None
         messages = prompt_gen
     else:
-        prompt = prompt_gen
-        messages = [{"role": "user", "content": prompt}]
+        messages = [{"role": "user", "content": prompt_gen}]
 
-    return prompt, messages
+    return messages
 
 
-def get_response(item, prompt, messages, model):
+def get_response(client, item, messages, model):
     '''
-    model can be either 'text-davinci-003' or 'gpt-{4, 3.5-turbo, etc.}'
+    model can be 'gpt-{4, 3.5-turbo, etc.}'
     '''
     try:
-        if model.startswith("text-davinci") or model.endswith("-instruct"):
-            assert (prompt is not None), "Invalid prompt function for using with text-davinci (outputs messages for a chat completion only)."
-            response = openai.Completion.create(
-                model=model,
-                prompt=prompt,
-                temperature=TEMPERATURE,
-                max_tokens=MAX_TOKENS,
-            )
-            response_txt = response.choices[0].text
-        elif model.startswith("gpt-"):
-            response = openai.ChatCompletion.create(
+        if model.startswith("gpt-"):
+            response = client.chat.completions.create(
                 model=model,
                 messages=messages,
                 temperature=TEMPERATURE,
                 max_tokens=MAX_TOKENS,
                 n=2,
             )
-            response_txt = '\n\n----------\n\n'.join(x.message['content'] for x in response.choices)
         else:
             raise Exception(f"Invalid model specified: {model}")
 
-        response_reason = response.choices[-1].finish_reason  # e.g. "length" if max_tokens reached
-
-        if response_reason == "length":
-            response_txt += "\n\n[error: maximum length exceeded]"
-
-        item['__tester_response'] = response_txt
-
-        item['__tester_usage'] = f"Prompt: {response.usage['prompt_tokens']}  Completion: {response.usage['completion_tokens']}  Total: {response.usage['total_tokens']}"
-
     except Exception as e:  # noqa
         item['__tester_response'] = f"[An error occurred in the openai completion.]\n{e}"
+        return
+
+    response_txt = '\n\n----------\n\n'.join(x.message.content for x in response.choices)
+    response_reason = response.choices[-1].finish_reason  # e.g. "length" if max_tokens reached
+
+    if response_reason == "length":
+        response_txt += "\n\n[error: maximum length exceeded]"
+
+    item['__tester_response'] = response_txt
+
+    item['__tester_usage'] = f"Prompt: {response.usage.prompt_tokens}  Completion: {response.usage.completion_tokens}  Total: {response.usage.total_tokens}"
 
 
 def setup_openai():
@@ -183,14 +172,16 @@ def setup_openai():
     load_dotenv()
     try:
         openai_key = os.environ["OPENAI_API_KEY"]
-        openai.api_key = openai_key
     except KeyError:
         print("Error:  OPENAI_API_KEY environment variable not set.", file=sys.stderr)
         sys.exit(1)
 
+    client = OpenAI(api_key=openai_key)
+    return client
+
 
 def main():
-    setup_openai()
+    client = setup_openai()
 
     # Setup / run config
     parser = argparse.ArgumentParser(description='A tool for running queries against data from a CSV file.')
@@ -241,11 +232,11 @@ def main():
                 viewer.prev()
             case 'g':
                 item = queries[viewer.curidx]
-                prompt, messages = get_prompt(item, prompt_func)
+                messages = get_prompt(item, prompt_func)
                 item['__tester_prompt'] = prompt if args.model.startswith('text-davinci') else msgs2str(messages)
                 viewer.update()
                 mainloop.draw_screen()
-                get_response(item, prompt, messages, args.model)
+                get_response(client, item, messages, args.model)
                 viewer.update()
             case 'c':
                 viewer.copy_prompt()
