@@ -1,3 +1,4 @@
+import asyncio
 import datetime as dt
 import json
 from collections.abc import Callable
@@ -8,6 +9,7 @@ from typing import Any, ClassVar, TypeVar
 from flask import (
     Blueprint,
     abort,
+    current_app,
     flash,
     g,
     redirect,
@@ -21,7 +23,7 @@ from werkzeug.wrappers.response import Response
 
 from .auth import get_auth, instructor_required
 from .db import get_db
-from .openai import get_models
+from .openai import LLMDict, get_completion, get_models, with_llm
 from .tz import date_is_past
 
 bp = Blueprint('class_config', __name__, url_prefix="/instructor/config", template_folder='templates')
@@ -134,6 +136,27 @@ def config_form() -> str:
     extra = [handler() for handler in _extra_config_handlers]  # rendered HTML for any extra config sections
 
     return render_template("instructor_class_config.html", class_row=class_row, link_reg_state=link_reg_state, models=get_models(), class_config=class_config, extra=extra)
+
+
+@bp.route("/test_llm")
+@instructor_required
+@with_llm()
+def test_llm(llm_dict: LLMDict) -> Response | dict[str, Any]:
+    if _class_config_class is None:
+        return abort(404)
+
+    response, response_txt = asyncio.run(get_completion(
+        client=llm_dict['client'],
+        model=llm_dict['model'],
+        prompt="Please write 'OK'"
+    ))
+
+    if 'error' in response:
+        return {'result': 'error', 'error': f"<b>Error:</b><br>{response_txt}"}
+    else:
+        if response_txt != "OK":
+            current_app.logger.error(f"LLM check had no error but responded not 'OK'?  Response: {response_txt}")
+        return {'result': 'success', 'error': None}
 
 
 @bp.route("/set", methods=["POST"])

@@ -127,7 +127,33 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div class="conf_col_sep mt-5"></div>
 
       <h2 class="title is-size-4 mt-5">Language Model</h2>
-      <form action="{{ url_for("instructor.set_user_class_setting") }}" method="post">
+      <form action="{{ url_for("instructor.set_user_class_setting") }}" method="post" x-data="{
+          llm_config_saved: {{ 'true' if class_row.openai_key else 'false' }},
+          llm_config_result: null,
+          llm_config_error: null,
+          test_llm() {
+            // close dialog on click outside
+            const dialog = document.querySelector('#llm_error_dialog');
+            dialog.addEventListener('click', function (e) {
+              const rect = dialog.getBoundingClientRect();
+              const isInDialog=(rect.top <= e.clientY && e.clientY <= rect.top + rect.height
+                && rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
+              if (!isInDialog) {
+                dialog.close();
+              }
+            });
+            this.llm_config_result = 'loading';
+            fetch('{{url_for('class_config.test_llm')}}')
+              .then(response => response.json())
+              .then(json => {
+                this.llm_config_result = json['result'];
+                this.llm_config_error = json['error'];
+                if (json['error']) {
+                  dialog.showModal();
+                }
+              })
+          },
+      }">
         <div class="field is-horizontal">
           <div class="field-label is-normal">
             <label class="label">OpenAI API Key:</label>
@@ -159,7 +185,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             <div class="field">
               <div class="control">
                 <div class="select">
-                  <select name="model_id" required id="model_id">
+                  <select name="model_id" required id="model_id" x-on:change="llm_config_saved=false">
                     <option value="">Please select one</option>
                     {% for model in models %}
                       <option value="{{model.id}}" {% if model.id == class_row.model_id %}selected{% endif %}>{{model.name}}</option>
@@ -178,6 +204,26 @@ SPDX-License-Identifier: AGPL-3.0-only
               <div class="control">
                 <button class="button is-link" type="submit" name="save_llm_form">Save</button>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field is-horizontal">
+          <div class="field-label is-normal"><!-- spacing --></div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control buttons">
+                <button class="button" type="button" x-bind:disabled="!llm_config_saved || llm_config_result" x-on:click="test_llm()">Test saved key &amp; model</button>
+                <button class="button" type="button"
+                  x-bind:class="llm_config_result==='loading' ? 'is-loading' : llm_config_result==='success' ? 'is-success' : llm_config_result==='error' ? 'is-danger' : ''"
+                  x-show="llm_config_result"
+                  x-text="llm_config_result"
+                  x-on:click="document.querySelector('#llm_error_dialog').showModal()"></button>
+              </div>
+              <dialog id="llm_error_dialog" style="border: none; background: none;">
+                <div class="notification is-danger" x-show="llm_config_error" x-transition.duration.500ms x-html="llm_config_error"></div>
+                <div class="notification is-success" x-show="llm_config_result==='success'">Your API key and model worked!</div>
+              </dialog>
             </div>
           </div>
         </div>
