@@ -132,7 +132,7 @@ def make_topics_prompt(language: str, code: str, error: str, issue: str, respons
 """},
         {'role': 'assistant', 'content': response_text},
         {'role': 'user', 'content': "Please give me a list of specific concepts I appear to be having difficulty with in the above exchange.  Write each in title case."},
-        {'role': 'assistant', 'content': "[inner monologue] I need to respond with a JSON-formatted array of strings with NO other text, like: ['Item1','Item2','Item3','Item4']"}
+        {'role': 'system', 'content': "Respond with a JSON-formatted array of strings with NO other text, like: [\"Item1\",\"Item2\",\"Item3\",\"Item4\"]"}
     ]
 
     return messages
