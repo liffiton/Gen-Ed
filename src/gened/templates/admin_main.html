@@ -8,6 +8,29 @@ SPDX-License-Identifier: AGPL-3.0-only
 {% from "tables.html" import datatable %}
 
 {% block admin_body %}
+  <script src="https://cdn.jsdelivr.net/npm/frappe-charts@1.2.4/dist/frappe-charts.min.iife.js"></script>
+  <div style="display: flex;">
+  {% for chart in charts %}
+    <div id="chart_{{loop.index}}" style="flex-basis: 30vw;"></div>
+    <script>
+      new frappe.Chart("#chart_{{loop.index}}", {
+        data: {
+          labels: {{chart['labels'] | tojson}},
+          datasets: [
+            {% for series, values in chart['series'].items() %}
+            {name: "{{series}}", type: "line", values: {{values | tojson}}},
+            {% endfor %}
+          ],
+        },
+        type: 'line',
+        height: 200,
+        lineOptions: { hideDots: 1 },
+        colors: {{ chart['colors'] | tojson }},
+      })
+    </script>
+  {% endfor %}
+  </div>
+
   <div class="buttons is-inline">
     {% for filter in filters %}
       <a class="button is-info is-rounded p-3" href="{{ filters.filter_string_without(filter.spec.name) | safe }}">

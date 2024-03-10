@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import json
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import date
@@ -309,7 +310,49 @@ def main() -> str:
     where_clause, where_params = filters.make_where(['consumer', 'class', 'user', 'role'])
     queries = get_queries_filtered(where_clause, where_params, queries_limit=200)
 
-    return render_template("admin.html", consumers=consumers, classes=classes, users=users, roles=roles, queries=queries, filters=filters)
+    # get chart data
+    # https://www.sqlite.org/lang_with.html#recursive_query_examples
+    usage_data = db.execute("""
+        WITH RECURSIVE
+            cnt(val) AS (VALUES(0) UNION ALL SELECT val+1 FROM cnt WHERE val<14)
+        SELECT
+            val AS days_since,
+            COALESCE(queries, 0) AS queries,
+            COALESCE(errors, 0) AS errors,
+            COALESCE(insufficient, 0) AS insufficient
+        FROM cnt
+        LEFT JOIN (
+        SELECT
+            CAST(julianday() AS INTEGER) - CAST(julianday(queries.query_time) AS INTEGER) AS days_since,
+            COUNT(queries.id) AS queries,
+            SUM(json_extract(queries.response_json, '$[0].error') IS NOT NULL) AS errors,
+            SUM(json_extract(queries.response_text, '$.insufficient') IS NOT NULL) AS insufficient
+            FROM queries
+            WHERE days_since <= 14
+            GROUP BY days_since
+        ) ON days_since = val
+        ORDER BY days_since DESC
+    """).fetchall()
+    days_since = [row['days_since'] for row in usage_data]
+    data_queries = [row['queries'] for row in usage_data]
+    data_errors = [row['errors'] for row in usage_data]
+    data_insuff = [row['insufficient'] for row in usage_data]
+    data_error_rate = [(err / total) if total else 0 for err, total in zip(data_errors, data_queries)]
+    data_insuff_rate = [(insuff / total) if total else 0 for insuff, total in zip(data_insuff, data_queries)]
+    charts = [
+        {
+            'labels': days_since,
+            'series': {'queries': data_queries, 'errors': data_errors, 'insufficient': data_insuff},
+            'colors': ['#66ccff', '#ff0000', '#ffcc00'],
+        },
+        {
+            'labels': days_since,
+            'series': {'error rate': data_error_rate, 'insufficient rate': data_insuff_rate},
+            'colors': ['#ff0000', '#ffcc00'],
+        },
+    ]
+
+    return render_template("admin.html", charts=charts, consumers=consumers, classes=classes, users=users, roles=roles, queries=queries, filters=filters)
 
 
 @register_admin_link("Download DB", right=True)
