@@ -61,6 +61,42 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
     # create the Flask application object
     app = Flask(import_name, instance_path=str(instance_path), instance_relative_config=True)
 
+    # Configure logging
+    # (from https://flask.palletsprojects.com/en/3.0.x/logging/#basic-configuration)
+    # Important to do this to make sure logging is configured before any
+    # logging is done, include via app.logger or when Waitress starts serving.
+    # Both Flask and Waitress will create their own basic loggers if logging is
+    # not yet configured.  This can cause missing logs or double-logging.
+    # If I configure logging first here, then Flask and Waitress will not set
+    # up logging themselves, and everything is good.
+    if not app.debug and not app_config.get("TESTING"):
+        dictConfig({
+            'version': 1,
+            'formatters': {'default': {
+                'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+            }},
+            'handlers': {'wsgi': {
+                'class': 'logging.StreamHandler',
+                'stream': 'ext://flask.logging.wsgi_errors_stream',
+                'formatter': 'default'
+            }},
+            'root': {
+                'level': 'INFO',
+                'handlers': ['wsgi']
+            }
+        })
+    else:
+        # For testing/debugging, ensure DEBUG level logging.
+        import logging
+        logging.getLogger().setLevel(logging.DEBUG)
+        #import logging_tree
+        #logging_tree.printout()
+        logging.debug("DEBUG logging enabled.")  # This appears to be required for the config to "stick"?
+
+    # set up middleware to fix headers from a proxy if configured as such
+    if os.environ.get("FLASK_APP_BEHIND_PROXY", "").lower() in ("yes", "true", "1"):
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)  # type: ignore[method-assign]
+
     #from werkzeug.middleware.profiler import ProfilerMiddleware
     #app.wsgi_app = ProfilerMiddleware(app.wsgi_app)
 
@@ -100,6 +136,7 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
         except KeyError:
             app.logger.error(f"{varname} environment variable not set.")
             sys.exit(1)
+
     # CLIENT_ID/CLIENT_SECRET vars are used by authlib:
     #   https://docs.authlib.org/en/latest/client/flask.html#configuration
     # But the application will run without them; it just won't provide login
@@ -119,41 +156,6 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
 
     # configure the application
     app.config.from_mapping(total_config)
-
-    # Configure logging (from https://flask.palletsprojects.com/en/2.2.x/logging/#basic-configuration)
-    # Important to do this to make sure logging is configured before Waitress
-    # starts serving.  Waitress will create its own basic logger if logging is
-    # not yet configured.  Flask will then lazy-load its *own* logger when I
-    # first try to log something, causing double-logging.  If I configure
-    # logging first here, then Waitress will not set up logging itself, and
-    # everything is good.
-    if not app.debug and not app.testing:
-        dictConfig({
-            'version': 1,
-            'formatters': {'default': {
-                'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
-            }},
-            'handlers': {'wsgi': {
-                'class': 'logging.StreamHandler',
-                'stream': 'ext://flask.logging.wsgi_errors_stream',
-                'formatter': 'default'
-            }},
-            'root': {
-                'level': 'INFO',
-                'handlers': ['wsgi']
-            }
-        })
-    else:
-        # For testing/debugging, ensure DEBUG level logging.
-        import logging
-        logging.getLogger().setLevel(logging.DEBUG)
-        #import logging_tree
-        #logging_tree.printout()
-        logging.debug("DEBUG logging enabled.")  # This appears to be required for the config to "stick"?
-
-    # set up middleware to fix headers from a proxy if configured as such
-    if os.environ.get("FLASK_APP_BEHIND_PROXY", "").lower() in ("yes", "true", "1"):
-        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)  # type: ignore[method-assign]
 
     # load consumers from DB (but only if the database is initialized)
     try:
