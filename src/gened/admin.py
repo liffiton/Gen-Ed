@@ -110,10 +110,10 @@ class Filters:
     def make_where(self, selected: list[str]) -> tuple[str, list[Any]]:
         filters = [f for f in self._filters if f.spec.name in selected]
         if not filters:
-            return "", []
+            return "1", []
         else:
             return (
-                "WHERE " + " AND ".join(f"{f.spec.column}=?" for f in filters),
+                " AND ".join(f"{f.spec.column}=?" for f in filters),
                 [f.value for f in filters]
             )
 
@@ -155,7 +155,7 @@ def get_queries_filtered(where_clause: str, where_params: list[str], queries_lim
         LEFT JOIN classes ON roles.class_id=classes.id
         LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
         LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
-        {where_clause}
+        WHERE {where_clause}
         ORDER BY query_time DESC
     """
     if queries_limit is not None:
@@ -250,7 +250,7 @@ def main() -> str:
         LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
         LEFT JOIN roles ON roles.class_id=classes.id
         LEFT JOIN queries ON queries.role_id=roles.id
-        {where_clause}
+        WHERE {where_clause}
         GROUP BY classes.id
         ORDER BY num_recent_queries DESC, classes.id DESC
     """, where_params).fetchall()
@@ -274,7 +274,7 @@ def main() -> str:
         LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
         LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
         LEFT JOIN queries ON queries.user_id=users.id
-        {where_clause}
+        WHERE {where_clause}
         GROUP BY users.id
         ORDER BY num_recent_queries DESC, users.id DESC
     """, where_params).fetchall()
@@ -301,7 +301,7 @@ def main() -> str:
         LEFT JOIN users AS class_owner ON classes_user.creator_user_id=class_owner.id
         LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
         LEFT JOIN queries ON roles.id=queries.role_id
-        {where_clause}
+        WHERE {where_clause}
         GROUP BY roles.id
         ORDER BY roles.id DESC
     """, where_params).fetchall()
@@ -310,9 +310,9 @@ def main() -> str:
     where_clause, where_params = filters.make_where(['consumer', 'class', 'user', 'role'])
     queries = get_queries_filtered(where_clause, where_params, queries_limit=200)
 
-    # get chart data
+    # get chart data, filtered same as queries
     # https://www.sqlite.org/lang_with.html#recursive_query_examples
-    usage_data = db.execute("""
+    usage_data = db.execute(f"""
         WITH RECURSIVE
             cnt(val) AS (VALUES(0) UNION ALL SELECT val+1 FROM cnt WHERE val<14)
         SELECT
@@ -328,11 +328,18 @@ def main() -> str:
             SUM(json_extract(queries.response_json, '$[0].error') IS NOT NULL) AS errors,
             SUM(json_extract(queries.response_text, '$.insufficient') IS NOT NULL) AS insufficient
             FROM queries
+            JOIN users ON queries.user_id=users.id
+            LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
+            LEFT JOIN roles ON queries.role_id=roles.id
+            LEFT JOIN classes ON roles.class_id=classes.id
+            LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
+            LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
             WHERE days_since <= 14
+            AND {where_clause}
             GROUP BY days_since
         ) ON days_since = val
         ORDER BY days_since DESC
-    """).fetchall()
+    """, where_params).fetchall()
     days_since = [row['days_since'] for row in usage_data]
     data_queries = [row['queries'] for row in usage_data]
     data_errors = [row['errors'] for row in usage_data]

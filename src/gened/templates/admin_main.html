@@ -8,6 +8,15 @@ SPDX-License-Identifier: AGPL-3.0-only
 {% from "tables.html" import datatable %}
 
 {% block admin_body %}
+  <div class="buttons is-inline">
+    {% for filter in filters %}
+      <a class="button is-info is-rounded p-3" href="{{ filters.filter_string_without(filter.spec.name) | safe }}">
+        {{filter.spec.name}} = {{filter.display_value}}
+        <span class="delete is-small is-link ml-2"></span>
+      </a>
+    {% endfor %}
+  </div>
+
   <div style="display: flex; flex-wrap: wrap; justify-content: center;">
   {% for chart in charts %}
     <div id="chart_{{loop.index}}" style="width: 1em; min-width: 25em; max-width: 40em; flex-grow: 1;"></div>
@@ -24,6 +33,8 @@ SPDX-License-Identifier: AGPL-3.0-only
         },
         type: 'line',
         height: 200,
+        disableEntryAnimation: true,
+        animate: false,
         lineOptions: { hideDots: 1 },
         colors: {{ chart['colors'] | tojson }},
       })
@@ -31,14 +42,6 @@ SPDX-License-Identifier: AGPL-3.0-only
   {% endfor %}
   </div>
 
-  <div class="buttons is-inline">
-    {% for filter in filters %}
-      <a class="button is-info is-rounded p-3" href="{{ filters.filter_string_without(filter.spec.name) | safe }}">
-        {{filter.spec.name}} = {{filter.display_value}}
-        <span class="delete is-small is-link ml-2"></span>
-      </a>
-    {% endfor %}
-  </div>
   <div class="tbl_cols">
     <div class="tbl_col">
       <h1 class="is-size-3">Consumers <a class="button is-light is-link is-small mt-2" href="{{url_for('admin.consumer_new')}}">Create New</a></h1>
