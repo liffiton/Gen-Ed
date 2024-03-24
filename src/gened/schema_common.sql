@@ -149,7 +149,7 @@ CREATE TABLE migrations (
     filename    TEXT NOT NULL UNIQUE,
     applied_on  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     skipped     BOOLEAN NOT NULL CHECK (skipped IN (0,1)) DEFAULT 0,
-    succeeded   BOOLEAN NOT NULL CHECK (skipped IN (0,1)) DEFAULT 0
+    succeeded   BOOLEAN NOT NULL CHECK (succeeded IN (0,1)) DEFAULT 0
 );
 
 -- Models (LLMs via API) to be assigned per-consumer or per-class
