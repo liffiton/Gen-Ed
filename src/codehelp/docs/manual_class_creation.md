@@ -26,9 +26,9 @@ This will bring up a dialog asking for a class name and an OpenAI API key.
 The OpenAI API key will be used for your students' queries in CodeHelp.
 If you don't have an API key yet, you can leave it blank for now, but it will be required for anyone to submit queries in your class.
 You can create an API key using an account at <a href="https://openai.com/">openai.com</a>.
-OpenAI will charge you directly for your students' usage, so you will need to provide them a credit card to bill.
+OpenAI will charge you directly for your students' usage, so you will need to purchase usage credits using a credit card.
 The cost is low.
-One query from CodeHelp costs roughly US$0.002 (two tenths of a cent) if using GPT-3.5 or $0.03 for GPT-4-turbo.
+One query from CodeHelp costs roughly US$0.02 if using GPT-4 (the recommended model) or $0.001 using GPT-3.5 (which is less accurate).
 
 ## Configuration
 
