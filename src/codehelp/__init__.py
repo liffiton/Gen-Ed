@@ -27,6 +27,7 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
         DATABASE_NAME='codehelp.db',  # will be combined with app.instance_path in gened.create_app_base()
         DOCS_DIR=module_dir / 'docs',
         DEFAULT_LANGUAGES=[
+            "Conceptual Question",
             "C",
             "C++",
             "Java",
