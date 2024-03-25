@@ -11,7 +11,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <section class="section p-5">
   <h1 class="title">{{ auth['class_name'] }}</h1>
   <div class="tbl_cols">
-    <div class="tbl_col">
+    <div class="tbl_col" style="width: 35em;">
       <h2 class="is-size-3">Users</h2>
       {{ datatable(
            'users',
@@ -32,7 +32,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       }}
       <p><em>Users that are not active will not be able to access this class.</em></p>
     </div>
-    <div class="tbl_col tbl_col_main">
+    <div class="tbl_col" style="width: 75em; flex-grow: 1;">
       <h2 class="is-size-3">
         Queries
         {% if user %}

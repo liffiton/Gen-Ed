@@ -43,7 +43,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   </div>
 
   <div class="tbl_cols">
-    <div class="tbl_col">
+    <div class="tbl_col" style="width: 50em;">
       <h1 class="is-size-3">Consumers <a class="button is-light is-link is-small mt-2" href="{{url_for('admin.consumer_new')}}">Create New</a></h1>
       {{ datatable(
           'consumers',
@@ -78,7 +78,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           link_template=filters.template_string('role') | safe,
       ) }}
     </div>
-    <div class="tbl_col tbl_col_main">
+    <div class="tbl_col" style="width: 75em; flex-grow: 1;">
       <h1 class="is-size-3">
         Queries
       </h1>
