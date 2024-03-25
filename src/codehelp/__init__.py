@@ -10,7 +10,7 @@ from flask.app import Flask
 from flask.wrappers import Response
 from gened import base
 
-from . import class_config, helper, tutor
+from . import admin, class_config, helper, tutor
 
 
 def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | None = None) -> Flask:
@@ -51,6 +51,9 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
 
     # register our custom class configuration with Gen-Ed
     class_config.register_with_gened()
+
+    # register app-specific charts in the admin interface
+    admin.register_with_gened()
 
     # make a simple route for the .well-known directory
     @app.route('/.well-known/<path:path>')
