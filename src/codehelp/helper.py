@@ -8,7 +8,7 @@ from collections.abc import Iterable
 from unittest.mock import patch
 
 from flask import Blueprint, abort, redirect, render_template, request, url_for
-from gened.auth import class_enabled_required, get_auth, login_required, tester_required
+from gened.auth import admin_required, class_enabled_required, get_auth, login_required, tester_required
 from gened.db import get_db
 from gened.openai import LLMDict, mock_async_completion, get_completion, with_llm
 from gened.queries import get_history, get_query
@@ -204,19 +204,18 @@ def help_request(llm_dict: LLMDict) -> Response:
 
 
 @bp.route("/load_test", methods=["POST"])
+@admin_required
 @with_llm(use_system_key=True)  # get a populated LLMDict
 def load_test(llm_dict: LLMDict) -> Response:
-    # TODO: Untested since openai library 1.0 upgrade ...
-
-    # Require that we're logged in as the load_test user
+    # Require that we're logged in as the load_test admin user
     auth = get_auth()
     if auth['display_name'] != 'load_test':
-        return abort(404)
+        return abort(403)
 
-    language = "Python"
-    code = "Code"
-    error = "Error"
-    issue = "Issue"
+    language = "__LOADTEST_Language"
+    code = "__LOADTEST_Code"
+    error = "__LOADTEST_Error"
+    issue = "__LOADTEST_Issue"
 
     # Monkey-patch to not call the API but simulate it with a delay
     with patch("openai.resources.chat.AsyncCompletions.create") as mocked:
