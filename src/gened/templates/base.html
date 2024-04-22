@@ -108,14 +108,14 @@ ${ options.searchable ?
       <div class="navbar-brand">
         <a class="navbar-item is-size-3" href="/">
           {% include "logo.html" %}
-          <svg aria-hidden="true" style="height: 1.5em; margin-right: 0.2em;" viewBox="0 0 14 10"><use href="#svg_app_logo"></svg>
+          <svg aria-hidden="true" style="height: 1.5em; margin-right: 0.2em;" viewBox="0 0 14 10"><use href="#svg_app_logo" /></svg>
           {{ config['APPLICATION_TITLE'] }}
         </a>
         {% if auth['user_id'] %}
           <a class="navbar-item has-text-success" href="{{ url_for('helper.help_form') }}">
             <div class="icon-text">
               <span class="icon">
-                <svg aria-hidden="true"><use href="#svg_qmark_circle"></svg>
+                <svg aria-hidden="true"><use href="#svg_qmark_circle" /></svg>
               </span>
               <span>{{ config['HELP_LINK_TEXT'] }}</span>
             </div>
@@ -140,7 +140,7 @@ ${ options.searchable ?
             <a class="navbar-item dropdown dropdown-trigger is-hoverable is-size-6" {% if has_dropdown %}aria-haspopup="true" aria-controls="classes-menu"{% endif %} style="flex-direction: column; justify-content: center;" href="{{ url_for('profile.main') }}">
               <div class="icon-text">
                 <span class="icon">
-                  <svg aria-hidden="true"><use href="#svg_user"></svg>
+                  <svg aria-hidden="true"><use href="#svg_user" /></svg>
                 </span>
                 <span class="is-italic">{{ auth['display_name'] }}</span>
               </div>
@@ -176,7 +176,7 @@ ${ options.searchable ?
               <a class="navbar-item is-size-6 has-text-success" href="/instructor/config">
                 <div class="icon-text">
                   <span class="icon">
-                    <svg aria-hidden="true"><use href="#svg_config"></svg>
+                    <svg aria-hidden="true"><use href="#svg_config" /></svg>
                   </span>
                   <span>Configure Class</span>
                 </div>
@@ -184,7 +184,7 @@ ${ options.searchable ?
               <a class="navbar-item is-size-6 has-text-warning" href="/instructor/">
                 <div class="icon-text">
                   <span class="icon">
-                    <svg aria-hidden="true"><use href="#svg_table_grid"></svg>
+                    <svg aria-hidden="true"><use href="#svg_table_grid" /></svg>
                   </span>
                   <span>Instructor View</span>
                 </div>
@@ -194,7 +194,7 @@ ${ options.searchable ?
               <a class="navbar-item is-size-6 has-text-danger" href="/admin/">
                 <div class="icon-text">
                   <span class="icon">
-                    <svg aria-hidden="true"><use href="#svg_admin"></svg>
+                    <svg aria-hidden="true"><use href="#svg_admin" /></svg>
                   </span>
                   <span>Admin</span>
                 </div>
@@ -204,7 +204,7 @@ ${ options.searchable ?
               <form action="/auth/logout" method="post">
                 <button class="button icon-text is-link" type="submit">
                   <span class="icon">
-                    <svg aria-hidden="true"><use href="#svg_logout"></svg>
+                    <svg aria-hidden="true"><use href="#svg_logout" /></svg>
                   </span>
                   <span>Logout</span>
                 </button>
@@ -214,7 +214,7 @@ ${ options.searchable ?
             <div class="navbar-item">
               <a href="/auth/login" class="button icon-text is-link">
                 <span class="icon">
-                  <svg aria-hidden="true"><use href="#svg_login"></svg>
+                  <svg aria-hidden="true"><use href="#svg_login" /></svg>
                 </span>
                 <span>Login</span>
               </a>
