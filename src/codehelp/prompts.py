@@ -58,6 +58,7 @@ Do not write a corrected or updated version of the student's code.  You must not
 - Use Markdown formatting, including ` for inline code.
 - Do not write a heading for the response.
 - Do not write any example code blocks.
+- If the student wrote in a language other than English, always respond in the student's own language.
 
 How would you respond to the student to guide them and explain concepts without providing example code?
 """
