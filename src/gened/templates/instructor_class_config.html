@@ -130,6 +130,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <form action="{{ url_for("instructor.set_user_class_setting") }}" method="post" x-data="{
           llm_config_saved: {{ 'true' if class_row.openai_key else 'false' }},
           llm_config_result: null,
+          llm_config_msg: null,
           llm_config_error: null,
           test_llm() {
             // close dialog on click outside
@@ -147,6 +148,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               .then(response => response.json())
               .then(json => {
                 this.llm_config_result = json['result'];
+                this.llm_config_msg = json['msg'];
                 this.llm_config_error = json['error'];
                 if (json['error']) {
                   dialog.showModal();
@@ -217,7 +219,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <button class="button" type="button"
                   x-bind:class="llm_config_result==='loading' ? 'is-loading' : llm_config_result==='success' ? 'is-success' : llm_config_result==='error' ? 'is-danger' : ''"
                   x-show="llm_config_result"
-                  x-text="llm_config_result"
+                  x-text="llm_config_msg"
                   x-on:click="document.querySelector('#llm_error_dialog').showModal()"></button>
               </div>
               <dialog id="llm_error_dialog" style="border: none; background: none;">

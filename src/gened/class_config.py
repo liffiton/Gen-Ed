@@ -152,11 +152,11 @@ def test_llm(llm_dict: LLMDict) -> Response | dict[str, Any]:
     ))
 
     if 'error' in response:
-        return {'result': 'error', 'error': f"<b>Error:</b><br>{response_txt}"}
+        return {'result': 'error', 'msg': 'Error!', 'error': f"<b>Error:</b><br>{response_txt}"}
     else:
         if response_txt != "OK":
             current_app.logger.error(f"LLM check had no error but responded not 'OK'?  Response: {response_txt}")
-        return {'result': 'success', 'error': None}
+        return {'result': 'success', 'msg': 'Success!', 'error': None}
 
 
 @bp.route("/set", methods=["POST"])
