@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 
-TEMPERATURE = 0.5
+TEMPERATURE = 0.25
 MAX_TOKENS = 1000
 
 
@@ -147,7 +147,7 @@ def get_response(client, item, messages, model):
                 messages=messages,
                 temperature=TEMPERATURE,
                 max_tokens=MAX_TOKENS,
-                n=2,
+                n=1,
             )
         else:
             raise Exception(f"Invalid model specified: {model}")
