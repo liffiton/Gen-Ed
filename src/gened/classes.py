@@ -5,7 +5,7 @@
 import datetime as dt
 import secrets
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, url_for
 from werkzeug.wrappers.response import Response
 
 from .auth import get_auth, login_required, set_session_auth_role
@@ -61,6 +61,8 @@ def get_or_create_lti_class(lti_consumer_id: int, lti_context_id: str, class_nam
         )
         db.commit()
 
+        current_app.logger.info(f"New class (LTI): {class_name} ({class_id})")
+
         assert class_id is not None
         return class_id
 
@@ -105,6 +107,8 @@ def create_user_class(user_id: int, class_name: str, openai_key: str) -> int:
         [user_id, class_id, 'instructor']
     )
     db.commit()
+
+    current_app.logger.info(f"New class (user): {class_name} ({class_id})")
 
     return class_id
 

@@ -10,6 +10,7 @@ from typing import ParamSpec, TypedDict, TypeVar
 from flask import (
     Blueprint,
     abort,
+    current_app,
     flash,
     g,
     redirect,
@@ -249,6 +250,8 @@ def ext_login_update_or_create(provider_name: str, user_normed: dict[str, str | 
         user_id = cur.lastrowid
         db.execute("INSERT INTO auth_external(user_id, auth_provider, ext_id) VALUES (?, ?, ?)", [user_id, provider_id, user_normed['ext_id']])
         db.commit()
+
+        current_app.logger.info(f"New acct: '{user_normed['full_name']}' {user_normed['email']}({provider_name})")
 
     # get all values in newly updated/inserted row
     user_row = db.execute("SELECT * FROM users WHERE id=?", [user_id]).fetchone()
