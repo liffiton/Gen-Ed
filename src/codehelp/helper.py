@@ -10,8 +10,9 @@ from unittest.mock import patch
 from flask import Blueprint, abort, redirect, render_template, request, url_for
 from gened.auth import admin_required, class_enabled_required, get_auth, login_required, tester_required
 from gened.db import get_db
-from gened.openai import LLMDict, mock_async_completion, get_completion, with_llm
+from gened.openai import LLMDict, get_completion, with_llm
 from gened.queries import get_history, get_query
+from gened.testing.mocks import mock_async_completion
 from openai.types.chat.chat_completion import ChatCompletion
 from werkzeug.wrappers.response import Response
 

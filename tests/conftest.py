@@ -12,7 +12,7 @@ from dotenv import find_dotenv, load_dotenv
 
 from gened.admin import reload_consumers
 from gened.db import get_db, init_db
-from gened.openai import mock_async_completion, mock_completion
+from gened.testing.mocks import mock_async_completion, mock_completion
 import codehelp
 
 
@@ -29,11 +29,12 @@ def load_env():
 
 
 @pytest.fixture
-def app(monkeypatch):
-    # Mock OpenAI completions to not hit OpenAI's API  (0 delay for testing)
-    monkeypatch.setattr(openai.resources.chat.Completions, "create", mock_completion(0.0))
-    monkeypatch.setattr(openai.resources.chat.AsyncCompletions, "create", mock_async_completion(0.0))
-
+def base_app():
+    """ Provides an application object.
+    See also: app()
+    You will only want to use *this* fixture directly if you want to test
+    against the actual OpenAI endpoints.
+    """
     # Create an app and initialize the DB
     db_fd, db_path = tempfile.mkstemp()
 
@@ -54,6 +55,17 @@ def app(monkeypatch):
 
     os.close(db_fd)
     os.unlink(db_path)
+
+
+@pytest.fixture
+def app(monkeypatch, base_app):
+    """ Provides an application object, but first monkey patches openai to
+    *not* send requests: the most common case for testing. """
+    # Mock OpenAI completions to not hit OpenAI's API  (0 delay for testing)
+    monkeypatch.setattr(openai.resources.chat.Completions, "create", mock_completion(0.0))
+    monkeypatch.setattr(openai.resources.chat.AsyncCompletions, "create", mock_async_completion(0.0))
+
+    return base_app
 
 
 @pytest.fixture

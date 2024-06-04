@@ -2,18 +2,14 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import asyncio
-import datetime
-import time
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 from functools import wraps
 from sqlite3 import Row
-from typing import Any, ParamSpec, TypedDict, TypeVar
+from typing import ParamSpec, TypedDict, TypeVar
 
 import openai
 from openai import AsyncOpenAI
-from openai.types.chat import ChatCompletionMessage, ChatCompletionMessageParam
-from openai.types.chat.chat_completion import ChatCompletion, Choice
+from openai.types.chat import ChatCompletionMessageParam
 
 from flask import current_app, flash, render_template
 
@@ -36,39 +32,6 @@ class NoTokensError(Exception):
 class LLMDict(TypedDict):
     client: AsyncOpenAI
     model: str
-
-
-def _create_dummy_completion() -> ChatCompletion:
-    return ChatCompletion(
-        id="fakeid",
-        model="gpt-3.5-turbo",
-        object="chat.completion",
-        choices=[
-            Choice(
-                finish_reason="stop",
-                index=0,
-                message=ChatCompletionMessage(
-                    content="x " * 500,
-                    role="assistant",
-                ),
-            )
-        ],
-        created=int(datetime.datetime.now().timestamp()),
-    )
-
-
-def mock_completion(delay: float = 0.0) -> Callable[..., ChatCompletion]:
-    def mock(*args: Any, **kwargs: Any) -> ChatCompletion:
-        time.sleep(delay)
-        return _create_dummy_completion()
-    return mock
-
-
-def mock_async_completion(delay: float = 0.0) -> Callable[..., Awaitable[ChatCompletion]]:
-    async def mock(*args: Any, **kwargs: Any) -> ChatCompletion:
-        await asyncio.sleep(delay)
-        return _create_dummy_completion()
-    return mock
 
 
 def _get_llm(*, use_system_key: bool) -> LLMDict:
