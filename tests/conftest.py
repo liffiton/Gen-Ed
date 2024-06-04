@@ -35,6 +35,22 @@ def base_app():
     You will only want to use *this* fixture directly if you want to test
     against the actual OpenAI endpoints.
     """
+
+
+@pytest.fixture
+def app(monkeypatch, base_app, request):
+    """ Provides an application object and by default monkey patches openai to
+    *not* send requests: the most common case for testing.
+
+    If used in a test decorated with @pyest.mark.use_real_openai, then it will
+    *not* patch openai, and requests in that test will go to the real OpenAI
+    endpoint.
+    """
+    if "use_real_openai" not in request.keywords:  # the default is that the marker is *not* used
+        # Mock OpenAI completions to not hit OpenAI's API  (0 delay for testing)
+        monkeypatch.setattr(openai.resources.chat.Completions, "create", mock_completion(0.0))
+        monkeypatch.setattr(openai.resources.chat.AsyncCompletions, "create", mock_async_completion(0.0))
+
     # Create an app and initialize the DB
     db_fd, db_path = tempfile.mkstemp()
 
@@ -42,6 +58,7 @@ def base_app():
         test_config={
             'TESTING': True,
             'DATABASE': db_path,
+            'OPENAI_API_KEY': 'invalid',  # ensure an invalid API key for testing
         },
         instance_path=Path(db_path).absolute().parent,
     )
@@ -55,17 +72,6 @@ def base_app():
 
     os.close(db_fd)
     os.unlink(db_path)
-
-
-@pytest.fixture
-def app(monkeypatch, base_app):
-    """ Provides an application object, but first monkey patches openai to
-    *not* send requests: the most common case for testing. """
-    # Mock OpenAI completions to not hit OpenAI's API  (0 delay for testing)
-    monkeypatch.setattr(openai.resources.chat.Completions, "create", mock_completion(0.0))
-    monkeypatch.setattr(openai.resources.chat.AsyncCompletions, "create", mock_async_completion(0.0))
-
-    return base_app
 
 
 @pytest.fixture
