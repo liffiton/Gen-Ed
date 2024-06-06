@@ -2,9 +2,9 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import pytest
 import sqlite3
 
+import pytest
 from gened.db import get_db
 
 

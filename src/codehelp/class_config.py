@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 
 from flask import current_app
 from gened.class_config import get_class_config as gened_get_config
-from gened.class_config import register_class_config, register_extra_handler
+from gened.class_config import register_class_config
 from typing_extensions import Self
 from werkzeug.datastructures import ImmutableMultiDict
 

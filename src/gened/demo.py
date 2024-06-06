@@ -17,7 +17,7 @@ from werkzeug.wrappers.response import Response
 
 from .admin import bp as bp_admin
 from .admin import register_admin_link
-from .auth import get_auth, set_session_auth_role, set_session_auth_user
+from .auth import get_auth, set_session_auth_user
 from .db import get_db
 from .tz import date_is_past
 

@@ -5,7 +5,16 @@
 import datetime as dt
 import secrets
 
-from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    abort,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from werkzeug.wrappers.response import Response
 
 from .auth import get_auth, login_required, set_session_auth_role

@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import re
-import pytest
 
+import pytest
 from gened.auth import get_auth
 
 
@@ -60,7 +60,7 @@ def test_newuser_command(app, runner, client, auth):
     check_login(client, auth, username, 'x', 200, "Invalid username or password.", False)
 
 
-@pytest.mark.parametrize(('username', 'password', 'status', 'message', 'is_admin'), (
+@pytest.mark.parametrize(('username', 'password', 'status', 'message', 'is_admin'), [
     ('', '', 200, 'Invalid username or password.', False),
     ('x', '', 200, 'Invalid username or password.', False),
     ('', 'y', 200, 'Invalid username or password.', False),
@@ -68,7 +68,7 @@ def test_newuser_command(app, runner, client, auth):
     ('testuser', 'y', 200, 'Invalid username or password.', False),
     ('testuser', 'testpassword', 302, 'testuser', False),
     ('testadmin', 'testadminpassword', 302, 'testadmin', True),
-))
+])
 def test_login(client, auth, username, password, status, message, is_admin):
     check_login(client, auth, username, password, status, message, is_admin)
 
@@ -88,7 +88,7 @@ def test_logout(client, auth):
         assert 'class_id' not in sessauth
 
 
-@pytest.mark.parametrize(('path', 'nologin', 'withlogin', 'withadmin'), (
+@pytest.mark.parametrize(('path', 'nologin', 'withlogin', 'withadmin'), [
     ('/', 200, 200, 200),
     ('/profile/', 302, (200, "0 total, 0 in the past week"), (200, "0 total, 0 in the past week")),
     ('/help/', 302, 200, 200),
@@ -98,7 +98,7 @@ def test_logout(client, auth):
     ('/tutor/chat/2', 404, (200, "Invalid id."), (200, "user_msg_2")),
     ('/admin/', 302, 302, 200),         # admin_required redirects to login
     ('/admin/get_db', 302, 302, 200),   # admin_required redirects to login
-))
+])
 def test_auth_required(client, auth, path, nologin, withlogin, withadmin):
     response = client.get(path)
     assert response.status_code == nologin

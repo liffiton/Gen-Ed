@@ -3,18 +3,16 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import os
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
+import codehelp
 import openai
 import pytest
 from dotenv import find_dotenv, load_dotenv
-
 from gened.admin import reload_consumers
 from gened.db import get_db, init_db
 from gened.testing.mocks import mock_async_completion, mock_completion
-import codehelp
-
 
 # Load test DB data
 test_sql = Path(__file__).parent / 'test_data.sql'
@@ -23,22 +21,13 @@ with test_sql.open('rb') as f:
 
 
 @pytest.fixture(scope='session', autouse=True)
-def load_env():
+def _load_env():
     env_file = find_dotenv('.env.test')
     load_dotenv(env_file)
 
 
-@pytest.fixture
-def base_app():
-    """ Provides an application object.
-    See also: app()
-    You will only want to use *this* fixture directly if you want to test
-    against the actual OpenAI endpoints.
-    """
-
-
-@pytest.fixture
-def app(monkeypatch, base_app, request):
+@pytest.fixture()
+def app(monkeypatch, request):
     """ Provides an application object and by default monkey patches openai to
     *not* send requests: the most common case for testing.
 
@@ -74,12 +63,12 @@ def app(monkeypatch, base_app, request):
     os.unlink(db_path)
 
 
-@pytest.fixture
+@pytest.fixture()
 def client(app):
     return app.test_client()
 
 
-@pytest.fixture
+@pytest.fixture()
 def runner(app):
     return app.test_cli_runner()
 
@@ -98,6 +87,6 @@ class AuthActions:
         return self._client.post('/auth/logout')
 
 
-@pytest.fixture
+@pytest.fixture()
 def auth(client):
     return AuthActions(client)

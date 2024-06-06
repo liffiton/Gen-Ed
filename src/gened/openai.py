@@ -8,10 +8,9 @@ from sqlite3 import Row
 from typing import ParamSpec, TypedDict, TypeVar
 
 import openai
+from flask import current_app, flash, render_template
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
-
-from flask import current_app, flash, render_template
 
 from .auth import get_auth
 from .db import get_db

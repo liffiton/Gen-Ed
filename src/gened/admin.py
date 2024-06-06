@@ -2,7 +2,6 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import json
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import date

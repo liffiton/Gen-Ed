@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import pytest
-
 from oauthlib import oauth1
 
 CLASS = {
@@ -59,11 +58,11 @@ class LTIConsumer:
         return uri, headers, body
 
 
-@pytest.mark.parametrize(('consumer_key', 'consumer_secret'), (
+@pytest.mark.parametrize(('consumer_key', 'consumer_secret'), [
     ('', ''),   # no consumer, no secret: invalid LTI communication
     ('invalid_consumer.domain', 'secret'),   # consumer not registered in app
     ('consumer.domain', 'wrong_secret'),   # consumer registered (see test_data.sql), but wrong secret provided
-))
+])
 def test_lti_auth_failure(client, consumer_key, consumer_secret):
     lti = LTIConsumer(consumer_key, consumer_secret)
     uri, headers, body = lti.generate_launch_request("Instructor")
@@ -71,11 +70,11 @@ def test_lti_auth_failure(client, consumer_key, consumer_secret):
     assert result.text == "There was an LTI communication error"
 
 
-@pytest.mark.parametrize(('role', 'internal_role'), (
+@pytest.mark.parametrize(('role', 'internal_role'), [
     ('Instructor', 'instructor'),
     ('urn:lti:role:ims/lis/TeachingAssistant', 'instructor'),  # canvas TA
     ('Student', 'student'),
-))
+])
 def test_lti_auth_success(client, role, internal_role):
     # key and secret match 'consumer.domain' consumer in test_data.sql
     lti = LTIConsumer('consumer.domain', 'seecrits1')

@@ -5,7 +5,7 @@
 import pytest
 
 
-@pytest.mark.parametrize('link_name,message', [
+@pytest.mark.parametrize(('link_name', 'message'), [
     ('does_not_exist', 'Invalid demo link.'),
     ('test_disabled', 'Demo link disabled.'),
     ('test_expired', 'Demo link expired.'),

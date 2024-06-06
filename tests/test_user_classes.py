@@ -26,7 +26,7 @@ def _test_user_class_link(client, link_name, status, result):
         assert result in response.text
 
 
-@pytest.mark.parametrize('link_name,status,result', [
+@pytest.mark.parametrize(('link_name', 'status', 'result'), [
     ('invalid_link', 404, None),
     ('reg_disabled', 200, 'Registration is not active for this class.'),
     ('reg_expired', 200, 'Registration is not active for this class.'),

@@ -6,13 +6,12 @@ import asyncio
 import json
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
-
-from gened.db import get_db
+from gened.admin import bp as bp_admin
+from gened.admin import register_admin_link
 from gened.auth import get_auth, login_required, tester_required
-from gened.admin import bp as bp_admin, register_admin_link
-from gened.openai import with_llm, get_completion
+from gened.db import get_db
+from gened.openai import get_completion, with_llm
 from gened.queries import get_query
-
 
 bp = Blueprint('tutor', __name__, url_prefix="/tutor", template_folder='templates')
 

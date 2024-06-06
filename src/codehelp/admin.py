@@ -46,8 +46,8 @@ def gen_query_charts(where_clause: str, where_params: list[str]) -> list[ChartDa
     data_queries = [row['queries'] for row in usage_data]
     data_errors = [row['errors'] for row in usage_data]
     data_insuff = [row['insufficient'] for row in usage_data]
-    data_error_rate = [(err / total) if total else 0 for err, total in zip(data_errors, data_queries)]
-    data_insuff_rate = [(insuff / total) if total else 0 for insuff, total in zip(data_insuff, data_queries)]
+    data_error_rate = [(err / total) if total else 0 for err, total in zip(data_errors, data_queries, strict=True)]
+    data_insuff_rate = [(insuff / total) if total else 0 for insuff, total in zip(data_insuff, data_queries, strict=True)]
     charts: list[ChartData] = [
         ChartData(
             labels=days_since,
