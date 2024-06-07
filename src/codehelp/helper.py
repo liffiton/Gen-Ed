@@ -108,7 +108,7 @@ async def run_query_prompts(llm_dict: LLMDict, language: str, code: str, error: 
         get_completion(
             client,
             model=model,
-            prompt=prompts.make_main_prompt(language, code, error, issue, avoid_set),
+            messages=prompts.make_main_prompt(language, code, error, issue, avoid_set),
             n=1,
             score_func=lambda x: score_response(x, avoid_set)
         )
@@ -117,7 +117,7 @@ async def run_query_prompts(llm_dict: LLMDict, language: str, code: str, error: 
         get_completion(
             client,
             model=model,
-            prompt=prompts.make_sufficient_prompt(language, code, error, issue),
+            messages=prompts.make_sufficient_prompt(language, code, error, issue),
         )
     )
 
