@@ -152,6 +152,13 @@ class QueryView(urwid.WidgetWrap):
         prompt_str = msgs2str(cur_prompt)
         pyperclip.copy(prompt_str)
 
+    def clear_response(self):
+        item = self._queries[self.curidx]
+        item['__tester_response'] = ""
+        item['__tester_usage'] = ""
+
+        self.update()
+
     def get_response(self):
         item = self._queries[self.curidx]
         messages = self._get_prompt(item)
@@ -246,6 +253,8 @@ def main():
             case 'k':
                 viewer.prev()
             case 'g':
+                viewer.clear_response()
+                mainloop.draw_screen()
                 viewer.get_response()
             case 'c':
                 viewer.copy_prompt()
