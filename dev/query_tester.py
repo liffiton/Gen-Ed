@@ -96,7 +96,7 @@ class QueryView(urwid.WidgetWrap):
         self._footcnt.set_text(f"{self.curidx + 1} / {len(self._queries)}")
         item = self._queries[self.curidx]
         messages = self._get_prompt(item)
-        item['__tester_prompt'] = msgs2str(messages)
+        item['__tester_prompt'] = messages
 
         col_w = 15
         new_contents = list(itertools.chain.from_iterable(
@@ -111,10 +111,15 @@ class QueryView(urwid.WidgetWrap):
         ))
         new_contents.extend([
             urwid.Divider('-'),
+        ])
+        new_contents.extend([
             urwid.Columns([
-                (col_w, urwid.Text(('label', "Prompt: "), 'right')),
-                urwid.Text(item.get('__tester_prompt', '')),
-            ]),
+                (col_w, urwid.Text(('prompt_label', f"{msg['role']}: "), 'right')),
+                urwid.Text(msg['content']),
+            ])
+            for msg in item.get('__tester_prompt', [])
+        ])
+        new_contents.extend([
             urwid.Divider('-'),
             urwid.Columns([
                 (col_w, urwid.Text(('response_label', "Usage: "), 'right')),
@@ -144,7 +149,8 @@ class QueryView(urwid.WidgetWrap):
 
     def copy_prompt(self):
         cur_prompt = self._queries[self.curidx]['__tester_prompt']
-        pyperclip.copy(cur_prompt)
+        prompt_str = msgs2str(cur_prompt)
+        pyperclip.copy(prompt_str)
 
     def get_response(self):
         item = self._queries[self.curidx]
@@ -226,6 +232,7 @@ def main():
         ('header', 'black', 'light green'),
         ('footer', 'black', 'light cyan'),
         ('label', 'yellow', 'default'),
+        ('prompt_label', 'light green', 'default'),
         ('response_label', 'light red', 'default'),
     ]
 
