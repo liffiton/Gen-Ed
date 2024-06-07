@@ -1,6 +1,7 @@
+---
 title:  Moodle LTI Setup for Starburst
 summary:  Step-by-step instructions for creating an LTI connection to Starburst from a Moodle course.
-
+---
 
 # Moodle LTI Setup for Starburst
 

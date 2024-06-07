@@ -8,12 +8,9 @@ from sqlite3 import Row
 from typing import Any
 
 import markupsafe
-import mdx_truly_sane_lists
 from flask import url_for
 from flask.app import Flask
-from markdown import Markdown
-from markdown import util as md_util
-from markdown.extensions import fenced_code, meta, smarty
+from markdown_it import MarkdownIt
 
 
 def make_titled_span(title: str, text: str) -> str:
@@ -63,28 +60,13 @@ def init_app(app: Flask) -> None:
             return markupsafe.Markup(html_string)
 
     # Jinja filter for converting Markdown to HTML
-    # monkey-patch markdown and fenced_code extension to not escape HTML in
-    # `inline code` or ``` code blocks -- we're already escaping everything,
-    # code or not, so...
-    md_util.code_escape = lambda text: text
-    fenced_code.FencedBlockPreprocessor._escape = lambda self, text: text  # type: ignore[attr-defined]
-    # only configure/init these once, not every time the filter is called
-    markdown_extensions = [
-        fenced_code.makeExtension(),
-        meta.makeExtension(),
-        #sane_lists.makeExtension(),
-        mdx_truly_sane_lists.makeExtension(),
-        smarty.makeExtension(),
-    ]
-    markdown_processor = Markdown(output_format="html", extensions=markdown_extensions)
-    # make available to request handlers, not just as a Jinja filter
-    app.markdown_processor = markdown_processor  # type: ignore[attr-defined]
+    markdown_processor = MarkdownIt("js-default")  # https://markdown-it-py.readthedocs.io/en/latest/security.html
 
     @app.template_filter('markdown')
     def markdown_filter(value: str) -> str:
-        '''Convert markdown to HTML (after escaping).'''
-        escaped = jinja_escape(value)
-        html = markdown_processor.reset().convert(escaped)
+        '''Convert markdown to HTML.'''
+        html = markdown_processor.render(value)
+        # relying on MarkdownIt's escaping (w/o HTML parsing, due to "js-default"), so mark this as safe
         return markupsafe.Markup(html)
 
     # Jinja filter for displaying users w/ dynamic info popups in datatables

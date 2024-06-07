@@ -1,6 +1,7 @@
+---
 title:  Canvas LTI Setup for CodeHelp
 summary:  Step-by-step instructions for creating an LTI connection to CodeHelp from a Canvas course.
-
+---
 
 # Canvas LTI Setup for CodeHelp
 

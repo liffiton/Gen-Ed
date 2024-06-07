@@ -5,8 +5,12 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+import frontmatter
 from flask import Blueprint, abort, current_app, render_template
-from markdown import Markdown
+from markdown_it import MarkdownIt
+
+# get a processor that does HTML parsing for our docs (trusted content, HTML parsing okay)
+_markdown_processor = MarkdownIt("commonmark")
 
 bp = Blueprint('docs', __name__, url_prefix="/docs", template_folder='templates')
 
@@ -20,16 +24,15 @@ class Document:
     summary: str
 
 
-def _process_doc(md: Markdown, docfile_path: Path) -> Document:
+def _process_doc(docfile_path: Path) -> Document:
     ''' Given a markdown processor (md) and a Path object to a markdown documentation page,
     return a Document for that page.
     '''
-    md_text = docfile_path.read_text()
-    html = md.convert(md_text)
-    metadata = md.Meta  # type: ignore[attr-defined] # https://python-markdown.github.io/extensions/meta_data/
+    md_doc = frontmatter.load(docfile_path)
+    html = _markdown_processor.render(md_doc.content)
 
-    title = metadata['title'][0]
-    summary = metadata['summary'][0]
+    title = md_doc['title']
+    summary = md_doc['summary']
 
     return Document(
         name=docfile_path.stem,
@@ -45,12 +48,10 @@ def main() -> str:
     docs_dir = current_app.config.get('DOCS_DIR')
     assert docs_dir  # base.py shouldn't load this blueprint if we have no documentation directory configured
 
-    md = current_app.markdown_processor  # type: ignore[attr-defined]
-
     docs_pages = []
     for md_file in docs_dir.glob("*.md"):
         try:
-            page = _process_doc(md, md_file)
+            page = _process_doc(md_file)
             docs_pages.append(page)
         except KeyError as e:
             current_app.logger.warning(f"Failed to load docs page: {md_file}.  KeyError: {e}")
@@ -78,9 +79,6 @@ def page(name: str) -> str:
     if not full_path.is_file():
         abort(404)  # Return a 404 error if the file is not found
 
-    with full_path.open() as file:
-        md_content = file.read()
+    page = _process_doc(full_path)
 
-    html_content = current_app.markdown_processor.convert(md_content)  # type: ignore[attr-defined]
-
-    return render_template('docs_page.html', html_content=html_content)
+    return render_template('docs_page.html', html_content=page.html)

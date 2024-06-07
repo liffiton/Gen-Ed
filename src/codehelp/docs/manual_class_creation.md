@@ -1,6 +1,7 @@
+---
 title:  Manual Class Creation
 summary:  How to create a class "manually," logging in with a Google, Microsoft, or Github account.
-
+---
 
 # Manual Class Creation
 

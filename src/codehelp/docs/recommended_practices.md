@@ -1,6 +1,7 @@
+---
 title:  Recommended Practices for Instructors
 summary:  Based on our experiences using CodeHelp with students.
-
+---
 
 # Recommended Practices for Instructors
 

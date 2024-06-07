@@ -1,9 +1,11 @@
+---
 title:  Privacy Policy
 summary:  Privacy Policy for Starburst
+---
 
 # Privacy Policy
 
-**Last updated September 10, 2023.**
+**Last updated June 7, 2024.**
 
 This privacy notice for Starburst ("we," "us," or "our") describes how and why we might collect, store, use, and/or share ("process") your information when you use Starburst (the "Service") at https://strbrst.xyz/ (the "Site").
 
@@ -49,5 +51,5 @@ To request we delete your personal data, please contact us using the contact for
 
 ## Contact Us
 
-If you have any questions about this privacy notice, please contact us using the contact form linked below.
+If you have any questions about this privacy notice, please contact us using the email in the footer below.
 
