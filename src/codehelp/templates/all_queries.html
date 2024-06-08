@@ -1,14 +1,16 @@
-{% extends "base.html" %} {% from "tables.html" import datatable %} {% block
-body %}
+{% extends "base.html" %}
+<!-- adds navbar, footer of the page, necessary parts to every page -->
 
+{% from "tables.html" import datatable %} {% block body %}
 
-<section class="section" style="max-width: 75em;">
-    <h1 class="title">Your Queries</h1>
-    {{ datatable ('queries', [ ('time', 'query_time'), ('lang', 'language'),
-    ('code', 'code'), ('error', 'error'), ('issue', 'issue'), ('response (len)',
-    'response_text'), ('helpful', 'helpful_emoji') ], queries) }}
+<section class="section" style="max-width: 75em">
+  <h1 class="title">Your Queries</h1>
+  <!-- column - (display_name, query_name) -->
+  {{ datatable ('queries', [ ('id', 'id'), ('time', 'query_time'), ('language',
+  'language'), ('code', 'code'), ('error', 'error'), ('issue', 'issue'),
+  ('response (len)', 'response_text'), ('helpful', 'helpful_emoji') ], queries,
+  link_col=0, link_template="/help/view/${value}",
+  csv_link=url_for("admin.get_queries_csv", **request.args) | safe ) }}
 </section>
-    
-
 
 {% endblock %}
