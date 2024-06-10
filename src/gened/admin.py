@@ -362,8 +362,8 @@ def consumer_update() -> Response:
 
     if consumer_id is None:
         # Adding a new consumer
-        cur = db.execute("INSERT INTO consumers (lti_consumer, lti_secret, openai_key) VALUES (?, ?, ?)",
-                         [request.form['lti_consumer'], request.form['lti_secret'], request.form['openai_key']])
+        cur = db.execute("INSERT INTO consumers (lti_consumer, lti_secret, openai_key, model_id) VALUES (?, ?, ?, ?)",
+                         [request.form['lti_consumer'], request.form['lti_secret'], request.form['openai_key'], request.form['model_id']])
         consumer_id = cur.lastrowid
         db.commit()
         flash(f"Consumer {request.form['lti_consumer']} created.")
