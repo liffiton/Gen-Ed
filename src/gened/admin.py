@@ -347,6 +347,32 @@ def consumer_new() -> str:
     return render_template("consumer_form.html", models=get_models())
 
 
+@bp.route("/consumer/delete/<int:id>", methods=['POST'])
+def consumer_delete(id: int) -> Response:
+    db = get_db()
+
+    # Check for dependencies
+    classes_count = db.execute("SELECT COUNT(*) FROM classes_lti WHERE lti_consumer_id=?", [id]).fetchone()[0]
+
+    if classes_count > 0:
+        flash("Cannot delete consumer: there are related classes.", "warning")
+        return redirect(url_for(".consumer_form", id=id))
+
+    # No dependencies, proceed with deletion
+
+    # Fetch the consumer's name
+    consumer_name = db.execute("SELECT lti_consumer FROM consumers WHERE id=?", [id]).fetchone()['lti_consumer']
+
+    # Delete the row
+    db.execute("DELETE FROM consumers WHERE id=?", [id])
+    db.commit()
+    reload_consumers()
+
+    flash(f"Consumer '{consumer_name}' deleted.")
+
+    return redirect(url_for(".main"))
+
+
 @bp.route("/consumer/<int:id>")
 def consumer_form(id: int | None = None) -> str:
     db = get_db()
