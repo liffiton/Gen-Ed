@@ -4,14 +4,26 @@
 
 import asyncio
 import json
+from sqlite3 import Row
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from gened.admin import bp as bp_admin
 from gened.admin import register_admin_link
 from gened.auth import get_auth, login_required, tester_required
 from gened.db import get_db
-from gened.openai import get_completion, with_llm
+from gened.openai import LLMDict, get_completion, with_llm
 from gened.queries import get_query
+from openai.types.chat import ChatCompletionMessageParam
+from werkzeug.wrappers.response import Response
+
+
+class ChatNotFoundError(Exception):
+    pass
+
+
+class AccessDeniedError(Exception):
+    pass
+
 
 bp = Blueprint('tutor', __name__, url_prefix="/tutor", template_folder='templates')
 
@@ -19,7 +31,7 @@ bp = Blueprint('tutor', __name__, url_prefix="/tutor", template_folder='template
 @bp.before_request
 @tester_required
 @login_required
-def before_request():
+def before_request() -> None:
     """Apply decorators to protect all tutor blueprint endpoints.
     Use @tester_required first so that non-logged-in users get a 404 as well.
     """
@@ -27,14 +39,14 @@ def before_request():
 
 
 @bp.route("/")
-def tutor_form():
+def tutor_form() -> str:
     chat_history = get_chat_history()
     return render_template("tutor_new_form.html", chat_history=chat_history)
 
 
 @bp.route("/chat/create", methods=["POST"])
 @with_llm()
-def start_chat(llm_dict):
+def start_chat(llm_dict: LLMDict) -> Response:
     topic = request.form['topic']
     context = request.form.get('context', None)
 
@@ -47,12 +59,13 @@ def start_chat(llm_dict):
 
 @bp.route("/chat/create_from_query", methods=["POST"])
 @with_llm()
-def start_chat_from_query(llm_dict):
+def start_chat_from_query(llm_dict: LLMDict) -> Response:
     topic = request.form['topic']
 
     # build context from the specified query
-    query_id = request.form['query_id']
+    query_id = int(request.form['query_id'])
     query_row, response = get_query(query_id)
+    assert query_row
     context = f"The user is working with the {query_row['language']} language."
 
     chat_id = create_chat(topic, context)
@@ -63,10 +76,10 @@ def start_chat_from_query(llm_dict):
 
 
 @bp.route("/chat/<int:chat_id>")
-def chat_interface(chat_id):
-    chat, topic, context = get_chat(chat_id)
-
-    if chat is None:
+def chat_interface(chat_id: int) -> str:
+    try:
+        chat, topic, context = get_chat(chat_id)
+    except (ChatNotFoundError, AccessDeniedError):
         flash("Invalid id.", "warning")
         return render_template("error.html")
 
@@ -75,7 +88,7 @@ def chat_interface(chat_id):
     return render_template("tutor_view.html", chat_id=chat_id, topic=topic, context=context, chat=chat, chat_history=chat_history)
 
 
-def create_chat(topic, context=None):
+def create_chat(topic: str, context: str|None = None) -> int:
     auth = get_auth()
     user_id = auth['user_id']
     role_id = auth['role_id']
@@ -86,11 +99,14 @@ def create_chat(topic, context=None):
         [user_id, role_id, topic, context, json.dumps([])]
     )
     new_row_id = cur.lastrowid
+
     db.commit()
+
+    assert new_row_id is not None
     return new_row_id
 
 
-def get_chat_history(limit=10):
+def get_chat_history(limit: int = 10) -> list[Row]:
     '''Fetch current user's chat history.'''
     db = get_db()
     auth = get_auth()
@@ -99,7 +115,7 @@ def get_chat_history(limit=10):
     return history
 
 
-def get_chat(chat_id):
+def get_chat(chat_id: int) -> tuple[list[ChatCompletionMessageParam], str, str]:
     db = get_db()
     auth = get_auth()
 
@@ -113,7 +129,7 @@ def get_chat(chat_id):
     ).fetchone()
 
     if not chat_row:
-        return None, None, None
+        raise ChatNotFoundError
 
     access_allowed = \
         (auth['user_id'] == chat_row['user_id']) \
@@ -121,7 +137,7 @@ def get_chat(chat_id):
         or (auth['role'] == 'instructor' and auth['class_id'] == chat_row['class_id'])
 
     if not access_allowed:
-        return None, None, None
+        raise AccessDeniedError
 
     chat_json = chat_row['chat_json']
     chat = json.loads(chat_json)
@@ -131,7 +147,7 @@ def get_chat(chat_id):
     return chat, topic, context
 
 
-def get_response(llm_dict, chat):
+def get_response(llm_dict: LLMDict, chat: list[ChatCompletionMessageParam]) -> tuple[dict[str, str], str]:
     ''' Get a new 'assistant' completion for the specified chat.
 
     Parameters:
@@ -152,7 +168,7 @@ def get_response(llm_dict, chat):
     return response, text
 
 
-def save_chat(chat_id, chat):
+def save_chat(chat_id: int, chat: list[ChatCompletionMessageParam]) -> None:
     db = get_db()
     db.execute(
         "UPDATE tutor_chats SET chat_json=? WHERE id=?",
@@ -161,12 +177,11 @@ def save_chat(chat_id, chat):
     db.commit()
 
 
-def run_chat_round(llm_dict, chat_id, message=None):
+def run_chat_round(llm_dict: LLMDict, chat_id: int, message: str|None = None) -> None:
     # Get the specified chat
-    chat, topic, context = get_chat(chat_id)
-
-    if chat is None:
-        # No access.
+    try:
+        chat, topic, context = get_chat(chat_id)
+    except (ChatNotFoundError, AccessDeniedError):
         return
 
     # Add the given message(s) to the chat
@@ -195,13 +210,20 @@ I will not understand a lot of detail at once, so I need you to carefully add a 
 
 I can use Markdown formatting in my responses."""
 
-    expanded_chat = [
+    expanded_chat : list[ChatCompletionMessageParam] = []
+
+    expanded_chat.extend([
         {'role': 'user', 'content': topic},
         {'role': 'user', 'content': opening_msg},
-    ] + ([{'role': 'assistant', 'content': context_msg}] if context else []) + [
+    ])
+
+    if context:
+        expanded_chat.append({'role': 'assistant', 'content': context_msg})
+
+    expanded_chat.extend([
         *chat,  # chat is a list; expand it here with *
         {'role': 'assistant', 'content': monologue},
-    ]
+    ])
 
     response_obj, response_txt = get_response(llm_dict, expanded_chat)
 
@@ -215,8 +237,8 @@ I can use Markdown formatting in my responses."""
 
 @bp.route("/message", methods=["POST"])
 @with_llm()
-def new_message(llm_dict):
-    chat_id = request.form["id"]
+def new_message(llm_dict: LLMDict) -> Response:
+    chat_id = int(request.form["id"])
     new_msg = request.form["message"]
 
     # TODO: limit length
@@ -233,7 +255,7 @@ def new_message(llm_dict):
 @register_admin_link("Tutor Chats")
 @bp_admin.route("/tutor/")
 @bp_admin.route("/tutor/<int:id>")
-def tutor_admin(id=None):
+def tutor_admin(id : int|None = None) -> str:
     db = get_db()
     chats = db.execute("""
         SELECT
