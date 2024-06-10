@@ -361,7 +361,12 @@ def consumer_delete(id: int) -> Response:
     # No dependencies, proceed with deletion
 
     # Fetch the consumer's name
-    consumer_name = db.execute("SELECT lti_consumer FROM consumers WHERE id=?", [id]).fetchone()['lti_consumer']
+    consumer_name_row = db.execute("SELECT lti_consumer FROM consumers WHERE id=?", [id]).fetchone()
+    if not consumer_name_row:
+        flash("Invalid id.", "danger")
+        return redirect(url_for(".consumer_form", id=id))
+
+    consumer_name = consumer_name_row['lti_consumer']
 
     # Delete the row
     db.execute("DELETE FROM consumers WHERE id=?", [id])
