@@ -1,2 +1,3 @@
-pyperclip
-urwid
+pyperclip        # copy text to the clipboard
+python-calamine  # read .ods and .xlsx
+urwid            # console UI

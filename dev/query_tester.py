@@ -5,57 +5,21 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import argparse
-import csv
-import importlib
-import inspect
 import itertools
-import os
-import sys
-from inspect import Parameter
 from pathlib import Path
 
 import pyperclip
 import urwid
-from dotenv import load_dotenv
-from openai import OpenAI
+from loaders import load_prompt, load_queries, make_prompt, reload_prompt, setup_openai
 
 TEMPERATURE = 0.25
 MAX_TOKENS = 1000
 
 
-def msgs2str(messages):
+def msgs2str(messages: list[dict[str, str]]) -> str:
     return "\n".join(
         f"{msg['role']}: {msg['content']}" for msg in messages
     )
-
-
-def load_queries(csv_path):
-    with csv_path.open() as csvfile:
-        reader = csv.DictReader(csvfile)
-        return list(reader), reader.fieldnames
-
-
-def load_prompt(app, csv_headers):
-    # Let the user choose a prompt function from the specified app
-    prompts_module = importlib.import_module(f"{app}.prompts")
-    prompt_functions = inspect.getmembers(prompts_module, inspect.isfunction)
-    print("\x1B[33mChoose a prompt function:\x1B[m")
-    for i, (name, func) in enumerate(prompt_functions):
-        print(f" {i+1}: {name}")
-    choice = int(input("Choice: "))
-    prompt_func = prompt_functions[choice-1][1]
-
-    # Get the required arguments / fields for the chosen prompt
-    sig = inspect.signature(prompt_func)
-    fields = [name for name in sig.parameters if sig.parameters[name].default == Parameter.empty]  # only args w/o default values for now
-
-    # Check for headers in the given CSV matching the prompt's arguments
-    missing = [field for field in fields if field not in csv_headers]
-    if missing:
-        print(f"\x1B[31mMissing columns in CSV needed for prompt:\x1B[m {missing}")
-        sys.exit(1)
-
-    return prompt_func, fields
 
 
 class QueryView(urwid.WidgetWrap):
@@ -75,27 +39,13 @@ class QueryView(urwid.WidgetWrap):
         self.update()
         urwid.WidgetWrap.__init__(self, self._box)
 
-    def _get_prompt(self, item):
-        # Call the prompt function with arguments from the current item
-        args = [item[name] for name in inspect.signature(self._prompt_func).parameters if name in item]
-        prompt_gen = self._prompt_func(*args)
-
-        if isinstance(prompt_gen, list):
-            # The prompt function outputs in the chat completion format.
-            messages = prompt_gen
-        else:
-            # The prompt function outputs a string.
-            messages = [{"role": "user", "content": prompt_gen}]
-
-        return messages
-
-    def set_prompt_func(self, new_func):
+    def set_prompt_func(self, new_func) -> None:
         self._prompt_func = new_func
 
-    def update(self):
+    def update(self) -> None:
         self._footcnt.set_text(f"{self.curidx + 1} / {len(self._queries)}")
         item = self._queries[self.curidx]
-        messages = self._get_prompt(item)
+        messages = make_prompt(self._prompt_func, item)
         item['__tester_prompt'] = messages
 
         col_w = 15
@@ -135,33 +85,33 @@ class QueryView(urwid.WidgetWrap):
 
         self._contents[:] = new_contents
 
-    def next(self):
+    def next(self) -> None:
         if self.curidx == len(self._queries) - 1:
             return
         self.curidx += 1
         self.update()
 
-    def prev(self):
+    def prev(self) -> None:
         if self.curidx == 0:
             return
         self.curidx -= 1
         self.update()
 
-    def copy_prompt(self):
+    def copy_prompt(self) -> None:
         cur_prompt = self._queries[self.curidx]['__tester_prompt']
         prompt_str = msgs2str(cur_prompt)
         pyperclip.copy(prompt_str)
 
-    def clear_response(self):
+    def clear_response(self) -> None:
         item = self._queries[self.curidx]
         item['__tester_response'] = ""
         item['__tester_usage'] = ""
 
         self.update()
 
-    def get_response(self):
+    def get_response(self) -> None:
         item = self._queries[self.curidx]
-        messages = self._get_prompt(item)
+        messages = make_prompt(self._prompt_func, item)
 
         try:
             response = self._client.chat.completions.create(
@@ -188,24 +138,11 @@ class QueryView(urwid.WidgetWrap):
         self.update()
 
 
-def setup_openai():
-    # load config values from .env file
-    load_dotenv()
-    try:
-        openai_key = os.environ["OPENAI_API_KEY"]
-    except KeyError:
-        print("Error:  OPENAI_API_KEY environment variable not set.", file=sys.stderr)
-        sys.exit(1)
-
-    client = OpenAI(api_key=openai_key)
-    return client
-
-
-def main():
+def main() -> None:
     # Setup / run config
-    parser = argparse.ArgumentParser(description='A tool for running queries against data from a CSV file.')
-    parser.add_argument('csv_path', type=Path, help='The filename of the CSV file to be read.')
+    parser = argparse.ArgumentParser(description='A tool for running queries against data from a CSV/ODS/XLSX file.')
     parser.add_argument('app', type=str, help='The name of the application module from which to load prompts (e.g., codehelp or starburst).')
+    parser.add_argument('file_path', type=Path, help='Path to the file to be read.')
     parser.add_argument(
         'model', type=str, nargs='?', default='gpt-3.5-turbo',
         help='(Optional. Default="gpt-3.5-turbo")  The LLM to use (gpt-{3.5-turbo, 4o, etc.}).'
@@ -216,10 +153,10 @@ def main():
     client = setup_openai()
 
     # Load data
-    queries, csv_headers = load_queries(args.csv_path)
+    queries, headers = load_queries(args.file_path)
 
     # Initialize the prompt
-    prompt_func, fields = load_prompt(args.app, csv_headers)
+    prompt_func, fields = load_prompt(args.app, headers)
 
     # Make the UI
     header = urwid.AttrMap(urwid.Text("Query Tester"), 'header')
@@ -259,9 +196,7 @@ def main():
             case 'c':
                 viewer.copy_prompt()
             case 'r':
-                prompt_module = importlib.import_module(f"{args.app}.prompts")
-                importlib.reload(prompt_module)
-                new_prompt_func = getattr(prompt_module, prompt_func.__name__)  # get the new function using the old one's name
+                new_prompt_func = reload_prompt(args.app, prompt_func.__name__)  # get the new function using the old one's name
                 viewer.set_prompt_func(new_prompt_func)
                 viewer.update()
             case 'q':
