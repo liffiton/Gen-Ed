@@ -330,28 +330,5 @@ def get_topics(llm_dict: LLMDict, query_id: int) -> list[str]:
 @bp.route("/view/queries")
 @login_required
 def get_all_queries():
-    db = get_db()
-    auth = get_auth()
-    user_id = auth['user_id']
-    user = db.execute("""
-        SELECT
-            users.*,
-            auth_providers.name AS provider_name,
-            COUNT(queries.id) AS num_queries,
-            SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
-        FROM users
-        LEFT JOIN queries ON queries.user_id=users.id
-        LEFT JOIN auth_providers ON auth_providers.id=users.auth_provider
-        WHERE users.id=?
-    """, [user_id]).fetchone()
-    queries = get_all_queries() # get_history(1000000)
-    return render_template("all_queries.html", queries=queries, user=user)
-
-def get_all_queries():
-    '''Fetch current user's all query history.'''
-    db = get_db()
-    auth = get_auth()
-
-    cur = db.execute("SELECT * FROM queries WHERE queries.user_id=? ORDER BY query_time DESC", [auth['user_id']])
-    all_queries = cur.fetchall()
-    return all_queries
+    queries = get_history()
+    return render_template("all_queries.html", queries=queries)
