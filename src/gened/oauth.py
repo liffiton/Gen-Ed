@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from authlib.integrations.flask_client import OAuth, OAuthError
+from authlib.integrations.flask_client import OAuth, OAuthError  # type: ignore [import-untyped]
 from flask import Blueprint, abort, current_app, redirect, request, session, url_for
 from flask.app import Flask
 from werkzeug.wrappers.response import Response
@@ -65,7 +65,9 @@ def login(provider_name: str) -> Response:
         session[NEXT_URL_SESSION_KEY] = next_url
 
     redirect_uri = url_for('.auth', provider_name=provider_name, _external=True)
-    return client.authorize_redirect(redirect_uri)
+    redir = client.authorize_redirect(redirect_uri)
+    assert isinstance(redir, Response)
+    return redir
 
 
 @bp.route('/auth/<string:provider_name>')

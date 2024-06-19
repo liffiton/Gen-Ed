@@ -5,7 +5,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-import frontmatter
+import frontmatter  # type: ignore [import-untyped]
 from flask import Blueprint, abort, current_app, render_template
 from markdown_it import MarkdownIt
 

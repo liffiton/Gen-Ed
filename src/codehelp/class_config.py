@@ -12,7 +12,8 @@ from werkzeug.datastructures import ImmutableMultiDict
 
 
 def _default_langs() -> list[str]:
-    return current_app.config['DEFAULT_LANGUAGES']
+    langs: list[str] = current_app.config['DEFAULT_LANGUAGES']  # declaration keeps mypy happy
+    return langs
 
 
 @dataclass(frozen=True)

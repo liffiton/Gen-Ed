@@ -59,6 +59,7 @@ def get_or_create_lti_class(lti_consumer_id: int, lti_context_id: str, class_nam
             db.execute("UPDATE classes SET name=? WHERE id=?", [class_name, class_row['id']])
             db.commit()
 
+        assert isinstance(class_row['id'], int)
         return class_row['id']
 
     else:

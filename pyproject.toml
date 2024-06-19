@@ -87,4 +87,4 @@ ignore = [
 [tool.mypy]
 files = [ "src/**/*.py" ]
 strict = "True"
-warn_return_any = "False"
+pretty = "True"

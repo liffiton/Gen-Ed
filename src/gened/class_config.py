@@ -123,7 +123,7 @@ def get_class_config(config_class: type[T]) -> T:
             class_config_dict = json.loads(config_row['config'])
             g.class_config = config_class(**class_config_dict)
 
-    return g.class_config
+    return g.class_config  # type: ignore [no-any-return]
 
 
 @bp.route("/")

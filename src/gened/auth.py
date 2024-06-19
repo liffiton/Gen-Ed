@@ -176,7 +176,7 @@ def get_auth() -> AuthDict:
     if 'auth' not in g:
         g.auth = _get_auth_from_session()
 
-    return g.auth
+    return g.auth  # type: ignore[no-any-return]
 
 
 def get_last_role(user_id: int) -> int | None:
