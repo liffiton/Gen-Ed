@@ -31,7 +31,7 @@ Australasian Computing Education Conference (ACE '24).  DOI:
 Install
 -------
 
-Requires Python 3.9 or higher.
+Requires Python 3.10 or higher.
 
 1. Create and activate a Python virtual environment.
    (E.g., `python3 -m venv venv; source venv/bin/activate`)

@@ -10,7 +10,7 @@ authors = [
     { name='Mark Liffiton', email='liffiton@gmail.com' }
 ]
 readme = 'README.md'
-requires-python = '>=3.9'
+requires-python = '>=3.10'
 
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -54,15 +54,12 @@ log_level = 'DEBUG'
 testpaths = 'tests'
 addopts = [
     "--import-mode=importlib",
-    "-n8",
+    "-n 8",
 ]
 markers = [
     "use_real_openai: marks any test that sends requests to the real OpenAI endpoint",
 ]
 
-
-[tool.ruff]
-target-version = "py310"  # let ruff operate w/ 3.10+ assumptions (mostly for type annotation changes in 3.10)
 
 [tool.ruff.lint]
 select = ["ALL"]
