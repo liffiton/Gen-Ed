@@ -19,6 +19,7 @@ from werkzeug.wrappers.response import Response
 
 from .auth import get_auth, login_required, set_session_auth_role
 from .db import get_db
+from .redir import safe_redirect_next
 from .tz import date_is_past
 
 bp = Blueprint('classes', __name__, url_prefix="/classes", template_folder='templates')
@@ -167,20 +168,14 @@ def switch_class(class_id: int | None) -> bool:
 @login_required
 def switch_class_handler(class_id: int) -> Response:
     switch_class(class_id)
-    if 'next' in request.args:
-        return redirect(request.args['next'])
-    else:
-        return redirect(url_for("profile.main"))
+    return safe_redirect_next(default_endpoint="profile.main")
 
 
 @bp.route("/leave/")
 @login_required
 def leave_class_handler() -> Response:
     switch_class(None)
-    if 'next' in request.args:
-        return redirect(request.args['next'])
-    else:
-        return redirect(url_for("profile.main"))
+    return safe_redirect_next(default_endpoint="profile.main")
 
 
 @bp.route("/create/", methods=['POST'])

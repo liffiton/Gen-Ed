@@ -77,10 +77,10 @@ class AuthActions:
     def __init__(self, client):
         self._client = client
 
-    def login(self, username='testuser', password='testpassword'):
+    def login(self, username='testuser', password='testpassword', next_url=''):
         return self._client.post(
             '/auth/login',
-            data={'username': username, 'password': password, 'next': ''}
+            data={'username': username, 'password': password, 'next': next_url}
         )
 
     def logout(self):

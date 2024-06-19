@@ -15,14 +15,26 @@ def test_login_page(client):
     assert "Password:" in response.text
 
 
-def check_login(client, auth, username, password, status, message, is_admin):
+def check_login(
+        client,    # fixture
+        auth,      # fixture
+        username,  # login username
+        password,  # login password
+        next_url=None,   # value for 'next' form parameter
+        status=200,      # expected response status code
+        message=None,    # expected text in response
+        redir_tgt=None,  # expected target for redirect response
+        is_admin=False,  # expected value of is_admin in session auth
+    ):
     with client:  # so we can use session in get_auth()
-        response = auth.login(username, password)
+        response = auth.login(username, password, next_url)
         assert response.status_code == status
 
         # Follow redirect if we expect one
         if status == 302:
-            response = client.get(response.headers['Location'])
+            target = response.headers['Location']
+            assert target == redir_tgt
+            response = client.get(target)
             assert response.status_code == 200
 
             # Verify session auth contains correct values for logged-in user
@@ -46,31 +58,46 @@ def check_login(client, auth, username, password, status, message, is_admin):
 
 def test_newuser_command(app, runner, client, auth):
     username = "_newuser_"
-    check_login(client, auth, username, 'x', 200, "Invalid username or password.", False)
+    check_login(client, auth, username, 'x', message="Invalid username or password.")
     auth.logout()
 
     with app.app_context():
         cmd_result = runner.invoke(args=['newuser', username])
         password = re.search(r'password: (\w+)\b', cmd_result.output).group(1)
 
-    check_login(client, auth, username, password, 302, "_newuser_", False)
+    check_login(client, auth, username, password, status=302, redir_tgt="/help/", message="_newuser_")
     auth.logout()
-    check_login(client, auth, 'x', password, 200, "Invalid username or password.", False)
+    check_login(client, auth, 'x', password, message="Invalid username or password.")
     auth.logout()
-    check_login(client, auth, username, 'x', 200, "Invalid username or password.", False)
+    check_login(client, auth, username, 'x', message="Invalid username or password.")
 
 
-@pytest.mark.parametrize(('username', 'password', 'status', 'message', 'is_admin'), [
-    ('', '', 200, 'Invalid username or password.', False),
-    ('x', '', 200, 'Invalid username or password.', False),
-    ('', 'y', 200, 'Invalid username or password.', False),
-    ('x', 'y', 200, 'Invalid username or password.', False),
-    ('testuser', 'y', 200, 'Invalid username or password.', False),
-    ('testuser', 'testpassword', 302, 'testuser', False),
-    ('testadmin', 'testadminpassword', 302, 'testadmin', True),
+@pytest.mark.parametrize(('username', 'password'), [
+    ('', ''),
+    ('x', ''),
+    ('', 'y'),
+    ('x', 'y'),
+    ('testuser', 'y'),
+    ('testadmin', 'y'),
 ])
-def test_login(client, auth, username, password, status, message, is_admin):
-    check_login(client, auth, username, password, status, message, is_admin)
+def test_invalid_login(client, auth, username, password):
+    check_login(client, auth, username, password, status=200, message="Invalid username or password.")
+
+
+@pytest.mark.parametrize(('username', 'password', 'next_url', 'is_admin'), [
+    ('testuser', 'testpassword', '/profile/', False),
+    ('testadmin', 'testadminpassword', '/admin/', True),
+])
+def test_valid_login(client, auth, username, password, next_url, is_admin):
+    # Test with the next URL specified
+    check_login(client, auth, username, password, next_url=next_url, status=302, redir_tgt=next_url, message=username, is_admin=is_admin)
+    auth.logout()
+    # Test with no next URL specified: should redirect to /help
+    check_login(client, auth, username, password, next_url=None, status=302, redir_tgt="/help/", message=username, is_admin=is_admin)
+    auth.logout()
+    # Test with an unsafe next URL specified: should redirect to /help
+    check_login(client, auth, username, password, next_url="https://malicious.site/", status=302, redir_tgt="/help/", message=username, is_admin=is_admin)
+    auth.logout()
 
 
 def test_logout(client, auth):

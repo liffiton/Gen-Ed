@@ -9,7 +9,6 @@ from flask import (
     Blueprint,
     abort,
     flash,
-    redirect,
     render_template,
     request,
 )
@@ -18,6 +17,7 @@ from werkzeug.wrappers.response import Response
 from .auth import get_auth, instructor_required
 from .csv import csv_response
 from .db import get_db
+from .redir import safe_redirect
 
 bp = Blueprint('instructor', __name__, url_prefix="/instructor", template_folder='templates')
 
@@ -155,7 +155,7 @@ def set_user_class_setting() -> Response:
         db.commit()
         flash("Class language model configuration updated.", "success")
 
-    return redirect(request.referrer)
+    return safe_redirect(request.referrer, default_endpoint="profile.main")
 
 
 @bp.route("/role/set_active", methods=["POST"])  # just for url_for in the Javascript code

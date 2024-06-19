@@ -23,6 +23,7 @@ from werkzeug.security import check_password_hash
 from werkzeug.wrappers.response import Response
 
 from .db import get_db
+from .redir import safe_redirect_next
 
 # Constants
 AUTH_SESSION_KEY = "__gened_auth"
@@ -277,8 +278,7 @@ def login() -> str | Response:
             last_role_id = get_last_role(auth_row['id'])
             set_session_auth_user(auth_row['id'])
             set_session_auth_role(last_role_id)
-            next_url = request.form['next'] or url_for("helper.help_form")
-            return redirect(next_url)
+            return safe_redirect_next(default_endpoint="helper.help_form")
 
     # we either have a GET request or we fell through the POST login attempt with a failure
     next_url = request.args.get('next', '')
