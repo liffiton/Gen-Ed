@@ -34,6 +34,7 @@ Install
 Requires Python 3.9 or higher.
 
 1. Create and activate a Python virtual environment.
+   (E.g., `python3 -m venv venv; source venv/bin/activate`)
 
 2. Install the Gen-Ed package and bundled applications in 'editable' mode:
 
@@ -59,8 +60,9 @@ SECRET_KEY=[a secure random string -- used to sign session cookies]
 OPENAI_API_KEY=[your OpenAI API key]
 ```
 
-Optionally, set any of the following pairs with IDs/secrets obtained from
-registering your application with the given authentication provider:
+*Optionally*, if you want to allow logins from 3rd party authentication
+providers, set any of the following pairs with IDs/secrets obtained from
+registering your application with the given provider:
 
 ```
 GOOGLE_CLIENT_ID=[...]
@@ -71,7 +73,7 @@ MICROSOFT_CLIENT_ID=[...]
 MICROSOFT_CLIENT_SECRET=[...]
 ```
 
-Then, to set up the CodeHelp app, for example:
+Then, to set up an applicaiton (CodeHelp, for example):
 
 3. Initialize database:
 
@@ -132,6 +134,13 @@ For mypy type checking:
 ```sh
 mypy
 ```
+
+
+Developing
+----------
+
+See `DEVELOPING.md` for additional instructions and information for developing
+an application and/or contributing to the project.
 
 
 Author
