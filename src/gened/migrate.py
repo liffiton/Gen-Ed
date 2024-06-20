@@ -90,7 +90,7 @@ def _apply_migrations(migrations: Iterable[MigrationDict]) -> None:
 def _migration_info(resource: Traversable) -> MigrationDict:
     """Get info on a migration, provided as an importlib.resources resource."""
     db = get_db()
-    with resources.as_file(resource) as path, path.open() as f:
+    with resources.as_file(resource) as path, path.open(encoding="utf-8") as f:
         name = path.name
         info: MigrationDict = {
             'name': name,

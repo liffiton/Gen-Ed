@@ -70,12 +70,12 @@ def init_db() -> None:
     # importlib.resources: https://stackoverflow.com/a/73497763/
     # requires Python 3.9+
     common_schema_res = resources.files('gened').joinpath("schema_common.sql")
-    with resources.as_file(common_schema_res) as file_path, file_path.open() as f:
+    with resources.as_file(common_schema_res) as file_path, file_path.open(encoding="utf-8") as f:
         db.executescript(f.read())
 
     # App-specific schema in the app's package
-    with current_app.open_resource('schema.sql', 'r') as f:
-        db.executescript(f.read())
+    with current_app.open_resource('schema.sql', 'rb') as f:
+        db.executescript(f.read().decode("utf-8"))  # type: ignore [attr-defined]
 
     # Mark all existing migrations as applied (since this is a fresh DB)
     for func in _on_init_db_callbacks:
