@@ -95,7 +95,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                   <input name="link_reg_active" x-model="link_reg_active" id="link_reg_expires" type="radio" value="date" {% if link_reg_state == "date" %}checked{% endif %}>
                   Only until:
                 </label>
-                <input class="input" name="link_reg_expires" required x-bind:disabled="link_reg_active !== 'date'" type="date" style="width: inherit; vertical-align: baseline;" value="{{ class_row.link_reg_expires if link_reg_state == "date" else "" }}">
+                <input required class="input" name="link_reg_expires" x-bind:disabled="link_reg_active !== 'date'" type="date" style="width: inherit; vertical-align: baseline;" value="{{ class_row.link_reg_expires if link_reg_state == "date" else "" }}">
                 <em class="has-text-grey">anywhere on Earth</em>
               </div>
               <div class="control">
@@ -180,14 +180,14 @@ SPDX-License-Identifier: AGPL-3.0-only
 
         <div class="field is-horizontal">
           <div class="field-label is-normal">
-            <label class="label">Model:</label>
+            <label class="label" for="model_id">Model:</label>
             <p class="has-text-grey">Note that GPT-4 produces more accurate results than 3.5 but is also roughly 10 times the cost.</p>
           </div>
           <div class="field-body">
             <div class="field">
               <div class="control">
                 <div class="select">
-                  <select name="model_id" required id="model_id" x-on:change="llm_config_saved=false">
+                  <select required name="model_id" id="model_id" x-on:change="llm_config_saved=false">
                     <option value="">Please select one</option>
                     {% for model in models %}
                       <option value="{{model.id}}" {% if model.id == class_row.model_id %}selected{% endif %}>{{model.name}}</option>

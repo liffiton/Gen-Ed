@@ -35,25 +35,28 @@ SPDX-License-Identifier: AGPL-3.0-only
                   dragenter(index) {
                     if (this.drag_index === null) { return }
                     if (index === this.drag_index) { return }
-                    // reorder the list
-                    const origlist = this.languages;
+                    // reorder the list, placing the dragged item at this index and shifting others
                     let new_languages = [];
-                    origlist.forEach((el, i) => {
+                    const drag_item = this.languages[this.drag_index];
+                    this.languages.forEach((el, i) => {
                       if (i === this.drag_index) { return }
                       else if (i === index && i < this.drag_index) {
-                        new_languages.push(origlist[this.drag_index]);
+                        new_languages.push(drag_item);
                         new_languages.push(el);
                       }
                       else if (i === index && i > this.drag_index) {
                         new_languages.push(el);
-                        new_languages.push(origlist[this.drag_index]);
+                        new_languages.push(drag_item);
                       }
                       else {
                         new_languages.push(el);
                       }
                     });
-                    this.languages = new_languages;
-                    this.drag_index = index;
+                    this.languages = new_languages;  // update w/ newly ordered list
+                    this.drag_index = index;  // this new index is now the one we're dragging
+                  },
+                  stop_drag() {
+                    this.drag_index = null;
                   },
                 }));
               });
@@ -71,17 +74,17 @@ SPDX-License-Identifier: AGPL-3.0-only
               </thead>
               <tbody>
                 <template x-for="(lang, index) in languages" x-bind:key="lang">
-                  <tr x-bind:data-index="index" @dragstart="drag_index=index" @dragenter="dragenter(index)" @dragover.prevent @dragend="drag_index=null" @drop="$event.target.closest('tr').draggable=false" x-bind:style="(drag_index == index) && {background: '#fc9'}">
+                  <tr x-bind:data-index="index" x-bind:draggable="(drag_index == index)" @dragenter="dragenter(index)" @dragover.prevent @dragend="stop_drag" @drop="stop_drag" x-bind:style="(drag_index == index) && {background: '#fc9'}">
                     <input type="hidden" name="languages[]" x-bind:value="lang">
-                    <td style="cursor: move; vertical-align: middle; text-align: center;" @mousedown="$event.target.closest('tr').draggable=true" aria-label="drag to reorder">
+                    <td style="cursor: move; vertical-align: middle; text-align: center;" @mousedown="drag_index=index" @mouseup="stop_drag" aria-label="drag to reorder">
                       <svg aria-hidden="true" class="icon is-small"><use href="#svg_grip" /></svg>
                     </td>
                     <td x-text="lang"></td>
                     <td class="has-text-centered">
-                      <input type="radio" name="default_lang" required x-bind:value="lang" x-model="default_lang">
+                      <input required type="radio" name="default_lang" x-bind:value="lang" x-model="default_lang" aria-label="set default">
                     </td>
                     <td class="has-text-centered">
-                      <span class="delete mt-1 mb-1" @click="languages = languages.filter(item => item !== lang)"></span>
+                      <button class="delete mt-1 mb-1" @click="languages = languages.filter(item => item !== lang)" aria-label="remove"></button>
                     </td>
                   </tr>
                 </template>
@@ -90,7 +93,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                   <td colspan=3>
                     <div class="field has-addons">
                       <div class="control">
-                        <input class="input is-small" size=20 x-model="add_language" @keydown.enter.prevent="add_lang()">
+                        <input class="input is-small" size=20 x-model="add_language" @keydown.enter.prevent="add_lang()" placeholder="New language" aria-label="New language">
                       </div>
                       <div class="control">
                         <button class="button is-success is-small" type="button" @click="add_lang()">add</button>
