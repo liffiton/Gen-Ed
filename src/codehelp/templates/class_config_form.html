@@ -7,13 +7,14 @@ SPDX-License-Identifier: AGPL-3.0-only
       <h2 class="title is-size-4">
         Queries &amp; Responses
       </h2>
-      {% if not class_config or (class_config.languages and not class_config.default_lang) %}
-        <p class="is-size-5 mb-2 has-text-danger">[We recommended configuring the language(s) for your class before your students use CodeHelp.]</p>
-      {% endif %}
       <form action="{{ url_for("class_config.set_config") }}" method="post">
         <div class="field is-horizontal">
           <div class="field-label is-normal">
             <label class="label">Languages:</label>
+            {% if not class_config or (class_config.languages and not class_config.default_lang) %}
+              <p class="is-size-5 mb-2 has-text-danger">Please configure the language(s) for your class before your students use CodeHelp.</p>
+            {% endif %}
+            <p class="has-text-grey">Add and remove language options, reorder the list, and choose a default that will be pre-selected for students who have not chosen a language previously.</p>
           </div>
           <div class="field-body">
             <script type="text/javascript">
@@ -21,40 +22,75 @@ SPDX-License-Identifier: AGPL-3.0-only
                 Alpine.data('lang_config', () => ({
                   languages: {{ class_config.languages | tojson }},
                   default_lang: {{ class_config.default_lang | tojson }},
-                  new_language: null,
+                  add_language: null,
+                  drag_index: null,
 
                   add_lang() {
-                    const newlang = this.new_language;
-                    if (newlang && !this.languages.includes(newlang)) {
-                      this.languages.push(newlang);
-                      this.new_language = null;
+                    const addlang = this.add_language;
+                    if (addlang && !this.languages.includes(addlang)) {
+                      this.languages.push(addlang);
+                      this.add_language = null;
                     }
-                  }
+                  },
+                  dragenter(index) {
+                    if (this.drag_index === null) { return }
+                    if (index === this.drag_index) { return }
+                    // reorder the list
+                    const origlist = this.languages;
+                    let new_languages = [];
+                    origlist.forEach((el, i) => {
+                      if (i === this.drag_index) { return }
+                      else if (i === index && i < this.drag_index) {
+                        new_languages.push(origlist[this.drag_index]);
+                        new_languages.push(el);
+                      }
+                      else if (i === index && i > this.drag_index) {
+                        new_languages.push(el);
+                        new_languages.push(origlist[this.drag_index]);
+                      }
+                      else {
+                        new_languages.push(el);
+                      }
+                    });
+                    this.languages = new_languages;
+                    this.drag_index = index;
+                  },
                 }));
               });
             </script>
             <table class="table is-narrow" x-data="lang_config">
               <thead>
-                <tr><th>Default</th><th>Language</th><th class="has-text-grey"><small>remove</small></th></tr>
+                <tr>
+                  <th class="p-0 has-text-centered has-text-grey" aria-label="Reorder">
+                    <svg aria-hidden="true" class="icon is-small" style="vertical-align: bottom;"><use href="#svg_arrow_up_down" /></svg>
+                  </th>
+                  <th style="min-width: 11em;">Name</th>
+                  <th class="has-text-centered">Default</th>
+                  <th class="has-text-centered has-text-grey"><small>remove</small></th>
+                </tr>
               </thead>
               <tbody>
-                <template x-for="lang in languages" x-bind:key="lang">
-                  <tr>
+                <template x-for="(lang, index) in languages" x-bind:key="lang">
+                  <tr x-bind:data-index="index" @dragstart="drag_index=index" @dragenter="dragenter(index)" @dragover.prevent @dragend="drag_index=null" @drop="$event.target.closest('tr').draggable=false" x-bind:style="(drag_index == index) && {background: '#fc9'}">
                     <input type="hidden" name="languages[]" x-bind:value="lang">
+                    <td style="cursor: move; vertical-align: middle; text-align: center;" @mousedown="$event.target.closest('tr').draggable=true" aria-label="drag to reorder">
+                      <svg aria-hidden="true" class="icon is-small"><use href="#svg_grip" /></svg>
+                    </td>
+                    <td x-text="lang"></td>
                     <td class="has-text-centered">
                       <input type="radio" name="default_lang" required x-bind:value="lang" x-model="default_lang">
                     </td>
-                    <td x-text="lang"></td>
                     <td class="has-text-centered">
                       <span class="delete mt-1 mb-1" @click="languages = languages.filter(item => item !== lang)"></span>
                     </td>
                   </tr>
                 </template>
                 <tr>
+                  <td></td>
                   <td colspan=3>
                     <div class="field has-addons">
                       <div class="control">
-                        <input class="input is-small" x-model="new_language" @keydown.enter.prevent="add_lang()">
+                        <input class="input is-small" size=20 x-model="add_language" @keydown.enter.prevent="add_lang()">
                       </div>
                       <div class="control">
                         <button class="button is-success is-small" type="button" @click="add_lang()">add</button>
