@@ -33,7 +33,7 @@ def _test_user_class_link(client, link_name, status, result):
     ('reg_enabled', 302, '/'),
 ])
 def test_user_class_link(auth, client, link_name, status, result):
-    auth.login()
+    auth.login('testuser2', 'testuser2password')  # log in a testuser2, not connected to any existing classes
     _test_user_class_link(client, link_name, status, result)
 
 

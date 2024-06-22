@@ -59,7 +59,11 @@ INSERT INTO roles (id, user_id, class_id, role)
 VALUES
     (1, 21, 1, 'student'), -- ltiuser1
     (2, 22, 1, 'student'), -- ltiuser2
-    (3, 23, 1, 'instructor'); -- ltiuser3 is an instructor
+    (3, 23, 1, 'instructor'), -- ltiuser3 is an instructor
+    -- testuser, testadmin, and testinstructor are in class 2 -- but not testuser2
+    (4, 11, 2, 'instructor'), -- testuser created the class
+    (5, 12, 2, 'student'), -- testadmin is a student
+    (6, 13, 2, 'student'); -- testinstructor is a student
 
 INSERT INTO queries (id, language, code, error, issue, response_json, response_text, helpful, user_id, role_id)
 VALUES

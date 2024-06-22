@@ -159,7 +159,7 @@ def set_user_class_setting() -> Response:
 
 
 @bp.route("/role/set_active", methods=["POST"])  # just for url_for in the Javascript code
-@bp.route("/role/set_active/<int:role_id>/<int:bool_active>", methods=["POST"])
+@bp.route("/role/set_active/<int:role_id>/<int(min=0, max=1):bool_active>", methods=["POST"])
 @instructor_required
 def set_role_active(role_id: int, bool_active: int) -> str:
     db = get_db()
@@ -181,7 +181,7 @@ def set_role_active(role_id: int, bool_active: int) -> str:
 
 
 @bp.route("/role/set_instructor", methods=["POST"])  # just for url_for in the Javascript code
-@bp.route("/role/set_instructor/<int:role_id>/<int:bool_instructor>", methods=["POST"])
+@bp.route("/role/set_instructor/<int:role_id>/<int(min=0, max=1):bool_instructor>", methods=["POST"])
 @instructor_required
 def set_role_instructor(role_id: int, bool_instructor: int) -> str:
     db = get_db()
