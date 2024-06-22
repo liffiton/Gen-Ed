@@ -13,3 +13,5 @@ venv/
 .coverage
 
 *.egg-info/
+
+.aider*
