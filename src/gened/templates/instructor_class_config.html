@@ -236,18 +236,14 @@ SPDX-License-Identifier: AGPL-3.0-only
 
     </div>
 
-    <div class="conf_col_sep">
-    </div>
+    {% if class_config %}
+      <div class="conf_col_sep">
+      </div>
 
-    <div class="conf_col">
-      {% include "class_config_form.html" ignore missing %}{# include an app-specific class_config_form.html *if* it exists #}
-
-      {% for extra_section in extra %}
-        <div class="conf_col_sep mt-5"></div>
-        {{ extra_section | safe }}  {# safe because it came from another render_template() call #}
-      {% endfor %}
-    </div>
-  </div>
+      <div class="conf_col">
+        {% include class_config.template %}
+      </div>
+    {% endif %}
 
 </section>
 

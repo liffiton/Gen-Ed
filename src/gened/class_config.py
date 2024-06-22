@@ -1,7 +1,6 @@
 import asyncio
 import datetime as dt
 import json
-from collections.abc import Callable
 from dataclasses import Field, asdict
 from sqlite3 import Row
 from typing import Any, ClassVar, TypeVar
@@ -33,31 +32,41 @@ bp = Blueprint('class_config', __name__, url_prefix="/instructor/config", templa
 # selection) and also provides a generic interface to manage
 # application-specific class configuration.
 #
-# App-specific class configuration data are stored in dataclasses.  The
-# dataclass must define the config's fields and their types, as well as
-# implement a `from_request_form()` class method that generates a config object
-# based on inputs in request.form.
-#
-# Any application can register a dataclass with this module using
-# `register_class_config()`.  The application itself must provide a template
-# for a configuration set/update form named class_config_form.html for the
-# instructor class config page.  This module handles that form's submission (in
+# Any application can register a ClassConfig dataclass with this module using
+# `register_class_config()` to add an application-specific section to the
+# instructor class configuration form.  The application itself must provide a
+# template for a configuration set/update form (specified in the the `template`
+# attribute of the dataclass).  This module handles that form's submission (in
 # `set()`).  The application itself must implement any other logic for using
 # the configuration throughout the app.
+#
+# App-specific class configuration data are stored in dataclasses.  The
+# dataclass must specify the template filename, define the config's fields and
+# their types, and implement a `from_request_form()` class method that
+# generates a config object based on inputs in request.form.
 
 # For type checking classes for storing a class configuration:
-class IsClassConfig(Protocol):
+class ClassConfig(Protocol):
+    # Must contain a template attribute with the name of a template file
+    template: str
     # So it looks like a dataclass:
     __dataclass_fields__: ClassVar[dict[str, Field[Any]]]
-    # So it can be generated from a request form:
+
+    # So it can be generated from a request form (must be implemented):
     @classmethod
     def from_request_form(cls, form: ImmutableMultiDict[str, str]) -> Self:
-        pass
+        ...
+
+    # Dump config data (all but template name) to JSON (implemented here)
+    def to_json(self) -> str:
+        without_template = {k: v for k, v in asdict(self).items() if k != "template"}
+        return json.dumps(without_template)
+
 
 # Store a registered config class.
-_class_config_class: type[IsClassConfig] | None = None
+_class_config_class: type[ClassConfig] | None = None
 
-def register_class_config(cls: type[IsClassConfig]) -> type[IsClassConfig]:
+def register_class_config(cls: type[ClassConfig]) -> type[ClassConfig]:
     """ Register a class configuration dataclass with this module.
     Used by each specific application that needs app-specific class configuration.
     May be used as a decorator (returns the given class unmodified).
@@ -65,20 +74,6 @@ def register_class_config(cls: type[IsClassConfig]) -> type[IsClassConfig]:
     global _class_config_class  # noqa: PLW0603 (global statement)
     _class_config_class = cls
     return cls
-
-
-# Applications can also register additional forms/UI for including in the class
-# configuration page.  Each should must be provided as a request-handler
-# function that renders *only* its portion of the configuration screen's UI.
-_extra_config_handlers: list[Callable[[], str]] = []
-
-def register_extra_handler(func: Callable[[], str]) -> Callable[[], str]:
-    """ Register a request handler that renders a portion of the class
-    configuration UI.
-    May be used as a decorator (returns the given function unmodified).
-    """
-    _extra_config_handlers.append(func)
-    return func
 
 
 def get_common_class_settings() -> tuple[Row, str | None]:
@@ -108,7 +103,7 @@ def get_common_class_settings() -> tuple[Row, str | None]:
     return class_row, link_reg_state
 
 
-T = TypeVar('T', bound='IsClassConfig')
+T = TypeVar('T', bound='ClassConfig')
 
 def get_class_config(config_class: type[T]) -> T:
     if 'class_config' not in g:
@@ -133,9 +128,7 @@ def config_form() -> str:
 
     class_row, link_reg_state = get_common_class_settings()
 
-    extra = [handler() for handler in _extra_config_handlers]  # rendered HTML for any extra config sections
-
-    return render_template("instructor_class_config.html", class_row=class_row, link_reg_state=link_reg_state, models=get_models(), class_config=class_config, extra=extra)
+    return render_template("instructor_class_config.html", class_row=class_row, link_reg_state=link_reg_state, models=get_models(), class_config=class_config)
 
 
 @bp.route("/test_llm")
@@ -171,8 +164,7 @@ def set_config() -> Response:
     # only trust class_id from auth, not from user
     class_id = auth['class_id']
 
-    class_config = _class_config_class.from_request_form(request.form)
-    class_config_json = json.dumps(asdict(class_config))
+    class_config_json = _class_config_class.from_request_form(request.form).to_json()
 
     db.execute("UPDATE classes SET config=? WHERE id=?", [class_config_json, class_id])
     db.commit()
