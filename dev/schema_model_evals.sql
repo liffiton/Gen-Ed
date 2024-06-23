@@ -47,26 +47,29 @@ CREATE TABLE response_set (
     FOREIGN KEY(prompt_set_id) REFERENCES prompt_set(id)
 );
 
+
 CREATE TABLE eval_prompt (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     created     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    sys_prompt  TEXT NOT NULL
+    sys_prompt  TEXT NOT NULL UNIQUE
 );
 
 CREATE TABLE eval (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     set_id      INTEGER NOT NULL,
-    prompt_id   INTEGER NOT NULL,
-    eval_prompt_id INTEGER NOT NULL,
-    response    TEXT NOT NULL,  -- full json response object
-    time_ms     INTEGER NOT NULL,
-    FOREIGN KEY(prompt_id) REFERENCES prompt(id),
-    FOREIGN KEY(eval_prompt_id) REFERENCES eval_prompt(id),
+    response_id INTEGER NOT NULL,
+    evaluation  TEXT NOT NULL,  -- full json response object
+    FOREIGN KEY(response_id) REFERENCES response(id),
     FOREIGN KEY(set_id) REFERENCES eval_set(id) ON DELETE CASCADE
 );
 
 CREATE TABLE eval_set (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     created     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    model       TEXT NOT NULL
+    response_set_id INTEGER NOT NULL,
+    eval_prompt_id INTEGER NOT NULL,
+    model       TEXT NOT NULL,
+    FOREIGN KEY(response_set_id) REFERENCES response_set(id)
+    FOREIGN KEY(eval_prompt_id) REFERENCES eval_prompt(id)
 );
+

@@ -8,10 +8,18 @@ import argparse
 import itertools
 from pathlib import Path
 
+import litellm
 import pyperclip
 import urwid
-from loaders import load_prompt, load_queries, make_prompt, reload_prompt, setup_openai
+from loaders import (
+    load_prompt,
+    load_queries,
+    make_prompt,
+    reload_prompt,
+    test_and_report_model,
+)
 
+DEFAULT_MODEL = "gpt-3.5-turbo"
 TEMPERATURE = 0.25
 MAX_TOKENS = 1000
 
@@ -23,12 +31,8 @@ def msgs2str(messages: list[dict[str, str]]) -> str:
 
 
 class QueryView(urwid.WidgetWrap):
-    def __init__(self, client, model, prompt_func, queries, fields, footer_counter):
-        self._client = client
+    def __init__(self, model, prompt_func, queries, fields, footer_counter):
         self._model = model
-        if not model.startswith("gpt-"):
-            raise Exception(f"Invalid model specified: {model}")
-
         self._prompt_func = prompt_func
         self._queries = queries
         self._fields = fields
@@ -114,7 +118,7 @@ class QueryView(urwid.WidgetWrap):
         messages = make_prompt(self._prompt_func, item)
 
         try:
-            response = self._client.chat.completions.create(
+            response = litellm.completion(
                 model=self._model,
                 messages=messages,
                 temperature=TEMPERATURE,
@@ -144,13 +148,12 @@ def main() -> None:
     parser.add_argument('app', type=str, help='The name of the application module from which to load prompts (e.g., codehelp or starburst).')
     parser.add_argument('file_path', type=Path, help='Path to the file to be read.')
     parser.add_argument(
-        'model', type=str, nargs='?', default='gpt-3.5-turbo',
-        help='(Optional. Default="gpt-3.5-turbo")  The LLM to use (gpt-{3.5-turbo, 4o, etc.}).'
+        'model', type=str, nargs='?', default=DEFAULT_MODEL,
+        help=f"(Optional. Default='{DEFAULT_MODEL}')  The LLM to use."
     )
     args = parser.parse_args()
 
-    # Get an OpenAI client object
-    client = setup_openai()
+    test_and_report_model(args.model)
 
     # Load data
     queries, headers = load_queries(args.file_path)
@@ -169,7 +172,7 @@ def main() -> None:
         ]),
         'footer'
     )
-    viewer = QueryView(client, args.model, prompt_func, queries, fields, footer_counter)
+    viewer = QueryView(args.model, prompt_func, queries, fields, footer_counter)
     frame = urwid.Frame(urwid.AttrMap(viewer, 'body'), header=header, footer=footer)
 
     palette = [

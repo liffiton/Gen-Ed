@@ -5,15 +5,24 @@
 import csv
 import importlib
 import inspect
-import os
 import sys
 from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
-from dotenv import load_dotenv
-from openai import OpenAI
+import litellm
 from python_calamine import CalamineWorkbook
+
+
+def test_and_report_model(model: str) -> None:
+    # Check for valid model
+    response = litellm.completion(
+        model=model,
+        messages=[{"role": "user", "content": "Write \"OK.\""}],
+        max_tokens=3,
+    )
+    assert response.choices[0].message.content.strip() == "OK."
+    print(f"Using model: \x1B[32m{model}\x1B[m")
 
 
 def load_queries(file_path: Path) -> tuple[list[dict[str, Any]], Sequence[str]]:
@@ -78,16 +87,3 @@ def make_prompt(prompt_func, item):
         messages = [{"role": "user", "content": prompt_gen}]
 
     return messages
-
-
-def setup_openai() -> OpenAI:
-    # load config values from .env file
-    load_dotenv()
-    try:
-        openai_key = os.environ["OPENAI_API_KEY"]
-    except KeyError:
-        print("Error:  OPENAI_API_KEY environment variable not set.", file=sys.stderr)
-        sys.exit(1)
-
-    client = OpenAI(api_key=openai_key)
-    return client
