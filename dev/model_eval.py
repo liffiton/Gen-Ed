@@ -263,8 +263,8 @@ def show_all_evals(args):
         JOIN response_set ON response_set.id=eval_set.response_set_id
         JOIN prompt_set ON prompt_set.id=response_set.prompt_set_id
     """
-        + "ORDER BY prompt_set.prompt_func, prompt_set.created, response_set.model" if args.by_prompt
-          else "ORDER BY prompt_set.prompt_func, response_set.model, prompt_set.created"
+        + ("ORDER BY prompt_set.prompt_func, prompt_set.created, response_set.model" if args.by_prompt
+          else "ORDER BY prompt_set.prompt_func, response_set.model, prompt_set.created")
     ).fetchall()
 
     for row in eval_set_rows:
