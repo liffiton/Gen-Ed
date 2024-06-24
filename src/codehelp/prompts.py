@@ -2,7 +2,6 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import random
 from collections.abc import Iterable
 
 from jinja2 import Environment
@@ -14,7 +13,7 @@ jinja_env = Environment(
 )
 
 common_template_sys1 = jinja_env.from_string("""\
-You are a system for assisting students learning CS and programming.
+You are a system for assisting students learning CS and programming.  Your job here is {{ job }}.
 
 A query contains:
  - the programming language (in "<lang>" delimiters)
@@ -77,8 +76,9 @@ def make_main_prompt(language: str, code: str, error: str, issue: str, avoid_set
     if error and not issue:
         issue = "Please help me understand this error."
 
+    sys_job = "to respond to a student's query as a helpful expert teacher"
     return [
-        {'role': 'system', 'content': common_template_sys1.render(language=language, code=code, error=error, issue=issue)},
+        {'role': 'system', 'content': common_template_sys1.render(job=sys_job, language=language, code=code, error=error, issue=issue)},
         {'role': 'user',   'content': common_template_user.render(language=language, code=code, error=error, issue=issue)},
         {'role': 'system', 'content': main_template_sys2.render(avoid_set=avoid_set)},
     ]
@@ -86,8 +86,8 @@ def make_main_prompt(language: str, code: str, error: str, issue: str, avoid_set
 
 sufficient_template_sys2 = jinja_env.from_string("""\
 Do not tell the student how to solve the issue or correct the code.  Instead, please assess their query and tell them whether it is sufficient for you to potentially provide help (write "OK.") or not (ask for clarification).
- - If the query is missing important information required for you to help, write directly to the student and clearly describe the additional information you need.
- - Or, if the query is sufficient and you might be able to help, say "OK."
+ - If the query is sufficient and you might be able to help, say "OK."
+ - Or, if the query is missing important information required for you to help, write directly to the student and clearly describe the additional information you need.  Ask for the most important pieces of information first, and do not overwhelm the student with too many requests.
 """)
 
 
@@ -97,8 +97,9 @@ def make_sufficient_prompt(language: str, code: str, error: str, issue: str) -> 
     if error and not issue:
         issue = "Please help me understand this error."
 
+    sys_job = "to evaluate whether a student's query is sufficient for you to provide effective assistance"
     return [
-        {'role': 'system', 'content': common_template_sys1.render(language=language, code=code, error=error, issue=issue)},
+        {'role': 'system', 'content': common_template_sys1.render(job=sys_job, language=language, code=code, error=error, issue=issue)},
         {'role': 'user',   'content': common_template_user.render(language=language, code=code, error=error, issue=issue)},
         {'role': 'system', 'content': sufficient_template_sys2.render(language=language, code=code, error=error, issue=issue)},
     ]
