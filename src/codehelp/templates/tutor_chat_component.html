@@ -8,31 +8,43 @@ SPDX-License-Identifier: AGPL-3.0-only
   <style type="text/css">
     .chat_grid {
       display: grid;
-      grid-template-columns: 1fr 5fr;
+      grid-template-columns: 1fr 6fr;
+      row-gap: 0.5em;
     }
     .chat_role {
-      padding-right: 0.5em;
-      margin-right: 1em;
-      margin-bottom: 0.2em;
+      padding: 0.5em;
+      padding-left: 0;
       font-style: italic;
+      font-weight: bold;
       text-align: right;
     }
     .chat_role_assistant {
       color: #358;
-      border-right: solid 3px #47a;
     }
     .chat_role_user {
       color: #834;
-      border-right: solid 3px #a35;
+    }
+    .chat_message {
+      overflow-x: auto;
+      max-width: 50em;
+      padding: 0.5em;
+      padding-right: 0;
+    }
+    .chat_message_user {
+      border-left: solid 5px #a35;
+      background: #a351;
+    }
+    .chat_message_assistant {
+      border-left: solid 5px #47a;
     }
   </style>
 
   <div class="m-3 chat_grid">
     {% for message in chat_messages %}
       <div class="chat_role chat_role_{{message['role']}}">
-        {{ 'You' if message['role'] == 'user' else 'Helper' }}
+        {{ 'You' if message['role'] == 'user' else 'Tutor' }}
       </div>
-      <div class="content">
+      <div class="chat_message chat_message_{{message['role']}}">
         {{message['content'] | markdown}}
       </div>
     {% endfor %}
@@ -40,7 +52,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div class="chat_role chat_role_user">
         You
       </div>
-      <div>
+      <div class="chat_message chat_message_user" style="padding-right: 0.5em">
         <div class="field has-addons">
           <div class="control is-expanded">
             <textarea class="textarea is-link" rows=2 name="message" placeholder="Send a message.  Press enter to send, shift-enter for a new line." autofocus x-bind:disabled="loading" @keydown.enter="if (!$event.shiftKey) {$event.target.form.submit(); loading=true; $event.preventDefault();}"></textarea>
