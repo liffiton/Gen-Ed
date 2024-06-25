@@ -5,8 +5,8 @@
 from dataclasses import dataclass, field
 
 from flask import current_app
-from gened.class_config import get_class_config as gened_get_config
-from gened.class_config import ClassConfig, register_class_config
+from gened.class_config import get_context as gened_get_config
+from gened.class_config import ContextConfig, register_context
 from typing_extensions import Self
 from werkzeug.datastructures import ImmutableMultiDict
 
@@ -17,8 +17,8 @@ def _default_langs() -> list[str]:
 
 
 @dataclass(frozen=True)
-class CodeHelpClassConfig(ClassConfig):
-    template: str = "codehelp_class_config_form.html"
+class CodeHelpContextConfig(ContextConfig):
+    template: str = "codehelp_context_form.html"
     languages: list[str] = field(default_factory=_default_langs)
     default_lang: str | None = None
     avoid: str = ''
@@ -32,9 +32,9 @@ class CodeHelpClassConfig(ClassConfig):
         )
 
 
-def get_class_config() -> CodeHelpClassConfig:
-    return gened_get_config(CodeHelpClassConfig)
+def get_class_config() -> CodeHelpContextConfig:
+    return gened_get_config(CodeHelpContextConfig)
 
 
 def register_with_gened() -> None:
-    register_class_config(CodeHelpClassConfig)
+    register_context(CodeHelpContextConfig)

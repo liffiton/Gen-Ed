@@ -32,8 +32,8 @@ bp = Blueprint('class_config', __name__, url_prefix="/instructor/config", templa
 # selection) and also provides a generic interface to manage
 # application-specific class configuration.
 #
-# Any application can register a ClassConfig dataclass with this module using
-# `register_class_config()` to add an application-specific section to the
+# Any application can register a ContextConfig dataclass with this module using
+# `register_context()` to add an application-specific section to the
 # instructor class configuration form.  The application itself must provide a
 # template for a configuration set/update form (specified in the the `template`
 # attribute of the dataclass).  This module handles that form's submission (in
@@ -46,16 +46,23 @@ bp = Blueprint('class_config', __name__, url_prefix="/instructor/config", templa
 # generates a config object based on inputs in request.form.
 
 # For type checking classes for storing a class configuration:
-class ClassConfig(Protocol):
+class ContextConfig(Protocol):
     # Must contain a template attribute with the name of a template file
     template: str
     # So it looks like a dataclass:
     __dataclass_fields__: ClassVar[dict[str, Field[Any]]]
 
-    # So it can be generated from a request form (must be implemented):
+    # Instantiate from a request form (must be implemented by application):
     @classmethod
     def from_request_form(cls, form: ImmutableMultiDict[str, str]) -> Self:
         ...
+
+    # Instantiate from JSON (implemented here) (requires correct field names in JSON)
+    @classmethod
+    def from_json(cls, json_txt: str) -> Self:
+        data = json.loads(json_txt)
+        filtered = {key: data[key] for key in cls.__dataclass_fields__ if key in data and key != "template"}
+        return cls(**filtered)
 
     # Dump config data (all but template name) to JSON (implemented here)
     def to_json(self) -> str:
@@ -64,19 +71,39 @@ class ClassConfig(Protocol):
 
 
 # Store a registered config class.
-_class_config_class: type[ClassConfig] | None = None
+_context_class: type[ContextConfig] | None = None
 
-def register_class_config(cls: type[ClassConfig]) -> type[ClassConfig]:
+def register_context(cls: type[ContextConfig]) -> type[ContextConfig]:
     """ Register a class configuration dataclass with this module.
     Used by each specific application that needs app-specific class configuration.
     May be used as a decorator (returns the given class unmodified).
     """
-    global _class_config_class  # noqa: PLW0603 (global statement)
-    _class_config_class = cls
+    global _context_class  # noqa: PLW0603 (global statement)
+    _context_class = cls
     return cls
 
 
-def get_common_class_settings() -> tuple[Row, str | None]:
+T = TypeVar('T', bound='ContextConfig')
+
+def get_context(config_class: type[T]) -> T:
+    if 'context' not in g:
+        auth = get_auth()
+        class_id = auth['class_id']
+
+        if class_id is None:
+            g.context = config_class()
+        else:
+            db = get_db()
+            config_row = db.execute("SELECT config FROM classes WHERE id=?", [class_id]).fetchone()
+            context_dict = json.loads(config_row['config'])
+            g.context = config_class(**context_dict)
+
+    return g.context  # type: ignore [no-any-return]
+
+
+@bp.route("/")
+@instructor_required
+def config_form() -> str:
     db = get_db()
     auth = get_auth()
 
@@ -90,6 +117,7 @@ def get_common_class_settings() -> tuple[Row, str | None]:
         WHERE classes.id=?
     """, [class_id]).fetchone()
 
+    # TODO: refactor into function for checking start/end dates
     expiration_date = class_row['link_reg_expires']
     if expiration_date is None:
         link_reg_state = None  # not a user-created class
@@ -100,44 +128,23 @@ def get_common_class_settings() -> tuple[Row, str | None]:
     else:
         link_reg_state = "date"
 
-    return class_row, link_reg_state
+    contexts = None
+    if _context_class is not None:
+        # get contexts
+        contexts = db.execute("""
+            SELECT contexts.*
+            FROM contexts
+            WHERE contexts.class_id=?
+            ORDER BY contexts.class_order
+        """, [class_id]).fetchall()
 
-
-T = TypeVar('T', bound='ClassConfig')
-
-def get_class_config(config_class: type[T]) -> T:
-    if 'class_config' not in g:
-        auth = get_auth()
-        class_id = auth['class_id']
-
-        if class_id is None:
-            g.class_config = config_class()
-        else:
-            db = get_db()
-            config_row = db.execute("SELECT config FROM classes WHERE id=?", [class_id]).fetchone()
-            class_config_dict = json.loads(config_row['config'])
-            g.class_config = config_class(**class_config_dict)
-
-    return g.class_config  # type: ignore [no-any-return]
-
-
-@bp.route("/")
-@instructor_required
-def config_form() -> str:
-    class_config = get_class_config(_class_config_class) if _class_config_class is not None else None
-
-    class_row, link_reg_state = get_common_class_settings()
-
-    return render_template("instructor_class_config.html", class_row=class_row, link_reg_state=link_reg_state, models=get_models(), class_config=class_config)
+    return render_template("instructor_class_config.html", class_row=class_row, link_reg_state=link_reg_state, models=get_models(), contexts=contexts)
 
 
 @bp.route("/test_llm")
 @instructor_required
 @with_llm()
 def test_llm(llm_dict: LLMDict) -> Response | dict[str, Any]:
-    if _class_config_class is None:
-        return abort(404)
-
     response, response_txt = asyncio.run(get_completion(
         client=llm_dict['client'],
         model=llm_dict['model'],
@@ -152,22 +159,49 @@ def test_llm(llm_dict: LLMDict) -> Response | dict[str, Any]:
         return {'result': 'success', 'msg': 'Success!', 'error': None}
 
 
-@bp.route("/set", methods=["POST"])
+@bp.route("/context/<int:ctx_id>")
 @instructor_required
-def set_config() -> Response:
-    if _class_config_class is None:
+def context_form(ctx_id: int) -> str | Response:
+    if _context_class is None:
+        # only if a context class has been registered
         return abort(404)
 
     db = get_db()
     auth = get_auth()
 
-    # only trust class_id from auth, not from user
+    # if a context id is specified, show form for editing a single context
+    context = db.execute("SELECT * FROM contexts WHERE id=?", [ctx_id]).fetchone()
+
+    # verify the current user can edit this context
     class_id = auth['class_id']
+    if context['class_id'] != class_id:
+        return abort(403)
 
-    class_config_json = _class_config_class.from_request_form(request.form).to_json()
+    context_config = _context_class.from_json(context['config'])
 
-    db.execute("UPDATE classes SET config=? WHERE id=?", [class_config_json, class_id])
+    return render_template(context_config.template, context=context, context_config=context_config)
+
+
+@bp.route("/context/set/<int:ctx_id>", methods=["POST"])
+@instructor_required
+def set_context(ctx_id: int) -> Response:
+    if _context_class is None:
+        # only if a context class has been registered
+        return abort(404)
+
+    db = get_db()
+    auth = get_auth()
+
+    # verify the current user can edit this context
+    class_id = auth['class_id']
+    context = db.execute("SELECT * FROM contexts WHERE id=?", [ctx_id]).fetchone()
+    if context['class_id'] != class_id:
+        return abort(403)
+
+    context_json = _context_class.from_request_form(request.form).to_json()
+
+    db.execute("UPDATE contexts SET config=? WHERE id=?", [context_json, ctx_id])
     db.commit()
 
-    flash("Configuration set!", "success")
+    flash(f"Configuration for context '{context['name']}' set!", "success")
     return redirect(url_for(".config_form"))

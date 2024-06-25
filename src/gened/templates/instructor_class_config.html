@@ -236,12 +236,38 @@ SPDX-License-Identifier: AGPL-3.0-only
 
     </div>
 
-    {% if class_config %}
-      <div class="conf_col_sep">
-      </div>
+    {% if contexts %}
+      <div class="conf_col_sep"></div>
 
       <div class="conf_col">
-        {% include class_config.template %}
+        <h2 class="title is-size-4">Contexts</h2>
+        <p class="has-text-grey mb-4" style="max-width: 50em">Contexts let you provide additional information to the LLM for each query a student makes.  You can have a single default context that is always used, or you can create separate contexts for individual assignments, modules, etc. that can be selected by students when making a query.  Usually, providing an LLM with more specific context produces better, more accurate responses.</p>
+        <table class="table">
+          <thead>
+            <tr>
+              <th class="p-1 has-text-centered has-text-grey" aria-label="Reorder">
+                <svg aria-hidden="true" class="icon is-small" style="vertical-align: bottom;"><use href="#svg_arrow_up_down" /></svg>
+              </th>
+              <th>Name</th>
+              <th class="has-text-centered">Available</th>
+              <th class="has-text-centered has-text-grey"><small>actions</small></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ctx in contexts %}
+              <tr>
+                <td>{{ ctx.class_order }}</td>
+                <td>{{ ctx.name }}</td>
+                <td>{{ ctx.available }}</td>
+                <td>
+                  <a href="{{ url_for('.context_form', ctx_id=ctx.id) }}">edit</a>
+                  copy
+                  delete
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     {% endif %}
 

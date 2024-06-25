@@ -4,15 +4,19 @@ SPDX-FileCopyrightText: 2023 Mark Liffiton <liffiton@gmail.com>
 SPDX-License-Identifier: AGPL-3.0-only
 #}
 
-      <h2 class="title is-size-4">
-        Queries &amp; Responses
-      </h2>
-      <form action="{{ url_for("class_config.set_config") }}" method="post">
+{% extends "base.html" %}
+
+{% block body %}
+<section class="section">
+  <div class="container">
+    <h1 class="title">Editing context '{{ context.name }}' for class {{ auth['class_name'] }}</h1>
+
+      <form action="{{ url_for("class_config.set_context", ctx_id=context.id) }}" method="post">
         <div class="field is-horizontal">
           <div class="field-label is-normal">
             <label class="label">Languages:</label>
-            {% if not class_config or (class_config.languages and not class_config.default_lang) %}
-              <p class="is-size-5 mb-2 has-text-danger">Please configure the language(s) for your class before your students use CodeHelp.</p>
+            {% if not context_config or (context_config.languages and not context_config.default_lang) %}
+              <p class="is-size-5 mb-2 has-text-danger">Please configure the language(s) for this context before your students use it.</p>
             {% endif %}
             <p class="has-text-grey">Add and remove language options, reorder the list, and choose a default that will be pre-selected for students who have not chosen a language previously.</p>
           </div>
@@ -20,8 +24,8 @@ SPDX-License-Identifier: AGPL-3.0-only
             <script type="text/javascript">
               document.addEventListener('alpine:init', () => {
                 Alpine.data('lang_config', () => ({
-                  languages: {{ class_config.languages | tojson }},
-                  default_lang: {{ class_config.default_lang | tojson }},
+                  languages: {{ context_config.languages | tojson }},
+                  default_lang: {{ context_config.default_lang | tojson }},
                   add_language: null,
                   drag_index: null,
 
@@ -109,14 +113,14 @@ SPDX-License-Identifier: AGPL-3.0-only
         <div class="field is-horizontal">
           <div class="field-label is-normal">
             <label class="label" for="avoid">Keywords to Avoid:</label>
-            <p class="has-text-grey">Any keywords you want the system to avoid or not use in responses for this class.</p>
+            <p class="has-text-grey">Keywords and concepts you want the system to avoid in responses.</p>
             <p class="has-text-grey">Write one per line.</p>
-            <p class="has-text-grey">Be careful!  Writing "sum" will avoid discussing summation at all, while "sum()" will avoid just the sum function.</p>
+            <p class="has-text-grey">Be careful!  Writing "sum" could avoid discussing summation at all, while "sum()" will avoid just the sum function.</p>
           </div>
           <div class="field-body">
             <div class="field">
               <div class="control">
-                <textarea class="textarea is-family-monospace" name="avoid" id="avoid" rows=10>{{ class_config['avoid'] }}</textarea>
+                <textarea class="textarea is-family-monospace" name="avoid" id="avoid" rows=5>{{ context_config['avoid'] }}</textarea>
               </div>
             </div>
           </div>
@@ -134,3 +138,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         </div>
 
       </form>
+
+  </div>
+</section>
+{% endblock %}
