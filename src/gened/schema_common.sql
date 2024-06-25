@@ -18,8 +18,11 @@ DROP TABLE IF EXISTS classes_user;
 DROP TABLE IF EXISTS demo_links;
 DROP TABLE IF EXISTS migrations;
 DROP TABLE IF EXISTS models;
+DROP TABLE IF EXISTS experiments;
+DROP TABLE IF EXISTS experiment_class;
 
 PRAGMA foreign_keys = ON;  -- back on for good
+
 
 CREATE TABLE consumers (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
