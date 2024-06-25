@@ -71,7 +71,7 @@ ${ options.searchable ?
 </div>
 `,
         });
-        table.on("datatable.selectrow", (row, event) => {
+        (link_col != "") && table.on("datatable.selectrow", (row, event) => {
           if (event.target.tagName !== 'TD') {
             // button or something other than the data/cell itself -- don't trigger anything and let the default happen
             return;

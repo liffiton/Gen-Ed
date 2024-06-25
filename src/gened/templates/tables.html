@@ -25,7 +25,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   {% endif %}
   </style>
   <div x-data="{remove_item: {id: -1, type: 'None', data: {}}}">
-  <table id="tbl_{{name}}">
+  <table id="tbl_{{name}}" class="{{ 'row_selectable' if (link_col != '') else '' }}">
     <thead>
       <tr>
       {% for col in columns %}

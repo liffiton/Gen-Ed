@@ -1,6 +1,6 @@
 /* For clickable rows */
-table.datatable-table tbody tr { cursor: pointer; }
-table.datatable-table tbody tr:hover { background: #def; }
+table.datatable-table.row_selectable tbody tr { cursor: pointer; }
+table.datatable-table.row_selectable tbody tr:hover { background: #def; }
 /**/
 
 /* Avoiding x-overflows */
