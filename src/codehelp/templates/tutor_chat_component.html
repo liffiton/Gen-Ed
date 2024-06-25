@@ -37,7 +37,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     }
   </style>
 
-  <div class="m-3 chat_grid">
+  <div class="m-3 chat_grid content">
     {% for message in chat_messages %}
       <div class="chat_role chat_role_{{message['role']}}">
         {{ 'You' if message['role'] == 'user' else 'Tutor' }}
