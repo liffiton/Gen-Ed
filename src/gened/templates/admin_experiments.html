@@ -1,0 +1,20 @@
+{#
+SPDX-FileCopyrightText: 2024 Mark Liffiton <liffiton@gmail.com>
+
+SPDX-License-Identifier: AGPL-3.0-only
+#}
+
+{% extends "admin_main.html" %}
+{% from "tables.html" import datatable %}
+
+{% block admin_body %}
+  <h1 class="is-size-3">Experiments <a class="button is-light is-link is-small mt-2" href="{{url_for('admin.experiment_new')}}">Create New</a></h1>
+  <div style="max-width: 50em;">
+    {{ datatable(
+      'experiments',
+      [('id', 'id'), ('name', 'name'), ('description', 'description'), ('classes', 'count', 'r')],
+      experiments,
+      edit_handler="admin.experiment_form",
+    ) }}
+  </div>
+{% endblock %}

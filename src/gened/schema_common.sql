@@ -157,10 +157,29 @@ CREATE TABLE models (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     name        TEXT NOT NULL UNIQUE,
     shortname   TEXT NOT NULL UNIQUE,
-    model       TEXT
+    model       TEXT NOT NULL
 );
 INSERT INTO models(name, shortname, model) VALUES
     ('OpenAI GPT-3.5 Turbo', 'GPT-3.5', 'gpt-3.5-turbo-0125'),
     ('OpenAI GPT-4o', 'GPT-4', 'gpt-4o')
 ;
 
+
+-- Experiments (like feature flags)
+CREATE TABLE experiments (
+    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    name    TEXT NOT NULL UNIQUE,
+    description  TEXT
+);
+
+CREATE TABLE experiment_class (
+    experiment_id   INTEGER NOT NULL,
+    class_id        INTEGER NOT NULL,
+    PRIMARY KEY (experiment_id, class_id),
+    FOREIGN KEY (experiment_id) REFERENCES experiments (id),
+    FOREIGN KEY (class_id) REFERENCES classes (id)
+);
+DROP INDEX IF EXISTS exp_crs_experiment_idx;
+CREATE INDEX exp_crs_experiment_idx ON experiment_class(experiment_id);
+DROP INDEX IF EXISTS exp_crs_class_idx;
+CREATE INDEX exp_crs_class_idx ON experiment_class(class_id);

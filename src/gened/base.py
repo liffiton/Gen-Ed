@@ -22,6 +22,7 @@ from . import (
     db,
     demo,
     docs,
+    experiments,  # noqa: F401 (import registers routes even though unused here)
     filters,
     instructor,
     lti,

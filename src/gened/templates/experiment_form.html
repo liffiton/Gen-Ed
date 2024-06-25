@@ -1,0 +1,130 @@
+{#
+SPDX-FileCopyrightText: 2024 Mark Liffiton <liffiton@gmail.com>
+
+SPDX-License-Identifier: AGPL-3.0-only
+#}
+
+{% extends "admin_main.html" %}
+
+{% block admin_body %}
+  <div class="container">
+
+    <form action="{{url_for('admin.experiment_update')}}" method="post">
+      {% if experiment %}
+        {# We're editing an existing experiment.  Provide its ID. #}
+        <h1 class="title">Edit Experiment</h1>
+        <input type="hidden" name="exp_id" value="{{experiment.id}}">
+      {% else %}
+        <h1 class="title">New Experiment</h1>
+      {% endif %}
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="name">Name:</label>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <input class="input" required name="name" id="name" value="{{ experiment.name if experiment else '' }}">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="description">Description:</label>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <textarea class="textarea" name="description" id="description">{{ experiment.description if experiment else '' }}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% if experiment %}
+      <div class="field is-horizontal" x-data="classSelector()">
+        <div class="field-label is-normal">
+          <label class="label">Assigned Classes:</label>
+        </div>
+        <div class="field-body" style="display: flex; flex-wrap: wrap;">
+          <div class="field" style="flex: 20em 0 0;">
+            <div class="dropdown" :class="{'is-active': isOpen}" style="width: 100%">
+              <div class="control dropdown-trigger" style="width: 100%">
+                <input class="input" type="text" style="width: 100%" placeholder="Search classes..." 
+                       x-model="search" @input="filterClasses" @focus="filterClasses" @click.away="isOpen=false">
+              </div>
+              <div class="dropdown-menu" style="width: 100%; max-width: 100%; max-height: 80vh; overflow-x: clip; overflow-y: auto;">
+                <div class="dropdown-content">
+                  <template x-for="cls in filteredClasses" :key="cls.id">
+                    <a class="dropdown-item" @click="addClass(cls)">
+                      <span x-text="cls.name"></span>
+                    </a>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="flex: 20em 1 0; overflow-x: auto;">
+            <template x-for="cls in selectedClasses" :key="cls.id">
+              <button @click="removeClass(cls)" class="button is-info is-ounded tag is-medium m-1">
+                <span x-text="cls.name"></span>
+                <span class="delete"></span>
+                <input type="hidden" name="assigned_classes" :value="cls.id">
+              </button>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        function classSelector() {
+          return {
+            search: '',
+            isOpen: false,
+            classes: {{ classes | tojson }},
+            selectedClasses: {{ assigned_classes | tojson }},
+            filteredClasses: [],
+            filterClasses() {
+              this.filteredClasses = this.classes.filter(c => 
+                c.name.toLowerCase().includes(this.search.toLowerCase()) &&
+                !this.selectedClasses.some(sc => sc.id === c.id)
+              );
+              this.isOpen = this.filteredClasses.length > 0;
+            },
+            addClass(cls) {
+              this.selectedClasses.push(cls);
+              this.filterClasses();
+            },
+            removeClass(cls) {
+              const index = this.selectedClasses.findIndex(c => c.id === cls.id);
+              if (index !== -1) {
+                this.selectedClasses.splice(index, 1);
+              }
+            }
+          }
+        }
+      </script>
+      {% endif %}
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal"><!-- spacing --></div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <button class="button is-link" type="submit">Submit</button>
+              {% if experiment %}
+                <button class="button is-danger" type="submit" formaction="{{ url_for('admin.experiment_delete', exp_id=experiment.id) }}" onclick="return confirm('Are you sure you want to delete this experiment?');">
+                   <span class="delete mr-2"></span>
+                   Delete {{ experiment.name }}
+                </button>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+  </div>
+{% endblock %}
