@@ -16,23 +16,23 @@ SPDX-License-Identifier: AGPL-3.0-only
       {# debounce on the submit handler so that the form's actual submit fires *before* the form elements are disabled #}
       <form action="{{url_for('helper.help_request')}}" method="post" x-data="{loading: false}" x-on:submit.debounce.10ms="loading = true">
 
-      {% if languages %}
+      {% if contexts %}
       <div class="field is-horizontal">
-        <div class="field-label {% if languages | length > 1 %}is-normal{% endif %}">
-          <label class="label" for="language">Language:</label>
+        <div class="field-label {% if contexts | length > 1 %}is-normal{% endif %}">
+          <label class="label" for="context">Context:</label>
         </div>
         <div class="field-body">
-          {% if languages | length == 1 %}
-            <input type="hidden" name="lang_id" value="0">
-            {{ languages[0] }}
+          {% if contexts | length == 1 %}
+            <input type="hidden" name="context" value="{{ contexts[0].name }}">
+            {{ contexts[0].name }}
           {% else %}
             <div class="field">
               <div class="control">
                 <div class="select">
-                  <select name="lang_id" id="language" required x-bind:disabled="loading">
+                  <select name="context" id="context" required x-bind:disabled="loading">
                     <option value="">Please select</option>
-                    {% for lang in languages %}
-                    <option value="{{loop.index0}}" {% if lang == selected_lang %}selected{% endif %}>{{ lang }}</option>
+                    {% for ctx in contexts %}
+                    <option value="{{ctx.name}}" {% if ctx == selected_context %}selected{% endif %}>{{ ctx.name }}</option>
                     {% endfor %}
                   </select>
                 </div>

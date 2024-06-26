@@ -16,7 +16,6 @@ common_template_sys1 = jinja_env.from_string("""\
 You are a system for assisting students learning CS and programming.  Your job here is {{ job }}.
 
 A query contains:
- - the programming language (in "<lang>" delimiters)
 {% if code %}
  - a relevant snippet of their code (in "<code>")
 {% endif %}
@@ -26,12 +25,15 @@ A query contains:
 {% if issue or not error %}
  - an issue or question and how they want assistance (in "<issue>")
 {% endif %}
+{% if context %}
+Additional context provided by the instructor:
+<context>
+{{ context }}
+</context>
+{% endif %}
 """)
 
 common_template_user = jinja_env.from_string("""\
-<lang>
-{{language if language != 'C' else 'the C language'}}
-</lang>
 {% if code %}
 <code>
 {{code}}
@@ -55,12 +57,6 @@ If the student query is off-topic, respond with an error.
 Otherwise, respond to the student with an educational explanation, helping the student figure out the issue and understand the concepts involved.  If the student query includes an error message, tell the student what it means, giving a detailed explanation to help the student understand the message.  Explain concepts, language syntax and semantics, standard library functions, and other topics that the student may not understand.  Be positive and encouraging!
 
 - Do not write a corrected or updated version of the student's code.  You must not write code for the student.
-{% if avoid_set %}
-- Do not use in your response:
-{% for avoid_item in avoid_set %}
-  - {{ avoid_item }}
-{% endfor %}
-{% endif %}
 - Use Markdown formatting, including ` for inline code.
 - Do not write a heading for the response.
 - Do not write any example code blocks.
@@ -70,7 +66,7 @@ How would you respond to the student to guide them and explain concepts without 
 """)
 
 
-def make_main_prompt(language: str, code: str, error: str, issue: str, avoid_set: Iterable[str] | None = None) -> list[ChatCompletionMessageParam]:
+def make_main_prompt(code: str, error: str, issue: str, context: str | None = None) -> list[ChatCompletionMessageParam]:
     error = error.rstrip()
     issue = issue.rstrip()
     if error and not issue:
@@ -78,9 +74,9 @@ def make_main_prompt(language: str, code: str, error: str, issue: str, avoid_set
 
     sys_job = "to respond to a student's query as a helpful expert teacher"
     return [
-        {'role': 'system', 'content': common_template_sys1.render(job=sys_job, language=language, code=code, error=error, issue=issue)},
-        {'role': 'user',   'content': common_template_user.render(language=language, code=code, error=error, issue=issue)},
-        {'role': 'system', 'content': main_template_sys2.render(avoid_set=avoid_set)},
+        {'role': 'system', 'content': common_template_sys1.render(job=sys_job, code=code, error=error, issue=issue, context=context)},
+        {'role': 'user',   'content': common_template_user.render(code=code, error=error, issue=issue)},
+        {'role': 'system', 'content': main_template_sys2.render()},
     ]
 
 
@@ -91,7 +87,7 @@ Do not tell the student how to solve the issue or correct the code.  Instead, pl
 """)
 
 
-def make_sufficient_prompt(language: str, code: str, error: str, issue: str) -> list[ChatCompletionMessageParam]:
+def make_sufficient_prompt(code: str, error: str, issue: str, context: str | None) -> list[ChatCompletionMessageParam]:
     error = error.rstrip()
     issue = issue.rstrip()
     if error and not issue:
@@ -99,9 +95,9 @@ def make_sufficient_prompt(language: str, code: str, error: str, issue: str) -> 
 
     sys_job = "to evaluate whether a student's query is sufficient for you to provide effective assistance"
     return [
-        {'role': 'system', 'content': common_template_sys1.render(job=sys_job, language=language, code=code, error=error, issue=issue)},
-        {'role': 'user',   'content': common_template_user.render(language=language, code=code, error=error, issue=issue)},
-        {'role': 'system', 'content': sufficient_template_sys2.render(language=language, code=code, error=error, issue=issue)},
+        {'role': 'system', 'content': common_template_sys1.render(job=sys_job, code=code, error=error, issue=issue, context=context)},
+        {'role': 'user',   'content': common_template_user.render(code=code, error=error, issue=issue)},
+        {'role': 'system', 'content': sufficient_template_sys2.render()},
     ]
 
 
@@ -114,10 +110,10 @@ Rewritten:
 """
 
 
-def make_topics_prompt(language: str, code: str, error: str, issue: str, response_text: str) -> list[ChatCompletionMessageParam]:
+def make_topics_prompt(code: str, error: str, issue: str, context: str | None, response_text: str) -> list[ChatCompletionMessageParam]:
     messages : list[ChatCompletionMessageParam] = [
         {'role': 'user', 'content': f"""\
-<language>{language}</language>
+<context>{context}</context>
 <code>{code}</code>
 <error>{error}</error>
 <issue>{issue}</issue>

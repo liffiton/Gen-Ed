@@ -101,7 +101,7 @@ def context_required(f: Callable[P, R]) -> Callable[P, Response | R]:
 
 T = TypeVar('T', bound='ContextConfig')
 
-def get_available_contexts(ctx_class: type[T]) -> dict[str, T]:
+def get_available_contexts(ctx_class: type[T]) -> list[T]:
     db = get_db()
     auth = get_auth()
 
@@ -109,7 +109,11 @@ def get_available_contexts(ctx_class: type[T]) -> dict[str, T]:
     # TODO: filter by available using current date
     context_rows = db.execute("SELECT * FROM contexts WHERE class_id=?", [class_id]).fetchall()
 
-    return {row['name']: ctx_class.from_row(row) for row in context_rows}
+    return [ctx_class.from_row(row) for row in context_rows]
+
+
+class ContextNotFoundError(Exception):
+    pass
 
 
 def get_context_config_by_id(ctx_class: type[T], ctx_id: int) -> T:
@@ -121,10 +125,14 @@ def get_context_config_by_id(ctx_class: type[T], ctx_id: int) -> T:
     class_id = auth['class_id']  # just for extra safety: double-check that the context is in the current class
 
     context_row = db.execute("SELECT config FROM contexts WHERE class_id=? AND id=?", [class_id, ctx_id]).fetchone()
+
+    if not context_row:
+        raise ContextNotFoundError
+
     return ctx_class.from_row(context_row)
 
 
-def get_context_config_by_name(ctx_class: type[T], ctx_name: str) -> T:
+def get_context_by_name(ctx_class: type[T], ctx_name: str) -> T:
     assert _context_class is not None
 
     db = get_db()
@@ -133,4 +141,8 @@ def get_context_config_by_name(ctx_class: type[T], ctx_name: str) -> T:
     class_id = auth['class_id']
 
     context_row = db.execute("SELECT config FROM contexts WHERE class_id=? AND name=?", [class_id, ctx_name]).fetchone()
+
+    if not context_row:
+        raise ContextNotFoundError
+
     return ctx_class.from_row(context_row)

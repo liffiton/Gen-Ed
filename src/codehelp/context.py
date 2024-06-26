@@ -5,8 +5,7 @@
 from dataclasses import dataclass, field
 
 from flask import current_app
-from gened.contexts import ContextConfig, get_context_config_by_name, register_context
-from gened.contexts import get_available_contexts as get_available
+from gened.contexts import ContextConfig, register_context
 from typing_extensions import Self
 from werkzeug.datastructures import ImmutableMultiDict
 
@@ -41,11 +40,3 @@ class CodeHelpContext(ContextConfig):
 
 def register_with_gened() -> None:
     register_context(CodeHelpContext)
-
-
-def get_available_contexts() -> dict[str, CodeHelpContext]:
-    return get_available(CodeHelpContext)
-
-
-def get_context_by_name(ctx_name: str) -> CodeHelpContext:
-    return get_context_config_by_name(CodeHelpContext, ctx_name)

@@ -7,13 +7,27 @@ import json
 from collections.abc import Iterable
 from unittest.mock import patch
 
-from flask import Blueprint, abort, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    abort,
+    flash,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from gened.auth import (
     admin_required,
     class_enabled_required,
     get_auth,
     login_required,
     tester_required,
+)
+from gened.contexts import (
+    ContextNotFoundError,
+    get_available_contexts,
+    get_context_by_name,
 )
 from gened.db import get_db
 from gened.openai import LLMDict, get_completion, with_llm
@@ -22,7 +36,7 @@ from gened.testing.mocks import mock_async_completion
 from werkzeug.wrappers.response import Response
 
 from . import prompts
-from .context import CodeHelpContext, get_available_contexts, get_context_by_name
+from .context import CodeHelpContext
 
 bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='templates')
 
@@ -34,13 +48,13 @@ bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='template
 def help_form(query_id: int | None = None) -> str:
     db = get_db()
     auth = get_auth()
-    contexts = get_available_contexts()
+    contexts = get_available_contexts(CodeHelpContext)
     selected_context_name = None
 
     # Select most recently used context, if available
     recent_row = db.execute("SELECT context_name FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT 1", [auth['user_id']]).fetchone()
-    if recent_row and recent_row['context_name'] in contexts:
-        selected_context = recent_row['context_name']
+    if recent_row:
+        selected_context_name = recent_row['context_name']
 
     # populate with a query+response if one is specified in the query string
     query_row = None
@@ -48,6 +62,10 @@ def help_form(query_id: int | None = None) -> str:
         query_row, _ = get_query(query_id)   # _ because we don't need responses here
         if query_row is not None:
             selected_context_name = query_row['context_name']
+
+    # validate selected context name (may no longer exist / be available)
+    if not any(selected_context_name == ctx.name for ctx in contexts):
+        selected_context_name = None
 
     history = get_history()
 
@@ -87,7 +105,7 @@ def score_response(response_txt: str | None, avoid_set: Iterable[str]) -> int:
     return score
 
 
-async def run_query_prompts(llm_dict: LLMDict, context: CodeHelpContext, code: str, error: str, issue: str) -> tuple[list[dict[str, str]], dict[str, str]]:
+async def run_query_prompts(llm_dict: LLMDict, context: CodeHelpContext | None, code: str, error: str, issue: str) -> tuple[list[dict[str, str]], dict[str, str]]:
     ''' Run the given query against the coding help system of prompts.
 
     Returns a tuple containing:
@@ -96,18 +114,21 @@ async def run_query_prompts(llm_dict: LLMDict, context: CodeHelpContext, code: s
     '''
     client = llm_dict['client']
     model = llm_dict['model']
-    
-    context_str = context.to_str()
+
+    context_str = context.to_str() if context is not None else None
 
     # create "avoid set" from context
-    avoid_set = {x.strip() for x in context.avoid.split('\n') if x.strip() != ''}
+    if context is not None:
+        avoid_set = {x.strip() for x in context.avoid.split('\n') if x.strip() != ''}
+    else:
+        avoid_set = set()
 
     # Launch the "sufficient detail" check concurrently with the main prompt to save time
     task_main = asyncio.create_task(
         get_completion(
             client,
             model=model,
-            messages=prompts.make_main_prompt(context_str, code, error, issue),
+            messages=prompts.make_main_prompt(code, error, issue, context_str),
             n=1,
             score_func=lambda x: score_response(x, avoid_set)
         )
@@ -116,7 +137,7 @@ async def run_query_prompts(llm_dict: LLMDict, context: CodeHelpContext, code: s
         get_completion(
             client,
             model=model,
-            messages=prompts.make_sufficient_prompt(context_str, code, error, issue),
+            messages=prompts.make_sufficient_prompt(code, error, issue, context_str),
         )
     )
 
@@ -149,7 +170,7 @@ async def run_query_prompts(llm_dict: LLMDict, context: CodeHelpContext, code: s
         return responses, {'insufficient': response_sufficient_txt, 'main': response_txt}
 
 
-def run_query(llm_dict: LLMDict, context: CodeHelpContext, code: str, error: str, issue: str) -> int:
+def run_query(llm_dict: LLMDict, context: CodeHelpContext | None, code: str, error: str, issue: str) -> int:
     query_id = record_query(context, code, error, issue)
 
     responses, texts = asyncio.run(run_query_prompts(llm_dict, context, code, error, issue))
@@ -159,14 +180,17 @@ def run_query(llm_dict: LLMDict, context: CodeHelpContext, code: str, error: str
     return query_id
 
 
-def record_query(context: CodeHelpContext, code: str, error: str, issue: str) -> int:
+def record_query(context: CodeHelpContext | None, code: str, error: str, issue: str) -> int:
     db = get_db()
     auth = get_auth()
     role_id = auth['role_id']
 
+    context_name = context.name if context is not None else None
+    context_str = context.to_str if context is not None else None
+
     cur = db.execute(
-        "INSERT INTO queries (context_name, context, code, error, issue, user_id, role_id) VALUES (?, ?, ?, ?, ?, ?)",
-        [context.name, context.to_str(), code, error, issue, auth['user_id'], role_id]
+        "INSERT INTO queries (context_name, context, code, error, issue, user_id, role_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [context_name, context_str, code, error, issue, auth['user_id'], role_id]
     )
     new_row_id = cur.lastrowid
     db.commit()
@@ -191,7 +215,14 @@ def record_response(query_id: int, responses: list[dict[str, str]], texts: dict[
 @class_enabled_required
 @with_llm()
 def help_request(llm_dict: LLMDict) -> Response:
-    context = get_context_by_name(request.form['context'])
+    if 'context' in request.form:
+        try:
+            context = get_context_by_name(CodeHelpContext, request.form['context'])
+        except ContextNotFoundError:
+            flash(f"Context not found: {request.form['context']}")
+            return make_response(render_template("error.html"), 400)
+    else:
+        context = None
     code = request.form["code"]
     error = request.form["error"]
     issue = request.form["issue"]
