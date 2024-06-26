@@ -162,12 +162,10 @@ def migrate_command() -> None:
     click.echo()
     click.echo(f"Key:  {status_new}  = new  {status_success}  = applied successfully  {status_skipped}  = skipped  {status_failed}  = failed to apply")
     click.echo()
-    choice = input(f"[1-{len(migrations)}] Select individual migration   [A]pply all new or failed migrations  [M]ark all as successfully applied  [Q]uit   Choice? ")
+    choice = input("[A]pply all new or failed migrations  [M]ark all as successfully applied  [Q]uit   Choice? ")
     click.echo()
 
-    if choice.isnumeric() and 1 <= int(choice) <= len(migrations):
-        click.echo("Individual selection not yet implemented.")
-    elif choice.lower() == 'm':
+    if choice.lower() == 'm':
         sure = input("Are you sure?  This should pretty much never be used... [yN] ")
         if sure.lower() == 'y':
             _mark_all_as_applied()
