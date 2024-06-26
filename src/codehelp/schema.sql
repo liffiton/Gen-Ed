@@ -8,7 +8,8 @@ DROP TABLE IF EXISTS queries;
 CREATE TABLE queries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     query_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    language TEXT NOT NULL,
+    context_name TEXT,
+    context TEXT,
     code TEXT,
     error TEXT,
     issue TEXT NOT NULL,

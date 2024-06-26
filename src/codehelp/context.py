@@ -5,8 +5,8 @@
 from dataclasses import dataclass, field
 
 from flask import current_app
-from gened.class_config import get_context as gened_get_config
-from gened.class_config import ContextConfig, register_context
+from gened.contexts import ContextConfig, get_context_config_by_name, register_context
+from gened.contexts import get_available_contexts as get_available
 from typing_extensions import Self
 from werkzeug.datastructures import ImmutableMultiDict
 
@@ -17,24 +17,35 @@ def _default_langs() -> list[str]:
 
 
 @dataclass(frozen=True)
-class CodeHelpContextConfig(ContextConfig):
+class CodeHelpContext(ContextConfig):
     template: str = "codehelp_context_form.html"
+    name: str = ''
     languages: list[str] = field(default_factory=_default_langs)
     default_lang: str | None = None
     avoid: str = ''
 
     @classmethod
-    def from_request_form(cls, form: ImmutableMultiDict[str, str]) -> Self:
+    def from_request_form(cls, name: str, form: ImmutableMultiDict[str, str]) -> Self:
         return cls(
+            name=name,
             languages=form.getlist('languages[]'),
             default_lang=form.get('default_lang', None),
             avoid=form['avoid'],
         )
 
-
-def get_class_config() -> CodeHelpContextConfig:
-    return gened_get_config(CodeHelpContextConfig)
+    def to_str(self) -> str:
+        """ Convert this context into a string to be used in an LLM prompt. """
+        # TODO: this is a draft -- add more
+        return f"<languages>{self.languages}</languages><avoid>{self.avoid}</avoid>"
 
 
 def register_with_gened() -> None:
-    register_context(CodeHelpContextConfig)
+    register_context(CodeHelpContext)
+
+
+def get_available_contexts() -> dict[str, CodeHelpContext]:
+    return get_available(CodeHelpContext)
+
+
+def get_context_by_name(ctx_name: str) -> CodeHelpContext:
+    return get_context_config_by_name(CodeHelpContext, ctx_name)

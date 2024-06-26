@@ -22,7 +22,7 @@ from gened.testing.mocks import mock_async_completion
 from werkzeug.wrappers.response import Response
 
 from . import prompts
-from .class_config import get_class_config
+from .context import CodeHelpContext, get_available_contexts, get_context_by_name
 
 bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='templates')
 
@@ -34,26 +34,24 @@ bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='template
 def help_form(query_id: int | None = None) -> str:
     db = get_db()
     auth = get_auth()
-    class_config = get_class_config()
+    contexts = get_available_contexts()
+    selected_context_name = None
 
-    languages = class_config.languages
-    selected_lang = class_config.default_lang
-
-    # Select most recently submitted language, if available
-    lang_row = db.execute("SELECT language FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT 1", [auth['user_id']]).fetchone()
-    if lang_row and lang_row['language'] in languages:
-        selected_lang = lang_row['language']
+    # Select most recently used context, if available
+    recent_row = db.execute("SELECT context_name FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT 1", [auth['user_id']]).fetchone()
+    if recent_row and recent_row['context_name'] in contexts:
+        selected_context = recent_row['context_name']
 
     # populate with a query+response if one is specified in the query string
     query_row = None
     if query_id is not None:
         query_row, _ = get_query(query_id)   # _ because we don't need responses here
         if query_row is not None:
-            selected_lang = query_row['language']
+            selected_context_name = query_row['context_name']
 
     history = get_history()
 
-    return render_template("help_form.html", query=query_row, history=history, languages=languages, selected_lang=selected_lang)
+    return render_template("help_form.html", query=query_row, history=history, contexts=contexts, selected_context_name=selected_context_name)
 
 
 @bp.route("/view/<int:query_id>")
@@ -89,7 +87,7 @@ def score_response(response_txt: str | None, avoid_set: Iterable[str]) -> int:
     return score
 
 
-async def run_query_prompts(llm_dict: LLMDict, language: str, code: str, error: str, issue: str) -> tuple[list[dict[str, str]], dict[str, str]]:
+async def run_query_prompts(llm_dict: LLMDict, context: CodeHelpContext, code: str, error: str, issue: str) -> tuple[list[dict[str, str]], dict[str, str]]:
     ''' Run the given query against the coding help system of prompts.
 
     Returns a tuple containing:
@@ -98,17 +96,18 @@ async def run_query_prompts(llm_dict: LLMDict, language: str, code: str, error: 
     '''
     client = llm_dict['client']
     model = llm_dict['model']
+    
+    context_str = context.to_str()
 
-    # create "avoid set" from class configuration
-    class_config = get_class_config()
-    avoid_set = {x.strip() for x in class_config.avoid.split('\n') if x.strip() != ''}
+    # create "avoid set" from context
+    avoid_set = {x.strip() for x in context.avoid.split('\n') if x.strip() != ''}
 
     # Launch the "sufficient detail" check concurrently with the main prompt to save time
     task_main = asyncio.create_task(
         get_completion(
             client,
             model=model,
-            messages=prompts.make_main_prompt(language, code, error, issue, avoid_set),
+            messages=prompts.make_main_prompt(context_str, code, error, issue),
             n=1,
             score_func=lambda x: score_response(x, avoid_set)
         )
@@ -117,7 +116,7 @@ async def run_query_prompts(llm_dict: LLMDict, language: str, code: str, error: 
         get_completion(
             client,
             model=model,
-            messages=prompts.make_sufficient_prompt(language, code, error, issue),
+            messages=prompts.make_sufficient_prompt(context_str, code, error, issue),
         )
     )
 
@@ -150,24 +149,24 @@ async def run_query_prompts(llm_dict: LLMDict, language: str, code: str, error: 
         return responses, {'insufficient': response_sufficient_txt, 'main': response_txt}
 
 
-def run_query(llm_dict: LLMDict, language: str, code: str, error: str, issue: str) -> int:
-    query_id = record_query(language, code, error, issue)
+def run_query(llm_dict: LLMDict, context: CodeHelpContext, code: str, error: str, issue: str) -> int:
+    query_id = record_query(context, code, error, issue)
 
-    responses, texts = asyncio.run(run_query_prompts(llm_dict, language, code, error, issue))
+    responses, texts = asyncio.run(run_query_prompts(llm_dict, context, code, error, issue))
 
     record_response(query_id, responses, texts)
 
     return query_id
 
 
-def record_query(language: str, code: str, error: str, issue: str) -> int:
+def record_query(context: CodeHelpContext, code: str, error: str, issue: str) -> int:
     db = get_db()
     auth = get_auth()
     role_id = auth['role_id']
 
     cur = db.execute(
-        "INSERT INTO queries (language, code, error, issue, user_id, role_id) VALUES (?, ?, ?, ?, ?, ?)",
-        [language, code, error, issue, auth['user_id'], role_id]
+        "INSERT INTO queries (context_name, context, code, error, issue, user_id, role_id) VALUES (?, ?, ?, ?, ?, ?)",
+        [context.name, context.to_str(), code, error, issue, auth['user_id'], role_id]
     )
     new_row_id = cur.lastrowid
     db.commit()
@@ -192,19 +191,14 @@ def record_response(query_id: int, responses: list[dict[str, str]], texts: dict[
 @class_enabled_required
 @with_llm()
 def help_request(llm_dict: LLMDict) -> Response:
-    class_config = get_class_config()
-    if class_config.languages:
-        lang_id = int(request.form["lang_id"])
-        language = class_config.languages[lang_id]
-    else:
-        language = ""
+    context = get_context_by_name(request.form['context'])
     code = request.form["code"]
     error = request.form["error"]
     issue = request.form["issue"]
 
     # TODO: limit length of code/error/issue
 
-    query_id = run_query(llm_dict, language, code, error, issue)
+    query_id = run_query(llm_dict, context, code, error, issue)
 
     return redirect(url_for(".help_view", query_id=query_id))
 
@@ -218,7 +212,7 @@ def load_test(llm_dict: LLMDict) -> Response:
     if auth['display_name'] != 'load_test':
         return abort(403)
 
-    language = "__LOADTEST_Language"
+    context = CodeHelpContext(name="__LOADTEST_Context")
     code = "__LOADTEST_Code"
     error = "__LOADTEST_Error"
     issue = "__LOADTEST_Issue"
@@ -228,7 +222,7 @@ def load_test(llm_dict: LLMDict) -> Response:
         # simulate a 2 second delay for a network request
         mocked.side_effect = mock_async_completion(delay=2.0)
 
-        query_id = run_query(llm_dict, language, code, error, issue)
+        query_id = run_query(llm_dict, context, code, error, issue)
 
     return redirect(url_for(".help_view", query_id=query_id))
 
@@ -274,7 +268,7 @@ def get_topics(llm_dict: LLMDict, query_id: int) -> list[str]:
         return []
 
     messages = prompts.make_topics_prompt(
-        query_row['language'],
+        query_row['context'],
         query_row['code'],
         query_row['error'],
         query_row['issue'],
