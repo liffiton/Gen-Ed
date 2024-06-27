@@ -296,7 +296,62 @@ SPDX-License-Identifier: AGPL-3.0-only
                 </td>
                 <td x-text="ctx.name"></td>
                 <td class="has-text-centered">
-                  <input type="date" x-model="ctx.available">
+                  <div x-data="{
+                    showDropdown: false,
+                    showModal: false,
+                    get status() { return ctx.available === '9999-12-31' ? 'Never' : ctx.available === '0001-01-01' ? 'Now' : 'Scheduled'; },
+                    formatDate(date) {
+                      return new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                    },
+                    chooseScheduled() {
+                      if (this.status !== 'Scheduled') {
+                        // get today in YYYY-MM-DD format as starting point for date picker
+                        ctx.available = new Date().toISOString().split('T')[0];
+                      }
+                      this.showModal = true;
+                    },
+                  }">
+                    <div class="dropdown" x-bind:class="{'is-active': showDropdown}">
+                      <div class="dropdown-trigger">
+                        <button class="button is-small is-rounded" 
+                          x-bind:class="{
+                            'is-danger': status === 'Never',
+                            'is-warning': status === 'Scheduled',
+                            'is-success': status === 'Now'
+                          }"
+                          @click="showDropdown = !showDropdown"
+                          @click.outside="showDropdown = false"
+                          aria-haspopup="true" x-bind:aria-controls="`dropdown-menu${index{`">
+                          <span x-text="status === 'Scheduled' ? `Scheduled: ${formatDate(ctx.available)}` : status"></span>
+                        </button>
+                      </div>
+                      <div class="dropdown-menu" x-bind:id="`dropdown-menu${index}`" role="menu">
+                        <div class="dropdown-content has-text-left">
+                          <a href="#" class="dropdown-item" @click.prevent="ctx.available = '9999-12-31'">Never (hidden)</a>
+                          <a href="#" class="dropdown-item" @click.prevent="ctx.available = '0001-01-01'">Now</a>
+                          <a href="#" class="dropdown-item" @click.prevent="chooseScheduled">Scheduled</a>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="modal" x-bind:class="{ 'is-active': showModal }">
+                      <div class="modal-background" @click="showModal = false"></div>
+                      <div class="modal-content">
+                        <div class="box">
+                          <h3 class="title is-4">Select Availability Date</h3>
+
+                          <div class="field has-addons has-addons-centered">
+                            <p class="control">
+                              <input type="date" class="input is-large" x-model="ctx.available">
+                            </p>
+                            <p class="control">
+                              <button class="button is-large is-primary" @click="showModal = false">OK</button>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <button class="modal-close is-large" aria-label="close" @click="showModal = false"></button>
+                    </div>
+                  </div>
                 </td>
                 <td class="has-text-centered">
                   <form method="post">
