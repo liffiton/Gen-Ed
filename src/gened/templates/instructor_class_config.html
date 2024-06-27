@@ -295,7 +295,9 @@ SPDX-License-Identifier: AGPL-3.0-only
                   <svg aria-hidden="true" class="icon is-small"><use href="#svg_grip" /></svg>
                 </td>
                 <td x-text="ctx.name"></td>
-                <td class="has-text-centered" x-text="ctx.available"></td>
+                <td class="has-text-centered">
+                  <input type="date" x-model="ctx.available">
+                </td>
                 <td class="has-text-centered">
                   <form method="post">
                     <a x-bind:title="`edit '${ctx.name}'`" class="button is-white is-small icon-text has-text-primary" x-bind:href="'{{ url_for('class_config.contexts.context_form') }}/' + ctx.id">

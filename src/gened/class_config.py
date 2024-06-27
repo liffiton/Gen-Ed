@@ -60,7 +60,7 @@ def config_form() -> str:
     if have_registered_context():
         # get contexts
         contexts = db.execute("""
-            SELECT contexts.*
+            SELECT id, name, CAST(available AS TEXT) AS available
             FROM contexts
             WHERE contexts.class_id=?
             ORDER BY contexts.class_order
