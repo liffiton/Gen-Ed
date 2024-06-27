@@ -39,8 +39,6 @@ Anyone using the link will register as a student in the class if "Registration v
 You can control whether registration is allowed by manually enabling and disabling it or by setting a date up through which registration will be enabled.
 Once students have registered, they can use the same link to access CodeHelp and make queries connected to your class.
 
-Before your students can use CodeHelp, you will need to provide a configuration under "Queries &amp; Responses," at least selecting a default language.
-
 In the configuration screen, you can also archive the class (so students can see their past queries but not make new ones) and change or delete the OpenAI API key you have connected to it.
 
 ## Adding Instructors

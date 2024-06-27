@@ -34,13 +34,13 @@ SPDX-License-Identifier: AGPL-3.0-only
         </div>
       </div>
 
-      {% if query.language %}
+      {% if query.context_name %}
       <div class="field is-horizontal">
         <div class="field-label">
-          <label class="label">Language:</label>
+          <label class="label">Context:</label>
         </div>
         <div class="field-body">
-          {{ query.language }}
+          {{ query.context_name }}
         </div>
       </div>
       {% endif %}

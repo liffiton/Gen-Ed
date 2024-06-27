@@ -13,9 +13,18 @@ SPDX-License-Identifier: AGPL-3.0-only
         <a href="{{url_for('helper.help_view', query_id=prev.id)}}" class="button is-link is-outlined is-rounded p-2">View</a>
         <a href="{{url_for('helper.help_form', query_id=prev.id)}}" class="button is-link is-outlined is-rounded p-2">Retry</a>
       </div>
-      {{prev.language}}: <code>{{prev.code | truncate(50)}}</code> | <code>{{prev.error | truncate(50)}}</code>
-      <br>
-      <span {% if prev.issue | length > 100 %}title="{{prev.issue}}"{% endif %}>{{prev.issue | truncate(100)}}</span>
+      {% if prev.context_name %}
+        <p>{{ prev.context_name }}:</p>
+      {% endif %}
+      {% if prev.code %}
+        <p><code>{{prev.code | truncate(50)}}</code></p>
+      {% endif %}
+      {% if prev.error %}
+        <p><code>{{prev.error | truncate(50)}}</code></p>
+      {% endif %}
+      {% if prev.issue %}
+        <p {% if prev.issue | length > 100 %}title="{{prev.issue}}"{% endif %}>{{prev.issue | truncate(100)}}</p>
+      {% endif %}
     </div>
   {% else %}
     <p class="is-italic">No previous queries...</p>

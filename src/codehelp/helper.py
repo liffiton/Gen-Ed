@@ -49,27 +49,29 @@ def help_form(query_id: int | None = None) -> str:
     db = get_db()
     auth = get_auth()
     contexts = get_available_contexts(CodeHelpContext)
+    contexts_desc = {ctx.name: ctx.desc_html() for ctx in contexts}
     selected_context_name = None
 
-    # Select most recently used context, if available
-    recent_row = db.execute("SELECT context_name FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT 1", [auth['user_id']]).fetchone()
-    if recent_row:
-        selected_context_name = recent_row['context_name']
-
-    # populate with a query+response if one is specified in the query string
-    query_row = None
     if query_id is not None:
+        # populate with a query if one is specified in the query string
         query_row, _ = get_query(query_id)   # _ because we don't need responses here
         if query_row is not None:
             selected_context_name = query_row['context_name']
+    else:
+        # no query specified,
+        query_row = None
+        # but we can pre-select the most recently used context, if available
+        recent_row = db.execute("SELECT context_name FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT 1", [auth['user_id']]).fetchone()
+        if recent_row:
+            selected_context_name = recent_row['context_name']
 
     # validate selected context name (may no longer exist / be available)
-    if not any(selected_context_name == ctx.name for ctx in contexts):
+    if selected_context_name not in contexts_desc:
         selected_context_name = None
 
     history = get_history()
 
-    return render_template("help_form.html", query=query_row, history=history, contexts=contexts, selected_context_name=selected_context_name)
+    return render_template("help_form.html", query=query_row, history=history, contexts=contexts, contexts_desc=contexts_desc, selected_context_name=selected_context_name)
 
 
 @bp.route("/view/<int:query_id>")
@@ -115,10 +117,10 @@ async def run_query_prompts(llm_dict: LLMDict, context: CodeHelpContext | None, 
     client = llm_dict['client']
     model = llm_dict['model']
 
-    context_str = context.to_str() if context is not None else None
+    context_str = context.prompt_str() if context is not None else None
 
     # create "avoid set" from context
-    if context is not None:
+    if context is not None and context.avoid:
         avoid_set = {x.strip() for x in context.avoid.split('\n') if x.strip() != ''}
     else:
         avoid_set = set()
@@ -186,7 +188,7 @@ def record_query(context: CodeHelpContext | None, code: str, error: str, issue: 
     role_id = auth['role_id']
 
     context_name = context.name if context is not None else None
-    context_str = context.to_str if context is not None else None
+    context_str = context.prompt_str() if context is not None else None
 
     cur = db.execute(
         "INSERT INTO queries (context_name, context, code, error, issue, user_id, role_id) VALUES (?, ?, ?, ?, ?, ?, ?)",

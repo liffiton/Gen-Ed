@@ -157,7 +157,7 @@ def new_context_form(ctx_class: type[ContextConfig]) -> str | Response:
     return render_template(ctx_class.template, context=None, context_config=None)
 
 
-def _insert_context(class_id: int, name: str, config: str, available: str) -> None:
+def _insert_context(class_id: int, name: str, config: str, available: str) -> int:
     db = get_db()
 
     # names must be uniquie within a class: check/look for an unused name
@@ -165,15 +165,18 @@ def _insert_context(class_id: int, name: str, config: str, available: str) -> No
     i = 0
     while db.execute("SELECT id FROM contexts WHERE class_id=? AND name=?", [class_id, new_name]).fetchone():
         i += 1
-        new_name = f"{name} (copy{f' {i}' if i > 1 else ''})"
+        new_name = f"{name} ({i})"
 
-    db.execute("""
+    cur = db.execute("""
         INSERT INTO contexts (class_id, name, config, available, class_order)
         VALUES (?, ?, ?, ?, (SELECT COALESCE(MAX(class_order)+1, 0) FROM contexts WHERE class_id=?))
     """, [class_id, new_name, config, available, class_id])
     db.commit()
+    new_ctx_id = cur.lastrowid
 
     flash(f"Context '{new_name}' created.", "success")
+
+    return new_ctx_id
 
 
 @bp.route("/create", methods=["POST"])
@@ -195,7 +198,7 @@ def copy_context(ctx_class: type[ContextConfig], ctx_row: Row, ctx_id: int) -> R
     auth = get_auth()
     assert auth['class_id']
 
-    # passign existing name, but _insert_context will take care of finding
+    # passing existing name, but _insert_context will take care of finding
     # a new, unused name in the class.
     _insert_context(auth['class_id'], ctx_row['name'], ctx_row['config'], ctx_row['available'])
     return redirect(url_for("class_config.config_form"))
@@ -240,7 +243,7 @@ def get_available_contexts(ctx_class: type[T]) -> list[T]:
 
     class_id = auth['class_id']
     # TODO: filter by available using current date
-    context_rows = db.execute("SELECT * FROM contexts WHERE class_id=?", [class_id]).fetchall()
+    context_rows = db.execute("SELECT * FROM contexts WHERE class_id=? ORDER BY class_order ASC", [class_id]).fetchall()
 
     return [ctx_class.from_row(row) for row in context_rows]
 
@@ -257,7 +260,7 @@ def get_context_config_by_id(ctx_class: type[T], ctx_id: int) -> T:
 
     class_id = auth['class_id']  # just for extra safety: double-check that the context is in the current class
 
-    context_row = db.execute("SELECT config FROM contexts WHERE class_id=? AND id=?", [class_id, ctx_id]).fetchone()
+    context_row = db.execute("SELECT * FROM contexts WHERE class_id=? AND id=?", [class_id, ctx_id]).fetchone()
 
     if not context_row:
         raise ContextNotFoundError
@@ -273,7 +276,7 @@ def get_context_by_name(ctx_class: type[T], ctx_name: str) -> T:
 
     class_id = auth['class_id']
 
-    context_row = db.execute("SELECT config FROM contexts WHERE class_id=? AND name=?", [class_id, ctx_name]).fetchone()
+    context_row = db.execute("SELECT * FROM contexts WHERE class_id=? AND name=?", [class_id, ctx_name]).fetchone()
 
     if not context_row:
         raise ContextNotFoundError
