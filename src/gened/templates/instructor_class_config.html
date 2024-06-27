@@ -36,10 +36,6 @@ SPDX-License-Identifier: AGPL-3.0-only
   margin: 0.5rem;
   margin-top: 0.8rem;
 }
-.conf_col table input[type='radio'] {
-  transform: scale(1.5);
-  margin: 0;
-}
 </style>
 <section class="section">
   <h1 class="title">{{ auth['class_name'] }} Configuration</h1>
@@ -236,16 +232,55 @@ SPDX-License-Identifier: AGPL-3.0-only
 
     </div>
 
-    {% if contexts %}
+    {% if contexts != None %}
       <div class="conf_col_sep"></div>
 
-      <div class="conf_col">
+      <div class="conf_col content">
         <h2 class="title is-size-4">Contexts</h2>
-        <p class="has-text-grey mb-4" style="max-width: 50em">Contexts let you provide additional information to the LLM for each query a student makes.  You can have a single default context that is always used, or you can create separate contexts for individual assignments, modules, etc. that can be selected by students when making a query.  Usually, providing an LLM with more specific context produces better, more accurate responses.</p>
-        <table class="table">
+        <p class="has-text-grey" style="max-width: 50em">Contexts let you provide additional information to the LLM for each query a student makes.  You can have a single default context that is always used, or you can create separate contexts for individual assignments, modules, etc. that can be selected by students when making a query.  Usually, providing more specific context produces better, more accurate responses.</p>
+        {% if contexts | length == 0 %}
+          <p class="has-text-danger">While not strictly required, we recommend defining at least one context ("Default") to specify the language(s), frameworks, and/or libraries in use in this class.</p>
+        {% endif %}
+        <script type="text/javascript">
+          document.addEventListener('alpine:init', () => {
+            Alpine.data('reorderable', () => ({
+              items: {{ contexts | tojson }},
+              drag_index: null,
+
+              dragenter(index) {
+                if (this.drag_index === null) { return }
+                if (index === this.drag_index) { return }
+                // reorder the list, placing the dragged item at this index and shifting others
+                let new_items = [];
+                const drag_item = this.items[this.drag_index];
+                this.items.forEach((el, i) => {
+                  if (i === this.drag_index) { return }
+                  else if (i === index && i < this.drag_index) {
+                    new_items.push(drag_item);
+                    new_items.push(el);
+                  }
+                  else if (i === index && i > this.drag_index) {
+                    new_items.push(el);
+                    new_items.push(drag_item);
+                  }
+                  else {
+                    new_items.push(el);
+                  }
+                });
+                this.items = new_items;  // update w/ newly ordered list
+                this.drag_index = index;  // this new index is now the one we're dragging
+              },
+              stop_drag() {
+                this.drag_index = null;
+                // TODO: post updated ordering to save in DB
+              },
+            }));
+          });
+        </script>
+        <table class="table is-hoverable" x-data="reorderable">
           <thead>
             <tr>
-              <th class="p-1 has-text-centered has-text-grey" aria-label="Reorder">
+              <th class="p-1 has-text-centered has-text-grey" title="Reorder">
                 <svg aria-hidden="true" class="icon is-small" style="vertical-align: bottom;"><use href="#svg_arrow_up_down" /></svg>
               </th>
               <th>Name</th>
@@ -254,20 +289,39 @@ SPDX-License-Identifier: AGPL-3.0-only
             </tr>
           </thead>
           <tbody>
-            {% for ctx in contexts %}
-              <tr>
-                <td>{{ ctx.class_order }}</td>
-                <td>{{ ctx.name }}</td>
-                <td>{{ ctx.available }}</td>
-                <td>
-                  <a href="{{ url_for('.context_form', ctx_id=ctx.id) }}">edit</a>
-                  copy
-                  delete
+            <template x-for="(ctx, index) in items" x-bind:key="ctx.name">
+              <tr x-bind:draggable="(drag_index == index)" @dragenter="dragenter(index)" @dragover.prevent @dragend="stop_drag" @drop="stop_drag" x-bind:style="(drag_index == index) && {background: '#fc9'}">
+                <td style="cursor: move; vertical-align: middle; text-align: center;" @mousedown="drag_index=index" @mouseup="stop_drag" title="drag to reorder">
+                  <svg aria-hidden="true" class="icon is-small"><use href="#svg_grip" /></svg>
+                </td>
+                <td x-text="ctx.name"></td>
+                <td class="has-text-centered" x-text="ctx.available"></td>
+                <td class="has-text-centered">
+                  <form method="post">
+                    <a x-bind:title="`edit ${ctx.name}`" class="button is-white is-small icon-text has-text-primary" x-bind:href="'{{ url_for('class_config.contexts.context_form') }}/' + ctx.id">
+                      <svg aria-hidden="true" class="icon is-small"><use href="#svg_config" /></svg>
+                    </a>
+                    <button x-bind:title="`copy ${ctx.name}`" class="button is-white is-small has-text-primary" type="submit" x-bind:formaction="'{{ url_for('class_config.contexts.copy_context') }}/' + ctx.id">
+                      <svg aria-hidden="true" class="icon is-small"><use href="#svg_copy" /></svg>
+                    </button>
+                    <button x-bind:title="`delete ${ctx.name}`" class="button is-white is-small has-text-danger" type="submit" x-bind:formaction="'{{ url_for('class_config.contexts.delete_context') }}/' + ctx.id" @click="$event => confirm('Are you sure you want to delete \'' + ctx.name + '\'?') || $event.preventDefault()">
+                      <svg aria-hidden="true" class="icon is-small"><use href="#svg_trash" /></svg>
+                    </button>
+                  </form>
                 </td>
               </tr>
-            {% endfor %}
+            </template>
+            <tr x-show="items.length == 0"><td colspan=4 class="has-text-centered"><i>No contexts defined.</i></td></tr>
           </tbody>
         </table>
+        <div colspan=4 class="has-text-centered">
+          <a class="button is-light is-link is-small" href="{{ url_for('class_config.contexts.new_context_form') }}">
+            <span class="icon">
+              <svg aria-hidden="true"><use href="#svg_plus" /></svg>
+            </span>
+            <span>Create new context</span>
+          </a>
+        </div>
       </div>
     {% endif %}
 

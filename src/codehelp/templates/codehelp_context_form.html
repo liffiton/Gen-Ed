@@ -9,110 +9,46 @@ SPDX-License-Identifier: AGPL-3.0-only
 {% block body %}
 <section class="section">
   <div class="container">
-    <h1 class="title">Editing context '{{ context.name }}' for class {{ auth['class_name'] }}</h1>
+    {% if context %}
+      {# We're editing an existing context. #}
+      <h1 class="title">Editing context '{{ context.name }}' for class {{ auth['class_name'] }}</h1>
+      <form action="{{ url_for(".update_context", ctx_id=context.id) }}" method="post">
+    {% else %}
+      <h1 class="title">Create context for class {{ auth['class_name'] }}</h1>
+      <form action="{{ url_for(".create_context") }}" method="post">
+    {% endif %}
 
-      <form action="{{ url_for("class_config.set_context", ctx_id=context.id) }}" method="post">
         <div class="field is-horizontal">
           <div class="field-label is-normal">
-            <label class="label">Languages:</label>
-            {% if not context_config or (context_config.languages and not context_config.default_lang) %}
-              <p class="is-size-5 mb-2 has-text-danger">Please configure the language(s) for this context before your students use it.</p>
-            {% endif %}
-            <p class="has-text-grey">Add and remove language options, reorder the list, and choose a default that will be pre-selected for students who have not chosen a language previously.</p>
+            <label class="label" for="name">Name<span title="required">*</span></label>
           </div>
           <div class="field-body">
-            <script type="text/javascript">
-              document.addEventListener('alpine:init', () => {
-                Alpine.data('lang_config', () => ({
-                  languages: {{ context_config.languages | tojson }},
-                  default_lang: {{ context_config.default_lang | tojson }},
-                  add_language: null,
-                  drag_index: null,
-
-                  add_lang() {
-                    const addlang = this.add_language;
-                    if (addlang && !this.languages.includes(addlang)) {
-                      this.languages.push(addlang);
-                      this.add_language = null;
-                    }
-                  },
-                  dragenter(index) {
-                    if (this.drag_index === null) { return }
-                    if (index === this.drag_index) { return }
-                    // reorder the list, placing the dragged item at this index and shifting others
-                    let new_languages = [];
-                    const drag_item = this.languages[this.drag_index];
-                    this.languages.forEach((el, i) => {
-                      if (i === this.drag_index) { return }
-                      else if (i === index && i < this.drag_index) {
-                        new_languages.push(drag_item);
-                        new_languages.push(el);
-                      }
-                      else if (i === index && i > this.drag_index) {
-                        new_languages.push(el);
-                        new_languages.push(drag_item);
-                      }
-                      else {
-                        new_languages.push(el);
-                      }
-                    });
-                    this.languages = new_languages;  // update w/ newly ordered list
-                    this.drag_index = index;  // this new index is now the one we're dragging
-                  },
-                  stop_drag() {
-                    this.drag_index = null;
-                  },
-                }));
-              });
-            </script>
-            <table class="table is-narrow" x-data="lang_config">
-              <thead>
-                <tr>
-                  <th class="p-0 has-text-centered has-text-grey" aria-label="Reorder">
-                    <svg aria-hidden="true" class="icon is-small" style="vertical-align: bottom;"><use href="#svg_arrow_up_down" /></svg>
-                  </th>
-                  <th style="min-width: 11em;">Name</th>
-                  <th class="has-text-centered">Default</th>
-                  <th class="has-text-centered has-text-grey"><small>remove</small></th>
-                </tr>
-              </thead>
-              <tbody>
-                <template x-for="(lang, index) in languages" x-bind:key="lang">
-                  <tr x-bind:data-index="index" x-bind:draggable="(drag_index == index)" @dragenter="dragenter(index)" @dragover.prevent @dragend="stop_drag" @drop="stop_drag" x-bind:style="(drag_index == index) && {background: '#fc9'}">
-                    <input type="hidden" name="languages[]" x-bind:value="lang">
-                    <td style="cursor: move; vertical-align: middle; text-align: center;" @mousedown="drag_index=index" @mouseup="stop_drag" aria-label="drag to reorder">
-                      <svg aria-hidden="true" class="icon is-small"><use href="#svg_grip" /></svg>
-                    </td>
-                    <td x-text="lang"></td>
-                    <td class="has-text-centered">
-                      <input required type="radio" name="default_lang" x-bind:value="lang" x-model="default_lang" aria-label="set default">
-                    </td>
-                    <td class="has-text-centered">
-                      <button class="delete mt-1 mb-1" @click="languages = languages.filter(item => item !== lang)" aria-label="remove"></button>
-                    </td>
-                  </tr>
-                </template>
-                <tr>
-                  <td></td>
-                  <td colspan=3>
-                    <div class="field has-addons">
-                      <div class="control">
-                        <input class="input is-small" size=20 x-model="add_language" @keydown.enter.prevent="add_lang()" placeholder="New language" aria-label="New language">
-                      </div>
-                      <div class="control">
-                        <button class="button is-success is-small" type="button" @click="add_lang()">add</button>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <div class="field">
+              <div class="control">
+                <input class="input" required autofocus name="name" id="name" {% if context %}value="{{ context.name }}"{% endif %}>
+              </div>
+            </div>
           </div>
         </div>
 
         <div class="field is-horizontal">
           <div class="field-label is-normal">
-            <label class="label" for="avoid">Keywords to Avoid:</label>
+            <label class="label" for="language">Languages<span title="required">*</span></label>
+            <p class="has-text-grey">Languages, libraries, and/or frameworks that students are learning or using in this context.</p>
+            <p class="has-text-grey">Write one per line.</p>
+          </div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <textarea required class="textarea is-family-monospace" name="language" id="language" rows=5>{{ context_config['language'] }}</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field is-horizontal">
+          <div class="field-label is-normal">
+            <label class="label" for="avoid">Keywords to Avoid</label>
             <p class="has-text-grey">Keywords and concepts you want the system to avoid in responses.</p>
             <p class="has-text-grey">Write one per line.</p>
             <p class="has-text-grey">Be careful!  Writing "sum" could avoid discussing summation at all, while "sum()" will avoid just the sum function.</p>

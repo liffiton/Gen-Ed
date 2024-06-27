@@ -136,6 +136,9 @@ CREATE TABLE contexts (
     created     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(class_id) REFERENCES classes(id)
 );
+-- names must be unique within a class, and we often look up by class and name
+DROP INDEX IF EXISTS contexts_by_class_name;
+CREATE UNIQUE INDEX  contexts_by_class_name ON contexts(class_id, name);
 
 -- Roles for users in classes
 CREATE TABLE roles (

@@ -15,10 +15,12 @@ CREATE TABLE contexts (
     created     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(class_id) REFERENCES classes(id)
 );
+-- names must be unique within a class, and we often look up by class and name
+CREATE UNIQUE INDEX  contexts_by_class_name ON contexts(class_id, name);
 
 -- Copy existing class configs into contexts
 INSERT INTO contexts (name, class_id, class_order, available, config)
-  SELECT 'default', classes.id, 0, "0001-01-01", classes.config FROM classes;
+  SELECT 'Default', classes.id, 0, "0001-01-01", classes.config FROM classes;
 
 -- Remove class config column
 ALTER TABLE classes DROP COLUMN config;

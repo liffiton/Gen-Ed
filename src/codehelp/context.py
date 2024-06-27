@@ -17,19 +17,17 @@ def _default_langs() -> list[str]:
 
 @dataclass(frozen=True)
 class CodeHelpContext(ContextConfig):
+    name: str
+    languages: str | None = None
+    avoid: str | None = None
     template: str = "codehelp_context_form.html"
-    name: str = ''
-    languages: list[str] = field(default_factory=_default_langs)
-    default_lang: str | None = None
-    avoid: str = ''
 
     @classmethod
-    def from_request_form(cls, name: str, form: ImmutableMultiDict[str, str]) -> Self:
+    def from_request_form(cls, form: ImmutableMultiDict[str, str]) -> Self:
         return cls(
-            name=name,
-            languages=form.getlist('languages[]'),
-            default_lang=form.get('default_lang', None),
-            avoid=form['avoid'],
+            name=form['name'],
+            languages=form.get('languages', None),
+            avoid=form.get('avoid', None),
         )
 
     def to_str(self) -> str:

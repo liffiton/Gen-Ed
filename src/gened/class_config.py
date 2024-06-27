@@ -7,23 +7,26 @@ import datetime as dt
 
 from flask import (
     Blueprint,
-    abort,
     current_app,
-    flash,
-    redirect,
     render_template,
-    request,
-    url_for,
 )
 from werkzeug.wrappers.response import Response
 
 from .auth import get_auth, instructor_required
-from .contexts import ContextConfig, context_required, have_registered_context
+from .contexts import bp as contexts_bp
+from .contexts import have_registered_context
 from .db import get_db
 from .openai import LLMDict, get_completion, get_models, with_llm
 from .tz import date_is_past
 
 bp = Blueprint('class_config', __name__, url_prefix="/instructor/config", template_folder='templates')
+
+@bp.before_request
+@instructor_required
+def before_request() -> None:
+    """ Apply decorator to protect all class_config blueprint endpoints. """
+
+bp.register_blueprint(contexts_bp)
 
 
 @bp.route("/")
@@ -62,6 +65,7 @@ def config_form() -> str:
             WHERE contexts.class_id=?
             ORDER BY contexts.class_order
         """, [class_id]).fetchall()
+        contexts = [dict(c) for c in contexts]  # for conversion to json
 
     return render_template("instructor_class_config.html", class_row=class_row, link_reg_state=link_reg_state, models=get_models(), contexts=contexts)
 
@@ -82,44 +86,3 @@ def test_llm(llm_dict: LLMDict) -> Response | dict[str, str | None]:
         if response_txt != "OK":
             current_app.logger.error(f"LLM check had no error but responded not 'OK'?  Response: {response_txt}")
         return {'result': 'success', 'msg': 'Success!', 'error': None}
-
-
-@bp.route("/context/<int:ctx_id>")
-@instructor_required
-@context_required
-def context_form(ctx_class: type[ContextConfig], ctx_id: int) -> str | Response:
-    db = get_db()
-    auth = get_auth()
-
-    context_row = db.execute("SELECT * FROM contexts WHERE id=?", [ctx_id]).fetchone()
-
-    # verify the current user can edit this context
-    class_id = auth['class_id']
-    if context_row['class_id'] != class_id:
-        return abort(403)
-
-    context_config = ctx_class.from_row(context_row)
-
-    return render_template(context_config.template, context=context_row, context_config=context_config)
-
-
-@bp.route("/context/set/<int:ctx_id>", methods=["POST"])
-@instructor_required
-@context_required
-def set_context(ctx_class: type[ContextConfig], ctx_id: int) -> Response:
-    db = get_db()
-    auth = get_auth()
-
-    # verify the current user can edit this context
-    class_id = auth['class_id']
-    context = db.execute("SELECT * FROM contexts WHERE id=?", [ctx_id]).fetchone()
-    if context['class_id'] != class_id:
-        return abort(403)
-
-    context_json = ctx_class.from_request_form(context['name'], request.form).to_json()
-
-    db.execute("UPDATE contexts SET config=? WHERE id=?", [context_json, ctx_id])
-    db.commit()
-
-    flash(f"Configuration for context '{context['name']}' set!", "success")
-    return redirect(url_for(".config_form"))
