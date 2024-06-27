@@ -156,7 +156,7 @@ The topic of this chat from the student is: <topic>{{ topic }}</topic>
 If the topic is broad and it could take more than one chat session to cover all aspects of it, first ask the student to clarify what, specifically, they are attempting to learn about it.
 
 {% if context %}
-Additional context that may be relevant to this chat:
+Additional context provided by the instructor that may be relevant to this chat:
 <context>
 {{ context }}
 </context>

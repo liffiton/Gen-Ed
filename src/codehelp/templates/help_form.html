@@ -17,39 +17,11 @@ SPDX-License-Identifier: AGPL-3.0-only
       <form action="{{url_for('helper.help_request')}}" method="post" x-data="{loading: false}" x-on:submit.debounce.10ms="loading = true">
 
       {% if contexts %}
-      <script type="text/javascript">
-        const context_view = {
-          ctx_descriptions: {{ contexts_desc | tojson }},
-          current_ctx: {{ (selected_context_name or '') | tojson }},
-        };
-      </script>
-      <div class="field is-horizontal" x-data="context_view">
+      <div class="field is-horizontal">
         <div class="field-label {% if contexts | length > 1 %}is-normal{% endif %}">
           <label class="label" for="context">Context:</label>
         </div>
-        <div class="field-body">
-          {% if contexts | length == 1 %}
-            <input type="hidden" name="context" value="{{ contexts[0].name }}">
-            {{ contexts[0].name }}
-          {% else %}
-            <div class="field is-narrow">
-              <div class="control">
-                <div class="select">
-                  <select name="context" id="context" required x-bind:disabled="loading" x-model="current_ctx">
-                    <option value="">Please select</option>
-                    {% for ctx in contexts %}
-                    <option value="{{ctx.name}}">{{ ctx.name }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-              </div>
-            </div>
-            <div class="message" x-show="current_ctx != ''">
-              <div class="message-body content p-3" style="max-height: 10em; overflow-y: scroll;" x-html="ctx_descriptions[current_ctx]">
-              </div>
-            </div>
-          {% endif %}
-        </div>
+        {% include "context_chooser.html" %}
       </div>
       {% endif %}
 

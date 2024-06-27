@@ -48,8 +48,11 @@ bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='template
 def help_form(query_id: int | None = None) -> str:
     db = get_db()
     auth = get_auth()
-    contexts = get_available_contexts(CodeHelpContext)
-    contexts_desc = {ctx.name: ctx.desc_html() for ctx in contexts}
+
+    contexts_list = get_available_contexts(CodeHelpContext)
+    # turn into format we can pass to js via JSON
+    contexts = {ctx.name: ctx.desc_html() for ctx in contexts_list}
+
     selected_context_name = None
 
     if query_id is not None:
@@ -66,12 +69,16 @@ def help_form(query_id: int | None = None) -> str:
             selected_context_name = recent_row['context_name']
 
     # validate selected context name (may no longer exist / be available)
-    if selected_context_name not in contexts_desc:
+    if selected_context_name not in contexts:
         selected_context_name = None
+
+    # regardless, if there is only one context, select it
+    if len(contexts) == 1:
+        selected_context_name = next(iter(contexts.keys()))
 
     history = get_history()
 
-    return render_template("help_form.html", query=query_row, history=history, contexts=contexts, contexts_desc=contexts_desc, selected_context_name=selected_context_name)
+    return render_template("help_form.html", query=query_row, history=history, contexts=contexts, selected_context_name=selected_context_name)
 
 
 @bp.route("/view/<int:query_id>")

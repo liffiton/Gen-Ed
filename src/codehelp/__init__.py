@@ -49,8 +49,9 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
     app.register_blueprint(helper.bp)
     app.register_blueprint(tutor.bp)
 
-    # register our custom class configuration with Gen-Ed
-    context.register_with_gened()
+    # register our custom context configuration with Gen-Ed
+    # and grab a reference to the app's markdown filter
+    context.init_app(app)
 
     # register app-specific charts in the admin interface
     admin.register_with_gened()
