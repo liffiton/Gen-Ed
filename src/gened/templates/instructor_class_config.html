@@ -298,13 +298,13 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <td class="has-text-centered" x-text="ctx.available"></td>
                 <td class="has-text-centered">
                   <form method="post">
-                    <a x-bind:title="`edit ${ctx.name}`" class="button is-white is-small icon-text has-text-primary" x-bind:href="'{{ url_for('class_config.contexts.context_form') }}/' + ctx.id">
+                    <a x-bind:title="`edit '${ctx.name}'`" class="button is-white is-small icon-text has-text-primary" x-bind:href="'{{ url_for('class_config.contexts.context_form') }}/' + ctx.id">
                       <svg aria-hidden="true" class="icon is-small"><use href="#svg_config" /></svg>
                     </a>
-                    <button x-bind:title="`copy ${ctx.name}`" class="button is-white is-small has-text-primary" type="submit" x-bind:formaction="'{{ url_for('class_config.contexts.copy_context') }}/' + ctx.id">
+                    <button x-bind:title="`copy '${ctx.name}'`" class="button is-white is-small has-text-primary" type="submit" x-bind:formaction="'{{ url_for('class_config.contexts.copy_context') }}/' + ctx.id">
                       <svg aria-hidden="true" class="icon is-small"><use href="#svg_copy" /></svg>
                     </button>
-                    <button x-bind:title="`delete ${ctx.name}`" class="button is-white is-small has-text-danger" type="submit" x-bind:formaction="'{{ url_for('class_config.contexts.delete_context') }}/' + ctx.id" @click="$event => confirm('Are you sure you want to delete \'' + ctx.name + '\'?') || $event.preventDefault()">
+                    <button x-bind:title="`delete '${ctx.name}'`" class="button is-white is-small has-text-danger" type="submit" x-bind:formaction="'{{ url_for('class_config.contexts.delete_context') }}/' + ctx.id" @click="$event => confirm('Are you sure you want to delete \'' + ctx.name + '\'?') || $event.preventDefault()">
                       <svg aria-hidden="true" class="icon is-small"><use href="#svg_trash" /></svg>
                     </button>
                   </form>

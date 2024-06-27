@@ -154,8 +154,7 @@ def context_form(ctx_class: type[ContextConfig], ctx_row: Row, ctx_id: int) -> s
 @bp.route("/new")
 @context_required
 def new_context_form(ctx_class: type[ContextConfig]) -> str | Response:
-    context_config = ctx_class()
-    return render_template(context_config.template, context=None, context_config=None)
+    return render_template(ctx_class.template, context=None, context_config=None)
 
 
 def _insert_context(class_id: int, name: str, config: str, available: str) -> None:
@@ -208,9 +207,9 @@ def copy_context(ctx_class: type[ContextConfig], ctx_row: Row, ctx_id: int) -> R
 def update_context(ctx_class: type[ContextConfig], ctx_id: int, ctx_row: Row) -> Response:
     db = get_db()
 
-    context_json = ctx_class.from_request_form(request.form).to_json()
+    context = ctx_class.from_request_form(request.form)
 
-    db.execute("UPDATE contexts SET config=? WHERE id=?", [context_json, ctx_id])
+    db.execute("UPDATE contexts SET name=?, config=? WHERE id=?", [context.name, context.to_json(), ctx_id])
     db.commit()
 
     flash(f"Configuration for context '{ctx_row['name']}' updated.", "success")
