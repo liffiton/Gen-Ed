@@ -16,10 +16,14 @@ VALUES
 
 INSERT INTO contexts (id, name, class_id, class_order, available, config)
 VALUES
-    (1, 'default', 1, 0, '0001-01-01', '{"languages": ["Python", "C++", "OCaml"], "default_lang": "Python", "avoid": "sum()\r\neval()\r\nzfill()\r\n+=\r\n"}'),
-    (2, 'default', 2, 0, '0001-01-01', '{"languages": ["Python"], "default_lang": "Python", "avoid": ""}'),
-    (3, 'default', 3, 0, '0001-01-01', '{"languages": ["Python"], "default_lang": "Python", "avoid": ""}'),
-    (4, 'default', 4, 0, '0001-01-01', '{"languages": ["Python"], "default_lang": "Python", "avoid": ""}');
+    (1, 'default', 1, 0, '0001-01-01', '{"tools": "Python\r\nC++\r\nOCaml", "avoid": "sum()\r\neval()\r\nzfill()\r\n+=\r\n"}'),
+    (2, 'default', 2, 0, '0001-01-01', '{"tools": "Python", "avoid": ""}'),
+    (3, 'default', 3, 0, '0001-01-01', '{"tools": "Python", "avoid": ""}'),
+    (4, 'default', 4, 0, '0001-01-01', '{"tools": "Python", "avoid": ""}'),
+    -- contexts for testuser's class:
+    (5, 'default1', 2, 0, '0001-01-01', '{"tools": "Python", "avoid": ""}'),
+    (6, 'default2', 2, 1, '0001-01-01', '{"tools": "Python", "avoid": ""}'),
+    (7, 'default3', 2, 2, '0001-01-01', '{"tools": "Python", "avoid": ""}');
 
 INSERT INTO classes_lti (class_id, lti_consumer_id, lti_context_id)
 VALUES

@@ -16,7 +16,7 @@
                     <select name="context" id="context" required x-bind:disabled="loading" x-model="current_ctx">
                       <option value="">Please select</option>
                       {% for ctx in contexts.keys() %}
-                      <option value="{{ ctx }}">{{ ctx }}</option>
+                      <option value="{{ ctx }}" {%- if ctx == selected_context_name %} selected{% endif %}>{{ ctx }}</option>
                       {% endfor %}
                     </select>
                   </div>

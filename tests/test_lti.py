@@ -160,31 +160,22 @@ def test_lti_instructor_and_students(client):
     uri, headers, body = lti.generate_launch_request("instructor")
     client.post(uri, headers=headers, data=body)
 
-    # 2) instructor configures the course
-    result = client.post(
-        '/instructor/config/set',
-        data={'default_lang': 1, 'avoid': ''},
-        follow_redirects=True
-    )
-    assert "Configuration set!" in result.text
-
+    # 2) instructor can access the course help page
     result = client.get('/help/')
-    assert result.status_code == 200  # ... and now it should work!
+    assert result.status_code == 200
     assert USER['fullname'] in result.text
-    assert "This class is not yet configured." not in result.text
 
     client.post('/auth/logout')
 
-    # 3) student 1 logs in
+    # 3) student 1 logs in, can access help page
     uri, headers, body = lti.generate_launch_request("student_1")
     client.post(uri, headers=headers, data=body)
 
     result = client.get('/help/')
     assert result.status_code == 200
-    assert "This class is not yet configured." not in result.text
 
     # 4) student 1 makes a query
-    result = client.post('/help/request', data={'lang_id': 1, 'code': 'student_1_code', 'error': 'error', 'issue': 'issue'})
+    result = client.post('/help/request', data={'code': 'student_1_code', 'error': 'error', 'issue': 'issue'})
     assert result.status_code == 302
     assert result.location == "/help/view/5"  # next open query ID (test_data.sql inserts up to 4)
     result = client.get(result.location)
@@ -199,7 +190,6 @@ def test_lti_instructor_and_students(client):
 
     result = client.get('/help/')
     assert result.status_code == 200
-    assert "This class is not yet configured." not in result.text
 
     # 6) student 2 cannot see student 1's query
     result = client.get('/help/view/5')

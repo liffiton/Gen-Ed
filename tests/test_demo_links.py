@@ -32,7 +32,7 @@ def test_valid_demo_link(client):
         test_code = f"_test_code_{i}_"
         response = client.post(
             '/help/request',
-            data={'lang_id': 1, 'code': test_code, 'error': '_test_error_', 'issue': '_test_issue_'}
+            data={'code': test_code, 'error': '_test_error_', 'issue': '_test_issue_'}
         )
         if i < 3:
             # successful requests should redirect to a response page with the same items
