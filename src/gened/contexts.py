@@ -173,6 +173,7 @@ def _insert_context(class_id: int, name: str, config: str, available: str) -> in
     """, [class_id, new_name, config, available, class_id])
     db.commit()
     new_ctx_id = cur.lastrowid
+    assert new_ctx_id is not None
 
     flash(f"Context '{new_name}' created.", "success")
 
@@ -186,7 +187,7 @@ def create_context(ctx_class: type[ContextConfig]) -> Response:
     assert auth['class_id']
 
     context = ctx_class.from_request_form(request.form)
-    _insert_context(auth['class_id'], context.name, context.to_json(), "0001-01-01")
+    _insert_context(auth['class_id'], context.name, context.to_json(), "9999-12-31")  # defaults to hidden
     return redirect(url_for("class_config.config_form"))
 
 
@@ -233,6 +234,43 @@ def delete_context(ctx_class: type[ContextConfig], ctx_id: int, ctx_row: Row) ->
     return redirect(url_for("class_config.config_form"))
 
 
+@bp.route("/update_order", methods=["POST"])
+@context_required
+def update_order(ctx_class: type[ContextConfig]) -> str:
+    db = get_db()
+    auth = get_auth()
+
+    class_id = auth['class_id']
+
+    ordered_ids = request.json
+    assert isinstance(ordered_ids, list)
+    sql_tuples = [(i, ctx_id, class_id) for i, ctx_id in enumerate(ordered_ids)]
+
+    # Check class_id in the WHERE to prevent changing contexts in another class
+    db.executemany("UPDATE contexts SET class_order=? WHERE id=? AND class_id=?", sql_tuples)
+    db.commit()
+
+    return 'ok'
+
+
+@bp.route("/update_available", methods=["POST"])
+@context_required
+def update_available(ctx_class: type[ContextConfig]) -> str:
+    db = get_db()
+    auth = get_auth()
+
+    class_id = auth['class_id']
+
+    data = request.json
+    assert isinstance(data, dict)
+
+    # Check class_id in the WHERE to prevent changing contexts in another class
+    db.execute("UPDATE contexts SET available=? WHERE id=? AND class_id=?", [data['available'], data['ctx_id'], class_id])
+    db.commit()
+
+    return 'ok'
+
+
 ### Helper functions for applications
 
 T = TypeVar('T', bound='ContextConfig')
@@ -242,8 +280,9 @@ def get_available_contexts(ctx_class: type[T]) -> list[T]:
     auth = get_auth()
 
     class_id = auth['class_id']
-    # TODO: filter by available using current date
-    context_rows = db.execute("SELECT * FROM contexts WHERE class_id=? ORDER BY class_order ASC", [class_id]).fetchall()
+    # Only return contexts that are available:
+    #   current date anywhere on earth (using UTC+12) is at or after the saved date
+    context_rows = db.execute("SELECT * FROM contexts WHERE class_id=? AND available <= date('now', '+12 hours') ORDER BY class_order ASC", [class_id]).fetchall()
 
     return [ctx_class.from_row(row) for row in context_rows]
 

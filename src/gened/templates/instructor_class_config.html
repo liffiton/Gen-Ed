@@ -237,9 +237,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       <div class="conf_col content">
         <h2 class="title is-size-4">Contexts</h2>
-        <p class="has-text-grey" style="max-width: 50em">Contexts let you provide additional information to the LLM for each query a student makes.  You can have a single default context that is always used, or you can create separate contexts for individual assignments, modules, etc. that can be selected by students when making a query.  Usually, providing more specific context produces better, more accurate responses.</p>
+        <p class="has-text-grey" style="max-width: 50em">Contexts let you provide additional information to the LLM for each query a student makes.  You can have a single default context that is always used, or you can create separate contexts for individual assignments, modules, etc. that can be selected by students when making a query.  Providing more specific context usually produces better, more accurate responses.</p>
         {% if contexts | length == 0 %}
-          <p class="has-text-danger">While not strictly required, we recommend defining at least one context ("Default") to specify the language(s), frameworks, and/or libraries in use in this class.</p>
+          <p class="has-text-danger">While not strictly required, we recommend defining at least one context to specify the language(s), frameworks, and/or libraries in use in this class.</p>
         {% endif %}
         <script type="text/javascript">
           document.addEventListener('alpine:init', () => {
@@ -272,15 +272,20 @@ SPDX-License-Identifier: AGPL-3.0-only
               },
               stop_drag() {
                 this.drag_index = null;
-                // TODO: post updated ordering to save in DB
+                // post updated ordering to save in DB
+                fetch("{{ url_for('class_config.contexts.update_order') }}", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(this.items.map(item => item.id)),
+                });
               },
             }));
           });
         </script>
-        <table class="table is-hoverable" x-data="reorderable">
+        <table class="table is-hoverable is-narrow" x-data="reorderable">
           <thead>
             <tr>
-              <th class="p-1 has-text-centered has-text-grey" title="Reorder">
+              <th class="p-0 has-text-centered has-text-grey" title="Reorder">
                 <svg aria-hidden="true" class="icon is-small" style="vertical-align: bottom;"><use href="#svg_arrow_up_down" /></svg>
               </th>
               <th>Name</th>
@@ -290,23 +295,46 @@ SPDX-License-Identifier: AGPL-3.0-only
           </thead>
           <tbody>
             <template x-for="(ctx, index) in items" x-bind:key="ctx.name">
-              <tr x-bind:draggable="(drag_index == index)" @dragenter="dragenter(index)" @dragover.prevent @dragend="stop_drag" @drop="stop_drag" x-bind:style="(drag_index == index) && {background: '#fc9'}">
+              <tr x-bind:draggable="(drag_index == index)" @dragenter="dragenter(index)" @dragover.prevent @dragend="stop_drag" x-bind:style="(drag_index == index) && {background: '#fc9'}">
                 <td style="cursor: move; vertical-align: middle; text-align: center;" @mousedown="drag_index=index" @mouseup="stop_drag" title="drag to reorder">
                   <svg aria-hidden="true" class="icon is-small"><use href="#svg_grip" /></svg>
                 </td>
-                <td x-text="ctx.name"></td>
-                <td class="has-text-centered">
+                <td style="vertical-align: middle;" x-text="ctx.name"></td>
+                <td class="has-text-centered" style="vertical-align: middle;">
                   <div x-data="{
                     showDropdown: false,
                     showModal: false,
-                    get status() { return ctx.available === '9999-12-31' ? 'Never' : ctx.available === '0001-01-01' ? 'Now' : 'Scheduled'; },
+                    newDate: null,
+
+                    init() {
+                      $watch('ctx.available', newval => {
+                        // post updated date to save in DB
+                        fetch('{{ url_for('class_config.contexts.update_available') }}', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({'ctx_id': ctx.id, 'available': ctx.available}),
+                        });
+                      });
+                    },
+                    get status() { return ctx.available === '9999-12-31' ? 'Hidden' : this.datePassed(ctx.available) ? 'Now' : 'Scheduled'; },
+                    get today_str() { return new Date().toISOString().split('T')[0]; },
+                    datePassed(date) {
+                      const now_datetime = new Date();  // automatically UTC
+                      const target_date = new Date(date);  // automatically UTC
+                      target_date.setHours(target_date.getHours() - 12);  // UTC-12 for anywhere on Earth
+                      return now_datetime >= target_date;
+                    },
                     formatDate(date) {
-                      return new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                      // Add 'T00:00' to force parsing as local time so UTC-local shift doesn't change date
+                      return new Date(date + 'T00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
                     },
                     chooseScheduled() {
-                      if (this.status !== 'Scheduled') {
+                      if (this.status === 'Scheduled') {
+                        this.newDate = ctx.available;
+                      }
+                      else {
                         // get today in YYYY-MM-DD format as starting point for date picker
-                        ctx.available = new Date().toISOString().split('T')[0];
+                        this.newDate = this.today_str;
                       }
                       this.showModal = true;
                     },
@@ -315,38 +343,41 @@ SPDX-License-Identifier: AGPL-3.0-only
                       <div class="dropdown-trigger">
                         <button class="button is-small is-rounded" 
                           x-bind:class="{
-                            'is-danger': status === 'Never',
+                            'is-success': status === 'Now',
                             'is-warning': status === 'Scheduled',
-                            'is-success': status === 'Now'
+                            'is-danger': status === 'Hidden',
                           }"
                           @click="showDropdown = !showDropdown"
                           @click.outside="showDropdown = false"
-                          aria-haspopup="true" x-bind:aria-controls="`dropdown-menu${index{`">
+                          aria-haspopup="true" x-bind:aria-controls="`dropdown-menu${index}`">
                           <span x-text="status === 'Scheduled' ? `Scheduled: ${formatDate(ctx.available)}` : status"></span>
+                          <svg aria-hidden="true" class="icon is-small"><use href="#svg_chevron_down" /></svg>
                         </button>
                       </div>
                       <div class="dropdown-menu" x-bind:id="`dropdown-menu${index}`" role="menu">
                         <div class="dropdown-content has-text-left">
-                          <a href="#" class="dropdown-item" @click.prevent="ctx.available = '9999-12-31'">Never (hidden)</a>
                           <a href="#" class="dropdown-item" @click.prevent="ctx.available = '0001-01-01'">Now</a>
                           <a href="#" class="dropdown-item" @click.prevent="chooseScheduled">Scheduled</a>
+                          <a href="#" class="dropdown-item" @click.prevent="ctx.available = '9999-12-31'">Hidden</a>
                         </div>
                       </div>
                     </div>
-                    <div class="modal" x-bind:class="{ 'is-active': showModal }">
+                    <div class="modal" x-bind:class="{ 'is-active': showModal }" @keydown.escape.window="showModal = false">
                       <div class="modal-background" @click="showModal = false"></div>
                       <div class="modal-content">
                         <div class="box">
-                          <h3 class="title is-4">Select Availability Date</h3>
-
-                          <div class="field has-addons has-addons-centered">
-                            <p class="control">
-                              <input type="date" class="input is-large" x-model="ctx.available">
-                            </p>
-                            <p class="control">
-                              <button class="button is-large is-primary" @click="showModal = false">OK</button>
-                            </p>
-                          </div>
+                          <h3 class="title is-4">Schedule '<span x-text="ctx.name"></span>'</h3>
+                          <form @submit.prevent="ctx.available = newDate; showModal = false">
+                            <div class="field is-grouped" style="justify-content: center;">
+                              <p class="control">
+                                <input type="date" class="input is-large" x-model="newDate" x-bind:min="today_str">
+                              </p>
+                              <p class="control">
+                                <button type="submit" class="button is-large is-primary">OK</button>
+                              </p>
+                            </div>
+                          </form>
+                          <p>When scheduled for a certain date, a context becomes available when that date is reached anywhere on Earth (UTC+12).</p>
                         </div>
                       </div>
                       <button class="modal-close is-large" aria-label="close" @click="showModal = false"></button>

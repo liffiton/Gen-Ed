@@ -10,7 +10,7 @@
                 {% if contexts | length == 1 %}
                   {% set the_ctx = (contexts.keys() | list)[0] %}
                   <input type="hidden" name="context" value="{{ the_ctx }}">
-                  {{ the_ctx }}
+                  <div class="field-label is-normal">{{ the_ctx }}</div>
                 {% else %}
                   <div class="select">
                     <select name="context" id="context" required x-bind:disabled="loading" x-model="current_ctx">
