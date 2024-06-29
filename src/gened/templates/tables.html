@@ -69,7 +69,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     </tbody>
   </table>
   {% if del_handler %}
-    <dialog id="remove_confirm_dialog" style="border: none; background: none; width: 75%; min-width: min(32em, 100vw);">
+    <dialog id="remove_confirm_dialog" style="width: 75%; min-width: min(32em, 100vw);">
       <div class="content box">
         <h2>Remove <span x-text="remove_item.type"></span>?</h2>
         <ul>
@@ -100,15 +100,6 @@ SPDX-License-Identifier: AGPL-3.0-only
           .then(obj => { proxy_item.type = obj.type; proxy_item.data = obj.data; proxy_item.extra_text = obj.extra_text; })
           .then(() => dialog.showModal());
       }
-      // close dialog on click outside
-      dialog.addEventListener('click', function (e) {
-        const rect = dialog.getBoundingClientRect();
-        const isInDialog=(rect.top <= e.clientY && e.clientY <= rect.top + rect.height
-          && rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
-        if (!isInDialog) {
-          dialog.close();
-        }
-      });
     </script>
   {% endif %}
   <script type="text/javascript">

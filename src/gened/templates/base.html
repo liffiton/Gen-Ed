@@ -30,6 +30,8 @@ SPDX-License-Identifier: AGPL-3.0-only
       pre, .content pre { padding: 0.5rem 0.75rem; }
       .tbl_cols { display: flex; gap: 2em; flex-wrap: wrap; }
       .tbl_col { overflow: auto; }
+      dialog { border: none; background: none; }
+      dialog::backdrop { background: #0009; backdrop-filter: blur(4px); }
       /* fix spacing in some of markdownit's lists */
       .content p:has(+ul), .content p:has(+ol) { margin-bottom: 0.25em !important; }
       .content ul ol, .content ol ul, .content ul ul, .content ol ol { margin-top: 0.25em; }
@@ -258,5 +260,17 @@ ${ options.searchable ?
       </div>
     </footer>
   </body>
+  <script type="text/JavaScript">
+    // close dialogs on click outside
+    const dialogs = document.querySelectorAll("dialog");
+    dialogs.forEach(dialog => dialog.addEventListener('click', function (e) {
+        const rect = dialog.getBoundingClientRect();
+        const isInDialog=(rect.top <= e.clientY && e.clientY <= rect.top + rect.height
+          && rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
+        if (!isInDialog) {
+            dialog.close();
+        }
+    }));
+  </script>
 </html>
 

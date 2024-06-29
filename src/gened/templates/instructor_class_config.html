@@ -131,9 +131,6 @@ SPDX-License-Identifier: AGPL-3.0-only
           showDialog() {
             this.dialog.showModal();
           },
-          closeDialog() {
-            this.dialog.close();
-          },
           test_llm() {
             this.llm_test_loading = true;
             fetch('{{url_for('class_config.test_llm')}}')
@@ -211,17 +208,18 @@ SPDX-License-Identifier: AGPL-3.0-only
                   x-bind:class="llm_test_loading ? 'is-loading' : llm_test_result==='ok' ? 'is-success' : 'is-danger'"
                   x-show="llm_test_loading || llm_test_result"
                   x-text="llm_test_loading ? '' : llm_test_result === 'ok' ? 'Success!' : 'Error!'"
-                  x-on:click.stop="showDialog"></button>
+                  x-on:click="showDialog"></button>
               </div>
-              <dialog id="llm_test_dialog" style="border: none; background: none;">
-                <div class="notification" x-bind:class="{'is-danger': llm_test_result!=='ok', 'is-success': llm_test_result==='ok'}" x-transition.duration.500ms @click.outside="closeDialog">
-                  <div x-show="llm_test_result!=='ok'" x-html="llm_test_result"></div>
-                  <div x-show="llm_test_result==='ok'">Your API key and chosen model worked!</div>
-                </div>
-              </dialog>
             </div>
           </div>
         </div>
+
+        <dialog id="llm_test_dialog">
+          <div class="notification"
+               x-bind:class="llm_test_result === 'ok' ? 'is-success' : 'is-danger'"
+               x-html="llm_test_result === 'ok' ? 'Your API key and chosen model worked!' : llm_test_result">
+          </div>
+        </dialog>
 
       </form>
 
