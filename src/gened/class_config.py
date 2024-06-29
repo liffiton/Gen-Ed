@@ -73,7 +73,7 @@ def config_form() -> str:
 @bp.route("/test_llm")
 @instructor_required
 @with_llm()
-def test_llm(llm_dict: LLMDict) -> Response | dict[str, str | None]:
+def test_llm(llm_dict: LLMDict) -> str:
     response, response_txt = asyncio.run(get_completion(
         client=llm_dict['client'],
         model=llm_dict['model'],
@@ -81,8 +81,8 @@ def test_llm(llm_dict: LLMDict) -> Response | dict[str, str | None]:
     ))
 
     if 'error' in response:
-        return {'result': 'error', 'msg': 'Error!', 'error': f"<b>Error:</b><br>{response_txt}"}
+        return f"<b>Error:</b><br>{response_txt}"
     else:
         if response_txt != "OK":
             current_app.logger.error(f"LLM check had no error but responded not 'OK'?  Response: {response_txt}")
-        return {'result': 'success', 'msg': 'Success!', 'error': None}
+        return "ok"

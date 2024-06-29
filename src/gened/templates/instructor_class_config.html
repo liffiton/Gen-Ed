@@ -125,29 +125,24 @@ SPDX-License-Identifier: AGPL-3.0-only
       <h2 class="title is-size-4 mt-5">Language Model</h2>
       <form action="{{ url_for("instructor.set_user_class_setting") }}" method="post" x-data="{
           llm_config_saved: {{ 'true' if class_row.openai_key else 'false' }},
-          llm_config_result: null,
-          llm_config_msg: null,
-          llm_config_error: null,
+          llm_test_loading: false,
+          llm_test_result: null,
+          dialog: document.querySelector('#llm_test_dialog'),
+          showDialog() {
+            this.dialog.showModal();
+          },
+          closeDialog() {
+            this.dialog.close();
+          },
           test_llm() {
-            // close dialog on click outside
-            const dialog = document.querySelector('#llm_error_dialog');
-            dialog.addEventListener('click', function (e) {
-              const rect = dialog.getBoundingClientRect();
-              const isInDialog=(rect.top <= e.clientY && e.clientY <= rect.top + rect.height
-                && rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
-              if (!isInDialog) {
-                dialog.close();
-              }
-            });
-            this.llm_config_result = 'loading';
+            this.llm_test_loading = true;
             fetch('{{url_for('class_config.test_llm')}}')
-              .then(response => response.json())
-              .then(json => {
-                this.llm_config_result = json['result'];
-                this.llm_config_msg = json['msg'];
-                this.llm_config_error = json['error'];
-                if (json['error']) {
-                  dialog.showModal();
+              .then(response => response.text())
+              .then(text => {
+                this.llm_test_loading = false;
+                this.llm_test_result = text;
+                if (text !== 'ok') {
+                  this.showDialog();
                 }
               })
           },
@@ -211,16 +206,18 @@ SPDX-License-Identifier: AGPL-3.0-only
           <div class="field-body">
             <div class="field">
               <div class="control buttons">
-                <button class="button" type="button" x-bind:disabled="!llm_config_saved || llm_config_result" x-on:click="test_llm()">Test saved key &amp; model</button>
+                <button class="button" type="button" x-bind:disabled="!llm_config_saved || llm_test_result" x-on:click="test_llm()">Test saved key &amp; model</button>
                 <button class="button" type="button"
-                  x-bind:class="llm_config_result==='loading' ? 'is-loading' : llm_config_result==='success' ? 'is-success' : llm_config_result==='error' ? 'is-danger' : ''"
-                  x-show="llm_config_result"
-                  x-text="llm_config_msg"
-                  x-on:click="document.querySelector('#llm_error_dialog').showModal()"></button>
+                  x-bind:class="llm_test_loading ? 'is-loading' : llm_test_result==='ok' ? 'is-success' : 'is-danger'"
+                  x-show="llm_test_loading || llm_test_result"
+                  x-text="llm_test_loading ? '' : llm_test_result === 'ok' ? 'Success!' : 'Error!'"
+                  x-on:click.stop="showDialog"></button>
               </div>
-              <dialog id="llm_error_dialog" style="border: none; background: none;">
-                <div class="notification is-danger" x-show="llm_config_error" x-transition.duration.500ms x-html="llm_config_error"></div>
-                <div class="notification is-success" x-show="llm_config_result==='success'">Your API key and model worked!</div>
+              <dialog id="llm_test_dialog" style="border: none; background: none;">
+                <div class="notification" x-bind:class="{'is-danger': llm_test_result!=='ok', 'is-success': llm_test_result==='ok'}" x-transition.duration.500ms @click.outside="closeDialog">
+                  <div x-show="llm_test_result!=='ok'" x-html="llm_test_result"></div>
+                  <div x-show="llm_test_result==='ok'">Your API key and chosen model worked!</div>
+                </div>
               </dialog>
             </div>
           </div>
@@ -280,6 +277,45 @@ SPDX-License-Identifier: AGPL-3.0-only
                 });
               },
             }));
+            Alpine.data('available_dropdown', () => ({
+              showDropdown: false,
+              showModal: false,
+              newDate: null,
+
+              // throughout, 'this.ctx' refers to a ctx object from the for loop in the parent Alpine scope ('reorderable')
+              init() {
+                this.$watch('ctx.available', newval => {
+                  // post updated date to save in DB
+                  fetch('{{ url_for('class_config.contexts.update_available') }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({'ctx_id': this.ctx.id, 'available': this.ctx.available}),
+                  });
+                });
+              },
+              get status() { return this.ctx.available === '9999-12-31' ? 'Hidden' : this.datePassed(this.ctx.available) ? 'Now' : 'Scheduled'; },
+              get today_str() { return new Date().toISOString().split('T')[0]; },
+              datePassed(date) {
+                const now_datetime = new Date();  // automatically UTC
+                const target_date = new Date(date);  // automatically UTC
+                target_date.setHours(target_date.getHours() - 12);  // UTC-12 for anywhere on Earth
+                return now_datetime >= target_date;
+              },
+              formatDate(date) {
+                // Add 'T00:00' to force parsing as local time so UTC-local shift doesn't change date
+                return new Date(date + 'T00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+              },
+              chooseScheduled() {
+                if (this.status === 'Scheduled') {
+                  this.newDate = this.ctx.available;
+                }
+                else {
+                  // get today in YYYY-MM-DD format as starting point for date picker
+                  this.newDate = this.today_str;
+                }
+                this.showModal = true;
+              },
+            }));
           });
         </script>
         <table class="table is-hoverable is-narrow" x-data="reorderable">
@@ -301,44 +337,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 </td>
                 <td style="vertical-align: middle;" x-text="ctx.name"></td>
                 <td class="has-text-centered" style="vertical-align: middle;">
-                  <div x-data="{
-                    showDropdown: false,
-                    showModal: false,
-                    newDate: null,
-
-                    init() {
-                      $watch('ctx.available', newval => {
-                        // post updated date to save in DB
-                        fetch('{{ url_for('class_config.contexts.update_available') }}', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({'ctx_id': ctx.id, 'available': ctx.available}),
-                        });
-                      });
-                    },
-                    get status() { return ctx.available === '9999-12-31' ? 'Hidden' : this.datePassed(ctx.available) ? 'Now' : 'Scheduled'; },
-                    get today_str() { return new Date().toISOString().split('T')[0]; },
-                    datePassed(date) {
-                      const now_datetime = new Date();  // automatically UTC
-                      const target_date = new Date(date);  // automatically UTC
-                      target_date.setHours(target_date.getHours() - 12);  // UTC-12 for anywhere on Earth
-                      return now_datetime >= target_date;
-                    },
-                    formatDate(date) {
-                      // Add 'T00:00' to force parsing as local time so UTC-local shift doesn't change date
-                      return new Date(date + 'T00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-                    },
-                    chooseScheduled() {
-                      if (this.status === 'Scheduled') {
-                        this.newDate = ctx.available;
-                      }
-                      else {
-                        // get today in YYYY-MM-DD format as starting point for date picker
-                        this.newDate = this.today_str;
-                      }
-                      this.showModal = true;
-                    },
-                  }">
+                  <div x-data="available_dropdown">
                     <div class="dropdown" x-bind:class="{'is-active': showDropdown}">
                       <div class="dropdown-trigger">
                         <button class="button is-small is-rounded" 
