@@ -232,7 +232,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       <div class="conf_col content">
         <h2 class="title is-size-4">Contexts</h2>
-        <p class="has-text-grey" style="max-width: 50em">Contexts let you provide additional information to the LLM for each query a student makes.  You can have a single default context that is always used, or you can create separate contexts for individual assignments, modules, etc. that can be selected by students when making a query.  Providing more specific context usually produces better, more accurate responses.</p>
+        <p class="has-text-grey" style="max-width: 50em">Contexts provide additional information to the LLM for each query a student makes.  You can have a single default context that is always used, or you can create separate contexts for individual assignments or modules to be selected by students when making queries.
         {% if contexts | length == 0 %}
           <p class="has-text-danger">While not strictly required, we recommend defining at least one context to specify the language(s), frameworks, and/or libraries in use in this class.</p>
         {% endif %}
@@ -292,7 +292,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 });
               },
               get status() { return this.ctx.available === '9999-12-31' ? 'Hidden' : this.datePassed(this.ctx.available) ? 'Now' : 'Scheduled'; },
-              get today_str() { return new Date().toISOString().split('T')[0]; },
+              get min_date_str() { const min_date = new Date(); min_date.setDate(min_date.getDate() + 1); return min_date.toISOString().split('T')[0]; },
               datePassed(date) {
                 const now_datetime = new Date();  // automatically UTC
                 const target_date = new Date(date);  // automatically UTC
@@ -309,7 +309,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 }
                 else {
                   // get today in YYYY-MM-DD format as starting point for date picker
-                  this.newDate = this.today_str;
+                  this.newDate = this.min_date_str;
                 }
                 this.showModal = true;
               },
@@ -333,12 +333,14 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <td style="cursor: move; vertical-align: middle; text-align: center;" @mousedown="drag_index=index" @mouseup="stop_drag" title="drag to reorder">
                   <svg aria-hidden="true" class="icon is-small"><use href="#svg_grip" /></svg>
                 </td>
-                <td style="vertical-align: middle;" x-text="ctx.name"></td>
-                <td class="has-text-centered" style="vertical-align: middle;">
+                <td style="vertical-align: middle;">
+                    <a class="is-underlined has-text-link-dark" x-bind:title="`edit '${ctx.name}'`" x-bind:href="'{{ url_for('class_config.contexts.context_form') }}/' + ctx.id" x-text="ctx.name">
+                </td>
+                <td style="text-align: center; vertical-align: middle;">
                   <div x-data="available_dropdown">
                     <div class="dropdown" x-bind:class="{'is-active': showDropdown}">
                       <div class="dropdown-trigger">
-                        <button class="button is-small is-rounded" 
+                        <button class="button is-small is-rounded" style="white-space: normal;"
                           x-bind:class="{
                             'is-success': status === 'Now',
                             'is-warning': status === 'Scheduled',
@@ -362,19 +364,22 @@ SPDX-License-Identifier: AGPL-3.0-only
                     <div class="modal" x-bind:class="{ 'is-active': showModal }" @keydown.escape.window="showModal = false">
                       <div class="modal-background" @click="showModal = false"></div>
                       <div class="modal-content">
-                        <div class="box">
+                        <div class="box has-text-left">
                           <h3 class="title is-4">Schedule '<span x-text="ctx.name"></span>'</h3>
+                          <p>When scheduled for a certain date, a context becomes available when that date is reached anywhere on Earth (UTC+12).</p>
                           <form @submit.prevent="ctx.available = newDate; showModal = false">
                             <div class="field is-grouped" style="justify-content: center;">
                               <p class="control">
-                                <input type="date" class="input is-large" x-model="newDate" x-bind:min="today_str">
+                                <input type="date" class="input is-large" x-model="newDate" x-bind:min="min_date_str">
                               </p>
                               <p class="control">
                                 <button type="submit" class="button is-large is-primary">OK</button>
                               </p>
+                              <p class="control">
+                                <button type="submit" @click.prevent="showModal = false" class="button is-large">Cancel</button>
+                              </p>
                             </div>
                           </form>
-                          <p>When scheduled for a certain date, a context becomes available when that date is reached anywhere on Earth (UTC+12).</p>
                         </div>
                       </div>
                       <button class="modal-close is-large" aria-label="close" @click="showModal = false"></button>
@@ -383,10 +388,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 </td>
                 <td class="has-text-centered">
                   <form method="post">
-                    <a x-bind:title="`edit '${ctx.name}'`" class="button is-white is-small icon-text has-text-primary" x-bind:href="'{{ url_for('class_config.contexts.context_form') }}/' + ctx.id">
-                      <svg aria-hidden="true" class="icon is-small"><use href="#svg_config" /></svg>
-                    </a>
-                    <button x-bind:title="`copy '${ctx.name}'`" class="button is-white is-small has-text-primary" type="submit" x-bind:formaction="'{{ url_for('class_config.contexts.copy_context') }}/' + ctx.id">
+                    <button x-bind:title="`copy '${ctx.name}'`" class="button is-white is-small has-text-grey" type="submit" x-bind:formaction="'{{ url_for('class_config.contexts.copy_context') }}/' + ctx.id">
                       <svg aria-hidden="true" class="icon is-small"><use href="#svg_copy" /></svg>
                     </button>
                     <button x-bind:title="`delete '${ctx.name}'`" class="button is-white is-small has-text-danger" type="submit" x-bind:formaction="'{{ url_for('class_config.contexts.delete_context') }}/' + ctx.id" @click="$event => confirm('Are you sure you want to delete \'' + ctx.name + '\'?') || $event.preventDefault()">
