@@ -46,7 +46,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <div class="field is-horizontal">
           <div class="field-label is-normal">
             <label class="label" for="class_enabled">Class Active:</label>
-            <p class="has-text-grey">When not active, a class is "archived": users can still see old queries, but no new queries can be made.</p>
+            <p class="help-text">When not active, a class is "archived": users can still see old queries, but no new queries can be made.</p>
           </div>
           <div class="field-body">
             <div class="field">
@@ -74,8 +74,8 @@ SPDX-License-Identifier: AGPL-3.0-only
         <div class="field is-horizontal">
           <div class="field-label is-normal">
             <label class="label">Registration via Link:</label>
-            <p class="has-text-grey">When enabled, any users who access the class link will be registered automatically.</p>
-            <p class="has-text-grey">When disabled, only already-registered users can access the class via its link.</p>
+            <p class="help-text">When enabled, any users who access the class link will be registered automatically.</p>
+            <p class="help-text">When disabled, only already-registered users can access the class via its link.</p>
           </div>
           <div class="field-body">
             <div class="field" x-data="{ link_reg_active: '{{ link_reg_state }}' }">
@@ -147,7 +147,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <div class="field is-horizontal">
           <div class="field-label is-normal">
             <label class="label">OpenAI API Key:</label>
-            <p class="has-text-grey">If blank, users in this class will not be able to submit queries.</p>
+            <p class="help-text">If blank, users in this class will not be able to submit queries.</p>
           </div>
           <div class="field-body">
             {% if class_row.openai_key %}
@@ -169,7 +169,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <div class="field is-horizontal">
           <div class="field-label is-normal">
             <label class="label" for="model_id">Model:</label>
-            <p class="has-text-grey">Note that GPT-4 produces more accurate results than 3.5 but is also roughly 10 times the cost.</p>
+            <p class="help-text">Note that GPT-4 produces more accurate results than 3.5 but is also roughly 10 times the cost.</p>
           </div>
           <div class="field-body">
             <div class="field">
@@ -232,7 +232,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       <div class="conf_col content">
         <h2 class="title is-size-4">Contexts</h2>
-        <p class="has-text-grey" style="max-width: 50em">Contexts provide additional information to the LLM for each query a student makes.  You can have a single default context that is always used, or you can create separate contexts for individual assignments or modules to be selected by students when making queries.
+        <p style="max-width: 50em">Contexts provide additional information to the LLM for each query a student makes.  You can have a single default context that is always used, or you can create separate contexts for individual assignments or modules to be selected by students when making queries.
         {% if contexts | length == 0 %}
           <p class="has-text-danger">While not strictly required, we recommend defining at least one context to specify the language(s), frameworks, and/or libraries in use in this class.</p>
         {% endif %}

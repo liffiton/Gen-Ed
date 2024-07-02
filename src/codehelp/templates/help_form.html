@@ -14,7 +14,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
     <div class="container">
       {# debounce on the submit handler so that the form's actual submit fires *before* the form elements are disabled #}
-      <form action="{{url_for('helper.help_request')}}" method="post" x-data="{loading: false}" x-on:submit.debounce.10ms="loading = true">
+      <form class="wide-labels" action="{{url_for('helper.help_request')}}" method="post" x-data="{loading: false}" x-on:submit.debounce.10ms="loading = true">
 
       {% if contexts %}
       <div class="field is-horizontal">
@@ -28,7 +28,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label" for="code">Code:</label>
-          <p class="has-text-grey">Copy just the <i>most relevant</i> part of your code here.  Responses will be more helpful when you include only code relevant to your issue.</p>
+          <p class="help-text">Copy just the <i>most relevant</i> part of your code here.  Responses will be more helpful when you include only code relevant to your issue.</p>
         </div>
         <div class="field-body">
           <div class="field">
@@ -42,7 +42,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label" for="error">Error Message:</label>
-          <p class="has-text-grey">If your issue relates to an error message, copy the message here.  Be sure to include the message itself and the quoted line on which it says the error occurred.</p>
+          <p class="help-text">If your issue relates to an error message, copy the message here.  Be sure to include the message itself and the quoted line on which it says the error occurred.</p>
         </div>
         <div class="field-body">
           <div class="field">
@@ -56,7 +56,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label" for="issue">Your Issue / Question:</label>
-          <p class="has-text-grey">Clearly describe your issue or question.  Include as relevant: what you are trying to do, what you expect the code to do, what the code actually does, and what you need help understanding.</p>
+          <p class="help-text">Clearly describe your issue or question.  Include as relevant: what you are trying to do, what you expect the code to do, what the code actually does, and what you need help understanding.</p>
         </div>
         <div class="field-body">
           <div class="field">

@@ -19,12 +19,12 @@ SPDX-License-Identifier: AGPL-3.0-only
       </div>
 
       {# debounce on the submit handler so that the form's actual submit fires *before* the form elements are disabled #}
-      <form action="{{url_for('helper.help_request')}}" method="post" x-data="{loading: false}" x-on:submit.debounce.10ms="loading = true">
+      <form class="wide-labels" action="{{url_for('helper.help_request')}}" method="post" x-data="{loading: false}" x-on:submit.debounce.10ms="loading = true">
 
       <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label" for="assignment">Assignment Prompt:</label>
-          <p class="has-text-grey">Copy the assignment <b>prompt</b> here.  This should be only the <i>most relevant</i> part of the assignment, where it discusses your topic and any constraints placed on it.</p>
+          <p class="help-text">Copy the assignment <b>prompt</b> here.  This should be only the <i>most relevant</i> part of the assignment, where it discusses your topic and any constraints placed on it.</p>
         </div>
         <div class="field-body">
           <div class="field">
@@ -38,7 +38,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label" for="topics">Topics of Interest:</label>
-          <p class="has-text-grey">List and/or describe any topics of interest to you so far.  These might be ideas you've had, interesting points raised in class, keywords from the reading that have stuck in your mind, or just about anything else...</p>
+          <p class="help-text">List and/or describe any topics of interest to you so far.  These might be ideas you've had, interesting points raised in class, keywords from the reading that have stuck in your mind, or just about anything else...</p>
         </div>
         <div class="field-body">
           <div class="field">

@@ -9,7 +9,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 {% block admin_body %}
   <div class="container">
 
-    <form action="{{url_for('admin.demo_link_update')}}" method="post">
+    <form class="wide-labels" action="{{url_for('admin.demo_link_update')}}" method="post">
       {% if demo_link %}
         {# We're editing an existing demo_link.  Provide its ID. #}
         <h1 class="title">Edit Demo Link</h1>
@@ -52,7 +52,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label" for="expiration">Expiration Date:</label>
-          <p class="has-text-grey">The final date on which this demo link will be active.  Implemented as Anywhere-On-Earth (UTC-12).</p>
+          <p class="help-text">The final date on which this demo link will be active.  Implemented as Anywhere-On-Earth (UTC-12).</p>
         </div>
         <div class="field-body">
           <div class="field">
@@ -66,7 +66,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label" for="tokens">Query Tokens:</label>
-          <p class="has-text-grey">How many query tokens to give new users entering via this demo link.</p>
+          <p class="help-text">How many query tokens to give new users entering via this demo link.</p>
         </div>
         <div class="field-body">
           <div class="field">

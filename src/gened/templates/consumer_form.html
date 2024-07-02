@@ -9,7 +9,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 {% block admin_body %}
   <div class="container">
 
-    <form action="{{url_for('admin.consumer_update')}}" method="post">
+    <form class="wide-labels" action="{{url_for('admin.consumer_update')}}" method="post">
       {% if consumer %}
         {# We're editing an existing consumer.  Provide its ID. #}
         <h1 class="title">Edit Consumer</h1>
@@ -38,7 +38,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label" for="lti_secret">lti_secret:</label>
-          <p class="has-text-grey">A shared secret used by the LTI consumer (the LMS) to authenticate itself with this application.  If blank, users from this consumer will not be able to connect.</p>
+          <p class="help-text">A shared secret used by the LTI consumer (the LMS) to authenticate itself with this application.  If blank, users from this consumer will not be able to connect.</p>
         </div>
         <div class="field-body">
           {% if consumer and consumer.lti_secret %}
@@ -64,7 +64,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label" for="openai_key">openai_key:</label>
-          <p class="has-text-grey">A shared secret used by this application to authenticate itself with the OpenAI API.  If blank, users from this consumer will not be able to submit queries.</p>
+          <p class="help-text">A shared secret used by this application to authenticate itself with the OpenAI API.  If blank, users from this consumer will not be able to submit queries.</p>
         </div>
         <div class="field-body">
           {% if consumer and consumer.openai_key %}
@@ -86,7 +86,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label" for="llm">LLM:</label>
-          <p class="has-text-grey">An LLM or family of LLMs to be used by this consumer.</p>
+          <p class="help-text">An LLM or family of LLMs to be used by this consumer.</p>
         </div>
         <div class="field-body">
           <div class="field">

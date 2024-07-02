@@ -11,11 +11,11 @@ SPDX-License-Identifier: AGPL-3.0-only
   <div class="container">
     {% if context %}
       {# We're editing an existing context. #}
-      <h1 class="title">Editing context '{{ context.name }}' for class {{ auth['class_name'] }}</h1>
-      <form action="{{ url_for(".update_context", ctx_id=context.id) }}" method="post">
+      <h1 class="title">Editing context '{{ context.name }}' in class {{ auth['class_name'] }}</h1>
+      <form class="wide-labels" action="{{ url_for(".update_context", ctx_id=context.id) }}" method="post">
     {% else %}
-      <h1 class="title">Create context for class {{ auth['class_name'] }}</h1>
-      <form action="{{ url_for(".create_context") }}" method="post">
+      <h1 class="title">Create context in class {{ auth['class_name'] }}</h1>
+      <form class="wide-labels" action="{{ url_for(".create_context") }}" method="post">
     {% endif %}
 
         <div class="field is-horizontal">
@@ -34,13 +34,13 @@ SPDX-License-Identifier: AGPL-3.0-only
         <div class="field is-horizontal">
           <div class="field-label is-normal">
             <label class="label" for="tools">Environment and tools</label>
-            <p class="has-text-grey">Languages, libraries, and/or frameworks that students are learning or using in this context.</p>
-            <p class="has-text-grey">Write one per line.</p>
+            <p class="help-text">Languages, libraries, and/or frameworks that students are learning or using in this context.</p>
+            <p class="help-text">Write one per line.</p>
           </div>
           <div class="field-body">
             <div class="field">
               <div class="control">
-                <textarea class="textarea is-family-monospace" name="tools" id="tools" rows=5>{{ context_config['tools'] }}</textarea>
+                <textarea class="textarea" name="tools" id="tools" rows=5>{{ context_config['tools'] }}</textarea>
               </div>
             </div>
           </div>
@@ -49,14 +49,14 @@ SPDX-License-Identifier: AGPL-3.0-only
         <div class="field is-horizontal">
           <div class="field-label is-normal">
             <label class="label" for="details">Details</label>
-            <p class="has-text-grey">Additional important details for this context.  This could include assignment specifications, background knowledge the students can be expected to have, or other sorts of guidance.</p>
-            <p class="has-text-grey">You can use markdown formatting.</p>
-            <p class="has-text-grey">This will be shown to students.</p>
+            <p class="help-text">Additional important details for this context.  This could include assignment specifications, module learning goals, or other guidance for the language model.</p>
+            <p class="help-text">You can use markdown formatting.</p>
+            <p class="help-text">This will be shown to students.</p>
           </div>
           <div class="field-body">
             <div class="field">
               <div class="control">
-                <textarea class="textarea is-family-monospace" name="details" id="details" rows=5>{{ context_config['details'] }}</textarea>
+                <textarea class="textarea" name="details" id="details" rows=10>{{ context_config['details'] }}</textarea>
               </div>
             </div>
           </div>
@@ -65,10 +65,10 @@ SPDX-License-Identifier: AGPL-3.0-only
         <div class="field is-horizontal">
           <div class="field-label is-normal">
             <label class="label" for="avoid">Keywords to Avoid</label>
-            <p class="has-text-grey">Keywords and concepts you want the system to avoid in responses.</p>
-            <p class="has-text-grey">Write one per line.</p>
-            <p class="has-text-grey">This will <i>not</i> be shown to students.</p>
-            <p class="has-text-grey">Be careful!  Writing "sum" could avoid discussing summation at all, while "sum()" will avoid just the sum function.</p>
+            <p class="help-text">Keywords and concepts you want the system to avoid in responses.</p>
+            <p class="help-text">Be careful!  Writing "sum" could avoid discussing summation at all, while "sum()" will avoid just the sum function.</p>
+            <p class="help-text">Write one per line.</p>
+            <p class="help-text">This will <em>not</em> be shown to students.</p>
           </div>
           <div class="field-body">
             <div class="field">
