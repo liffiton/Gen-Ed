@@ -170,7 +170,7 @@ def get_queries_filtered(where_clause: str, where_params: list[str], queries_lim
         LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
         LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
         WHERE {where_clause}
-        ORDER BY query_time DESC
+        ORDER BY queries.id DESC
     """
     if queries_limit is not None:
         sql += f"LIMIT {int(queries_limit)}"

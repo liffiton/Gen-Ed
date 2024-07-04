@@ -40,7 +40,7 @@ def help_form(query_id: int | None = None) -> str:
     selected_lang = class_config.default_lang
 
     # Select most recently submitted language, if available
-    lang_row = db.execute("SELECT language FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT 1", [auth['user_id']]).fetchone()
+    lang_row = db.execute("SELECT language FROM queries WHERE queries.user_id=? ORDER BY queries.id DESC LIMIT 1", [auth['user_id']]).fetchone()
     if lang_row and lang_row['language'] in languages:
         selected_lang = lang_row['language']
 

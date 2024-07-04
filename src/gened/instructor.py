@@ -44,7 +44,7 @@ def get_queries(class_id: int, user: int | None = None) -> list[Row]:
         JOIN roles
             ON queries.role_id=roles.id
         {where_clause}
-        ORDER BY query_time DESC
+        ORDER BY queries.id DESC
     """, params).fetchall()
 
     return queries
