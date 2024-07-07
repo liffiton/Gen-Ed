@@ -23,7 +23,7 @@
                 {% endif %}
               </div>
             </div>
-            <div class="message" style="min-width: 0;" x-show="current_ctx != ''">
+            <div class="message" style="min-width: 0;" x-show="current_ctx && ctx_descriptions[current_ctx]">
               <div class="message-body content p-3" style="max-height: 10em; overflow-y: auto;" x-html="ctx_descriptions[current_ctx]" aria-live="polite" aria-label="Details of chosen context.">
               </div>
             </div>

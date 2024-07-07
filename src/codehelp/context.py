@@ -49,6 +49,7 @@ class CodeHelpContext(ContextConfig):
     def prompt_str(self) -> str:
         """ Convert this context into a string to be used in an LLM prompt. """
         template = jinja_env.from_string("""\
+<name>{{ name }}</name>
 {% if tools %}
 Environment and tools: <tools>{{ tools }}</tools>
 {% endif %}
@@ -59,7 +60,7 @@ Details: <details>{{ details }}</details>
 Keywords and concepts to avoid (do not mention these in your response at all): <avoid>{{ avoid }}</avoid>
 {% endif %}
 """)
-        return template.render(tools=self._list_fmt(self.tools), details=self.details, avoid=self._list_fmt(self.avoid))
+        return template.render(name=self.name, tools=self._list_fmt(self.tools), details=self.details, avoid=self._list_fmt(self.avoid))
 
     def desc_html(self) -> str:
         """ Convert this context into a description for users in HTML.
