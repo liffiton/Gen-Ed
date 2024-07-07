@@ -2,9 +2,9 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-from flask import current_app, Flask
+from flask import Flask, current_app
 from gened.contexts import ContextConfig, register_context
 from jinja2 import Environment
 from typing_extensions import Self

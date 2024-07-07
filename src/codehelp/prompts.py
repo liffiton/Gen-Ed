@@ -2,12 +2,11 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from collections.abc import Iterable
 
 from jinja2 import Environment
 from openai.types.chat import ChatCompletionMessageParam
 
-jinja_env = Environment(
+jinja_env = Environment(  # noqa: S701 - not worried about XSS in LLM prompts
     trim_blocks=True,
     lstrip_blocks=True,
 )

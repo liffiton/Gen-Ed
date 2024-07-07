@@ -10,7 +10,6 @@ from flask import (
     current_app,
     render_template,
 )
-from werkzeug.wrappers.response import Response
 
 from .auth import get_auth, instructor_required
 from .contexts import bp as contexts_bp
