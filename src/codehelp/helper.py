@@ -64,7 +64,7 @@ def help_form(query_id: int | None = None) -> str:
         # no query specified,
         query_row = None
         # but we can pre-select the most recently used context, if available
-        recent_row = db.execute("SELECT context_name FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT 1", [auth['user_id']]).fetchone()
+        recent_row = db.execute("SELECT context_name FROM queries WHERE queries.user_id=? ORDER BY id DESC LIMIT 1", [auth['user_id']]).fetchone()
         if recent_row:
             selected_context_name = recent_row['context_name']
 
