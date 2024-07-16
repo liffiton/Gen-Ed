@@ -22,6 +22,10 @@ CREATE TABLE queries (
     FOREIGN KEY(user_id) REFERENCES users(id),
     FOREIGN KEY(role_id) REFERENCES roles(id)
 );
+DROP INDEX IF EXISTS queries_by_user;
+CREATE INDEX queries_by_user ON queries(user_id);
+DROP INDEX IF EXISTS queries_by_role;
+CREATE INDEX queries_by_role ON queries(role_id);
 
 DROP TABLE IF EXISTS tutor_chats;
 CREATE TABLE tutor_chats (
@@ -34,3 +38,7 @@ CREATE TABLE tutor_chats (
     FOREIGN KEY(user_id) REFERENCES users(id),
     FOREIGN KEY(role_id) REFERENCES roles(id)
 );
+DROP INDEX IF EXISTS tutor_chats_by_user;
+CREATE INDEX tutor_chats_by_user ON tutor_chats(user_id);
+DROP INDEX IF EXISTS tutor_chats_by_role;
+CREATE INDEX tutor_chats_by_role ON tutor_chats(role_id);

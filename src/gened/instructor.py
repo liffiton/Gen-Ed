@@ -25,7 +25,7 @@ bp = Blueprint('instructor', __name__, url_prefix="/instructor", template_folder
 def get_queries(class_id: int, user: int | None = None) -> list[Row]:
     db = get_db()
 
-    where_clause = "WHERE roles.class_id=?"
+    where_clause = "WHERE UNLIKELY(roles.class_id=?)"  # UNLIKELY() to help query planner in older sqlite versions
     params = [class_id]
 
     if user is not None:
