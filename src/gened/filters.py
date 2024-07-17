@@ -13,7 +13,9 @@ from flask.app import Flask
 from markdown_it import MarkdownIt
 
 
-def make_titled_span(title: str, text: str) -> str:
+def make_titled_span(title: str, text: str, max_title_len: int = 500) -> str:
+    if len(title) > max_title_len:
+        title = title[:max_title_len] + " ..."
     title = title.replace('\n', markupsafe.Markup('&#13;'))
     title = title.replace('\'', markupsafe.Markup('&#39;'))
     return markupsafe.Markup(f"<span title='{title}'>{text}</span>")
@@ -27,11 +29,12 @@ def init_app(app: Flask) -> None:
     def table_cell_filter(value: Any) -> str:
         '''Format a value to be displayed in a table cell.'''
         _maxlen = 30
-        strval = str(value)
 
-        if strval == "None":
+        if value is None:
             return ""
-        elif len(strval) > _maxlen:
+
+        strval = str(value)
+        if len(strval) > _maxlen:
             strval = strval.strip().replace('\r', '')
             strval = jinja_escape(strval)
             strval_trunc = strval[:_maxlen] + " ..."

@@ -13,6 +13,9 @@ def test_login_page(client):
     assert response.status_code == 200
     assert "Username:" in response.text
     assert "Password:" in response.text
+    assert 'name="username"' in response.text
+    assert 'name="password"' in response.text
+    assert 'type="submit"' in response.text
 
 
 def check_login(
@@ -43,6 +46,8 @@ def check_login(
             assert sessauth['display_name'] == username
             assert sessauth['is_admin'] == is_admin
             assert sessauth['class_id'] is None
+            assert 'auth_provider' in sessauth
+            assert sessauth['auth_provider'] == 'local'
 
         else:
             # Verify session auth contains correct values for non-logged-in user
@@ -52,6 +57,7 @@ def check_login(
             assert sessauth['is_admin'] is False
             assert 'display_name' not in sessauth
             assert 'class_id' not in sessauth
+            assert 'auth_provider' not in sessauth
 
         assert message in response.text
 
@@ -106,13 +112,22 @@ def test_logout(client, auth):
         sessauth = get_auth()
         assert sessauth['display_name'] == 'testuser'
 
-        auth.logout()
+        response = auth.logout()
+        assert response.status_code == 302
+        assert response.location == "/auth/login"
+
         sessauth = get_auth()
         assert sessauth['user_id'] is None
         assert sessauth['role_id'] is None
         assert sessauth['is_admin'] is False
         assert 'display_name' not in sessauth
         assert 'class_id' not in sessauth
+        assert 'auth_provider' not in sessauth
+
+        # Check if the user can access the login page and see the flashed message after logout
+        response = client.get(response.location)
+        assert response.status_code == 200
+        assert "You have been logged out." in response.text
 
 
 @pytest.mark.parametrize(('path', 'nologin', 'withlogin', 'withadmin'), [

@@ -2,3 +2,4 @@ pyperclip        # copy text to the clipboard
 python-calamine  # read .ods and .xlsx
 tqdm             # progress bars in the terminal
 urwid            # console UI
+litellm          # for LLMs from various providers

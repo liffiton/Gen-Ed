@@ -7,81 +7,78 @@ SPDX-License-Identifier: AGPL-3.0-only
 {% extends "base.html" %}
 
 {% block head %}
-  <meta name="description" content="CodeHelp is a coding and CS assistant powered by large language models with guardrails.  It acts as an automated tutor, supporting students with guidance and explanations without providing solution code.">
+  <meta name="description" content="CodeHelp is an automated teaching assistant for coding and CS powered by large language models with guardrails.  It acts as an automated tutor, supporting students with guidance and explanations without providing solution code.">
 {% endblock %}
 
 {% block body %}
-<style type="text/css">body {background: #ddd8d3;}</style>
+<section class="hero">
+  <div class="hero-body" style="display: flex; justify-content: center; align-items: center; gap: 20px; flex-wrap: wrap;">
+    <svg aria-hidden="true" style="width: 20vw; min-width: 10em; max-height: 200px; flex: initial;" viewBox="0 0 14 10"><use href="#svg_app_logo" /></svg>
+    <h1 class="is-size-2 has-text-centered" style="flex: initial;">
+      <strong>CodeHelp</strong> is an <strong class="has-text-success">Automated Teaching Assistant</strong><br>
+      for <strong class="has-text-info">Coding and Computer Science</strong>.
+    </h1>
+  </div>
+</section>
+<section class="hero has-background-link">
+  <div class="hero-body p-3 content has-text-white is-size-4">
+    <div style="display: flex; justify-content: center; gap: 1em; flex-wrap: wrap;">
+      <h2 class="has-text-white">Ask it...</h2>
+      <div>
+        <p>... how to start writing a program.</p>
+        <p>... to explain a confusing error message.</p>
+        <p>... why your code isn't working correctly.</p>
+        <p>... how to use a specific feature of your current language or framework.</p>
+        <p>... a conceptual question about your course content.</p>
+      </div>
+    </div>
+    <p class="has-text-centered mt-5 mb-3">
+    {% if auth['user_id'] %}
+      <a class="button is-link is-light is-rounded is-size-4" href="{{ url_for('helper.help_form') }}">
+        Try it now!
+      </a>
+    {% else %}
+      <a class="button is-link is-light is-rounded is-size-4" href="{{ url_for('auth.login') }}">
+        Sign in to try for free!
+      </a>
+    {% endif %}
+    </p>
+  </div>
+</section>
 <section class="section p-5">
-  <div class="containr">
-    <div class="columns is-desktop">
-      <div class="column is-half-desktop">
-        <div class="box content">
-          <h1>CodeHelp is a coding and CS assistant.</h1>
-          <p>It can explain issues and answer questions about your code and CS concepts.  It uses <a href="https://en.wikipedia.org/wiki/Large_language_model">large language models (LLMs)</a> to understand code and natural language queries and respond in natural language as well.</p>
-          <p>You can:</p>
+  <div class="container" style="max-width: 45em;">
+        <div class="box content is-size-5">
+          <h2>For Instructors</h2>
+          <p>CodeHelp helps your students <strong>without writing code</strong> for them.  It is made specifically to guide and explain but not provide solution code.</p>
           <ul>
-            <li>Ask how to start writing a program.</li>
-            <li>Get an explanation of a confusing error message.</li>
-            <li>Ask why your code isn't working correctly in a particular spot.</li>
-            <li>Learn more about specific syntax, functions, or techniques in your programming language.</li>
-            <li>... and a lot more.</li>
+            <li><strong>Accessible Support</strong> &mdash; It is always available, whenever your students are working, with immediate responses.</li>
+            <li><strong>Tailored Responses</strong> &mdash; You can provide <em>context</em> so that responses match your students' needs and exactly what they are working on.</li>
+            <li><strong>Low Cost</strong> &mdash; Each student query costs roughly US$0.01 (see pricing information below).</li>
+            <li><strong>Valuable Insights</strong> &mdash; Quickly see where your students are having trouble and what they're asking.</li>
+            <li><strong>Simple Integration</strong> &mdash; CodeHelp easily fits into any existing course as a complement to existing support systems.</li>
           </ul>
-          {% if auth['user_id'] %}
-          <a class="button is-link" href="{{ url_for('helper.help_form') }}">
-            Try it now!
-          </a>
-          {% endif %}
-        </div>
-        <div class="box content">
-          <h2>For instructors:</h2>
-          <p>CodeHelp helps your students any time they have a question, and it provides help <i>without writing code</i> for them.  It is made specifically to guide and explain rather than provide solution code.</p>
-          <ul>
-            <li>Incorporate LLMs into your teaching in a managed way, offering your students the eductional benefits LLMs can provide without compromising their learning.</li>
-            <li>See your students' queries to gain insights into what they are working on and the sorts of questions they are asking.</li>
-            <li>Tailor responses to your class by providing keywords that responses should not use (e.g. <code>sum()</code> if you want students practicing for loops instead of using a built-in function).</li>
-          </ul>
-          <p>You can share CodeHelp with everyone in your class with a simple link.  There are two options:</p>
+          <p>CodeHelp is shared with everyone in your class with a simple link.  There are two options:</p>
           <div class="pl-5">
-            <a class="button button-inline is-link" href="https://docs.google.com/forms/d/e/1FAIpQLSfsOZteMbIlIN5_MPZF-_Z-f9LwfZpfrhPOVfqcGjeJCtxHHQ/viewform?usp=sf_link">
+            <a class="button button-inline is-link is-size-5" href="https://docs.google.com/forms/d/e/1FAIpQLSfsOZteMbIlIN5_MPZF-_Z-f9LwfZpfrhPOVfqcGjeJCtxHHQ/viewform?usp=sf_link">
               Request an LMS Connection
-            </a> to <b>automatically</b> connect from an LMS like Canvas, Moodle, etc.
+            </a> to connect from an LMS like Canvas, Moodle, etc.
             <ul class="mt-1 mb-4">
-              <li>Everyone will log in automatically via a link from your course page.</li>
+              <li>Everyone will sign in <b>automatically</b> (no separate login) via a link from your course page.</li>
               <li>Takes some time to set up, and may require support from your LMS administrator.</li>
             </ul>
             {% if auth['user_id'] and auth['auth_provider'] != 'demo' %}
-              <a class="button button-inline is-link" href="{{ url_for("profile.main") }}">Go to your Profile page</a> to <b>manually</b> create a class.
+              <a class="button button-inline is-link is-size-5" href="{{ url_for("profile.main") }}">Go to your Profile page</a> to manually create a class.
             {% else %}
-              <a class="button button-inline is-link" href="{{ url_for("auth.login", next=url_for("profile.main")) }}">Log in using Google, Github, or Microsoft</a> and <b>manually</b> create a class from your profile page.
+              <a class="button button-inline is-link is-size-5" href="{{ url_for("auth.login", next=url_for("profile.main")) }}">Sign in using Google, GitHub, or Microsoft</a> and manually create a class from your profile page.
             {% endif %}
             <ul class="mt-1 mb-4">
-              <li>You will share an access link, and everyone will log in using a Google, Github, or Microsoft account.</li>
+              <li>You will share an access link, and everyone will sign in using a Google, GitHub, or Microsoft account.</li>
               <li>Can be set up in less than ten minutes.</li>
             </ul>
           </div>
           <p><a href="{{ url_for("docs.main") }}">The documentation</a> provides more details.</p>
-
-          <h4>References</h4>
-          <p style="text-indent: -1.5em; padding-left: 2em;">
-            [1]
-            <a href="https://arxiv.org/abs/2308.06921">CodeHelp: Using Large Language Models with Guardrails for Scalable Support in Programming Classes</a>.<br>
-            Mark Liffiton, Brad Sheese, Jaromir Savelka, and Paul Denny. 2023.
-            In Proceedings of the 23rd Koli Calling International Conference on Computing Education Research (Koli Calling '23).  DOI: <a href="https://doi.org/10.1145/3631802.3631830">10.1145/3631802.3631830</a>
-          </p>
-          <p style="text-indent: -1.5em; padding-left: 2em;">
-            [2]
-            <a href="https://arxiv.org/abs/2310.16984">Patterns of Student Help-Seeking When Using a Large Language Model-Powered Programming Assistant</a>.<br>
-            Brad Sheese, Mark Liffiton, Jaromir Savelka, and Paul Denny. 2024.
-            In Proceedings of the 26th Australasian Computing Education Conference (ACE '24).  DOI: <a href="https://doi.org/10.1145/3636243.3636249">10.1145/3636243.3636249</a>
-          </p>
-
-          <h3>Pricing</h3>
-          <p>CodeHelp itself does not take payment, but the OpenAI LLMs it uses are not free.  We will ask you to provide an OpenAI API key to be used for your students' queries.</p>
-          <p>Costs are low: OpenAI will charge you roughly US$0.01 for each query made with the GPT-4 model (GPT-3.5 is roughly 1/10 the cost, though less accurate).  If your students use CodeHelp regularly and average 50 queries each over a semester (higher than the average we've observed), your total costs would be roughly $0.50 per student (or $0.05 per student if using GPT-3.5).</p>
         </div>
-      </div>
-      <div class="column is-half-desktop">
+
         <script type="text/Javascript">
           const examples = [
             {
@@ -109,11 +106,21 @@ SPDX-License-Identifier: AGPL-3.0-only
               response: "<p>You can use a <code>while</code> loop to iterate over the characters in the string in reverse order. To do this, you can use the <code>len()</code> function to get the length of the string, and use the <code>range()</code> function to generate a sequence of numbers from the length of the string down to 0. Then you can use the <code>str[index]</code> syntax to access each character in the string. </p><p>To help you understand how this works, think about the following example: </p><p>Say you have a string <code>my_str = \"Hello World\"</code>. You can use the <code>len()</code> function to get the length of the string, which is 11. Then you can use the <code>range()</code> function to generate a sequence of numbers from 11 down to 0. This sequence of numbers will represent the indices of the characters in the string. Finally, you can use the <code>str[index]</code> syntax to access each character in the string. </p><p>Using this approach, you can iterate over the characters in the string in reverse order. This will print out each character in the string on a separate line, except backwards.</p>",
             },
           ];
-          const rand_example = Math.floor(Math.random() * examples.length);
         </script>
-        <div class="box" x-data="{cur: rand_example}">
+        <div class="box" x-data="{cur: 0}">
           <div class="content">
-            <h1 class="title">Example: <button class="button has-background-link-light has-text-dark ml-4" @click="cur = (cur+1) % examples.length">See Another</button></h1>
+            <div style="display: flex; flex-wrap: wrap;">
+              <h1 class="title mb-0 mr-6">
+                Examples:
+              </h1>
+              <div>
+                <a class="button is-link is-light" @click="cur = (cur === 0) ? examples.length-1 : cur-1">&lt;</a>
+                <template x-for="i in examples.length">
+                  <a x-text="i" class="button ml-2 is-link is-light" :style="{'border-bottom': (cur === i-1) && '3px solid #60c'}" @click="cur = i-1"></a>
+                </template>
+                <a class="button ml-2 is-link is-light" @click="cur = (cur+1) % examples.length">&gt;</a>
+              </div>
+            </div>
             <hr>
             <div class="field is-horizontal" x-show="examples[cur]['code']">
               <div class="field-label is-normal">
@@ -150,6 +157,29 @@ SPDX-License-Identifier: AGPL-3.0-only
             </div>
           </div>
         </div>
+
+        <div class="box content">
+          <h2>Pricing</h2>
+          <p>CodeHelp itself does not take payment, but the OpenAI large language models it uses are not free.  We will ask you to provide an OpenAI API key to be used for your students' queries.</p>
+          <p>Costs are low: OpenAI will charge you roughly US$0.01 for each query made with the GPT-4 model (GPT-3.5 is roughly 1/10 the cost, though less accurate).  If your students use CodeHelp regularly and average 50 queries each over a semester (higher than the average we've observed), your total costs would be roughly $0.50 per student (or $0.05 per student if using GPT-3.5).</p>
+        </div>
+
+        <div class="box content">
+          <h2>References</h2>
+          <p style="text-indent: -1.5em; padding-left: 2em;">
+            [1]
+            <a href="https://arxiv.org/abs/2308.06921">CodeHelp: Using Large Language Models with Guardrails for Scalable Support in Programming Classes</a>.<br>
+            Mark Liffiton, Brad Sheese, Jaromir Savelka, and Paul Denny. 2023.
+            In Proceedings of the 23rd Koli Calling International Conference on Computing Education Research (Koli Calling '23).  DOI: <a href="https://doi.org/10.1145/3631802.3631830">10.1145/3631802.3631830</a>
+          </p>
+          <p style="text-indent: -1.5em; padding-left: 2em;">
+            [2]
+            <a href="https://arxiv.org/abs/2310.16984">Patterns of Student Help-Seeking When Using a Large Language Model-Powered Programming Assistant</a>.<br>
+            Brad Sheese, Mark Liffiton, Jaromir Savelka, and Paul Denny. 2024.
+            In Proceedings of the 26th Australasian Computing Education Conference (ACE '24).  DOI: <a href="https://doi.org/10.1145/3636243.3636249">10.1145/3636243.3636249</a>
+          </p>
+        </div>
+
       </div>
     </div>
   </div>

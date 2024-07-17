@@ -61,8 +61,8 @@ def _get_llm(*, use_system_key: bool) -> LLMDict:
         """ Factory function to initialize a default client (using the system key)
             only if/when needed.
         """
-        # Get the systemwide default model (TODO: better control than just id=1)
-        model_row = db.execute("SELECT models.model FROM models WHERE models.id=1").fetchone()
+        # Get the systemwide default model (TODO: better control than just id=2)
+        model_row = db.execute("SELECT models.model FROM models WHERE models.id=2").fetchone()
         system_model = model_row['model']
         system_key = current_app.config["OPENAI_API_KEY"]
         return {

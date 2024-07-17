@@ -92,6 +92,31 @@ same way as CodeHelp, minus just a few files.
 
 See the instructions in `README.md`.
 
+### Updates
+
+#### Dependencies
+
+If dependencies in `pyproject.toml` change, your environment may no longer have
+the correct libraries installed.  To be sure you have all dependencies
+installed, run:
+
+```sh
+pip install -U -e .[test]
+```
+
+#### Database Schema
+
+If any database schema changes, your development database (typically stored in
+`instance/`) will be outdated, and the application may crash.  To update a
+database to the latest schema, use the migration tool built in to Gen-Ed:
+
+```sh
+flask --app [application_name] migrate
+```
+
+Typically, typing `A` to apply all new migrations will get your database into
+working order.
+
 ### Code Style and Standards
 
 The project is configured to use Ruff for linting and style checks (with
@@ -108,10 +133,11 @@ Contributions to the project are welcome!  Please follow these steps:
 1. Fork the repository.
 2. Create a new branch for your feature or bug fix.
 3. Make your changes and commit them to the branch with descriptive messages.
-4. Push your changes to your fork.
-5. If the main repository has changed since you made your branch, please
+4. Run `mypy` to check for type errors in the new code.  Correct any you find.
+5. Push your changes to your fork.
+6. If the main repository has changed since you made your branch, please
    merge the new main into your branch *or* rebase onto the latest commit.
-6. Submit a pull request to the main repository.
-7. In the pull request, you will be asked to sign the CLA found in
+7. Submit a pull request to the main repository.
+8. In the pull request, you will be asked to sign the CLA found in
    `contributors/contributor_license_agreement.md`.
 
