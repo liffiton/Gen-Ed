@@ -112,7 +112,7 @@ def auth(provider_name: str) -> Response:
     current_app.logger.debug(f"SSO login: {provider_name=} email='{user_normed['email']}' full_name='{user_normed['full_name']}'")
 
     # Given 10 tokens by default if creating an account on first login.
-    user_row = ext_login_update_or_create(provider_name, user_normed, query_tokens=10)
+    user_row = ext_login_update_or_create(provider_name, user_normed, query_tokens=20)
 
     # Get their last active role, if there is one (and it still exists and is active)
     last_role_id = get_last_role(user_row['id'])
