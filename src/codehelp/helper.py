@@ -24,6 +24,7 @@ from gened.auth import (
     login_required,
     tester_required,
 )
+from gened.classes import switch_class
 from gened.contexts import (
     ContextNotFoundError,
     get_available_contexts,
@@ -43,30 +44,47 @@ bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='template
 
 @bp.route("/")
 @bp.route("/<int:query_id>")
+@bp.route("/ctx/<int:class_id>/<string:ctx_name>")
 @login_required
 @class_enabled_required
-def help_form(query_id: int | None = None) -> str:
+def help_form(query_id: int | None = None, class_id: int | None = None, ctx_name: str | None = None) -> str | Response:
     db = get_db()
     auth = get_auth()
 
-    contexts_list = get_available_contexts(CodeHelpContext)
-    # turn into format we can pass to js via JSON
-    contexts = {ctx.name: ctx.desc_html() for ctx in contexts_list}
+    if class_id is not None:
+        success = switch_class(class_id)
+        if not success:
+            # Can't access the specified context
+            ctx_name = None
 
+    # we may select a context from a given ctx_name, from a given query_id, or from the user's most recently-used context
     selected_context_name = None
-
-    if query_id is not None:
-        # populate with a query if one is specified in the query string
-        query_row, _ = get_query(query_id)   # _ because we don't need responses here
-        if query_row is not None:
-            selected_context_name = query_row['context_name']
+    query_row = None
+    if ctx_name is not None:
+        # see if the given context is part of the current class (whether available or not)
+        try:
+            context = get_context_by_name(CodeHelpContext, ctx_name)
+            contexts_list = [context]  # this will be the only context in this page -- no other options
+            selected_context_name = ctx_name
+        except ContextNotFoundError:
+            flash(f"Context not found: {ctx_name}")
+            return make_response(render_template("error.html"), 400)
     else:
-        # no query specified,
-        query_row = None
-        # but we can pre-select the most recently used context, if available
-        recent_row = db.execute("SELECT context_name FROM queries WHERE queries.user_id=? ORDER BY id DESC LIMIT 1", [auth['user_id']]).fetchone()
-        if recent_row:
-            selected_context_name = recent_row['context_name']
+        contexts_list = get_available_contexts(CodeHelpContext)  # all *available* contexts will be shown
+        if query_id is not None:
+            # populate with a query if one is specified in the query string
+            query_row, _ = get_query(query_id)   # _ because we don't need responses here
+            if query_row is not None:
+                selected_context_name = query_row['context_name']
+        else:
+            # no query specified,
+            # but we can pre-select the most recently used context, if available
+            recent_row = db.execute("SELECT context_name FROM queries WHERE queries.user_id=? ORDER BY id DESC LIMIT 1", [auth['user_id']]).fetchone()
+            if recent_row:
+                selected_context_name = recent_row['context_name']
+
+    # turn contexts into format we can pass to js via JSON
+    contexts = {ctx.name: ctx.desc_html() for ctx in contexts_list}
 
     # validate selected context name (may no longer exist / be available)
     if selected_context_name not in contexts:

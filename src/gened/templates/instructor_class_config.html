@@ -373,7 +373,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                                 <input type="date" class="input is-large" x-model="newDate" x-bind:min="min_date_str">
                               </p>
                               <p class="control">
-                                <button type="submit" class="button is-large is-primary">OK</button>
+                                <button type="submit" class="button is-large is-link">OK</button>
                               </p>
                               <p class="control">
                                 <button type="submit" @click.prevent="showModal = false" class="button is-large">Cancel</button>
@@ -382,12 +382,55 @@ SPDX-License-Identifier: AGPL-3.0-only
                           </form>
                         </div>
                       </div>
-                      <button class="modal-close is-large" aria-label="close" @click="showModal = false"></button>
+                      <button type="button" class="modal-close is-large" aria-label="close" @click="showModal = false"></button>
                     </div>
                   </div>
                 </td>
                 <td class="has-text-centered">
                   <form method="post">
+                    <span x-data="{
+                      link_URL: '{{ url_for('helper.help_form', class_id=auth['class_id'], ctx_name='__replace__', _external=True) }}'.replace('__replace__', ctx.name),
+                      copied: false,
+                      showLinkModal: false,
+                      showModal() {
+                        this.copied = false;
+                        this.showLinkModal = true;
+                      },
+                      copy_url() {
+                        navigator.clipboard.writeText(this.link_URL);
+                        this.copied = true;
+                      },
+                    }">
+                      <button x-bind:title="`link to '${ctx.name}'`" class="button is-white is-small has-text-grey" type="button" @click="showModal">
+                        <svg aria-hidden="true" class="icon is-small"><use href="#svg_link" /></svg>
+                      </button>
+                      <div class="modal" x-bind:class="{'is-active': showLinkModal}" @keydown.escape.window="showLinkModal = false;">
+                        <div class="modal-background" @click="showLinkModal = false;"></div>
+                        <div class="modal-content">
+                          <div class="box has-text-left">
+                            <h3 class="title is-4">Link to '<span x-text="ctx.name"></span>'</h3>
+                            <p>This link will take your students directly to the request page with the '<span x-text="ctx.name"></span>' context pre-selected.</p>
+                            <div style="display: flex; flex-wrap: wrap; gap: 1em;">
+                              <div class="control">
+                                <span class="input is-size-5" style="max-width: 100%; overflow-x: auto;" x-text="link_URL"></span>
+                              </div>
+                              <div class="control">
+                                <button type="button" class="button icon-text is-size-5" x-bind:class="copied ? 'is-success' : 'is-link'" @click="copy_url">
+                                  <svg aria-hidden="true" class="icon is-right"><use href="#svg_copy" /></svg>
+                                  <span x-text="copied ? 'copied' : 'copy'"></span>
+                                </button>
+                              </div>
+                            </div>
+                            <div class="mt-4">
+                              <p>The link will let students access this context even if it is currently hidden.</p>
+                              <p class="has-text-danger-dark">Students must have joined this class before they use the link.</p>
+                              <p class="has-text-danger-dark">If the class connects using LTI, students must log in via LTI before they use the link.</p>
+                            </div>
+                          </div>
+                        </div>
+                        <button type="button" class="modal-close is-large" aria-label="close" @click="showLinkModal = false;"></button>
+                      </div>
+                    </span>
                     <button x-bind:title="`copy '${ctx.name}'`" class="button is-white is-small has-text-grey" type="submit" x-bind:formaction="'{{ url_for('class_config.contexts.copy_context') }}/' + ctx.id">
                       <svg aria-hidden="true" class="icon is-small"><use href="#svg_copy" /></svg>
                     </button>
@@ -410,7 +453,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           </a>
         </div>
       </div>
-    {% endif %}
+    {% endif %}{# end if contexts != None -- i.e., end of context config #}
 
 </section>
 
