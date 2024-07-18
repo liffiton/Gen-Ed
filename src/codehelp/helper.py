@@ -55,7 +55,8 @@ def help_form(query_id: int | None = None, class_id: int | None = None, ctx_name
         success = switch_class(class_id)
         if not success:
             # Can't access the specified context
-            ctx_name = None
+            flash(f"Cannot access class and context.  Make sure you are logged in correctly before using this link.", "danger")
+            return make_response(render_template("error.html"), 400)
 
     # we may select a context from a given ctx_name, from a given query_id, or from the user's most recently-used context
     selected_context_name = None
@@ -67,8 +68,8 @@ def help_form(query_id: int | None = None, class_id: int | None = None, ctx_name
             contexts_list = [context]  # this will be the only context in this page -- no other options
             selected_context_name = ctx_name
         except ContextNotFoundError:
-            flash(f"Context not found: {ctx_name}")
-            return make_response(render_template("error.html"), 400)
+            flash(f"Context not found: {ctx_name}", "danger")
+            return make_response(render_template("error.html"), 404)
     else:
         contexts_list = get_available_contexts(CodeHelpContext)  # all *available* contexts will be shown
         if query_id is not None:
