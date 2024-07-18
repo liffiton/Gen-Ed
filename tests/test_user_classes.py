@@ -100,7 +100,7 @@ def test_user_class_usage(app):
 
     # 5) instructor cannot yet see a query
     result = instructor_client.get('/help/view/5')
-    assert result.status_code == 200
+    assert result.status_code == 400
     assert 'Invalid id.' in result.text
 
     # 6) user makes a query

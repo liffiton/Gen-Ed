@@ -103,12 +103,12 @@ def start_chat_from_query(llm_dict: LLMDict) -> Response:
 
 
 @bp.route("/chat/<int:chat_id>")
-def chat_interface(chat_id: int) -> str:
+def chat_interface(chat_id: int) -> str | Response:
     try:
         chat, topic, context = get_chat(chat_id)
     except (ChatNotFoundError, AccessDeniedError):
         flash("Invalid id.", "warning")
-        return render_template("error.html")
+        return make_response(render_template("error.html"), 400)
 
     chat_history = get_chat_history()
 
