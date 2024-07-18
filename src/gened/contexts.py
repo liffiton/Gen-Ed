@@ -157,15 +157,28 @@ def new_context_form(ctx_class: type[ContextConfig]) -> str | Response:
     return render_template(ctx_class.template, context=None, context_config=None)
 
 
-def _insert_context(class_id: int, name: str, config: str, available: str) -> int:
+def _make_unique_context_name(class_id: int, name: str) -> str:
+    """ Given a class and a potential context name, return a context name that
+        is unique within that class.
+        (Yes, there's a race condition when using this.  Worst-case, the
+        database constraints will error out an invalid insert or update.)
+    """
     db = get_db()
 
-    # names must be uniquie within a class: check/look for an unused name
     new_name = name
     i = 0
     while db.execute("SELECT id FROM contexts WHERE class_id=? AND name=?", [class_id, new_name]).fetchone():
         i += 1
         new_name = f"{name} ({i})"
+
+    return new_name
+
+
+def _insert_context(class_id: int, name: str, config: str, available: str) -> int:
+    db = get_db()
+
+    # names must be unique within a class: check/look for an unused name
+    new_name = _make_unique_context_name(class_id, name)
 
     cur = db.execute("""
         INSERT INTO contexts (class_id, name, config, available, class_order)
@@ -213,7 +226,11 @@ def update_context(ctx_class: type[ContextConfig], ctx_id: int, ctx_row: Row) ->
 
     context = ctx_class.from_request_form(request.form)
 
-    db.execute("UPDATE contexts SET name=?, config=? WHERE id=?", [context.name, context.to_json(), ctx_id])
+    # names must be unique within a class: check/look for an unused name
+    auth = get_auth()
+    name = _make_unique_context_name(auth['class_id'], context.name)
+
+    db.execute("UPDATE contexts SET name=?, config=? WHERE id=?", [name, context.to_json(), ctx_id])
     db.commit()
 
     flash(f"Configuration for context '{ctx_row['name']}' updated.", "success")
