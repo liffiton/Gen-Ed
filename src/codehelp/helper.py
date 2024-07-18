@@ -221,12 +221,20 @@ def record_query(context: CodeHelpContext | None, code: str, error: str, issue: 
     auth = get_auth()
     role_id = auth['role_id']
 
-    context_name = context.name if context is not None else None
-    context_str = context.prompt_str() if context is not None else None
+    if context is not None:
+        context_name = context.name
+        context_str = context.prompt_str()
+        # Add the context string to the context_strings table, but if it's a duplicate, just get the row ID of the existing one.
+        # The "UPDATE SET id=id" is a no-op, but it allows the "RETURNING" to work in case of a conflict as well.
+        cur = db.execute("INSERT INTO context_strings (ctx_str) VALUES (?) ON CONFLICT DO UPDATE SET id=id RETURNING id", [context_str])
+        context_string_id = cur.fetchone()['id']
+    else:
+        context_name = None
+        context_string_id = None
 
     cur = db.execute(
-        "INSERT INTO queries (context_name, context, code, error, issue, user_id, role_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [context_name, context_str, code, error, issue, auth['user_id'], role_id]
+        "INSERT INTO queries (context_name, context_string_id, code, error, issue, user_id, role_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [context_name, context_string_id, code, error, issue, auth['user_id'], role_id]
     )
     new_row_id = cur.lastrowid
     db.commit()
@@ -335,7 +343,7 @@ def get_topics(llm_dict: LLMDict, query_id: int) -> list[str]:
         return []
 
     messages = prompts.make_topics_prompt(
-        query_row['context'],
+        '',  # TODO: put this back: query_row['context'],
         query_row['code'],
         query_row['error'],
         query_row['issue'],

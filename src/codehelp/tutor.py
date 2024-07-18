@@ -170,7 +170,7 @@ def get_chat(chat_id: int) -> tuple[list[ChatCompletionMessageParam], str, str]:
     chat_json = chat_row['chat_json']
     chat = json.loads(chat_json)
     topic = chat_row['topic']
-    context = chat_row['context']
+    context = ''  # TODO: put this back: chat_row['context']
 
     return chat, topic, context
 

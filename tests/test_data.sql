@@ -76,12 +76,15 @@ VALUES
     (5, 12, 2, 'student'), -- testadmin is a student
     (6, 13, 2, 'student'); -- testinstructor is a student
 
-INSERT INTO queries (id, context_name, context, code, error, issue, response_json, response_text, helpful, user_id, role_id)
+INSERT INTO context_strings (id, ctx_str)
+VALUES (1, 'context 1'), (2, 'context 2');
+
+INSERT INTO queries (id, context_name, context_string_id, code, error, issue, response_json, response_text, helpful, user_id, role_id)
 VALUES
-    (1, 'default', 'context', 'code1', '', '', '{}', '{"main": "response1"}', 0, 21, 1),
-    (2, 'default', 'context', 'code2', '', '', '{}', '{"main": "response2"}', 0, 22, 2),
-    (3, 'default', 'context', 'code3', '', '', '{}', '{"main": "response3"}', 0, 21, 1),
-    (4, 'default', 'context', 'code4', '', '', '{}', '{"main": "response4"}', 0, 23, 3);
+    (1, 'default', 1, 'code1', '', '', '{}', '{"main": "response1"}', 0, 21, 1),
+    (2, 'default', 2, 'code2', '', '', '{}', '{"main": "response2"}', 0, 22, 2),
+    (3, 'default', 1, 'code3', '', '', '{}', '{"main": "response3"}', 0, 21, 1),
+    (4, 'default', 2, 'code4', '', '', '{}', '{"main": "response4"}', 0, 23, 3);
 
 INSERT INTO demo_links (id, name, enabled, expiration, tokens, uses)
 VALUES

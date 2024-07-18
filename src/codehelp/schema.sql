@@ -9,7 +9,7 @@ CREATE TABLE queries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     query_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     context_name TEXT,
-    context TEXT,
+    context_string_id INTEGER,
     code TEXT,
     error TEXT,
     issue TEXT NOT NULL,
@@ -21,7 +21,8 @@ CREATE TABLE queries (
     user_id INTEGER NOT NULL,
     role_id INTEGER,
     FOREIGN KEY(user_id) REFERENCES users(id),
-    FOREIGN KEY(role_id) REFERENCES roles(id)
+    FOREIGN KEY(role_id) REFERENCES roles(id),
+    FOREIGN KEY(context_string_id) REFERENCES context_strings(id)
 );
 DROP INDEX IF EXISTS queries_by_user;
 CREATE INDEX queries_by_user ON queries(user_id);
@@ -43,3 +44,9 @@ DROP INDEX IF EXISTS tutor_chats_by_user;
 CREATE INDEX tutor_chats_by_user ON tutor_chats(user_id);
 DROP INDEX IF EXISTS tutor_chats_by_role;
 CREATE INDEX tutor_chats_by_role ON tutor_chats(role_id);
+
+DROP TABLE IF EXISTS context_strings;
+CREATE TABLE context_strings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ctx_str TEXT NOT NULL UNIQUE
+);
