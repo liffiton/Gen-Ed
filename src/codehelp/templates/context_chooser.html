@@ -1,0 +1,30 @@
+        <script type="text/javascript">
+          const context_view = {
+            ctx_descriptions: {{ contexts | tojson }},
+            current_ctx: {{ (selected_context_name or '') | tojson }},
+          };
+        </script>
+        <div class="field-body" style="min-width: 0;" x-data="context_view">
+            <div class="field is-narrow">
+              <div class="control">
+                {% if contexts | length == 1 %}
+                  {% set the_ctx = (contexts.keys() | list)[0] %}
+                  <input type="hidden" name="context" value="{{ the_ctx }}">
+                  <div class="field-label is-normal">{{ the_ctx }}</div>
+                {% else %}
+                  <div class="select">
+                    <select name="context" id="context" required x-bind:disabled="loading" x-model="current_ctx">
+                      <option value="">Please select</option>
+                      {% for ctx in contexts.keys() %}
+                      <option value="{{ ctx }}" {%- if ctx == selected_context_name %} selected{% endif %}>{{ ctx }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="message" style="min-width: 0;" x-show="current_ctx && ctx_descriptions[current_ctx]">
+              <div class="message-body content p-3" style="max-height: 10em; overflow-y: auto;" x-html="ctx_descriptions[current_ctx]" aria-live="polite" aria-label="Details of chosen context.">
+              </div>
+            </div>
+        </div>

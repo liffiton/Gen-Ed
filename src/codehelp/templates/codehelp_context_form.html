@@ -1,0 +1,97 @@
+{#
+SPDX-FileCopyrightText: 2023 Mark Liffiton <liffiton@gmail.com>
+
+SPDX-License-Identifier: AGPL-3.0-only
+#}
+
+{% extends "base.html" %}
+
+{% block body %}
+<section class="section">
+  <div class="container">
+    {% if context %}
+      {# We're editing an existing context. #}
+      <h1 class="title">Editing context '{{ context.name }}' in class {{ auth['class_name'] }}</h1>
+      <form class="wide-labels" action="{{ url_for(".update_context", ctx_id=context.id) }}" method="post">
+    {% else %}
+      <h1 class="title">Create context in class {{ auth['class_name'] }}</h1>
+      <form class="wide-labels" action="{{ url_for(".create_context") }}" method="post">
+    {% endif %}
+
+        <div class="field is-horizontal">
+          <div class="field-label is-normal">
+            <label class="label" for="name">Name <span title="required">*</span></label>
+          </div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <input class="input" required autofocus name="name" id="name" {% if context %}value="{{ context.name }}"{% endif %}>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field is-horizontal">
+          <div class="field-label is-normal">
+            <label class="label" for="tools">Environment and tools</label>
+            <p class="help-text">Languages, libraries, and/or frameworks that students are learning or using in this context.</p>
+            <p class="help-text">Write one per line.</p>
+          </div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <textarea class="textarea" name="tools" id="tools" rows=5>{{ context_config['tools'] }}</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field is-horizontal">
+          <div class="field-label is-normal">
+            <label class="label" for="details">Details</label>
+            <p class="help-text">Additional important details for this context.  This could include assignment specifications, module learning goals, or other guidance for the language model.</p>
+            <p class="help-text">You can use markdown formatting.</p>
+            <p class="help-text">This will be shown to students.</p>
+          </div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <textarea class="textarea" name="details" id="details" rows=10>{{ context_config['details'] }}</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field is-horizontal">
+          <div class="field-label is-normal">
+            <label class="label" for="avoid">Keywords to Avoid</label>
+            <p class="help-text">Keywords and concepts you want the system to avoid in responses.</p>
+            <p class="help-text">Be careful!  Writing "sum" could avoid discussing summation at all, while "sum()" will avoid just the sum function.</p>
+            <p class="help-text">Write one per line.</p>
+            <p class="help-text">This will <em>not</em> be shown to students.</p>
+          </div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <textarea class="textarea is-family-monospace" name="avoid" id="avoid" rows=5>{{ context_config['avoid'] }}</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field is-horizontal">
+          <div class="field-label is-normal"><!-- spacing --></div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <button class="button is-link" type="submit" >Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </form>
+
+  </div>
+</section>
+{% endblock %}

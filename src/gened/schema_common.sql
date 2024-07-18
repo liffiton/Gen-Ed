@@ -15,6 +15,7 @@ DROP TABLE IF EXISTS roles;
 DROP TABLE IF EXISTS classes;
 DROP TABLE IF EXISTS classes_lti;
 DROP TABLE IF EXISTS classes_user;
+DROP TABLE IF EXISTS contexts;
 DROP TABLE IF EXISTS demo_links;
 DROP TABLE IF EXISTS migrations;
 DROP TABLE IF EXISTS models;
@@ -86,14 +87,12 @@ DROP INDEX IF EXISTS auth_external_by_ext_id;
 CREATE UNIQUE INDEX auth_external_by_ext_id ON auth_external(auth_provider, ext_id);
 
 
--- Classes and their config
+-- Classes
 -- (superset type for classes_lti and classes_user)
--- Config stored as JSON for flexibility, esp. during development
 CREATE TABLE classes (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
     name     TEXT NOT NULL,
     enabled  BOOLEAN NOT NULL CHECK (enabled IN (0,1)) DEFAULT 1,
-    config   TEXT NOT NULL DEFAULT "{}",  -- JSON containing class config options
     created  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -124,6 +123,22 @@ CREATE TABLE classes_user (
 );
 DROP INDEX IF EXISTS classes_user_by_link_ident;
 CREATE UNIQUE INDEX  classes_user_by_link_ident ON classes_user(link_ident);
+
+-- Contexts for use in a class
+-- Config stored as JSON for flexibility, esp. during development
+CREATE TABLE contexts (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL,
+    class_id    INTEGER NOT NULL,
+    class_order INTEGER NOT NULL,  -- position within manual ordering of contexts within a class
+    available   DATE NOT NULL,  -- date on which this context will be available to students (& mindate=available, maxdate=disabled)
+    config      TEXT NOT NULL DEFAULT "{}",  -- JSON containing context config options
+    created     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(class_id) REFERENCES classes(id)
+);
+-- names must be unique within a class, and we often look up by class and name
+DROP INDEX IF EXISTS contexts_by_class_name;
+CREATE UNIQUE INDEX  contexts_by_class_name ON contexts(class_id, name);
 
 -- Roles for users in classes
 CREATE TABLE roles (

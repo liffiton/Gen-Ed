@@ -17,20 +17,27 @@ SPDX-License-Identifier: AGPL-3.0-only
     <style type="text/css">
       body { display: flex; min-height: 100vh; flex-direction: column; }
       @keyframes fadein {
-        from { opacity: 0; transform: translateY(-100%); }
-        to   { opacity: 1; transform: translateY(0); }
+        from { opacity: 0; transform: translateY(-50%) scale(80%); }
+        to   { opacity: 1; transform: translateY(0) scale(100%); }
       }
       .icon-text { align-items: center; }
       .icon-text svg { height: 100%; }
       .button .icon:first-child:not(:last-child) { margin-right: 0.5em; }
       a.button-inline { display: inline-block; padding: 0.2em 0.5em; vertical-align: baseline; height: auto; }
+      a.hover-show-icon + svg { opacity: 25%; }
+      a.hover-show-icon:hover + svg { opacity: 100%; }
       div.flash_message { animation: fadein 1s; }
       main.site-content { flex: 1; } /* expand main content, push footer to bottom of page/viewport */
       span[title] { text-decoration:underline; text-decoration-style: dotted; }
       pre, .content pre { padding: 0.5rem 0.75rem; }
       .tbl_cols { display: flex; gap: 2em; flex-wrap: wrap; }
       .tbl_col { overflow: auto; }
-      .box, .card, .panel { box-shadow: 0.25em .5em 0.75em rgba(10,10,10,.2), 0 0 0 1px rgba(10,10,10,.05); }
+      dialog { border: none; background: none; }
+      dialog::backdrop { background: #0009; backdrop-filter: blur(4px); }
+      p.help-text { font-size: 85%; margin-bottom: 0.5em; opacity: 92%; }
+      .wide-labels .field-label { flex-grow: 1.5; }
+      .box, .card, .panel, .dropdown-menu { box-shadow: 0.25em .5em 0.75em rgba(10,10,10,.2), 0 0 0 1px rgba(10,10,10,.05); }
+      .dropdown-menu { padding-top: 0; }
       /* fix spacing in some of markdownit's lists */
       .content p:has(+ul), .content p:has(+ol) { margin-bottom: 0.25em !important; }
       .content ul ol, .content ol ul, .content ul ul, .content ol ol { margin-top: 0.25em; }
@@ -259,5 +266,17 @@ ${ options.searchable ?
       </div>
     </footer>
   </body>
+  <script type="text/JavaScript">
+    // close dialogs on click outside
+    const dialogs = document.querySelectorAll("dialog");
+    dialogs.forEach(dialog => dialog.addEventListener('click', function (e) {
+        const rect = dialog.getBoundingClientRect();
+        const isInDialog=(rect.top <= e.clientY && e.clientY <= rect.top + rect.height
+          && rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
+        if (!isInDialog) {
+            dialog.close();
+        }
+    }));
+  </script>
 </html>
 

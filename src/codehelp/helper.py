@@ -10,6 +10,7 @@ from unittest.mock import patch
 from flask import (
     Blueprint,
     abort,
+    flash,
     make_response,
     redirect,
     render_template,
@@ -23,6 +24,12 @@ from gened.auth import (
     login_required,
     tester_required,
 )
+from gened.classes import switch_class
+from gened.contexts import (
+    ContextNotFoundError,
+    get_available_contexts,
+    get_context_by_name,
+)
 from gened.db import get_db
 from gened.openai import LLMDict, get_completion, with_llm
 from gened.queries import get_history, get_query
@@ -30,38 +37,71 @@ from gened.testing.mocks import mock_async_completion
 from werkzeug.wrappers.response import Response
 
 from . import prompts
-from .class_config import get_class_config
+from .context import CodeHelpContext
 
 bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='templates')
 
 
 @bp.route("/")
 @bp.route("/retry/<int:query_id>")
+@bp.route("/ctx/<int:class_id>/<string:ctx_name>")
 @login_required
 @class_enabled_required
-def help_form(query_id: int | None = None) -> str:
+def help_form(query_id: int | None = None, class_id: int | None = None, ctx_name: str | None = None) -> str | Response:
     db = get_db()
     auth = get_auth()
-    class_config = get_class_config()
 
-    languages = class_config.languages
-    selected_lang = class_config.default_lang
+    if class_id is not None:
+        success = switch_class(class_id)
+        if not success:
+            # Can't access the specified context
+            flash(f"Cannot access class and context.  Make sure you are logged in correctly before using this link.", "danger")
+            return make_response(render_template("error.html"), 400)
 
-    # Select most recently submitted language, if available
-    lang_row = db.execute("SELECT language FROM queries WHERE queries.user_id=? ORDER BY queries.id DESC LIMIT 1", [auth['user_id']]).fetchone()
-    if lang_row and lang_row['language'] in languages:
-        selected_lang = lang_row['language']
-
-    # populate with a query+response if one is specified in the query string
+    # we may select a context from a given ctx_name, from a given query_id, or from the user's most recently-used context
+    selected_context_name = None
     query_row = None
-    if query_id is not None:
-        query_row, _ = get_query(query_id)   # _ because we don't need responses here
-        if query_row is not None:
-            selected_lang = query_row['language']
+    if ctx_name is not None:
+        # see if the given context is part of the current class (whether available or not)
+        try:
+            context = get_context_by_name(CodeHelpContext, ctx_name)
+            contexts_list = [context]  # this will be the only context in this page -- no other options
+            selected_context_name = ctx_name
+        except ContextNotFoundError:
+            flash(f"Context not found: {ctx_name}", "danger")
+            return make_response(render_template("error.html"), 404)
+    else:
+        contexts_list = get_available_contexts(CodeHelpContext)  # all *available* contexts will be shown
+        if query_id is not None:
+            # populate with a query if one is specified in the query string
+            query_row, _ = get_query(query_id)   # _ because we don't need responses here
+            if query_row is not None:
+                selected_context_name = query_row['context_name']
+        else:
+            # no query specified,
+            # but we can pre-select the most recently used context, if available
+            recent_row = db.execute("SELECT context_name FROM queries WHERE queries.user_id=? ORDER BY id DESC LIMIT 1", [auth['user_id']]).fetchone()
+            if recent_row:
+                selected_context_name = recent_row['context_name']
+
+        # verify the context is real and part of the current class
+        if selected_context_name is not None:
+            try:
+                context = get_context_by_name(CodeHelpContext, selected_context_name)
+                contexts_list.append(context)  # add this context to the list - may be hidden - if duplicate, dict comprehension will automatically filter
+            except ContextNotFoundError:
+                selected_context_name = None
+
+    # turn contexts into format we can pass to js via JSON
+    contexts = {ctx.name: ctx.desc_html() for ctx in contexts_list}
+
+    # regardless, if there is only one context, select it
+    if len(contexts) == 1:
+        selected_context_name = next(iter(contexts.keys()))
 
     history = get_history()
 
-    return render_template("help_form.html", query=query_row, history=history, languages=languages, selected_lang=selected_lang)
+    return render_template("help_form.html", query=query_row, history=history, contexts=contexts, selected_context_name=selected_context_name)
 
 
 @bp.route("/view/<int:query_id>")
@@ -101,7 +141,7 @@ def score_response(response_txt: str | None, avoid_set: Iterable[str]) -> int:
     return score
 
 
-async def run_query_prompts(llm_dict: LLMDict, language: str, code: str, error: str, issue: str) -> tuple[list[dict[str, str]], dict[str, str]]:
+async def run_query_prompts(llm_dict: LLMDict, context: CodeHelpContext | None, code: str, error: str, issue: str) -> tuple[list[dict[str, str]], dict[str, str]]:
     ''' Run the given query against the coding help system of prompts.
 
     Returns a tuple containing:
@@ -111,16 +151,20 @@ async def run_query_prompts(llm_dict: LLMDict, language: str, code: str, error: 
     client = llm_dict['client']
     model = llm_dict['model']
 
-    # create "avoid set" from class configuration
-    class_config = get_class_config()
-    avoid_set = {x.strip() for x in class_config.avoid.split('\n') if x.strip() != ''}
+    context_str = context.prompt_str() if context is not None else None
+
+    # create "avoid set" from context
+    if context is not None and context.avoid:
+        avoid_set = {x.strip() for x in context.avoid.split('\n') if x.strip() != ''}
+    else:
+        avoid_set = set()
 
     # Launch the "sufficient detail" check concurrently with the main prompt to save time
     task_main = asyncio.create_task(
         get_completion(
             client,
             model=model,
-            messages=prompts.make_main_prompt(language, code, error, issue, avoid_set),
+            messages=prompts.make_main_prompt(code, error, issue, context_str),
             n=1,
             score_func=lambda x: score_response(x, avoid_set)
         )
@@ -129,7 +173,7 @@ async def run_query_prompts(llm_dict: LLMDict, language: str, code: str, error: 
         get_completion(
             client,
             model=model,
-            messages=prompts.make_sufficient_prompt(language, code, error, issue),
+            messages=prompts.make_sufficient_prompt(code, error, issue, context_str),
         )
     )
 
@@ -162,24 +206,35 @@ async def run_query_prompts(llm_dict: LLMDict, language: str, code: str, error: 
         return responses, {'insufficient': response_sufficient_txt, 'main': response_txt}
 
 
-def run_query(llm_dict: LLMDict, language: str, code: str, error: str, issue: str) -> int:
-    query_id = record_query(language, code, error, issue)
+def run_query(llm_dict: LLMDict, context: CodeHelpContext | None, code: str, error: str, issue: str) -> int:
+    query_id = record_query(context, code, error, issue)
 
-    responses, texts = asyncio.run(run_query_prompts(llm_dict, language, code, error, issue))
+    responses, texts = asyncio.run(run_query_prompts(llm_dict, context, code, error, issue))
 
     record_response(query_id, responses, texts)
 
     return query_id
 
 
-def record_query(language: str, code: str, error: str, issue: str) -> int:
+def record_query(context: CodeHelpContext | None, code: str, error: str, issue: str) -> int:
     db = get_db()
     auth = get_auth()
     role_id = auth['role_id']
 
+    if context is not None:
+        context_name = context.name
+        context_str = context.prompt_str()
+        # Add the context string to the context_strings table, but if it's a duplicate, just get the row ID of the existing one.
+        # The "UPDATE SET id=id" is a no-op, but it allows the "RETURNING" to work in case of a conflict as well.
+        cur = db.execute("INSERT INTO context_strings (ctx_str) VALUES (?) ON CONFLICT DO UPDATE SET id=id RETURNING id", [context_str])
+        context_string_id = cur.fetchone()['id']
+    else:
+        context_name = None
+        context_string_id = None
+
     cur = db.execute(
-        "INSERT INTO queries (language, code, error, issue, user_id, role_id) VALUES (?, ?, ?, ?, ?, ?)",
-        [language, code, error, issue, auth['user_id'], role_id]
+        "INSERT INTO queries (context_name, context_string_id, code, error, issue, user_id, role_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [context_name, context_string_id, code, error, issue, auth['user_id'], role_id]
     )
     new_row_id = cur.lastrowid
     db.commit()
@@ -204,19 +259,21 @@ def record_response(query_id: int, responses: list[dict[str, str]], texts: dict[
 @class_enabled_required
 @with_llm()
 def help_request(llm_dict: LLMDict) -> Response:
-    class_config = get_class_config()
-    if class_config.languages:
-        lang_id = int(request.form["lang_id"])
-        language = class_config.languages[lang_id]
+    if 'context' in request.form:
+        try:
+            context = get_context_by_name(CodeHelpContext, request.form['context'])
+        except ContextNotFoundError:
+            flash(f"Context not found: {request.form['context']}")
+            return make_response(render_template("error.html"), 400)
     else:
-        language = ""
+        context = None
     code = request.form["code"]
     error = request.form["error"]
     issue = request.form["issue"]
 
     # TODO: limit length of code/error/issue
 
-    query_id = run_query(llm_dict, language, code, error, issue)
+    query_id = run_query(llm_dict, context, code, error, issue)
 
     return redirect(url_for(".help_view", query_id=query_id))
 
@@ -230,7 +287,7 @@ def load_test(llm_dict: LLMDict) -> Response:
     if auth['display_name'] != 'load_test':
         return abort(403)
 
-    language = "__LOADTEST_Language"
+    context = CodeHelpContext(name="__LOADTEST_Context")
     code = "__LOADTEST_Code"
     error = "__LOADTEST_Error"
     issue = "__LOADTEST_Issue"
@@ -240,7 +297,7 @@ def load_test(llm_dict: LLMDict) -> Response:
         # simulate a 2 second delay for a network request
         mocked.side_effect = mock_async_completion(delay=2.0)
 
-        query_id = run_query(llm_dict, language, code, error, issue)
+        query_id = run_query(llm_dict, context, code, error, issue)
 
     return redirect(url_for(".help_view", query_id=query_id))
 
@@ -286,7 +343,7 @@ def get_topics(llm_dict: LLMDict, query_id: int) -> list[str]:
         return []
 
     messages = prompts.make_topics_prompt(
-        query_row['language'],
+        '',  # TODO: put this back: query_row['context'],
         query_row['code'],
         query_row['error'],
         query_row['issue'],

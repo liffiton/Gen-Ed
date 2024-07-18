@@ -30,18 +30,14 @@ SPDX-License-Identifier: AGPL-3.0-only
             </div>
           </div>
 
+          {% if contexts %}
           <div class="field is-horizontal">
-            <div class="field-label is-normal">
+            <div class="field-label {% if contexts | length > 1 %}is-normal{% endif %}">
               <label class="label" for="context">Context:</label>
             </div>
-            <div class="field-body">
-              <div class="field">
-                <div class="control">
-                  <textarea class="textarea" name="context" id="context"></textarea>
-                </div>
-              </div>
-            </div>
+            {% include "context_chooser.html" %}
           </div>
+          {% endif %}
 
           <div class="field is-horizontal">
             <div class="field-label is-normal"><!-- spacing --></div>

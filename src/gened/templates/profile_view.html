@@ -102,7 +102,7 @@ dl.profile dd { margin: 0; }
       {% endif %}
     </dl>
 
-    <dialog id="new_class_dialog" style="border: none; background: none; width: 75%; min-width: min(32em, 100vw);">
+    <dialog id="new_class_dialog" style="width: 75%; min-width: min(32em, 100vw);">
       <div class="content box">
         <h2>Create a New Class</h2>
         <p>You can create a class, attach an OpenAI API key to it, and invite others to join it as students.  You will be given the 'instructor' role in the class, and you will be able to configure it, control access and registration, and see all queries from students who join.</p>
@@ -110,7 +110,7 @@ dl.profile dd { margin: 0; }
           <div class="field">
             <label class="label is-size-5" for="class_name">Class Name:</label>
             <div class="control">
-              <input class="input" required name="class_name" id="class_name">
+              <input class="input" required autofocus name="class_name" id="class_name">
             </div>
           </div>
           <div class="field">
@@ -122,26 +122,17 @@ dl.profile dd { margin: 0; }
             </div>
             <p>(The API key can be left blank for now, but you will need to add one to the class to submit queries.)</p>
           </div>
-          <div class="field">
+          <div class="field is-grouped">
             <div class="control">
-              <button class="button is-link" type="submit" >Submit</button>
+              <button class="button is-link" type="submit">Submit</button>
+            </div>
+            <div class="control">
+              <button class="button" type="submit" formnovalidate formmethod="dialog">Cancel</button>
             </div>
           </div>
         </form>
       </div>
     </dialog>
-    <script type="text/JavaScript">
-      // close dialog on click outside
-      const dialog = document.querySelector("#new_class_dialog");
-      dialog.addEventListener('click', function (e) {
-          const rect = dialog.getBoundingClientRect();
-          const isInDialog=(rect.top <= e.clientY && e.clientY <= rect.top + rect.height
-            && rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
-          if (!isInDialog) {
-              dialog.close();
-          }
-      });
-    </script>
   </div>
 </section>
 {% endblock %}

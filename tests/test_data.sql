@@ -7,12 +7,23 @@ VALUES
     (1, 'consumer.domain', 'seecrits1', 'keeeez1'),
     (2, 'consumer.otherdomain', 'seecrits2', 'keeeez2');
 
-INSERT INTO classes (id, name, enabled, config)
+INSERT INTO classes (id, name, enabled)
 VALUES
-    (1, 'LERN101', 1, '{"languages": ["Python", "C++", "OCaml"], "default_lang": "Python", "avoid": "sum()\r\neval()\r\nzfill()\r\n+=\r\n"}'),
-    (2, 'USER001', 1, '{"languages": ["Python"], "default_lang": "Python", "avoid": ""}'),
-    (3, 'USER002', 1, '{"languages": ["Python"], "default_lang": "Python", "avoid": ""}'),
-    (4, 'USER003', 1, '{"languages": ["Python"], "default_lang": "Python", "avoid": ""}');
+    (1, 'LERN101', 1),
+    (2, 'USER001', 1),
+    (3, 'USER002', 1),
+    (4, 'USER003', 1);
+
+INSERT INTO contexts (id, name, class_id, class_order, available, config)
+VALUES
+    (1, 'default', 1, 0, '0001-01-01', '{"tools": "Python\r\nC++\r\nOCaml", "avoid": "sum()\r\neval()\r\nzfill()\r\n+=\r\n"}'),
+    (2, 'default', 2, 0, '0001-01-01', '{"tools": "Python", "avoid": ""}'),
+    (3, 'default', 3, 0, '0001-01-01', '{"tools": "Python", "avoid": ""}'),
+    (4, 'default', 4, 0, '0001-01-01', '{"tools": "Python", "avoid": ""}'),
+    -- contexts for testuser's class:
+    (5, 'default1', 2, 0, '0001-01-01', '{"tools": "Python", "avoid": ""}'),
+    (6, 'default2', 2, 1, '0001-01-01', '{"tools": "Python", "avoid": ""}'),
+    (7, 'default3', 2, 2, '0001-01-01', '{"tools": "Python", "avoid": ""}');
 
 INSERT INTO classes_lti (class_id, lti_consumer_id, lti_context_id)
 VALUES
@@ -65,12 +76,15 @@ VALUES
     (5, 12, 2, 'student'), -- testadmin is a student
     (6, 13, 2, 'student'); -- testinstructor is a student
 
-INSERT INTO queries (id, language, code, error, issue, response_json, response_text, helpful, user_id, role_id)
+INSERT INTO context_strings (id, ctx_str)
+VALUES (1, 'context 1'), (2, 'context 2');
+
+INSERT INTO queries (id, context_name, context_string_id, code, error, issue, response_json, response_text, helpful, user_id, role_id)
 VALUES
-    (1, 'python', 'code1', '', '', '{}', '{"main": "response1"}', 0, 21, 1),
-    (2, 'python', 'code2', '', '', '{}', '{"main": "response2"}', 0, 22, 2),
-    (3, 'python', 'code3', '', '', '{}', '{"main": "response3"}', 0, 21, 1),
-    (4, 'python', 'code4', '', '', '{}', '{"main": "response4"}', 0, 23, 3);
+    (1, 'default', 1, 'code1', '', '', '{}', '{"main": "response1"}', 0, 21, 1),
+    (2, 'default', 2, 'code2', '', '', '{}', '{"main": "response2"}', 0, 22, 2),
+    (3, 'default', 1, 'code3', '', '', '{}', '{"main": "response3"}', 0, 21, 1),
+    (4, 'default', 2, 'code4', '', '', '{}', '{"main": "response4"}', 0, 23, 3);
 
 INSERT INTO demo_links (id, name, enabled, expiration, tokens, uses)
 VALUES

@@ -66,6 +66,7 @@ def get_or_create_lti_class(lti_consumer_id: int, lti_context_id: str, class_nam
     else:
         cur = db.execute("INSERT INTO classes (name) VALUES (?)", [class_name])
         class_id = cur.lastrowid
+        assert class_id is not None
         db.execute(
             "INSERT INTO classes_lti (class_id, lti_consumer_id, lti_context_id) VALUES (?, ?, ?)",
             [class_id, lti_consumer_id, lti_context_id]

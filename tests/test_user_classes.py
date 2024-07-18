@@ -104,7 +104,7 @@ def test_user_class_usage(app):
     assert 'Invalid id.' in result.text
 
     # 6) user makes a query
-    result = user_client.post('/help/request', data={'lang_id': 1, 'code': 'student_1_code', 'error': 'error', 'issue': 'issue'})
+    result = user_client.post('/help/request', data={'code': 'student_1_code', 'error': 'error', 'issue': 'issue'})
     assert result.status_code == 302
     assert result.location == "/help/view/5"  # next open query ID (test_data.sql inserts up to 4)
     result = user_client.get(result.location)

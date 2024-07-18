@@ -18,6 +18,11 @@ from flask import (
 from gened.admin import bp as bp_admin
 from gened.admin import register_admin_link
 from gened.auth import get_auth, login_required, tester_required
+from gened.contexts import (
+    ContextNotFoundError,
+    get_available_contexts,
+    get_context_by_name,
+)
 from gened.db import get_db
 from gened.openai import LLMDict, get_completion, with_llm
 from gened.queries import get_query
@@ -25,6 +30,7 @@ from openai.types.chat import ChatCompletionMessageParam
 from werkzeug.wrappers.response import Response
 
 from . import prompts
+from .context import CodeHelpContext
 
 
 class ChatNotFoundError(Exception):
@@ -45,20 +51,31 @@ def before_request() -> None:
     """Apply decorators to protect all tutor blueprint endpoints.
     Use @tester_required first so that non-logged-in users get a 404 as well.
     """
-    pass
 
 
 @bp.route("/")
 def tutor_form() -> str:
+    contexts_list = get_available_contexts(CodeHelpContext)
+    # turn into format we can pass to js via JSON
+    contexts = {ctx.name: ctx.desc_html() for ctx in contexts_list}
+
+    selected_context_name = None
+    if len(contexts) == 1:
+        selected_context_name = next(iter(contexts.keys()))
+
     chat_history = get_chat_history()
-    return render_template("tutor_new_form.html", chat_history=chat_history)
+    return render_template("tutor_new_form.html", contexts=contexts, selected_context_name=selected_context_name, chat_history=chat_history)
 
 
 @bp.route("/chat/create", methods=["POST"])
 @with_llm()
 def start_chat(llm_dict: LLMDict) -> Response:
     topic = request.form['topic']
-    context = request.form.get('context', None)
+    try:
+        context = get_context_by_name(CodeHelpContext, request.form['context'])
+    except ContextNotFoundError:
+        flash(f"Context not found: {request.form['context']}")
+        return make_response(render_template("error.html"), 400)
 
     chat_id = create_chat(topic, context)
 
@@ -76,7 +93,7 @@ def start_chat_from_query(llm_dict: LLMDict) -> Response:
     query_id = int(request.form['query_id'])
     query_row, response = get_query(query_id)
     assert query_row
-    context = f"The user is working with the {query_row['language']} language."
+    context = get_context_by_name(CodeHelpContext, query_row['context_name'])
 
     chat_id = create_chat(topic, context)
 
@@ -98,15 +115,16 @@ def chat_interface(chat_id: int) -> str | Response:
     return render_template("tutor_view.html", chat_id=chat_id, topic=topic, context=context, chat=chat, chat_history=chat_history)
 
 
-def create_chat(topic: str, context: str|None = None) -> int:
+def create_chat(topic: str, context: CodeHelpContext) -> int:
     auth = get_auth()
     user_id = auth['user_id']
     role_id = auth['role_id']
+    context_str = context.prompt_str()
 
     db = get_db()
     cur = db.execute(
         "INSERT INTO tutor_chats (user_id, role_id, topic, context, chat_json) VALUES (?, ?, ?, ?, ?)",
-        [user_id, role_id, topic, context, json.dumps([])]
+        [user_id, role_id, topic, context_str, json.dumps([])]
     )
     new_row_id = cur.lastrowid
 
@@ -152,7 +170,7 @@ def get_chat(chat_id: int) -> tuple[list[ChatCompletionMessageParam], str, str]:
     chat_json = chat_row['chat_json']
     chat = json.loads(chat_json)
     topic = chat_row['topic']
-    context = chat_row['context']
+    context = ''  # TODO: put this back: chat_row['context']
 
     return chat, topic, context
 
