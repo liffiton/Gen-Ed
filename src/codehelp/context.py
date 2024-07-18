@@ -15,7 +15,12 @@ def _default_langs() -> list[str]:
     langs: list[str] = current_app.config['DEFAULT_LANGUAGES']  # declaration keeps mypy happy
     return langs
 
-jinja_env = Environment(
+jinja_env_prompt = Environment(
+    trim_blocks=True,
+    lstrip_blocks=True,
+    autoescape=False,  # noqa: S701 - no need to escape for the LLM
+)
+jinja_env_html = Environment(
     trim_blocks=True,
     lstrip_blocks=True,
     autoescape=True,
@@ -42,13 +47,13 @@ class CodeHelpContext(ContextConfig):
     @staticmethod
     def _list_fmt(s: str) -> str:
         if s:
-            return ', '.join(s.split('\n'))
+            return '; '.join(s.splitlines())
         else:
             return ''
 
     def prompt_str(self) -> str:
         """ Convert this context into a string to be used in an LLM prompt. """
-        template = jinja_env.from_string("""\
+        template = jinja_env_prompt.from_string("""\
 <name>{{ name }}</name>
 {% if tools %}
 Environment and tools: <tools>{{ tools }}</tools>
@@ -67,7 +72,7 @@ Keywords and concepts to avoid (do not mention these in your response at all): <
 
         Does not include the avoid set (not necessary to show students).
         """
-        template = jinja_env.from_string("""\
+        template = jinja_env_html.from_string("""\
 {% if tools %}
 <p><b>Environment & tools:</b> {{ tools }}</p>
 {% endif %}
@@ -84,4 +89,4 @@ def init_app(app: Flask) -> None:
     and grab a copy of the app's markdown filter for use here.
     """
     register_context(CodeHelpContext)
-    jinja_env.filters['markdown'] = app.jinja_env.filters['markdown']
+    jinja_env_html.filters['markdown'] = app.jinja_env.filters['markdown']
