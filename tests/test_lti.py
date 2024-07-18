@@ -203,7 +203,7 @@ def test_lti_instructor_and_students(client):
 
     # 6) student 2 cannot see student 1's query
     result = client.get('/help/view/5')
-    assert result.status_code == 200
+    assert result.status_code == 400
     assert 'student_1_code' not in result.text
     assert 'Invalid id.' in result.text
 

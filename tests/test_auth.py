@@ -134,10 +134,10 @@ def test_logout(client, auth):
     ('/', 200, 200, 200),
     ('/profile/', 302, (200, "0 total, 0 in the past week"), (200, "0 total, 0 in the past week")),
     ('/help/', 302, 200, 200),
-    ('/help/view/1', 302, (200, "Invalid id."), (200, "response1")),
+    ('/help/view/1', 302, (400, "Invalid id."), (200, "response1")),
     ('/tutor/', 404, 200, 200),
     ('/tutor/chat/1', 404, (200, "user_msg_1"), (200, "user_msg_1")),
-    ('/tutor/chat/2', 404, (200, "Invalid id."), (200, "user_msg_2")),
+    ('/tutor/chat/2', 404, (400, "Invalid id."), (200, "user_msg_2")),
     ('/admin/', 302, 302, 200),         # admin_required redirects to login
     ('/admin/get_db', 302, 302, 200),   # admin_required redirects to login
 ])

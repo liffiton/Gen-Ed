@@ -6,7 +6,15 @@ import asyncio
 import json
 from sqlite3 import Row
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    flash,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from gened.admin import bp as bp_admin
 from gened.admin import register_admin_link
 from gened.auth import get_auth, login_required, tester_required
@@ -78,12 +86,12 @@ def start_chat_from_query(llm_dict: LLMDict) -> Response:
 
 
 @bp.route("/chat/<int:chat_id>")
-def chat_interface(chat_id: int) -> str:
+def chat_interface(chat_id: int) -> str | Response:
     try:
         chat, topic, context = get_chat(chat_id)
     except (ChatNotFoundError, AccessDeniedError):
         flash("Invalid id.", "warning")
-        return render_template("error.html")
+        return make_response(render_template("error.html"), 400)
 
     chat_history = get_chat_history()
 

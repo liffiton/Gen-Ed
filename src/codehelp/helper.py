@@ -7,7 +7,15 @@ import json
 from collections.abc import Iterable
 from unittest.mock import patch
 
-from flask import Blueprint, abort, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    abort,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from gened.auth import (
     admin_required,
     class_enabled_required,
@@ -28,7 +36,7 @@ bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='template
 
 
 @bp.route("/")
-@bp.route("/<int:query_id>")
+@bp.route("/retry/<int:query_id>")
 @login_required
 @class_enabled_required
 def help_form(query_id: int | None = None) -> str:
@@ -58,8 +66,12 @@ def help_form(query_id: int | None = None) -> str:
 
 @bp.route("/view/<int:query_id>")
 @login_required
-def help_view(query_id: int) -> str:
+def help_view(query_id: int) -> str | Response:
     query_row, responses = get_query(query_id)
+
+    if query_row is None:
+        return make_response(render_template("error.html"), 400)
+
     history = get_history()
     if query_row and query_row['topics_json']:
         topics = json.loads(query_row['topics_json'])
