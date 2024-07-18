@@ -331,7 +331,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             <template x-for="(ctx, index) in items" x-bind:key="ctx.name">
               <tr x-bind:draggable="(drag_index == index)" @dragenter="dragenter(index)" @dragover.prevent @dragend="stop_drag" x-bind:style="(drag_index == index) && {background: '#fc9'}">
                 <td style="cursor: move; vertical-align: middle; text-align: center;" @mousedown="drag_index=index" @mouseup="stop_drag" title="drag to reorder">
-                  <svg aria-hidden="true" class="icon is-small"><use href="#svg_grip" /></svg>
+                  <svg aria-hidden="true" class="icon is-small mt-1"><use href="#svg_grip" /></svg>
                 </td>
                 <td style="vertical-align: middle;">
                   <a class="is-underlined hover-show-icon has-text-link-dark" x-bind:title="`edit '${ctx.name}'`" x-bind:href="'{{ url_for('class_config.contexts.context_form') }}/' + ctx.id" x-text="ctx.name"></a>
