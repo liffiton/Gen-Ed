@@ -228,6 +228,7 @@ def update_context(ctx_class: type[ContextConfig], ctx_id: int, ctx_row: Row) ->
 
     # names must be unique within a class: check/look for an unused name
     auth = get_auth()
+    assert auth['class_id']
     name = _make_unique_context_name(auth['class_id'], context.name)
 
     db.execute("UPDATE contexts SET name=?, config=? WHERE id=?", [name, context.to_json(), ctx_id])
