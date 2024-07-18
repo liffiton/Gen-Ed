@@ -17,15 +17,15 @@ SPDX-License-Identifier: AGPL-3.0-only
     <style type="text/css">
       body { display: flex; min-height: 100vh; flex-direction: column; }
       @keyframes fadein {
-        from { opacity: 0; transform: translateY(-100%); }
-        to   { opacity: 1; transform: translateY(0); }
+        from { opacity: 0; transform: translateY(-50%) scale(80%); }
+        to   { opacity: 1; transform: translateY(0) scale(100%); }
       }
       .icon-text { align-items: center; }
       .icon-text svg { height: 100%; }
       .button .icon:first-child:not(:last-child) { margin-right: 0.5em; }
       a.button-inline { display: inline-block; padding: 0.2em 0.5em; vertical-align: baseline; height: auto; }
-      a.hover-show-icon + svg { visibility: hidden; }
-      a.hover-show-icon:hover + svg { visibility: visible; }
+      a.hover-show-icon + svg { opacity: 25%; }
+      a.hover-show-icon:hover + svg { opacity: 100%; }
       div.flash_message { animation: fadein 1s; }
       main.site-content { flex: 1; } /* expand main content, push footer to bottom of page/viewport */
       span[title] { text-decoration:underline; text-decoration-style: dotted; }
