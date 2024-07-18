@@ -334,7 +334,8 @@ SPDX-License-Identifier: AGPL-3.0-only
                   <svg aria-hidden="true" class="icon is-small"><use href="#svg_grip" /></svg>
                 </td>
                 <td style="vertical-align: middle;">
-                    <a class="is-underlined has-text-link-dark" x-bind:title="`edit '${ctx.name}'`" x-bind:href="'{{ url_for('class_config.contexts.context_form') }}/' + ctx.id" x-text="ctx.name">
+                  <a class="is-underlined hover-show-icon has-text-link-dark" x-bind:title="`edit '${ctx.name}'`" x-bind:href="'{{ url_for('class_config.contexts.context_form') }}/' + ctx.id" x-text="ctx.name"></a>
+                  <svg aria-hidden="true" class="icon is-small has-text-link-dark"><use href="#svg_pencil" /></svg>
                 </td>
                 <td style="text-align: center; vertical-align: middle;">
                   <div x-data="available_dropdown">
