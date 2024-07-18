@@ -84,12 +84,16 @@ def help_form(query_id: int | None = None, class_id: int | None = None, ctx_name
             if recent_row:
                 selected_context_name = recent_row['context_name']
 
+        # verify the context is real and part of the current class
+        if selected_context_name is not None:
+            try:
+                context = get_context_by_name(CodeHelpContext, selected_context_name)
+                contexts_list.append(context)  # add this context to the list - may be hidden - if duplicate, dict comprehension will automatically filter
+            except ContextNotFoundError:
+                selected_context_name = None
+
     # turn contexts into format we can pass to js via JSON
     contexts = {ctx.name: ctx.desc_html() for ctx in contexts_list}
-
-    # validate selected context name (may no longer exist / be available)
-    if selected_context_name not in contexts:
-        selected_context_name = None
 
     # regardless, if there is only one context, select it
     if len(contexts) == 1:
