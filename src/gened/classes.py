@@ -176,7 +176,7 @@ def switch_class_handler(class_id: int) -> Response:
 @login_required
 def leave_class_handler() -> Response:
     switch_class(None)
-    return safe_redirect_next(default_endpoint="profile.main")
+    return redirect(url_for("profile.main"))
 
 
 @bp.route("/create/", methods=['POST'])

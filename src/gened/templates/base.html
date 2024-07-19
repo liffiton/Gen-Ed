@@ -175,7 +175,7 @@ ${ options.searchable ?
                     {% endfor %}
                     {% if auth['is_admin'] and class_name %}
                     <div class="dropdown-item">
-                      <button class="button is-rounded is-danger is-light is-outlined is-small" type="button" onclick="location.assign('{{ url_for("classes.leave_class_handler", next=request.path) }}'); return false;">Leave class</button>
+                      <button class="button is-rounded is-danger is-light is-outlined is-small" type="button" onclick="location.assign('{{ url_for("classes.leave_class_handler") }}'); return false;">Leave class</button>
                     </div>
                     {% endif %}
                   </div>
