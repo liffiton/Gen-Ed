@@ -177,7 +177,7 @@ def get_models() -> list[Row]:
     return models
 
 
-async def get_completion(client: AsyncOpenAI, model: str, prompt: str | None = None, messages: list[ChatCompletionMessageParam] | None = None, n: int = 1, score_func: Callable[[str | None], int] | None = None) -> tuple[dict[str, str], str]:
+async def get_completion(client: AsyncOpenAI, model: str, prompt: str | None = None, messages: list[ChatCompletionMessageParam] | None = None) -> tuple[dict[str, str], str]:
     '''
     model can be any valid OpenAI model name that can be used via the chat completion API.
 
@@ -197,17 +197,12 @@ async def get_completion(client: AsyncOpenAI, model: str, prompt: str | None = N
             messages=messages,
             temperature=0.25,
             max_tokens=1000,
-            n=n,
         )
 
-        if n > 1:
-            assert score_func is not None
-            best_choice = max(response.choices, key=lambda choice: score_func(choice.message.content))
-        else:
-            best_choice = response.choices[0]
-        response_txt = best_choice.message.content or ""
+        choice = response.choices[0]
+        response_txt = choice.message.content or ""
 
-        if best_choice.finish_reason == "length":  # "length" if max_tokens reached
+        if choice.finish_reason == "length":  # "length" if max_tokens reached
             response_txt += "\n\n[error: maximum length exceeded]"
 
         return response.model_dump(), response_txt.strip()

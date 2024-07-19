@@ -121,26 +121,6 @@ def help_view(query_id: int) -> str | Response:
     return render_template("help_view.html", query=query_row, responses=responses, history=history, topics=topics)
 
 
-def score_response(response_txt: str | None, avoid_set: Iterable[str]) -> int:
-    ''' Return an integer score for a given response text.
-    Returns:
-        0 = best.
-        Negative values for responses including indications of code blocks or keywords in the avoid set.
-        Indications of code blocks are weighted most heavily.
-    '''
-    if not response_txt:
-        # Empty/None response is pretty bad.
-        return -100
-
-    score = 0
-    for bad_kw in avoid_set:
-        score -= response_txt.count(bad_kw)
-    for code_indication in ['```', 'should look like', 'should look something like']:
-        score -= 100 * response_txt.count(code_indication)
-
-    return score
-
-
 async def run_query_prompts(llm_dict: LLMDict, context: CodeHelpContext | None, code: str, error: str, issue: str) -> tuple[list[dict[str, str]], dict[str, str]]:
     ''' Run the given query against the coding help system of prompts.
 
@@ -153,20 +133,12 @@ async def run_query_prompts(llm_dict: LLMDict, context: CodeHelpContext | None, 
 
     context_str = context.prompt_str() if context is not None else None
 
-    # create "avoid set" from context
-    if context is not None and context.avoid:
-        avoid_set = {x.strip() for x in context.avoid.split('\n') if x.strip() != ''}
-    else:
-        avoid_set = set()
-
     # Launch the "sufficient detail" check concurrently with the main prompt to save time
     task_main = asyncio.create_task(
         get_completion(
             client,
             model=model,
             messages=prompts.make_main_prompt(code, error, issue, context_str),
-            n=1,
-            score_func=lambda x: score_response(x, avoid_set)
         )
     )
     task_sufficient = asyncio.create_task(

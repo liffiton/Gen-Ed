@@ -190,7 +190,6 @@ def get_response(llm_dict: LLMDict, chat: list[ChatCompletionMessageParam]) -> t
         client=llm_dict['client'],
         model=llm_dict['model'],
         messages=chat,
-        n=1,
     ))
 
     return response, text
