@@ -122,6 +122,14 @@ ${ options.searchable ?
           <svg aria-hidden="true" style="height: 1.5em; margin-right: 0.2em;" viewBox="0 0 14 10"><use href="#svg_app_logo" /></svg>
           {{ config['APPLICATION_TITLE'] }}
         </a>
+        <a role="button" class="navbar-burger" style="height: inherit;" aria-label="menu" aria-expanded="false" x-bind:class="menu_open ? 'is-active' : ''" x-on:click="menu_open = ! menu_open">
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+        </a>
+      </div>
+      <div class="navbar-menu" x-bind:class="menu_open ? 'is-active' : ''">
+        <div class="navbar-start">
         {% if auth['user_id'] %}
           <a class="navbar-item has-text-success" href="{{ url_for('helper.help_form') }}">
             <div class="icon-text">
@@ -132,14 +140,6 @@ ${ options.searchable ?
             </div>
           </a>
         {% endif %}
-        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" x-bind:class="menu_open ? 'is-active' : ''" x-on:click="menu_open = ! menu_open">
-          <span aria-hidden="true"></span>
-          <span aria-hidden="true"></span>
-          <span aria-hidden="true"></span>
-        </a>
-      </div>
-      <div class="navbar-menu" x-bind:class="menu_open ? 'is-active' : ''">
-        <div class="navbar-start">
         {% for nav_item_template in config['NAVBAR_ITEM_TEMPLATES'] %}
           {% include nav_item_template %}
         {% endfor %}
@@ -186,18 +186,18 @@ ${ options.searchable ?
             {% if auth['role'] == 'instructor' %}
               <a class="navbar-item is-size-6 has-text-success" href="/instructor/config">
                 <div class="icon-text">
-                  <span class="icon">
+                  <span class="icon" title="Configure Class">
                     <svg aria-hidden="true"><use href="#svg_config" /></svg>
                   </span>
-                  <span>Configure Class</span>
+                  <span class="is-hidden-desktop-only">Configure Class</span>
                 </div>
               </a>
               <a class="navbar-item is-size-6 has-text-warning" href="/instructor/">
                 <div class="icon-text">
-                  <span class="icon">
+                  <span class="icon" title="Instructor View">
                     <svg aria-hidden="true"><use href="#svg_table_grid" /></svg>
                   </span>
-                  <span>Instructor View</span>
+                  <span class="is-hidden-desktop-only">Instructor View</span>
                 </div>
               </a>
             {% endif %}

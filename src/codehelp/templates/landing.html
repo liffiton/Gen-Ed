@@ -114,11 +114,11 @@ SPDX-License-Identifier: AGPL-3.0-only
                 Examples:
               </h1>
               <div>
-                <a class="button is-link is-light" @click="cur = (cur === 0) ? examples.length-1 : cur-1">&lt;</a>
+                <a role="button" class="button is-link is-light" @click="cur = (cur === 0) ? examples.length-1 : cur-1">&lt;</a>
                 <template x-for="i in examples.length">
-                  <a x-text="i" class="button ml-2 is-link is-light" :style="{'border-bottom': (cur === i-1) && '3px solid #60c'}" @click="cur = i-1"></a>
+                  <a role="button" x-text="i" class="button ml-1 is-link is-light" :style="{'border-bottom': (cur === i-1) && '4px solid #60c'}" @click="cur = i-1"></a>
                 </template>
-                <a class="button ml-2 is-link is-light" @click="cur = (cur+1) % examples.length">&gt;</a>
+                <a role="button" class="button ml-1 is-link is-light" @click="cur = (cur+1) % examples.length">&gt;</a>
               </div>
             </div>
             <hr>
