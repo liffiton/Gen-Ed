@@ -7,8 +7,12 @@ summary:  Based on our experiences using CodeHelp with students.
 
 Based on our experiences, we have collected a few recommendations for integrating CodeHelp into a class effectively.
 
+## Using Contexts
 
-## Initial introduction
+Before you make CodeHelp available to your students, you should define one or more contexts.
+We have a separate page about <a href="contexts">Using Contexts</a>.
+
+## Initial Introduction
 
 When first introducing CodeHelp to students, motivate its use by sharing some of the benefits students will see, as relevant to your course.
 Explain carefully its strengths and limitations in the context of your course: what it will likely be able to help with, and where may it produce incorrect responses.
@@ -30,5 +34,5 @@ In this way, you can gain insight into where they are struggling at each point i
 Additionally, you might identify students whose usage is not effective (e.g., repeatedly submitting ineffective queries or demonstrating overreliance), and reach out to them directly to provide guidance or a nudge.
 
 Instructors and TAs should sample CodeHelp's responses in each section of the course to spot and mitigate issues.
-For example, if CodeHelp suggests a technique, function, or concept that does not fit the design of your course, you can add that to the avoid set in the instructor's class configuration interface to produce more appropriate responses to similar queries in the future.
+For example, if CodeHelp suggests a technique, function, or concept that does not fit the design of your course, you can add that to the avoid set in the the relevant <a href="contexts">context</a> to produce more appropriate responses to similar queries in the future.
 

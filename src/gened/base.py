@@ -188,6 +188,11 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
     if docs_dir:
         app.register_blueprint(docs.bp)
 
+        # Inject docs pages list into template contexts
+        @app.context_processor
+        def inject_docs_list() -> dict[str, list[str]]:
+            return { 'docs_pages': docs.list_pages() }
+
     # Inject auth data into template contexts
     @app.context_processor
     def inject_auth_data() -> dict[str, Any]:

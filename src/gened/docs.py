@@ -10,7 +10,8 @@ from flask import Blueprint, abort, current_app, render_template
 from markdown_it import MarkdownIt
 
 # get a processor that does HTML parsing for our docs (trusted content, HTML parsing okay)
-_markdown_processor = MarkdownIt("commonmark")
+_markdown_processor = MarkdownIt("commonmark", {"typographer": True})
+_markdown_processor.enable(["replacements", "smartquotes"])
 
 bp = Blueprint('docs', __name__, url_prefix="/docs", template_folder='templates')
 
@@ -40,6 +41,14 @@ def _process_doc(docfile_path: Path) -> Document:
         title=title,
         summary=summary,
     )
+
+
+def list_pages() -> list[str]:
+    docs_dir = current_app.config.get('DOCS_DIR')
+    assert docs_dir  # base.py shouldn't load this blueprint if we have no documentation directory configured
+
+    pages_paths = docs_dir.glob('*.md')
+    return [path.stem for path in pages_paths]
 
 
 @bp.route('/')
