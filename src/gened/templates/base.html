@@ -43,8 +43,8 @@ SPDX-License-Identifier: AGPL-3.0-only
       .content ul ol, .content ol ul, .content ul ul, .content ol ol { margin-top: 0.25em; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer type="text/javascript"></script>
-    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@8" type="text/javascript"></script>
     <link href="{{ url_for('static', filename='datatables.css') }}" rel="stylesheet" type="text/css">
+    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@8" type="text/javascript"></script>
     <script type="text/javascript">
       function initTable(tblname, rows, link_col, link_func, csv_link=null) {
         const table = new simpleDatatables.DataTable(`table#${tblname}`, {
@@ -104,13 +104,6 @@ ${ options.searchable ?
         }
       }
     </script>
-    {% if 'timezone' not in session %}
-    <script type="text/javascript">
-      // Send browser's timezone to server for displaying dates/times in local timezone.
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      fetch("/set_timezone", {method: 'POST', body: timezone});
-    </script>
-    {% endif %}
     <title>{{ config['APPLICATION_TITLE'] }}</title>
   </head>
   <body>
@@ -265,18 +258,25 @@ ${ options.searchable ?
         {% endif %}
       </div>
     </footer>
+    <script type="text/JavaScript">
+      // close dialogs on click outside
+      const dialogs = document.querySelectorAll("dialog");
+      dialogs.forEach(dialog => dialog.addEventListener('click', function (e) {
+          const rect = dialog.getBoundingClientRect();
+          const isInDialog=(rect.top <= e.clientY && e.clientY <= rect.top + rect.height
+            && rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
+          if (!isInDialog) {
+              dialog.close();
+          }
+      }));
+    </script>
+    {% if 'timezone' not in session %}
+    <script type="text/javascript">
+      // Send browser's timezone to server for displaying dates/times in local timezone.
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      fetch("/set_timezone", {method: 'POST', body: timezone});
+    </script>
+    {% endif %}
   </body>
-  <script type="text/JavaScript">
-    // close dialogs on click outside
-    const dialogs = document.querySelectorAll("dialog");
-    dialogs.forEach(dialog => dialog.addEventListener('click', function (e) {
-        const rect = dialog.getBoundingClientRect();
-        const isInDialog=(rect.top <= e.clientY && e.clientY <= rect.top + rect.height
-          && rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
-        if (!isInDialog) {
-            dialog.close();
-        }
-    }));
-  </script>
 </html>
 
