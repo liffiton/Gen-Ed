@@ -309,11 +309,10 @@ def get_available_contexts(ctx_class: type[T]) -> list[T]:
     return [ctx_class.from_row(row) for row in context_rows]
 
 
-class ContextNotFoundError(Exception):
-    pass
-
-
-def get_context_config_by_id(ctx_class: type[T], ctx_id: int) -> T:
+def get_context_config_by_id(ctx_class: type[T], ctx_id: int) -> T | None:
+    """ Return a context object of the given class based on the specified id
+        or return None if no context exists with that name.
+    """
     assert _context_class is not None
 
     db = get_db()
@@ -324,12 +323,15 @@ def get_context_config_by_id(ctx_class: type[T], ctx_id: int) -> T:
     context_row = db.execute("SELECT * FROM contexts WHERE class_id=? AND id=?", [class_id, ctx_id]).fetchone()
 
     if not context_row:
-        raise ContextNotFoundError
+        return None
 
     return ctx_class.from_row(context_row)
 
 
-def get_context_by_name(ctx_class: type[T], ctx_name: str) -> T:
+def get_context_by_name(ctx_class: type[T], ctx_name: str) -> T | None:
+    """ Return a context object of the given class based on the specified name
+        or return None if no context exists with that name.
+    """
     assert _context_class is not None
 
     db = get_db()
@@ -340,6 +342,6 @@ def get_context_by_name(ctx_class: type[T], ctx_name: str) -> T:
     context_row = db.execute("SELECT * FROM contexts WHERE class_id=? AND name=?", [class_id, ctx_name]).fetchone()
 
     if not context_row:
-        raise ContextNotFoundError
+        return None
 
     return ctx_class.from_row(context_row)

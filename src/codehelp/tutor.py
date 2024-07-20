@@ -19,7 +19,6 @@ from gened.admin import bp as bp_admin
 from gened.admin import register_admin_link
 from gened.auth import get_auth, login_required
 from gened.contexts import (
-    ContextNotFoundError,
     get_available_contexts,
     get_context_by_name,
 )
@@ -72,11 +71,14 @@ def tutor_form() -> str:
 @with_llm()
 def start_chat(llm_dict: LLMDict) -> Response:
     topic = request.form['topic']
-    try:
+
+    if 'context' in request.form:
         context = get_context_by_name(CodeHelpContext, request.form['context'])
-    except ContextNotFoundError:
-        flash(f"Context not found: {request.form['context']}")
-        return make_response(render_template("error.html"), 400)
+        if context is None:
+            flash(f"Context not found: {request.form['context']}")
+            return make_response(render_template("error.html"), 400)
+    else:
+        context = None
 
     chat_id = create_chat(topic, context)
 
@@ -116,16 +118,22 @@ def chat_interface(chat_id: int) -> str | Response:
     return render_template("tutor_view.html", chat_id=chat_id, topic=topic, context_name=context_name, chat=chat, chat_history=chat_history)
 
 
-def create_chat(topic: str, context: CodeHelpContext) -> int:
+def create_chat(topic: str, context: CodeHelpContext | None) -> int:
+    db = get_db()
     auth = get_auth()
     user_id = auth['user_id']
     role_id = auth['role_id']
-    context_string_id = record_context_string(context.prompt_str())
 
-    db = get_db()
+    if context is not None:
+        context_name = context.name
+        context_string_id = record_context_string(context.prompt_str())
+    else:
+        context_name = None
+        context_string_id = None
+
     cur = db.execute(
         "INSERT INTO chats (user_id, role_id, topic, context_name, context_string_id, chat_json) VALUES (?, ?, ?, ?, ?, ?)",
-        [user_id, role_id, topic, context.name, context_string_id, json.dumps([])]
+        [user_id, role_id, topic, context_name, context_string_id, json.dumps([])]
     )
     new_row_id = cur.lastrowid
 

@@ -26,7 +26,6 @@ from gened.auth import (
 )
 from gened.classes import switch_class
 from gened.contexts import (
-    ContextNotFoundError,
     get_available_contexts,
     get_context_by_name,
 )
@@ -55,7 +54,7 @@ def help_form(query_id: int | None = None, class_id: int | None = None, ctx_name
         success = switch_class(class_id)
         if not success:
             # Can't access the specified context
-            flash(f"Cannot access class and context.  Make sure you are logged in correctly before using this link.", "danger")
+            flash("Cannot access class and context.  Make sure you are logged in correctly before using this link.", "danger")
             return make_response(render_template("error.html"), 400)
 
     # we may select a context from a given ctx_name, from a given query_id, or from the user's most recently-used context
@@ -63,13 +62,12 @@ def help_form(query_id: int | None = None, class_id: int | None = None, ctx_name
     query_row = None
     if ctx_name is not None:
         # see if the given context is part of the current class (whether available or not)
-        try:
-            context = get_context_by_name(CodeHelpContext, ctx_name)
-            contexts_list = [context]  # this will be the only context in this page -- no other options
-            selected_context_name = ctx_name
-        except ContextNotFoundError:
+        context = get_context_by_name(CodeHelpContext, ctx_name)
+        if context is None:
             flash(f"Context not found: {ctx_name}", "danger")
             return make_response(render_template("error.html"), 404)
+        contexts_list = [context]  # this will be the only context in this page -- no other options
+        selected_context_name = ctx_name
     else:
         contexts_list = get_available_contexts(CodeHelpContext)  # all *available* contexts will be shown
         if query_id is not None:
@@ -86,11 +84,11 @@ def help_form(query_id: int | None = None, class_id: int | None = None, ctx_name
 
         # verify the context is real and part of the current class
         if selected_context_name is not None:
-            try:
-                context = get_context_by_name(CodeHelpContext, selected_context_name)
-                contexts_list.append(context)  # add this context to the list - may be hidden - if duplicate, dict comprehension will automatically filter
-            except ContextNotFoundError:
+            context = get_context_by_name(CodeHelpContext, selected_context_name)
+            if context is None:
                 selected_context_name = None
+            else:
+                contexts_list.append(context)  # add this context to the list - may be hidden - if duplicate, dict comprehension will automatically filter
 
     # turn contexts into format we can pass to js via JSON
     contexts = {ctx.name: ctx.desc_html() for ctx in contexts_list}
@@ -229,9 +227,8 @@ def record_response(query_id: int, responses: list[dict[str, str]], texts: dict[
 @with_llm()
 def help_request(llm_dict: LLMDict) -> Response:
     if 'context' in request.form:
-        try:
-            context = get_context_by_name(CodeHelpContext, request.form['context'])
-        except ContextNotFoundError:
+        context = get_context_by_name(CodeHelpContext, request.form['context'])
+        if context is None:
             flash(f"Context not found: {request.form['context']}")
             return make_response(render_template("error.html"), 400)
     else:
