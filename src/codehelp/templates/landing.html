@@ -39,7 +39,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       </a>
     {% else %}
       <a class="button is-link is-light is-rounded is-size-4" href="{{ url_for('auth.login') }}">
-        Sign in to try for free!
+        Sign in to try it free!
       </a>
     {% endif %}
     </p>
@@ -52,9 +52,9 @@ SPDX-License-Identifier: AGPL-3.0-only
           <p>CodeHelp helps your students <strong>without writing code</strong> for them.  It is made specifically to guide and explain but not provide solution code.</p>
           <ul>
             <li><strong>Accessible Support</strong> &mdash; It is always available, whenever your students are working, with immediate responses.</li>
-            <li><strong>Tailored Responses</strong> &mdash; You can provide <em>context</em> so that responses match your students' needs and exactly what they are working on.</li>
-            <li><strong>Low Cost</strong> &mdash; Each student query costs roughly US$0.01 (see pricing information below).</li>
+            <li><strong>Tailored Responses</strong> &mdash; You can provide context to tailor responses to your class or even individual assignments, matching your students' needs and exactly what they are working on.</li>
             <li><strong>Valuable Insights</strong> &mdash; Quickly see where your students are having trouble and what they're asking.</li>
+            <li><strong>Low Cost</strong> &mdash; Each student query costs roughly US$0.01 (see <a href="#costs">costs</a> below).</li>
             <li><strong>Simple Integration</strong> &mdash; CodeHelp easily fits into any existing course as a complement to existing support systems.</li>
           </ul>
           <p>CodeHelp is shared with everyone in your class with a simple link.  There are two options:</p>
@@ -159,7 +159,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         </div>
 
         <div class="box content">
-          <h2>Pricing</h2>
+          <h2 id="costs">Costs</h2>
           <p>CodeHelp itself does not take payment, but the OpenAI large language models it uses are not free.  We will ask you to provide an OpenAI API key to be used for your students' queries.</p>
           <p>Costs are low: OpenAI will charge you roughly US$0.01 for each query made with the GPT-4 model (GPT-3.5 is roughly 1/10 the cost, though less accurate).  If your students use CodeHelp regularly and average 50 queries each over a semester (higher than the average we've observed), your total costs would be roughly $0.50 per student (or $0.05 per student if using GPT-3.5).</p>
         </div>
