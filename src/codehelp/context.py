@@ -10,6 +10,8 @@ from jinja2 import Environment
 from typing_extensions import Self
 from werkzeug.datastructures import ImmutableMultiDict
 
+from gened.db import get_db
+
 
 def _default_langs() -> list[str]:
     langs: list[str] = current_app.config['DEFAULT_LANGUAGES']  # declaration keeps mypy happy
@@ -82,6 +84,19 @@ Keywords and concepts to avoid (do not mention these in your response at all): <
 {% endif %}
 """)
         return template.render(tools=self._list_fmt(self.tools), details=self.details, avoid=self._list_fmt(self.avoid))
+
+
+def record_context_string(context_str: str) -> int:
+    """ Ensure a context string is recorded in the context_strings
+        table, and return its row ID.
+    """
+    db = get_db()
+    # Add the context string to the context_strings table, but if it's a duplicate, just get the row ID of the existing one.
+    # The "UPDATE SET id=id" is a no-op, but it allows the "RETURNING" to work in case of a conflict as well.
+    cur = db.execute("INSERT INTO context_strings (ctx_str) VALUES (?) ON CONFLICT DO UPDATE SET id=id RETURNING id", [context_str])
+    context_string_id = cur.fetchone()['id']
+    assert isinstance(context_string_id, int)
+    return context_string_id
 
 
 def init_app(app: Flask) -> None:

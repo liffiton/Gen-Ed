@@ -37,7 +37,7 @@ from gened.testing.mocks import mock_async_completion
 from werkzeug.wrappers.response import Response
 
 from . import prompts
-from .context import CodeHelpContext
+from .context import CodeHelpContext, record_context_string
 
 bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='templates')
 
@@ -196,10 +196,7 @@ def record_query(context: CodeHelpContext | None, code: str, error: str, issue: 
     if context is not None:
         context_name = context.name
         context_str = context.prompt_str()
-        # Add the context string to the context_strings table, but if it's a duplicate, just get the row ID of the existing one.
-        # The "UPDATE SET id=id" is a no-op, but it allows the "RETURNING" to work in case of a conflict as well.
-        cur = db.execute("INSERT INTO context_strings (ctx_str) VALUES (?) ON CONFLICT DO UPDATE SET id=id RETURNING id", [context_str])
-        context_string_id = cur.fetchone()['id']
+        context_string_id = record_context_string(context_str)
     else:
         context_name = None
         context_string_id = None
