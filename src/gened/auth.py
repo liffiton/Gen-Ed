@@ -162,8 +162,7 @@ def _get_auth_from_session() -> AuthDict:
             if row['id'] == auth_dict['role_id']:
                 found_role = True
                 # merge class info into auth_dict
-                for key in class_dict:
-                    auth_dict[key] = class_dict[key]
+                auth_dict |= class_dict  # type: ignore[typeddict-item]
                 # check for any registered experiments in the current class
                 experiment_class_rows = db.execute("SELECT experiments.name FROM experiments JOIN experiment_class ON experiment_class.experiment_id=experiments.id WHERE experiment_class.class_id=?", [class_dict['class_id']]).fetchall()
                 auth_dict['class_experiments'] = [row['name'] for row in experiment_class_rows]
