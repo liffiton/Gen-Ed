@@ -94,5 +94,14 @@ VALUES
 
 INSERT INTO chats (id, topic, context_name, context_string_id, chat_json, user_id, role_id)
 VALUES
-    (1, 'topic1', 'ctx1', 1, '[{"role": "user", "content": "user_msg_1"}, {"role": "assistant", "content": "assistant_msg_1"}]', 11, NULL),
-    (2, 'topic2', 'ctx2', 2, '[{"role": "user", "content": "user_msg_2"}, {"role": "assistant", "content": "assistant_msg_2"}]', 12, NULL);
+    (1, 'topic1', 'ctx1', 1, '[{"role": "user", "content": "user_msg_1"}, {"role": "assistant", "content": "assistant_msg_1"}]', 11, 4), -- testuser(instructor)
+    (2, 'topic2', 'ctx2', 2, '[{"role": "user", "content": "user_msg_2"}, {"role": "assistant", "content": "assistant_msg_2"}]', 12, 5), -- testadmin(student)
+    (3, 'topic3', 'ctx1', 1, '[{"role": "user", "content": "user_msg_3"}, {"role": "assistant", "content": "assistant_msg_3"}]', 14, NULL); -- testuser2
+
+INSERT INTO experiments(id, name, description)
+VALUES
+    (1, 'chats_experiment', 'Experimental tutor chats feature.');
+
+INSERT INTO experiment_class(experiment_id, class_id)
+VALUES
+    (1, 2);  -- experiment active in class 2 (where the test chats are registered (via roles 4, 5))
