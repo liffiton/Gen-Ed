@@ -81,10 +81,10 @@ VALUES (1, 'context 1'), (2, 'context 2');
 
 INSERT INTO queries (id, context_name, context_string_id, code, error, issue, response_json, response_text, helpful, user_id, role_id)
 VALUES
-    (1, 'default', 1, 'code1', '', '', '{}', '{"main": "response1"}', 0, 21, 1),
-    (2, 'default', 2, 'code2', '', '', '{}', '{"main": "response2"}', 0, 22, 2),
-    (3, 'default', 1, 'code3', '', '', '{}', '{"main": "response3"}', 0, 21, 1),
-    (4, 'default', 2, 'code4', '', '', '{}', '{"main": "response4"}', 0, 23, 3);
+    (1, 'ctx1', 1, 'code1', '', '', '{}', '{"main": "response1"}', 0, 21, 1),
+    (2, 'ctx2', 2, 'code2', '', '', '{}', '{"main": "response2"}', 0, 22, 2),
+    (3, 'ctx1', 1, 'code3', '', '', '{}', '{"main": "response3"}', 0, 21, 1),
+    (4, 'ctx2', 2, 'code4', '', '', '{}', '{"main": "response4"}', 0, 23, 3);
 
 INSERT INTO demo_links (id, name, enabled, expiration, tokens, uses)
 VALUES
@@ -92,7 +92,7 @@ VALUES
     (2, 'test_disabled', 0, '2199-12-31', 10, 0),
     (3, 'test_expired', 1, '2000-01-01', 10, 0);
 
-INSERT INTO tutor_chats (id, topic, context, chat_json, user_id, role_id)
+INSERT INTO tutor_chats (id, topic, context_name, context_string_id, chat_json, user_id, role_id)
 VALUES
-    (1, 'topic1', 'context1', '[{"role": "user", "content": "user_msg_1"}, {"role": "assistant", "content": "assistant_msg_1"}]', 11, NULL),
-    (2, 'topic2', 'context2', '[{"role": "user", "content": "user_msg_2"}, {"role": "assistant", "content": "assistant_msg_2"}]', 12, NULL);
+    (1, 'topic1', 'ctx1', 1, '[{"role": "user", "content": "user_msg_1"}, {"role": "assistant", "content": "assistant_msg_1"}]', 11, NULL),
+    (2, 'topic2', 'ctx2', 2, '[{"role": "user", "content": "user_msg_2"}, {"role": "assistant", "content": "assistant_msg_2"}]', 12, NULL);

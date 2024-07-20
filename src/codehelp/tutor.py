@@ -30,7 +30,7 @@ from openai.types.chat import ChatCompletionMessageParam
 from werkzeug.wrappers.response import Response
 
 from . import prompts
-from .context import CodeHelpContext
+from .context import CodeHelpContext, record_context_string
 
 
 class ChatNotFoundError(Exception):
@@ -105,26 +105,26 @@ def start_chat_from_query(llm_dict: LLMDict) -> Response:
 @bp.route("/chat/<int:chat_id>")
 def chat_interface(chat_id: int) -> str | Response:
     try:
-        chat, topic, context = get_chat(chat_id)
+        chat, topic, context_name, context_string = get_chat(chat_id)
     except (ChatNotFoundError, AccessDeniedError):
         flash("Invalid id.", "warning")
         return make_response(render_template("error.html"), 400)
 
     chat_history = get_chat_history()
 
-    return render_template("tutor_view.html", chat_id=chat_id, topic=topic, context=context, chat=chat, chat_history=chat_history)
+    return render_template("tutor_view.html", chat_id=chat_id, topic=topic, context_name=context_name, chat=chat, chat_history=chat_history)
 
 
 def create_chat(topic: str, context: CodeHelpContext) -> int:
     auth = get_auth()
     user_id = auth['user_id']
     role_id = auth['role_id']
-    context_str = context.prompt_str()
+    context_string_id = record_context_string(context.prompt_str())
 
     db = get_db()
     cur = db.execute(
-        "INSERT INTO tutor_chats (user_id, role_id, topic, context, chat_json) VALUES (?, ?, ?, ?, ?)",
-        [user_id, role_id, topic, context_str, json.dumps([])]
+        "INSERT INTO tutor_chats (user_id, role_id, topic, context_name, context_string_id, chat_json) VALUES (?, ?, ?, ?, ?, ?)",
+        [user_id, role_id, topic, context.name, context_string_id, json.dumps([])]
     )
     new_row_id = cur.lastrowid
 
@@ -143,15 +143,16 @@ def get_chat_history(limit: int = 10) -> list[Row]:
     return history
 
 
-def get_chat(chat_id: int) -> tuple[list[ChatCompletionMessageParam], str, str]:
+def get_chat(chat_id: int) -> tuple[list[ChatCompletionMessageParam], str, str, str]:
     db = get_db()
     auth = get_auth()
 
     chat_row = db.execute(
-        "SELECT chat_json, topic, context, tutor_chats.user_id, roles.class_id "
+        "SELECT chat_json, topic, context_name, context_strings.ctx_str AS context_string, tutor_chats.user_id, roles.class_id "
         "FROM tutor_chats "
         "JOIN users ON tutor_chats.user_id=users.id "
         "LEFT JOIN roles ON tutor_chats.role_id=roles.id "
+        "LEFT JOIN context_strings ON tutor_chats.context_string_id=context_strings.id "
         "WHERE tutor_chats.id=?",
         [chat_id]
     ).fetchone()
@@ -170,9 +171,10 @@ def get_chat(chat_id: int) -> tuple[list[ChatCompletionMessageParam], str, str]:
     chat_json = chat_row['chat_json']
     chat = json.loads(chat_json)
     topic = chat_row['topic']
-    context = ''  # TODO: put this back: chat_row['context']
+    context_name = chat_row['context_name']
+    context_string = chat_row['context_string']
 
-    return chat, topic, context
+    return chat, topic, context_name, context_string
 
 
 def get_response(llm_dict: LLMDict, chat: list[ChatCompletionMessageParam]) -> tuple[dict[str, str], str]:
@@ -207,7 +209,7 @@ def save_chat(chat_id: int, chat: list[ChatCompletionMessageParam]) -> None:
 def run_chat_round(llm_dict: LLMDict, chat_id: int, message: str|None = None) -> None:
     # Get the specified chat
     try:
-        chat, topic, context = get_chat(chat_id)
+        chat, topic, context_name, context_string = get_chat(chat_id)
     except (ChatNotFoundError, AccessDeniedError):
         return
 
@@ -223,7 +225,7 @@ def run_chat_round(llm_dict: LLMDict, chat_id: int, message: str|None = None) ->
     # Get a response (completion) from the API using an expanded version of the chat messages
     # Insert a system prompt beforehand and an internal monologue after to guide the assistant
     expanded_chat : list[ChatCompletionMessageParam] = [
-        {'role': 'system', 'content': prompts.make_chat_sys_prompt(topic, context)},
+        {'role': 'system', 'content': prompts.make_chat_sys_prompt(topic, context_string)},
         *chat,  # chat is a list; expand it here with *
         {'role': 'assistant', 'content': prompts.tutor_monologue},
     ]

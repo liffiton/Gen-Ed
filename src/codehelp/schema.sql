@@ -32,13 +32,16 @@ CREATE INDEX queries_by_role ON queries(role_id);
 DROP TABLE IF EXISTS tutor_chats;
 CREATE TABLE tutor_chats (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    chat_started TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     topic TEXT NOT NULL,
-    context TEXT,
+    context_name TEXT,
+    context_string_id INTEGER,
     chat_json TEXT NOT NULL,
     user_id INTEGER NOT NULL,
     role_id INTEGER,
     FOREIGN KEY(user_id) REFERENCES users(id),
-    FOREIGN KEY(role_id) REFERENCES roles(id)
+    FOREIGN KEY(role_id) REFERENCES roles(id),
+    FOREIGN KEY(context_string_id) REFERENCES context_strings(id)
 );
 DROP INDEX IF EXISTS tutor_chats_by_user;
 CREATE INDEX tutor_chats_by_user ON tutor_chats(user_id);

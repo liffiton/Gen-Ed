@@ -16,13 +16,8 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div class="container content">
         <h1 class="title">{{topic}}</h1>
 
-        {% if context %}
-        <p>
-        <details>
-          <summary style="color: #888;">Context provided to tutor:</summary>
-          {{context | markdown}}
-        </details>
-        </p>
+        {% if context_name %}
+          <p><b>Context:</b> {{ context_name }}</p>
         {% endif %}
 
         {# debounce on the submit handler so that the form's actual submit fires *before* the form elements are disabled #}
