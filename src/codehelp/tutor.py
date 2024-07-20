@@ -123,7 +123,7 @@ def create_chat(topic: str, context: CodeHelpContext) -> int:
 
     db = get_db()
     cur = db.execute(
-        "INSERT INTO tutor_chats (user_id, role_id, topic, context_name, context_string_id, chat_json) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO chats (user_id, role_id, topic, context_name, context_string_id, chat_json) VALUES (?, ?, ?, ?, ?, ?)",
         [user_id, role_id, topic, context.name, context_string_id, json.dumps([])]
     )
     new_row_id = cur.lastrowid
@@ -139,7 +139,7 @@ def get_chat_history(limit: int = 10) -> list[Row]:
     db = get_db()
     auth = get_auth()
 
-    history = db.execute("SELECT * FROM tutor_chats WHERE user_id=? ORDER BY id DESC LIMIT ?", [auth['user_id'], limit]).fetchall()
+    history = db.execute("SELECT * FROM chats WHERE user_id=? ORDER BY id DESC LIMIT ?", [auth['user_id'], limit]).fetchall()
     return history
 
 
@@ -148,12 +148,12 @@ def get_chat(chat_id: int) -> tuple[list[ChatCompletionMessageParam], str, str, 
     auth = get_auth()
 
     chat_row = db.execute(
-        "SELECT chat_json, topic, context_name, context_strings.ctx_str AS context_string, tutor_chats.user_id, roles.class_id "
-        "FROM tutor_chats "
-        "JOIN users ON tutor_chats.user_id=users.id "
-        "LEFT JOIN roles ON tutor_chats.role_id=roles.id "
-        "LEFT JOIN context_strings ON tutor_chats.context_string_id=context_strings.id "
-        "WHERE tutor_chats.id=?",
+        "SELECT chat_json, topic, context_name, context_strings.ctx_str AS context_string, chats.user_id, roles.class_id "
+        "FROM chats "
+        "JOIN users ON chats.user_id=users.id "
+        "LEFT JOIN roles ON chats.role_id=roles.id "
+        "LEFT JOIN context_strings ON chats.context_string_id=context_strings.id "
+        "WHERE chats.id=?",
         [chat_id]
     ).fetchone()
 
@@ -200,7 +200,7 @@ def get_response(llm_dict: LLMDict, chat: list[ChatCompletionMessageParam]) -> t
 def save_chat(chat_id: int, chat: list[ChatCompletionMessageParam]) -> None:
     db = get_db()
     db.execute(
-        "UPDATE tutor_chats SET chat_json=? WHERE id=?",
+        "UPDATE chats SET chat_json=? WHERE id=?",
         [json.dumps(chat), chat_id]
     )
     db.commit()
@@ -264,27 +264,27 @@ def tutor_admin(id : int|None = None) -> str:
     db = get_db()
     chats = db.execute("""
         SELECT
-            tutor_chats.id,
+            chats.id,
             users.display_name,
-            tutor_chats.topic,
+            chats.topic,
             (
                 SELECT
                     COUNT(*)
                 FROM
-                    json_each(tutor_chats.chat_json)
+                    json_each(chats.chat_json)
                 WHERE
                     json_extract(json_each.value, '$.role')='user'
             ) as user_msgs
         FROM
-            tutor_chats
+            chats
         JOIN
-            users ON tutor_chats.user_id=users.id
+            users ON chats.user_id=users.id
         ORDER BY
-            tutor_chats.id DESC
+            chats.id DESC
     """).fetchall()
 
     if id is not None:
-        chat_row = db.execute("SELECT users.display_name, topic, chat_json FROM tutor_chats JOIN users ON tutor_chats.user_id=users.id WHERE tutor_chats.id=?", [id]).fetchone()
+        chat_row = db.execute("SELECT users.display_name, topic, chat_json FROM chats JOIN users ON chats.user_id=users.id WHERE chats.id=?", [id]).fetchone()
         chat = json.loads(chat_row['chat_json'])
     else:
         chat_row = None

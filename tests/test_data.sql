@@ -92,7 +92,7 @@ VALUES
     (2, 'test_disabled', 0, '2199-12-31', 10, 0),
     (3, 'test_expired', 1, '2000-01-01', 10, 0);
 
-INSERT INTO tutor_chats (id, topic, context_name, context_string_id, chat_json, user_id, role_id)
+INSERT INTO chats (id, topic, context_name, context_string_id, chat_json, user_id, role_id)
 VALUES
     (1, 'topic1', 'ctx1', 1, '[{"role": "user", "content": "user_msg_1"}, {"role": "assistant", "content": "assistant_msg_1"}]', 11, NULL),
     (2, 'topic2', 'ctx2', 2, '[{"role": "user", "content": "user_msg_2"}, {"role": "assistant", "content": "assistant_msg_2"}]', 12, NULL);
