@@ -2,7 +2,12 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+from collections.abc import Callable
+from functools import wraps
+from typing import ParamSpec, TypeVar
+
 from flask import (
+    abort,
     flash,
     redirect,
     render_template,
@@ -13,7 +18,37 @@ from werkzeug.wrappers.response import Response
 
 from .admin import bp as bp_admin
 from .admin import register_admin_link
+from .auth import get_auth
 from .db import get_db
+
+
+# Functions for controlling access to experiments based on the current class
+def current_class_in_experiment(experiment_name: str) -> bool:
+    """ Return True if the current active class is registered in the specified experiment,
+        False otherwise.
+    """
+    db = get_db()
+    experiment_class_rows = db.execute("SELECT experiment_class.class_id FROM experiments JOIN experiment_class ON experiment_class.experiment_id=experiments.id WHERE experiments.name=?", [experiment_name]).fetchall()
+    experiment_class_ids = [row['class_id'] for row in experiment_class_rows]
+    auth = get_auth()
+    return 'class_id' in auth and auth['class_id'] in experiment_class_ids
+
+# Decorator for routes designated as part of an experiment
+# For decorator type hints
+P = ParamSpec('P')
+R = TypeVar('R')
+def experiment_required(experiment_name: str) -> Callable[[Callable[P, R]], Callable[P, Response | R]]:
+    '''404 if the current class is not registered in the specified experiment.'''
+    def decorator(f: Callable[P, R]) -> Callable[P, Response | R]:
+        @wraps(f)
+        def decorated_function(*args: P.args, **kwargs: P.kwargs) -> Response | R:
+            if not current_class_in_experiment(experiment_name):
+                return abort(404)
+            else:
+                return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
 
 # ### Admin routes ###
 # Auth requirements covered by admin.before_request()

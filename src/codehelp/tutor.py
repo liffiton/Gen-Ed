@@ -17,13 +17,14 @@ from flask import (
 )
 from gened.admin import bp as bp_admin
 from gened.admin import register_admin_link
-from gened.auth import get_auth, login_required, tester_required
+from gened.auth import get_auth, login_required
 from gened.contexts import (
     ContextNotFoundError,
     get_available_contexts,
     get_context_by_name,
 )
 from gened.db import get_db
+from gened.experiments import experiment_required
 from gened.openai import LLMDict, get_completion, with_llm
 from gened.queries import get_query
 from openai.types.chat import ChatCompletionMessageParam
@@ -45,11 +46,11 @@ bp = Blueprint('tutor', __name__, url_prefix="/tutor", template_folder='template
 
 
 @bp.before_request
-@tester_required
+@experiment_required("chats_experiment")
 @login_required
 def before_request() -> None:
     """Apply decorators to protect all tutor blueprint endpoints.
-    Use @tester_required first so that non-logged-in users get a 404 as well.
+    Use @experiment_required first so that non-logged-in users get a 404 as well.
     """
 
 

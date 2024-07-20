@@ -45,6 +45,7 @@ class AuthDict(TypedDict, total=False):
     role: str | None        # current role name (e.g., 'instructor')
     class_id: int | None    # current class ID
     class_name: str | None  # current class name
+    class_experiments: list[str]  # any experiments the current class is registered in
     other_classes: list[ClassDict]  # for storing active classes that are not the user's current class
 
 
@@ -129,6 +130,7 @@ def _get_auth_from_session() -> AuthDict:
         # to be filled
         'class_id': None,
         'class_name': None,
+        'class_experiments': [],
         'role': None,
         'other_classes': [],
     }
@@ -152,18 +154,21 @@ def _get_auth_from_session() -> AuthDict:
     found_role = False  # track whether the current role from auth is actually found as an active role
     if role_rows:
         for row in role_rows:
+            class_dict: ClassDict = {
+                'class_id': row['class_id'],
+                'class_name': row['name'],
+                'role': row['role'],
+            }
             if row['id'] == auth_dict['role_id']:
                 found_role = True
-                auth_dict['class_id'] = row['class_id']
-                auth_dict['class_name'] = row['name']
-                auth_dict['role'] = row['role']
+                # merge class info into auth_dict
+                for key in class_dict:
+                    auth_dict[key] = class_dict[key]
+                # check for any registered experiments in the current class
+                experiment_class_rows = db.execute("SELECT experiments.name FROM experiments JOIN experiment_class ON experiment_class.experiment_id=experiments.id WHERE experiment_class.class_id=?", [class_dict['class_id']]).fetchall()
+                auth_dict['class_experiments'] = [row['name'] for row in experiment_class_rows]
             elif row['enabled']:
                 # store a list of any other classes that are enabled (for switching UI)
-                class_dict: ClassDict = {
-                    'class_id': row['class_id'],
-                    'class_name': row['name'],
-                    'role': row['role'],
-                }
                 auth_dict['other_classes'].append(class_dict)
 
     if not found_role:
