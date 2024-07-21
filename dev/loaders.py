@@ -54,12 +54,13 @@ def load_prompt(app: str, csv_headers: list[str]) -> tuple[Callable[..., str | l
     choice = int(input("Choice: "))
     prompt_func = prompt_functions[choice-1][1]
 
-    # Get the required arguments / fields for the chosen prompt
+    # Get all arguments / fields for the chosen prompt
     sig = inspect.signature(prompt_func)
-    fields = [name for name in sig.parameters if sig.parameters[name].default == inspect.Parameter.empty]  # only args w/o default values for now
+    fields = list(sig.parameters.keys())
+    required_fields = [f for f in fields if sig.parameters[f].default == inspect.Parameter.empty]  # only args w/o default values
 
-    # Check for headers in the given CSV matching the prompt's arguments
-    missing = [field for field in fields if field not in csv_headers]
+    # Check for headers in the given CSV matching the prompt's required arguments
+    missing = [field for field in required_fields if field not in csv_headers]
     if missing:
         print(f"\x1B[31mMissing columns in CSV needed for prompt:\x1B[m {missing}")
         sys.exit(1)
