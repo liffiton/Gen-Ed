@@ -207,7 +207,7 @@ def delete_context(ctx_id: int, ctx_row: Row) -> Response:
     db.execute("DELETE FROM contexts WHERE id=?", [ctx_id])
     db.commit()
 
-    flash(f"Configuration for context '{ctx_row['name']}' deleted.", "success")
+    flash(f"Context '{ctx_row['name']}' deleted.", "success")
     return redirect(url_for("class_config.config_form"))
 
 
