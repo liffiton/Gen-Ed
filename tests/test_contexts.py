@@ -6,7 +6,7 @@ def test_create_context(app, client, auth):
     auth.login()
     response = client.get('/classes/switch/2')  # switch to class 2 (where this user is an instructor)
 
-    response = client.post('/instructor/config/context/create', data={
+    response = client.post('/instructor/context/create', data={
         'name': 'Test Context',
         'tools': 'ABC',
         'details': 'XYZ',
@@ -26,7 +26,7 @@ def test_update_context(app, client, auth):
     response = client.get('/classes/switch/2')  # switch to class 2 (where this user is an instructor)
 
     # First, create a context
-    client.post('/instructor/config/context/create', data={
+    client.post('/instructor/context/create', data={
         'name': 'Update Test Context',
     })
     
@@ -38,7 +38,7 @@ def test_update_context(app, client, auth):
         context_id = context['id']
 
     # Now update the context
-    response = client.post(f'/instructor/config/context/update/{context_id}', data={
+    response = client.post(f'/instructor/context/update/{context_id}', data={
         'name': 'Updated Context',
         'tools': 'ABC',
         'details': 'XYZ',
@@ -58,7 +58,7 @@ def test_delete_context(app, client, auth):
     response = client.get('/classes/switch/2')  # switch to class 2 (where this user is an instructor)
 
     # First, create a context
-    client.post('/instructor/config/context/create', data={
+    client.post('/instructor/context/create', data={
         'name': 'Delete Test Context',
     })
     
@@ -70,7 +70,7 @@ def test_delete_context(app, client, auth):
         context_id = context['id']
 
     # Now delete the context
-    response = client.post(f'/instructor/config/context/delete/{context_id}')
+    response = client.post(f'/instructor/context/delete/{context_id}')
     assert response.status_code == 302  # Redirect after successful deletion
 
     with app.app_context():
@@ -80,8 +80,8 @@ def test_delete_context(app, client, auth):
 
 
 @pytest.mark.parametrize('path', (
-    '/instructor/config/context/new',
-    '/instructor/config/context/edit/1',
+    '/instructor/context/new',
+    '/instructor/context/edit/1',
 ))
 def test_login_required(client, path):
     response = client.get(path)
@@ -91,7 +91,7 @@ def test_login_required(client, path):
 
 def test_instructor_required(client, auth):
     auth.login(username='testuser2', password='testuser2password')
-    response = client.get('/instructor/config/context/new')
+    response = client.get('/instructor/context/new')
     assert response.status_code == 302
     assert response.headers['Location'].startswith('/auth/login')
 
@@ -112,9 +112,9 @@ def test_context_list_display(client, auth):
     assert b'Context 3' not in response.data
 
     # Create a few contexts
-    client.post('/instructor/config/context/create', data={'name': 'Context 1'})
-    client.post('/instructor/config/context/create', data={'name': 'Context 2'})
-    client.post('/instructor/config/context/create', data={'name': 'Context 3'})
+    client.post('/instructor/context/create', data={'name': 'Context 1'})
+    client.post('/instructor/context/create', data={'name': 'Context 2'})
+    client.post('/instructor/context/create', data={'name': 'Context 3'})
 
     # Check if they're displayed on the config page
     response = client.get('/instructor/config/')

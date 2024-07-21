@@ -4,7 +4,6 @@
 
 import asyncio
 import json
-from collections.abc import Iterable
 from unittest.mock import patch
 
 from flask import (
@@ -25,10 +24,6 @@ from gened.auth import (
     tester_required,
 )
 from gened.classes import switch_class
-from gened.contexts import (
-    get_available_contexts,
-    get_context_by_name,
-)
 from gened.db import get_db
 from gened.openai import LLMDict, get_completion, with_llm
 from gened.queries import get_history, get_query
@@ -36,7 +31,12 @@ from gened.testing.mocks import mock_async_completion
 from werkzeug.wrappers.response import Response
 
 from . import prompts
-from .context import CodeHelpContext, record_context_string
+from .context import (
+    ContextConfig,
+    get_available_contexts,
+    get_context_by_name,
+    record_context_string,
+)
 
 bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='templates')
 
@@ -62,14 +62,14 @@ def help_form(query_id: int | None = None, class_id: int | None = None, ctx_name
     query_row = None
     if ctx_name is not None:
         # see if the given context is part of the current class (whether available or not)
-        context = get_context_by_name(CodeHelpContext, ctx_name)
+        context = get_context_by_name(ctx_name)
         if context is None:
             flash(f"Context not found: {ctx_name}", "danger")
             return make_response(render_template("error.html"), 404)
         contexts_list = [context]  # this will be the only context in this page -- no other options
         selected_context_name = ctx_name
     else:
-        contexts_list = get_available_contexts(CodeHelpContext)  # all *available* contexts will be shown
+        contexts_list = get_available_contexts()  # all *available* contexts will be shown
         if query_id is not None:
             # populate with a query if one is specified in the query string
             query_row, _ = get_query(query_id)   # _ because we don't need responses here
@@ -84,7 +84,7 @@ def help_form(query_id: int | None = None, class_id: int | None = None, ctx_name
 
         # verify the context is real and part of the current class
         if selected_context_name is not None:
-            context = get_context_by_name(CodeHelpContext, selected_context_name)
+            context = get_context_by_name(selected_context_name)
             if context is None:
                 selected_context_name = None
             else:
@@ -119,7 +119,7 @@ def help_view(query_id: int) -> str | Response:
     return render_template("help_view.html", query=query_row, responses=responses, history=history, topics=topics)
 
 
-async def run_query_prompts(llm_dict: LLMDict, context: CodeHelpContext | None, code: str, error: str, issue: str) -> tuple[list[dict[str, str]], dict[str, str]]:
+async def run_query_prompts(llm_dict: LLMDict, context: ContextConfig | None, code: str, error: str, issue: str) -> tuple[list[dict[str, str]], dict[str, str]]:
     ''' Run the given query against the coding help system of prompts.
 
     Returns a tuple containing:
@@ -176,7 +176,7 @@ async def run_query_prompts(llm_dict: LLMDict, context: CodeHelpContext | None, 
         return responses, {'insufficient': response_sufficient_txt, 'main': response_txt}
 
 
-def run_query(llm_dict: LLMDict, context: CodeHelpContext | None, code: str, error: str, issue: str) -> int:
+def run_query(llm_dict: LLMDict, context: ContextConfig | None, code: str, error: str, issue: str) -> int:
     query_id = record_query(context, code, error, issue)
 
     responses, texts = asyncio.run(run_query_prompts(llm_dict, context, code, error, issue))
@@ -186,7 +186,7 @@ def run_query(llm_dict: LLMDict, context: CodeHelpContext | None, code: str, err
     return query_id
 
 
-def record_query(context: CodeHelpContext | None, code: str, error: str, issue: str) -> int:
+def record_query(context: ContextConfig | None, code: str, error: str, issue: str) -> int:
     db = get_db()
     auth = get_auth()
     role_id = auth['role_id']
@@ -227,7 +227,7 @@ def record_response(query_id: int, responses: list[dict[str, str]], texts: dict[
 @with_llm()
 def help_request(llm_dict: LLMDict) -> Response:
     if 'context' in request.form:
-        context = get_context_by_name(CodeHelpContext, request.form['context'])
+        context = get_context_by_name(request.form['context'])
         if context is None:
             flash(f"Context not found: {request.form['context']}")
             return make_response(render_template("error.html"), 400)
@@ -253,7 +253,7 @@ def load_test(llm_dict: LLMDict) -> Response:
     if auth['display_name'] != 'load_test':
         return abort(403)
 
-    context = CodeHelpContext(name="__LOADTEST_Context")
+    context = ContextConfig(name="__LOADTEST_Context")
     code = "__LOADTEST_Code"
     error = "__LOADTEST_Error"
     issue = "__LOADTEST_Issue"

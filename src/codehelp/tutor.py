@@ -18,10 +18,6 @@ from flask import (
 from gened.admin import bp as bp_admin
 from gened.admin import register_admin_link
 from gened.auth import get_auth, login_required
-from gened.contexts import (
-    get_available_contexts,
-    get_context_by_name,
-)
 from gened.db import get_db
 from gened.experiments import experiment_required
 from gened.openai import LLMDict, get_completion, with_llm
@@ -30,7 +26,12 @@ from openai.types.chat import ChatCompletionMessageParam
 from werkzeug.wrappers.response import Response
 
 from . import prompts
-from .context import CodeHelpContext, record_context_string
+from .context import (
+    ContextConfig,
+    get_available_contexts,
+    get_context_by_name,
+    record_context_string,
+)
 
 
 class ChatNotFoundError(Exception):
@@ -55,7 +56,7 @@ def before_request() -> None:
 
 @bp.route("/")
 def tutor_form() -> str:
-    contexts_list = get_available_contexts(CodeHelpContext)
+    contexts_list = get_available_contexts()
     # turn into format we can pass to js via JSON
     contexts = {ctx.name: ctx.desc_html() for ctx in contexts_list}
 
@@ -73,7 +74,7 @@ def start_chat(llm_dict: LLMDict) -> Response:
     topic = request.form['topic']
 
     if 'context' in request.form:
-        context = get_context_by_name(CodeHelpContext, request.form['context'])
+        context = get_context_by_name(request.form['context'])
         if context is None:
             flash(f"Context not found: {request.form['context']}")
             return make_response(render_template("error.html"), 400)
@@ -96,7 +97,7 @@ def start_chat_from_query(llm_dict: LLMDict) -> Response:
     query_id = int(request.form['query_id'])
     query_row, response = get_query(query_id)
     assert query_row
-    context = get_context_by_name(CodeHelpContext, query_row['context_name'])
+    context = get_context_by_name(query_row['context_name'])
 
     chat_id = create_chat(topic, context)
 
@@ -118,7 +119,7 @@ def chat_interface(chat_id: int) -> str | Response:
     return render_template("tutor_view.html", chat_id=chat_id, topic=topic, context_name=context_name, chat=chat, chat_history=chat_history)
 
 
-def create_chat(topic: str, context: CodeHelpContext | None) -> int:
+def create_chat(topic: str, context: ContextConfig | None) -> int:
     db = get_db()
     auth = get_auth()
     user_id = auth['user_id']

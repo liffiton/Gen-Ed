@@ -2,15 +2,16 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from dataclasses import dataclass
+import json
+from dataclasses import asdict, dataclass
+from sqlite3 import Row
 
-from flask import Flask, current_app
-from gened.contexts import ContextConfig, register_context
+from flask import current_app
+from gened.auth import get_auth
+from gened.db import get_db
 from jinja2 import Environment
 from typing_extensions import Self
 from werkzeug.datastructures import ImmutableMultiDict
-
-from gened.db import get_db
 
 
 def _default_langs() -> list[str]:
@@ -30,21 +31,38 @@ jinja_env_html = Environment(
 
 
 @dataclass(frozen=True)
-class CodeHelpContext(ContextConfig):
+class ContextConfig:
     name: str
     tools: str = ''
     details: str = ''
     avoid: str = ''
-    template: str = "codehelp_context_form.html"
+    template: str = "context_edit_form.html"
 
     @classmethod
     def from_request_form(cls, form: ImmutableMultiDict[str, str]) -> Self:
+        """ Instantiate a context object from a request form. """
         return cls(
             name=form['name'],
             tools=form.get('tools', ''),
             details=form.get('details', ''),
             avoid=form.get('avoid', ''),
         )
+
+    # Instantiate from an SQLite row (implemented here) (requires correct field
+    # names in the row and in its 'config' entry JSON)
+    @classmethod
+    def from_row(cls, row: Row) -> Self:
+        """ Instantiate a context object from an SQLite row.
+            (Requires correct field names in the row and in its 'config' JSON column.)
+        """
+        attrs = json.loads(row['config'])
+        attrs['name'] = row['name']
+        return cls(**attrs)
+
+    # Dump config data (all but name and template) to JSON (implemented here)
+    def to_json(self) -> str:
+        filtered_attrs = {k: v for k, v in asdict(self).items() if k not in ('name', 'template')}
+        return json.dumps(filtered_attrs)
 
     @staticmethod
     def _list_fmt(s: str) -> str:
@@ -86,6 +104,54 @@ Keywords and concepts to avoid (do not mention these in your response at all): <
         return template.render(tools=self._list_fmt(self.tools), details=self.details, avoid=self._list_fmt(self.avoid))
 
 
+### Helper functions for using contexts
+
+def get_available_contexts() -> list[ContextConfig]:
+    db = get_db()
+    auth = get_auth()
+
+    class_id = auth['class_id']
+    # Only return contexts that are available:
+    #   current date anywhere on earth (using UTC+12) is at or after the saved date
+    context_rows = db.execute("SELECT * FROM contexts WHERE class_id=? AND available <= date('now', '+12 hours') ORDER BY class_order ASC", [class_id]).fetchall()
+
+    return [ContextConfig.from_row(row) for row in context_rows]
+
+
+def get_context_config_by_id(ctx_id: int) -> ContextConfig | None:
+    """ Return a context object of the given class based on the specified id
+        or return None if no context exists with that name.
+    """
+    db = get_db()
+    auth = get_auth()
+
+    class_id = auth['class_id']  # just for extra safety: double-check that the context is in the current class
+
+    context_row = db.execute("SELECT * FROM contexts WHERE class_id=? AND id=?", [class_id, ctx_id]).fetchone()
+
+    if not context_row:
+        return None
+
+    return ContextConfig.from_row(context_row)
+
+
+def get_context_by_name(ctx_name: str) -> ContextConfig | None:
+    """ Return a context object of the given class based on the specified name
+        or return None if no context exists with that name.
+    """
+    db = get_db()
+    auth = get_auth()
+
+    class_id = auth['class_id']
+
+    context_row = db.execute("SELECT * FROM contexts WHERE class_id=? AND name=?", [class_id, ctx_name]).fetchone()
+
+    if not context_row:
+        return None
+
+    return ContextConfig.from_row(context_row)
+
+
 def record_context_string(context_str: str) -> int:
     """ Ensure a context string is recorded in the context_strings
         table, and return its row ID.
@@ -97,11 +163,3 @@ def record_context_string(context_str: str) -> int:
     context_string_id = cur.fetchone()['id']
     assert isinstance(context_string_id, int)
     return context_string_id
-
-
-def init_app(app: Flask) -> None:
-    """ Register the custom context class with Gen-Ed,
-    and grab a copy of the app's markdown filter for use here.
-    """
-    register_context(CodeHelpContext)
-    jinja_env_html.filters['markdown'] = app.jinja_env.filters['markdown']

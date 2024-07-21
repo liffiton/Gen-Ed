@@ -10,7 +10,7 @@ from flask.app import Flask
 from flask.wrappers import Response
 from gened import base
 
-from . import admin, context, helper, tutor
+from . import admin, context_config, helper, tutor
 
 
 def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | None = None) -> Flask:
@@ -46,12 +46,13 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
     app = base.create_app_base(__name__, app_config, instance_path)
 
     # register blueprints specific to this application variant
+    app.register_blueprint(context_config.bp)
     app.register_blueprint(helper.bp)
     app.register_blueprint(tutor.bp)
 
     # register our custom context configuration with Gen-Ed
     # and grab a reference to the app's markdown filter
-    context.init_app(app)
+    context_config.register(app)
 
     # register app-specific charts in the admin interface
     admin.register_with_gened()

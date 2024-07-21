@@ -4,6 +4,7 @@
 
 import asyncio
 import datetime as dt
+from collections.abc import Callable
 
 from flask import (
     Blueprint,
@@ -12,8 +13,6 @@ from flask import (
 )
 
 from .auth import get_auth, instructor_required
-from .contexts import bp as contexts_bp
-from .contexts import have_registered_context
 from .db import get_db
 from .openai import LLMDict, get_completion, get_models, with_llm
 from .tz import date_is_past
@@ -25,7 +24,18 @@ bp = Blueprint('class_config', __name__, url_prefix="/instructor/config", templa
 def before_request() -> None:
     """ Apply decorator to protect all class_config blueprint endpoints. """
 
-bp.register_blueprint(contexts_bp)
+
+# Applications can also register additional forms/UI for including in the class
+# configuration page.  Each must be provided as a function that renders *only*
+# its portion of the configuration screen's UI.  The application is responsible
+# for registering a blueprint with request handlers for any routes needed by
+# that UI.
+# This module global stores the render functions.
+_extra_config_renderfuncs: list[Callable[[], str]] = []
+
+def register_extra_section(render_func: Callable[[], str]) -> None:
+    """ Register a new section for the class configuration UI.  (See above.)"""
+    _extra_config_renderfuncs.append(render_func)
 
 
 @bp.route("/")
@@ -55,18 +65,9 @@ def config_form() -> str:
     else:
         link_reg_state = "date"
 
-    contexts = None
-    if have_registered_context():
-        # get contexts
-        contexts = db.execute("""
-            SELECT id, name, CAST(available AS TEXT) AS available
-            FROM contexts
-            WHERE contexts.class_id=?
-            ORDER BY contexts.class_order
-        """, [class_id]).fetchall()
-        contexts = [dict(c) for c in contexts]  # for conversion to json
+    extra_sections = [render() for render in _extra_config_renderfuncs]  # rendered HTML for any extra config sections
 
-    return render_template("instructor_class_config.html", class_row=class_row, link_reg_state=link_reg_state, models=get_models(), contexts=contexts)
+    return render_template("instructor_class_config.html", class_row=class_row, link_reg_state=link_reg_state, models=get_models(), extra_sections=extra_sections)
 
 
 @bp.route("/test_llm")
