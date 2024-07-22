@@ -73,7 +73,7 @@ MICROSOFT_CLIENT_ID=[...]
 MICROSOFT_CLIENT_SECRET=[...]
 ```
 
-Then, to set up an applicaiton (CodeHelp, for example):
+Then, to set up an application (CodeHelp, for example):
 
 3. Initialize database:
 
