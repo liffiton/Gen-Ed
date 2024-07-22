@@ -85,7 +85,10 @@ def test_lti_auth_success(client, role, internal_role):
     assert "LTI communication error" not in result.text
     # success == redirect to help page...
     assert result.status_code == 302
-    assert result.location == '/help/'
+    if internal_role == 'instructor':
+        assert result.location == '/instructor/config/'
+    else:
+        assert result.location == '/help/'
 
     result = client.get('/help/')
     assert result.status_code == 200
