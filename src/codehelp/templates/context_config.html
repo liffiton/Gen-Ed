@@ -163,18 +163,24 @@
           <td class="has-text-centered">
             <form method="post">
               <span x-data="{
-                link_URL: '{{ url_for('helper.help_form', class_id=auth['class_id'], ctx_name='__replace__', _external=True) }}'.replace('__replace__', encodeURIComponent(ctx.name)),
-                copied: false,
                 showLinkModal: false,
                 showModal() {
                   this.copied = false;
                   this.showLinkModal = true;
                 },
-                copy_url() {
-                  navigator.clipboard.writeText(this.link_URL);
-                  this.copied = true;
-                },
               }">
+                {% macro link_display_alpinejs(route) -%}
+                  {# unholy combination of Jinja templating (route available in python) and Javascript string replacement (context available in JS)... #}
+                  {
+                    link_URL: '{{ url_for(route, class_id=auth['class_id'], ctx_name='__replace__', _external=True) }}'.replace('__replace__', encodeURIComponent(ctx.name)),
+                    copied: false,
+                    copy_url() {
+                      navigator.clipboard.writeText(this.link_URL);
+                      this.copied = true;
+                      setTimeout(() => {this.copied = false;}, 2000);
+                    },
+                  }
+                {%- endmacro %}
                 <button x-bind:title="`link to '${ctx.name}'`" class="button is-white is-small has-text-grey" type="button" @click="showModal">
                   <svg aria-hidden="true" class="icon is-small"><use href="#svg_link" /></svg>
                 </button>
@@ -182,23 +188,48 @@
                   <div class="modal-background" @click="showLinkModal = false;"></div>
                   <div class="modal-content">
                     <div class="box has-text-left">
-                      <h3 class="title is-4">Link to '<span x-text="ctx.name"></span>'</h3>
-                      <p>This link will take your students directly to the request page with the '<span x-text="ctx.name"></span>' context pre-selected.</p>
-                      <div style="display: flex; flex-wrap: wrap; gap: 1em;">
-                        <div class="control">
-                          <span class="input is-size-5" style="max-width: 100%; overflow-x: auto;" x-text="link_URL"></span>
-                        </div>
-                        <div class="control">
-                          <button type="button" class="button icon-text is-size-5" x-bind:class="copied ? 'is-success' : 'is-link'" @click="copy_url">
-                            <svg aria-hidden="true" class="icon is-right"><use href="#svg_copy" /></svg>
-                            <span x-text="copied ? 'copied' : 'copy'"></span>
-                          </button>
+                      <h3 class="title is-4">
+                        <svg aria-hidden="true" class="icon"><use href="#svg_link" /></svg>
+                        Link to '<span x-text="ctx.name"></span>'
+                      </h3>
+                      <p>Take your students directly to CodeHelp with the '<span x-text="ctx.name"></span>' context pre-selected:</p>
+                      <div class="field has-addons is-horizontal" x-data="{{ link_display_alpinejs('helper.help_form') }}">
+                        <div class="field-label label is-normal">Help Form:</div>
+                        <div class="field-body" style="flex-grow: 5;">
+                          <div class="control">
+                            <span class="input" x-text="link_URL"></span>
+                          </div>
+                          <div class="control">
+                            <button type="button" class="button icon-text" x-bind:class="copied ? 'is-success' : 'is-link'" @click="copy_url">
+                              <svg aria-hidden="true" class="icon is-right"><use href="#svg_copy" /></svg>
+                              <span x-text="copied ? 'copied' : 'copy'"></span>
+                            </button>
+                          </div>
                         </div>
                       </div>
-                      <div class="mt-4">
-                        <p>The link will let students access this context even if it is currently hidden.</p>
-                        <p class="has-text-danger-dark">Students must have joined this class before they use the link.</p>
-                        <p class="has-text-danger-dark">If the class connects using LTI, students must log in via LTI before they use the link.</p>
+                      {% if "chats_experiment" in auth['class_experiments'] %}
+                      <div class="field has-addons is-horizontal" x-data="{{ link_display_alpinejs('tutor.tutor_form') }}">
+                        <div class="field-label label is-normal">Tutor Chat:</div>
+                        <div class="field-body" style="flex-grow: 5;">
+                          <div class="control">
+                            <span class="input" x-text="link_URL"></span>
+                          </div>
+                          <div class="control">
+                            <button type="button" class="button icon-text" x-bind:class="copied ? 'is-success' : 'is-link'" @click="copy_url">
+                              <svg aria-hidden="true" class="icon is-right"><use href="#svg_copy" /></svg>
+                              <span x-text="copied ? 'copied' : 'copy'"></span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      {% endif %}
+                      <div class="notification content is-warning is-light" style="font-size: 85%;">
+                        <p>Context links will let students access the context even if it is currently hidden.</p>
+                        <p>Context links will <b>not</b> register a student in the class:</p>
+                        <ul>
+                          <li>Students must have already joined this class before they use a context link.</li>
+                          <li>If the class connects using LTI, students must log in via LTI from your LMS before they use a context link.</li>
+                        </ul>
                       </div>
                     </div>
                   </div>

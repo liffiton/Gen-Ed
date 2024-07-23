@@ -18,6 +18,7 @@ from flask import (
 from gened.admin import bp as bp_admin
 from gened.admin import register_admin_link
 from gened.auth import get_auth, login_required
+from gened.classes import switch_class
 from gened.db import get_db
 from gened.experiments import experiment_required
 from gened.openai import LLMDict, get_completion, with_llm
@@ -55,12 +56,33 @@ def before_request() -> None:
 
 
 @bp.route("/")
-def tutor_form() -> str:
-    contexts_list = get_available_contexts()
+@bp.route("/ctx/<int:class_id>/<string:ctx_name>")
+def tutor_form(class_id: int | None = None, ctx_name: str | None = None) -> str | Response:
+
+    if class_id is not None:
+        success = switch_class(class_id)
+        if not success:
+            # Can't access the specified context
+            flash("Cannot access class and context.  Make sure you are logged in correctly before using this link.", "danger")
+            return make_response(render_template("error.html"), 400)
+
+    # we may select a context from a given ctx_name, from a given query_id, or from the user's most recently-used context
+    selected_context_name = None
+    if ctx_name is not None:
+        # see if the given context is part of the current class (whether available or not)
+        context = get_context_by_name(ctx_name)
+        if context is None:
+            flash(f"Context not found: {ctx_name}", "danger")
+            return make_response(render_template("error.html"), 404)
+        contexts_list = [context]  # this will be the only context in this page -- no other options
+        selected_context_name = ctx_name
+    else:
+        contexts_list = get_available_contexts()
+
     # turn into format we can pass to js via JSON
     contexts = {ctx.name: ctx.desc_html() for ctx in contexts_list}
 
-    selected_context_name = None
+    # regardless, if there is only one context, select it
     if len(contexts) == 1:
         selected_context_name = next(iter(contexts.keys()))
 
