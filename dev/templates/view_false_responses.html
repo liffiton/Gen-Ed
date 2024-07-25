@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>False Responses - Eval Set {{ eval_set['id'] }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; }
+        h1, h2 { color: #333; }
+        .response { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; }
+        .response pre { background-color: #f4f4f4; padding: 10px; white-space: wrap; }
+        .false { color: red; }
+        .true { color: green; }
+    </style>
+</head>
+<body>
+    <h1>False Responses - Eval Set {{ eval_set['id'] }}</h1>
+    <p>
+        <strong>Prompt Function:</strong> {{ eval_set['prompt_func'] }}<br>
+        <strong>Response Model:</strong> {{ eval_set['response_model'] }}<br>
+        <strong>Eval Model:</strong> {{ eval_set['model'] }}
+    </p>
+    <h2>Responses ({{ false_responses|length }})</h2>
+    {% for response in false_responses %}
+        <div class="response">
+            <h3>Response:</h3>
+            <pre>{{ response['text'] }}</pre>
+            <h3>Model Response:</h3>
+            <pre>{{ response['model_response'] }}</pre>
+            <h3>Evaluation:</h3>
+            <ul>
+                {% for key, value in response['evaluation'].items() %}
+                    <li class="{{ 'true' if value else 'false' }}">{{ key }}: {{ value }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endfor %}
+</body>
+</html>

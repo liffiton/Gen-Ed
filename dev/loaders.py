@@ -44,26 +44,24 @@ def load_queries(file_path: Path) -> tuple[list[dict[str, Any]], Sequence[str]]:
         return rows, fieldnames
 
 
-def load_prompt(app: str, csv_headers: list[str]) -> tuple[Callable[..., str | list[dict[str, str]]], Sequence[str]]:
-    # Let the user choose a prompt function from the specified app
+def get_available_prompts(app: str) -> dict[str, Callable[..., str | list[dict[str, str]]]]:
     prompts_module = importlib.import_module(f"{app}.prompts")
     prompt_functions = inspect.getmembers(prompts_module, inspect.isfunction)
-    print("\x1B[33mChoose a prompt function:\x1B[m")
-    for i, (name, func) in enumerate(prompt_functions):
-        print(f" {i+1}: {name}")
-    choice = int(input("Choice: "))
-    prompt_func = prompt_functions[choice-1][1]
+    return {name: func for name, func in prompt_functions}
 
-    # Get all arguments / fields for the chosen prompt
-    sig = inspect.signature(prompt_func)
-    fields = list(sig.parameters.keys())
-    required_fields = [f for f in fields if sig.parameters[f].default == inspect.Parameter.empty]  # only args w/o default values
+
+def load_prompt(app: str, prompt_func_name: str, csv_headers: Sequence[str]) -> tuple[Callable[..., str | list[dict[str, str]]], Sequence[str]]:
+    available_prompts = get_available_prompts(app)
+    prompt_func = available_prompts[prompt_func_name]
+
+    params = inspect.signature(prompt_func).parameters
+    fields = list(params.keys())
+    required_fields = [f for f in params if params[f].default == inspect.Parameter.empty]
 
     # Check for headers in the given CSV matching the prompt's required arguments
     missing = [field for field in required_fields if field not in csv_headers]
     if missing:
-        print(f"\x1B[31mMissing columns in CSV needed for prompt:\x1B[m {missing}")
-        sys.exit(1)
+        raise ValueError(f"Missing columns in CSV needed for prompt: {missing}")
 
     return prompt_func, fields
 
@@ -72,10 +70,10 @@ def reload_prompt(app: str, func_name: str) -> Callable[..., str | list[dict[str
     prompt_module = importlib.import_module(f"{app}.prompts")
     importlib.reload(prompt_module)
     new_prompt_func = getattr(prompt_module, func_name)
-    return new_prompt_func
+    return new_prompt_func  # type: ignore
 
 
-def make_prompt(prompt_func, item):
+def make_prompt(prompt_func: Callable[..., str | list[dict[str, str]]], item: dict[str, Any]) -> list[dict[str, str]]:
     # Call the prompt function with arguments from the given item
     args = [item[name] for name in inspect.signature(prompt_func).parameters if name in item]
     prompt_gen = prompt_func(*args)

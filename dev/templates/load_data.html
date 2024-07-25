@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Load Data - Model Evaluation Tool{% endblock %}
+
+{% block content %}
+<h1>Load Data</h1>
+<p>Current application: {{ app }}</p>
+<h2>Select a CSV/ODS/XLSX file:</h2>
+<form method="post">
+    <ul id="file-list">
+        {% for file in files|sort %}
+            <li>
+                <input type="radio" id="file_{{ loop.index }}" name="file" value="{{ file }}" required>
+                <label for="file_{{ loop.index }}" class="file-link">{{ file }}</label>
+            </li>
+        {% endfor %}
+    </ul>
+    <button type="submit">Load Selected File</button>
+</form>
+
+<style>
+    #file-list {
+        list-style-type: none;
+        padding: 0;
+    }
+    #file-list li {
+        margin-bottom: 10px;
+    }
+    .file-link {
+        display: inline-block;
+        padding: 5px 10px;
+        background-color: #f0f0f0;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        text-decoration: none;
+        color: #333;
+        cursor: pointer;
+    }
+    .file-link:hover {
+        background-color: #e0e0e0;
+    }
+    input[type="radio"] {
+        display: none;
+    }
+    input[type="radio"]:checked + .file-link {
+        background-color: #007bff;
+        color: white;
+    }
+</style>
+{% endblock %}

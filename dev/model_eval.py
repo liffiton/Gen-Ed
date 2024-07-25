@@ -9,11 +9,17 @@ import json
 import sqlite3
 import sys
 import time
-from itertools import chain
 from pathlib import Path
+from sqlite3 import Row
 
 import litellm
-from loaders import load_prompt, load_queries, make_prompt, test_and_report_model
+from loaders import (
+    get_available_prompts,
+    load_prompt,
+    load_queries,
+    make_prompt,
+    test_and_report_model,
+)
 from tqdm.auto import tqdm
 
 DEFAULT_MODEL = "anthropic/claude-3-haiku-20240307"
@@ -21,30 +27,49 @@ TEMPERATURE = 0.25
 MAX_TOKENS = 1000
 
 
-def get_db(db_path):
+def get_db(db_path: Path) -> sqlite3.Connection:
     db = sqlite3.connect(db_path, detect_types=sqlite3.PARSE_DECLTYPES)
     db.row_factory = sqlite3.Row
     return db
 
 
-def load_data(args):
+def choose_prompt(app: str) -> str:
+    available_prompts = get_available_prompts(app)
+
+    print("Available prompts:")
+    for i, (name, _) in enumerate(available_prompts.items(), 1):
+        print(f"{i}. {name}")
+
+    choice = input("Select a prompt (by number): ")
+    index = int(choice) - 1
+    return list(available_prompts.keys())[index]
+
+
+def cli_load_data(args: argparse.Namespace) -> None:
     db = get_db(args.db_path)
+    file_path = args.file_path
+    app = args.app
+    prompt_name = choose_prompt(app)
+    load_data(db, file_path, app, prompt_name)
 
+
+def load_data(db: sqlite3.Connection, file_path: Path, app: str, prompt_name: str) -> None:
     # Load data
-    queries, headers = load_queries(args.file_path)
+    queries, headers = load_queries(file_path)
 
-    # Initialize the prompt
-    prompt_func, fields = load_prompt(args.app, headers)
+    prompt_func, fields = load_prompt(app, prompt_name, headers)
 
-    cur = db.execute("INSERT INTO prompt_set(query_src_file, prompt_func) VALUES (?, ?)", [args.file_path.name, prompt_func.__name__])
+    cur = db.execute("INSERT INTO prompt_set(query_src_file, prompt_func) VALUES (?, ?)", [file_path.name, prompt_name])
     db.commit()
     prompt_set_id = cur.lastrowid
 
-    match prompt_func.__name__:
+    match prompt_name:
         case "make_sufficient_prompt":
             model_field = "insufficient_model"
         case "make_main_prompt":
             model_field = "main_model"
+        case _:
+            raise ValueError(f"Unknown prompt name: {prompt_name}")
 
     # Generate prompts and store them
     for query in queries:
@@ -58,7 +83,7 @@ def load_data(args):
     print(f"{len(queries)} prompts inserted, prompt set ID = {prompt_set_id}.")
 
 
-def choose_prompt_set(db) -> int:
+def choose_prompt_set(db: sqlite3.Connection) -> int:
     prompt_sets = db.execute("SELECT * FROM prompt_set").fetchall()
 
     print("Prompt sets:")
@@ -69,12 +94,14 @@ def choose_prompt_set(db) -> int:
     return prompt_set_id
 
 
-def gen_responses(args):
+def cli_gen_responses(args: argparse.Namespace) -> None:
     db = get_db(args.db_path)
-
     prompt_set_id = choose_prompt_set(db)
+    gen_responses(db, prompt_set_id, args.model)
 
-    cur = db.execute("INSERT INTO response_set(model, prompt_set_id) VALUES (?, ?)", [args.model, prompt_set_id])
+
+def gen_responses(db: sqlite3.Connection, prompt_set_id: int, model: str) -> None:
+    cur = db.execute("INSERT INTO response_set(model, prompt_set_id) VALUES (?, ?)", [model, prompt_set_id])
     db.commit()
     response_set_id = cur.lastrowid
 
@@ -84,7 +111,7 @@ def gen_responses(args):
         msgs = json.loads(prompt['msgs_json'])
         try:
             response = litellm.completion(
-                model=args.model,
+                model=model,
                 messages=msgs,
                 temperature=TEMPERATURE,
                 max_tokens=MAX_TOKENS,
@@ -94,7 +121,7 @@ def gen_responses(args):
             text = response.choices[0].message.content
         except Exception as e:  # noqa
             text = f"[An error occurred in the completion.]\n{e}"
-            tqdm.write(f"\x1B31m{text}\x1B[m")
+            tqdm.write(f"\x1B[31m{text}\x1B[m")
             response_json = json.dumps(text)
 
         db.execute(
@@ -104,11 +131,11 @@ def gen_responses(args):
         db.commit()
 
         # hack for now for Claude rate limits
-        if "sonnet" in args.model:
+        if "sonnet" in model:
             time.sleep(0.25)
 
 
-def choose_response_set(db, eval_model) -> int:
+def choose_response_set(db: sqlite3.Connection, eval_model: str) -> tuple[int, str]:
     response_sets = db.execute("""
         SELECT response_set.id, response_set.created, response_set.model, prompt_set.query_src_file, prompt_set.prompt_func, eval_set.model==? AS eval_with_this_model
         FROM response_set
@@ -117,8 +144,8 @@ def choose_response_set(db, eval_model) -> int:
         ORDER BY response_set.created
     """, [eval_model, eval_model]).fetchall()
 
-    funcs = {}
-    allowed_ids = []  # only allow running an eval that hasn't already been done with this model
+    funcs: dict[int, str] = {}
+    allowed_ids: list[int] = []  # only allow running an eval that hasn't already been done with this model
 
     print("Response sets:")
     for response_set in response_sets:
@@ -134,7 +161,7 @@ def choose_response_set(db, eval_model) -> int:
     response_set_id = int(input("Select a response set (by ID): "))
 
     if response_set_id not in allowed_ids:
-        print("That response set has already been evaluated with {eval_model}!")
+        print(f"That response set has already been evaluated with {eval_model}!")
         sys.exit(1)
 
     return response_set_id, funcs[response_set_id]
@@ -155,7 +182,7 @@ Output nothing after the JSON.
 """
 
 
-def eval_sufficient(model, row):
+def eval_sufficient(model: str, row: Row) -> dict[str, bool]:
     response = row['text']
     model_response = row['model_response']
     if model_response == "OK.":
@@ -189,11 +216,13 @@ def eval_sufficient(model, row):
         raise
 
 
-def gen_evals(args):
+def cli_gen_evals(args: argparse.Namespace) -> None:
     db = get_db(args.db_path)
-
     response_set_id, prompt_func = choose_response_set(db, args.model)
+    gen_evals(db, args.model, response_set_id, prompt_func)
 
+
+def gen_evals(db: sqlite3.Connection, model: str, response_set_id: int, prompt_func: str) -> None:
     rows = db.execute("SELECT response.id, response.text, prompt.model_response FROM response JOIN prompt ON response.prompt_id=prompt.id WHERE response.set_id=?", [response_set_id]).fetchall()
 
     match prompt_func:
@@ -209,12 +238,13 @@ def gen_evals(args):
     db.commit()
 
     # Create an eval set
-    cur = db.execute("INSERT INTO eval_set (response_set_id, eval_prompt_id, model) VALUES (?, ?, ?)", [response_set_id, eval_prompt_id, args.model])
+    cur = db.execute("INSERT INTO eval_set (response_set_id, eval_prompt_id, model) VALUES (?, ?, ?)", [response_set_id, eval_prompt_id, model])
     eval_set_id = cur.lastrowid
+    assert(eval_set_id)
 
     # Generate and add the evaluations
     for row in tqdm(rows, ncols=60):
-        evaluation = eval_func(args.model, row)
+        evaluation = eval_func(model, row)
         db.execute("INSERT INTO eval (set_id, response_id, evaluation) VALUES (?, ?, ?)", [eval_set_id, row['id'], json.dumps(evaluation)])
 
         if False in evaluation.values():
@@ -226,31 +256,28 @@ def gen_evals(args):
     summarize_func(db, eval_set_id)
 
 
-def summarize_eval_insufficient(db, eval_set_id):
+def summarize_eval_insufficient(db: sqlite3.Connection, eval_set_id: int) -> None:
     eval_rows = db.execute("SELECT * FROM eval WHERE set_id=?", [eval_set_id]).fetchall()
 
     evals = [json.loads(row['evaluation']) for row in eval_rows]
 
-    all_points = list(chain.from_iterable(d.keys() for d in evals))
-    ok_total = sum(x == "OK." for x in all_points)
-    other_total = sum(x != "OK." for x in all_points)
     #print(f"{len(evals)} evaluations.  {len(all_points)} points.  {ok_total} OK.  {other_total} Other.")
     ok_true = sum(eval_dict.get("OK.") == True for eval_dict in evals)
     ok_false = sum(eval_dict.get("OK.") == False for eval_dict in evals)
-    print(f"    OK.: {'[32m-[m' * ok_true}{'[31m-[m' * ok_false}  {ok_true}/{ok_false}")
+    print(f"    OK.: \x1B[32m{'-' * ok_true}\x1B[31m{'-' * ok_false}\x1B[m  {ok_true}/{ok_false}")
     other_true = sum(sum(eval_dict.get(key) == True for key in eval_dict if key != "OK.") for eval_dict in evals)
     other_false = sum(sum(eval_dict.get(key) == False for key in eval_dict if key != "OK.") for eval_dict in evals)
-    print(f"  Other: {'[32m-[m' * other_true}{'[31m-[m' * other_false}  {other_true}/{other_false}")
+    print(f"  Other: \x1B[32m{'-' * other_true}\x1B[31m{'-' * other_false}\x1B[m  {other_true}/{other_false}")
 
 
-def show_evals(args):
+def show_evals(args: argparse.Namespace) -> None:
     if args.eval_set is None:
         show_all_evals(args)
     else:
         show_one_eval(args)
 
 
-def show_one_eval(args):
+def show_one_eval(args: argparse.Namespace) -> None:
     db = get_db(args.db_path)
 
     eval_rows = db.execute("SELECT * FROM eval JOIN response ON response.id=eval.response_id JOIN prompt ON prompt.id=response.prompt_id WHERE eval.set_id = ?", [args.eval_set]).fetchall()
@@ -261,7 +288,7 @@ def show_one_eval(args):
 
     summarize_eval_insufficient(db, args.eval_set)
 
-def show_all_evals(args):
+def show_all_evals(args: argparse.Namespace) -> None:
     db = get_db(args.db_path)
 
     eval_set_rows = db.execute("""
@@ -289,11 +316,11 @@ def main() -> None:
     subparsers = parser.add_subparsers(required=True)
 
     parser_load = subparsers.add_parser('load', help='Load a file of queries and model responses; store a generated set of prompts in the database.')
-    parser_load.set_defaults(command_func=load_data)
+    parser_load.set_defaults(command_func=cli_load_data)
     parser_load.add_argument('file_path', type=Path, help='Path to the file to be read.')
 
     parser_response = subparsers.add_parser('response', help='Generate a response set for a given prompt set.')
-    parser_response.set_defaults(command_func=gen_responses)
+    parser_response.set_defaults(command_func=cli_gen_responses)
     parser_response.add_argument(
         'model', type=str, nargs='?', default=DEFAULT_MODEL,
         help=f"(Optional. Default='{DEFAULT_MODEL}')  The LLM to use."

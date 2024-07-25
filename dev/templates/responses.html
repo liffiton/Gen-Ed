@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Generate and Evaluate Responses - Model Evaluation Tool{% endblock %}
+
+{% block content %}
+<h1>Generate and Evaluate Responses</h1>
+
+<style>
+    table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+    th {
+        background-color: #f2f2f2;
+    }
+    .not-generated {
+        background-color: #f8d7da;
+        text-align: center;
+    }
+    .generated {
+        background-color: #f9efcc;
+        text-align: center;
+    }
+    .evaluated {
+        background-color: #d4edda;
+        text-align: center;
+    }
+</style>
+
+<table>
+    <tr>
+        <th>Prompt Set</th>
+        {% for model in models %}
+            <th>{{ model.split('/')[-1] }}</th>
+        {% endfor %}
+    </tr>
+    {% for prompt_set in prompt_sets %}
+        <tr>
+            <td>{{ prompt_set.created }} - {{ prompt_set.query_src_file }} ({{ prompt_set.prompt_func }}) - {{ prompt_set.prompt_count }} prompts</td>
+            {% for model in models %}
+                <td class="{{ 'generated evaluated' if (prompt_set.id, model) in existing_evaluations else 'generated' if (prompt_set.id, model) in existing_responses else 'not-generated' }}">
+                    {% if (prompt_set.id, model) not in existing_responses %}
+                        <form action="{{ url_for('responses') }}" method="post">
+                            <input type="hidden" name="action" value="generate">
+                            <input type="hidden" name="prompt_set" value="{{ prompt_set.id }}">
+                            <input type="hidden" name="model" value="{{ model }}">
+                            <button type="submit">Generate</button>
+                        </form>
+                    {% elif (prompt_set.id, model) not in existing_evaluations %}
+                        <form action="{{ url_for('responses') }}" method="post">
+                            <input type="hidden" name="action" value="evaluate">
+                            <input type="hidden" name="prompt_set" value="{{ prompt_set.id }}">
+                            <input type="hidden" name="model" value="{{ model }}">
+                            <button type="submit">Evaluate</button>
+                        </form>
+                    {% else %}
+                        ✅
+                    {% endif %}
+                </td>
+            {% endfor %}
+        </tr>
+    {% endfor %}
+</table>
+{% endblock %}

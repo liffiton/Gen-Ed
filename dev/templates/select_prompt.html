@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Select Prompt - Model Evaluation Tool{% endblock %}
+
+{% block content %}
+<h1>Select Prompt</h1>
+<p>Current application: {{ app }}</p>
+<p>Selected file: {{ file }}</p>
+<form action="{{ url_for('select_prompt') }}" method="post">
+    <input type="hidden" name="file" value="{{ file }}">
+    <div>
+        <label for="prompt">Select a prompt:</label>
+        <select id="prompt" name="prompt" required>
+            {% for name, func in prompts.items() %}
+                <option value="{{ name }}">{{ name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit">Load Data with Selected Prompt</button>
+</form>
+{% endblock %}
