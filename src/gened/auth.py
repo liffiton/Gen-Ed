@@ -5,7 +5,7 @@
 from collections.abc import Callable
 from functools import wraps
 from sqlite3 import Row
-from typing import ParamSpec, TypedDict, TypeVar
+from typing import Literal, ParamSpec, TypedDict, TypeVar
 
 from flask import (
     Blueprint,
@@ -28,21 +28,22 @@ from .redir import safe_redirect_next
 # Constants
 AUTH_SESSION_KEY = "__gened_auth"
 
+ProviderType = Literal['local', 'lti', 'demo', 'google', 'github', 'microsoft']
+RoleType = Literal['instructor', 'student']
 
 class ClassDict(TypedDict):
     class_id: int
     class_name: str
-    role: str
-
+    role: RoleType
 
 class AuthDict(TypedDict, total=False):
     user_id: int | None
-    auth_provider: str
+    auth_provider: ProviderType
     display_name: str
     is_admin: bool
     is_tester: bool
     role_id: int | None     # current role
-    role: str | None        # current role name (e.g., 'instructor')
+    role: RoleType | None   # current role name (e.g., 'instructor')
     class_id: int | None    # current class ID
     class_name: str | None  # current class name
     class_experiments: list[str]  # any experiments the current class is registered in
