@@ -80,9 +80,11 @@ def make_main_prompt(code: str, error: str, issue: str, context: str | None = No
 
 
 sufficient_template_sys2 = jinja_env.from_string("""\
-Do not tell the student how to solve the issue or correct the code.  Instead, please assess their query and tell them whether it is sufficient for you to potentially provide help (write "OK.") or not (ask for clarification).
- - If the query is sufficient and you might be able to help, say "OK."
- - Or, if the query is missing important information required for you to help, write directly to the student and clearly describe the additional information you need.  Ask for the most important pieces of information first, and do not overwhelm the student with too many requests.
+Do not tell the student how to solve the issue or correct their code.
+
+Please assess their query and tell them whether it contains sufficient detail for you to potentially provide help (write "OK.") or not (ask for clarification).  You can make reasonable assumptions about missing details.  Only ask for clarification if the query is completely ambiguous or unclear.
+ - If the query is sufficient and you are able to help, say "OK."
+ - Or, if you cannot help without additional information, write directly to the student and clearly describe the additional information you need.  Ask for the most important piece of information, and do not overwhelm the student with minor details.
 """)
 
 
@@ -92,7 +94,7 @@ def make_sufficient_prompt(code: str, error: str, issue: str, context: str | Non
     if error and not issue:
         issue = "Please help me understand this error."
 
-    sys_job = "to evaluate whether a student's query is sufficient for you to provide effective assistance"
+    sys_job = "to evaluate whether a student's query contains sufficient detail for you to provide assistance"
     return [
         {'role': 'system', 'content': common_template_sys1.render(job=sys_job, code=code, error=error, issue=issue, context=context)},
         {'role': 'user',   'content': common_template_user.render(code=code, error=error, issue=issue)},
