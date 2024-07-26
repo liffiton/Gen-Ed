@@ -8,7 +8,7 @@ DROP TABLE IF EXISTS queries;
 
 CREATE TABLE queries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    query_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    query_time DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
     assignment TEXT,
     topics TEXT,
     response_json TEXT,

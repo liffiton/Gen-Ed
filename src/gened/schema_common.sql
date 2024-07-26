@@ -31,7 +31,7 @@ CREATE TABLE consumers (
     lti_secret    TEXT,
     openai_key    TEXT,
     model_id      INTEGER NOT NULL DEFAULT 1,  -- gpt-3.5
-    created       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created       DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(model_id) REFERENCES models(id)
 );
 
@@ -62,7 +62,7 @@ CREATE TABLE users (
     is_admin      BOOLEAN NOT NULL CHECK (is_admin IN (0,1)) DEFAULT 0,
     is_tester     BOOLEAN NOT NULL CHECK (is_tester IN (0,1)) DEFAULT 0,
     query_tokens  INTEGER NOT NULL DEFAULT 0,  -- number of tokens left for making queries - 0 means cut off
-    created       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created       DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(auth_provider) REFERENCES auth_providers(id)
 );
 
@@ -71,7 +71,7 @@ CREATE TABLE auth_local (
     user_id       INTEGER PRIMARY KEY,
     username      TEXT NOT NULL,
     password      TEXT NOT NULL,
-    created       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created       DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id)
 );
 
@@ -79,7 +79,7 @@ CREATE TABLE auth_external (
     user_id       INTEGER PRIMARY KEY,
     auth_provider INTEGER NOT NULL,
     ext_id        TEXT NOT NULL,  -- the primary, unique ID used by the external provider
-    created       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created       DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id),
     FOREIGN KEY(auth_provider) REFERENCES auth_providers(id)
 );
@@ -93,7 +93,7 @@ CREATE TABLE classes (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
     name     TEXT NOT NULL,
     enabled  BOOLEAN NOT NULL CHECK (enabled IN (0,1)) DEFAULT 1,
-    created  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created  DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Classes created/accessed via LTI
@@ -101,7 +101,7 @@ CREATE TABLE classes_lti (
     class_id          INTEGER PRIMARY KEY,  -- references classes.id
     lti_consumer_id   INTEGER NOT NULL,  -- references consumers.id
     lti_context_id    TEXT NOT NULL,  -- class ID from the LMS
-    created           TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created           DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(class_id) REFERENCES classes(id),
     FOREIGN KEY(lti_consumer_id) REFERENCES consumers(id)
 );
@@ -116,7 +116,7 @@ CREATE TABLE classes_user (
     link_ident       TEXT NOT NULL UNIQUE,  -- random (unguessable) identifier used in access/registration link for this class
     link_reg_expires DATE NOT NULL,  -- registration active for the class link if this date is in the future (anywhere on Earth)
     creator_user_id  INTEGER NOT NULL,  -- references users.id
-    created          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created          DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(class_id) REFERENCES classes(id),
     FOREIGN KEY(model_id) REFERENCES models(id),
     FOREIGN KEY(creator_user_id) REFERENCES users(id)
@@ -133,7 +133,7 @@ CREATE TABLE contexts (
     class_order INTEGER NOT NULL,  -- position within manual ordering of contexts within a class
     available   DATE NOT NULL,  -- date on which this context will be available to students (& mindate=available, maxdate=disabled)
     config      TEXT NOT NULL DEFAULT "{}",  -- JSON containing context config options
-    created     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created     DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(class_id) REFERENCES classes(id)
 );
 -- names must be unique within a class, and we often look up by class and name
@@ -165,7 +165,7 @@ CREATE TABLE demo_links (
 CREATE TABLE migrations (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     filename    TEXT NOT NULL UNIQUE,
-    applied_on  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    applied_on  DATETIME DEFAULT CURRENT_TIMESTAMP,
     skipped     BOOLEAN NOT NULL CHECK (skipped IN (0,1)) DEFAULT 0,
     succeeded   BOOLEAN NOT NULL CHECK (succeeded IN (0,1)) DEFAULT 0
 );

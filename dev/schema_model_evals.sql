@@ -24,7 +24,7 @@ CREATE TABLE prompt (
 
 CREATE TABLE prompt_set (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    created     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     query_src_file   TEXT NOT NULL,
     prompt_func TEXT NOT NULL
 );
@@ -41,7 +41,7 @@ CREATE TABLE response (
 
 CREATE TABLE response_set (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    created     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     prompt_set_id  INTEGER NOT NULL,
     model       TEXT NOT NULL,
     FOREIGN KEY(prompt_set_id) REFERENCES prompt_set(id)
@@ -50,7 +50,7 @@ CREATE TABLE response_set (
 
 CREATE TABLE eval_prompt (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    created     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     sys_prompt  TEXT NOT NULL UNIQUE
 );
 
@@ -65,7 +65,7 @@ CREATE TABLE eval (
 
 CREATE TABLE eval_set (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    created     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     response_set_id INTEGER NOT NULL,
     eval_prompt_id INTEGER NOT NULL,
     model       TEXT NOT NULL,

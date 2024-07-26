@@ -7,7 +7,7 @@ PRAGMA foreign_keys = ON;
 DROP TABLE IF EXISTS queries;
 CREATE TABLE queries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    query_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    query_time DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
     context_name TEXT,
     context_string_id INTEGER,
     code TEXT,
@@ -32,7 +32,7 @@ CREATE INDEX queries_by_role ON queries(role_id);
 DROP TABLE IF EXISTS chats;
 CREATE TABLE chats (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    chat_started TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    chat_started DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
     topic TEXT NOT NULL,
     context_name TEXT,
     context_string_id INTEGER,

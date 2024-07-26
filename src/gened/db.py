@@ -7,6 +7,7 @@ import secrets
 import sqlite3
 import string
 from collections.abc import Callable
+from datetime import date, datetime
 from getpass import getpass
 from importlib import resources
 from pathlib import Path
@@ -17,6 +18,31 @@ from flask.app import Flask
 from werkzeug.security import generate_password_hash
 
 AUTH_PROVIDER_LOCAL = 1
+
+
+# https://docs.python.org/3/library/sqlite3.html#sqlite3-adapter-converter-recipes
+# Register adapters going from date/datetime to text (going into SQLite).
+def adapt_date_iso(val: date) -> str:
+    """Adapt datetime.date to ISO 8601 date."""
+    return val.isoformat()
+
+def adapt_datetime_iso(val: datetime) -> str:
+    """Adapt datetime.datetime to timezone-naive ISO 8601 date."""
+    return val.isoformat()
+
+# And converters for coming from SQLite and converting back to date/datetime objects.
+def convert_date(val: bytes) -> date:
+    """Convert ISO 8601 date to datetime.date object."""
+    return date.fromisoformat(val.decode())
+
+def convert_datetime(val: bytes) -> datetime:
+    """Convert ISO 8601 datetime to datetime.datetime object."""
+    return datetime.fromisoformat(val.decode())
+
+sqlite3.register_adapter(date, adapt_date_iso)
+sqlite3.register_adapter(datetime, adapt_datetime_iso)
+sqlite3.register_converter("date", convert_date)
+sqlite3.register_converter("datetime", convert_datetime)
 
 
 def get_db() -> sqlite3.Connection:
