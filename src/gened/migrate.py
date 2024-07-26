@@ -6,9 +6,13 @@ import itertools
 from collections.abc import Iterable
 from datetime import datetime
 from importlib import resources
-from importlib.abc import Traversable
 from pathlib import Path
 from typing import TypedDict
+
+try:
+    from importlib.resources.abc import Traversable  # 3.12+
+except ImportError:
+    from importlib.abc import Traversable  # - Deprecated in 3.12, removed in 3.14
 
 import click
 from flask import current_app
@@ -19,7 +23,6 @@ from .db import backup_db, get_db, on_init_db
 
 class MigrationDict(TypedDict):
     name: str
-    path: Path
     contents: str
     mtime: float
     applied_on: str | None
@@ -94,7 +97,6 @@ def _migration_info(resource: Traversable) -> MigrationDict:
         name = path.name
         info: MigrationDict = {
             'name': name,
-            'path': path,
             'contents': f.read(),
             'mtime': path.stat().st_mtime,
             'applied_on': None,
@@ -114,14 +116,14 @@ def _get_migrations() -> list[MigrationDict]:
     # Pull shared Gen-ed migrations and app-specific migrations
     gened_migrations = resources.files('gened').joinpath("migrations")
     app_migrations = resources.files(current_app.name).joinpath("migrations")
-    migration_files = itertools.chain(
+    migration_resources = itertools.chain(
         *(x.iterdir() for x in (gened_migrations, app_migrations) if x.is_dir())
     )
 
     # Collect info and sort by name and modified time (to apply migrations in order)
     migrations = [
         _migration_info(res)
-        for res in migration_files
+        for res in migration_resources
         if not res.name.startswith('.') and res.name.endswith('.sql')
     ]
     migrations.sort(key=lambda x: (x['name'], x['mtime']))
