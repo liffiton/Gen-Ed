@@ -3,15 +3,16 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import itertools
+import sys
 from collections.abc import Iterable
 from datetime import datetime
 from importlib import resources
 from pathlib import Path
 from typing import TypedDict
 
-try:
-    from importlib.resources.abc import Traversable  # 3.12+
-except ImportError:
+if sys.version_info >= (3, 11):
+    from importlib.resources.abc import Traversable
+else:
     from importlib.abc import Traversable  # - Deprecated in 3.12, removed in 3.14
 
 import click
