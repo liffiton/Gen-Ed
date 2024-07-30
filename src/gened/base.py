@@ -84,12 +84,13 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
             'root': {
                 'level': 'INFO',
                 'handlers': ['wsgi']
-            }
+            },
         })
     else:
         # For testing/debugging, ensure DEBUG level logging.
         import logging
         logging.getLogger().setLevel(logging.DEBUG)
+        logging.getLogger('markdown_it').setLevel(logging.INFO)  # avoid noisy debug logging in markdown_it
         #import logging_tree
         #logging_tree.printout()
         logging.debug("DEBUG logging enabled.")  # This appears to be required for the config to "stick"?
