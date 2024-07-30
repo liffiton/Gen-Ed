@@ -25,6 +25,13 @@ SPDX-License-Identifier: AGPL-3.0-only
           {{ auth['class_name'] }}
         </div>
       </div>
+      {% elif llm.tokens_remaining != None %}
+      <div class="notification is-size-5">
+        <strong>Using free queries:</strong>
+        {{ llm.tokens_remaining }} queries remaining.
+        <button class="button is-small is-rounded p-2 ml-3" type="button" onClick="document.getElementById('free_query_dialog').showModal();">what's this?</span>
+      </div>
+      {% include "free_query_dialog.html" %}
       {% endif %}
 
       {% if contexts %}
@@ -37,8 +44,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       {% endif %}
 
       <div class="field is-horizontal">
-        <div class="field-label is-normal">
-          <label class="label" for="code">Code:</label>
+        <div class="field-label is-normal"> <label class="label" for="code">Code:</label>
           <p class="help-text">Copy just the <i>most relevant</i> part of your code here.  Responses will be more helpful when you include only code relevant to your issue.</p>
         </div>
         <div class="field-body">

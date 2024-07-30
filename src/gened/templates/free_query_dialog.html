@@ -1,0 +1,9 @@
+<dialog id="free_query_dialog" style="width: max-content; min-width: min(32em, 100vw);">
+  <div class="content box" style="position: relative;">
+    <h2>Free Queries</h2>
+    <button class="delete" type="button" style="position: absolute; right: 1rem; top: 1rem;" aria-label="close" onClick="document.getElementById('free_query_dialog').close();"></button>
+    <p>You have a limited number of free queries to try out {{ config['APPLICATION_TITLE'] }} when you are not connected to a class.</p>
+    <p>If you are using this application in a class, please connect using the link from your class for unlimited use.</p>
+    <p>Otherwise, you can <a href="{{ url_for('docs.page', name='manual_class_creation') }}">create a class</a> and add an OpenAI API key or contact us if you want to continue using {{ config['APPLICATION_TITLE'] }}.</p>
+  </div>
+</dialog>

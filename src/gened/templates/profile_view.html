@@ -8,7 +8,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 {% block body %}
 <style type="text/css">
-dl.profile { display: grid; grid-template-columns: minmax(6em, max-content) 1fr; gap: 1em; }
+dl.profile { display: grid; grid-template-columns: minmax(min-content, max-content) 1fr; gap: 1em; }
 dl.profile dt { font-weight: bold; text-align: right; }
 dl.profile dd { margin: 0; }
 </style>
@@ -50,8 +50,11 @@ dl.profile dd { margin: 0; }
       <dt>Queries:</dt>
       <dd>{{ user.num_queries }} total, {{ user.num_recent_queries }} in the past week.</dd>
       {% if not auth['role'] %}
-      <dt>Tokens:</dt>
-      <dd>{{ user.query_tokens }} remaining.  <span class="ml-3 is-size-6 has-text-grey">(These are just for trying out {{ config['APPLICATION_TITLE'] }} -- each query will use one.  They are only used when you do not have a class active.)</span></dd>
+      <dt>Free Queries:</dt>
+      <dd>
+        {{ user.query_tokens }} remaining.
+        <button class="button is-small is-rounded p-2 ml-3" type="button" onClick="document.getElementById('free_query_dialog').showModal();">what's this?</span>
+      </dd>
       {% endif %}
     </dl>
     <h2 class="title is-size-3">
@@ -102,6 +105,8 @@ dl.profile dd { margin: 0; }
       {% endif %}
     </dl>
 
+  </div>
+  {% if user.provider_name not in ['lti', 'demo'] %}
     <dialog id="new_class_dialog" style="width: 75%; min-width: min(32em, 100vw);">
       <div class="content box">
         <h2>Create a New Class</h2>
@@ -133,6 +138,9 @@ dl.profile dd { margin: 0; }
         </form>
       </div>
     </dialog>
-  </div>
+  {% endif %}
+  {% if not auth['role'] %}
+    {% include "free_query_dialog.html" %}
+  {% endif %}
 </section>
 {% endblock %}

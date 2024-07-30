@@ -33,9 +33,10 @@ class NoTokensError(Exception):
 class LLMConfig:
     client: AsyncOpenAI
     model: str
+    tokens_remaining: int | None = None  # None if current user is not using tokens
 
 
-def _get_llm(*, use_system_key: bool) -> LLMConfig:
+def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLMConfig:
     ''' Get model details and an initialized OpenAI client based on the
     arguments and the current user and class.
 
@@ -46,11 +47,10 @@ def _get_llm(*, use_system_key: bool) -> LLMConfig:
          b) User class config is in the user class.
          c) If there is a current class but it is disabled or has no key, raise an error.
       3) If the user is a local-auth user, the system API key and GPT-3.5 is used.
-      4) Otherwise, we use tokens.
-           The user must have 1 or more tokens remaining.
+      4) Otherwise, we use tokens and the system API key / model.
+           If spend_token is True, the user must have 1 or more tokens remaining.
              If they have 0 tokens, raise an error.
-             Otherwise, their token count is decremented, and the system API
-             key is used with GPT-3.5.
+             Otherwise, their token count is decremented.
 
     Returns:
       LLMConfig with an OpenAI client and model name.
@@ -59,7 +59,7 @@ def _get_llm(*, use_system_key: bool) -> LLMConfig:
     '''
     db = get_db()
 
-    def make_system_client() -> LLMConfig:
+    def make_system_client(tokens_remaining: int | None = None) -> LLMConfig:
         """ Factory function to initialize a default client (using the system key)
             only if/when needed.
         """
@@ -70,6 +70,7 @@ def _get_llm(*, use_system_key: bool) -> LLMConfig:
         return LLMConfig(
             client=AsyncOpenAI(api_key=system_key),
             model=system_model,
+            tokens_remaining=tokens_remaining,
         )
 
     if use_system_key:
@@ -124,13 +125,17 @@ def _get_llm(*, use_system_key: bool) -> LLMConfig:
         return make_system_client()
 
     tokens = user_row['query_tokens']
+
     if tokens == 0:
         raise NoTokensError
 
-    # user.tokens > 0, so decrement it and use the system key
-    db.execute("UPDATE users SET query_tokens=query_tokens-1 WHERE id=?", [auth['user_id']])
-    db.commit()
-    return make_system_client()
+    if spend_token:
+        # user.tokens > 0, so decrement it and use the system key
+        db.execute("UPDATE users SET query_tokens=query_tokens-1 WHERE id=?", [auth['user_id']])
+        db.commit()
+        tokens -= 1
+
+    return make_system_client(tokens_remaining = tokens)
 
 
 # For decorator type hints
@@ -138,32 +143,35 @@ P = ParamSpec('P')
 R = TypeVar('R')
 
 
-def with_llm(*, use_system_key: bool = False) -> Callable[[Callable[P, R]], Callable[P, str | R]]:
+def with_llm(*, use_system_key: bool = False, spend_token: bool = False) -> Callable[[Callable[P, R]], Callable[P, str | R]]:
     '''Decorate a view function that requires an LLM and API key.
 
     Assigns an 'llm' named argument.
 
     Checks that the current user has access to an LLM and API key (configured
     in an LTI consumer or user-created class), then passes the appropriate
-    model info and API key to the wrapped view function, if granted.
+    LLM config to the wrapped view function, if granted.
 
     Arguments:
       use_system_key: If True, all users can access this, and they use the
-                      system API key and GPT-3.5.
+                      system API key and model.
+      spend_token:    If True *and* the user is using tokens, then check
+                      that they have tokens remaining and decrement their
+                      tokens.
     '''
     def decorator(f: Callable[P, R]) -> Callable[P, str | R]:
         @wraps(f)
         def decorated_function(*args: P.args, **kwargs: P.kwargs) -> str | R:
             try:
-                llm = _get_llm(use_system_key=use_system_key)
+                llm = _get_llm(use_system_key=use_system_key, spend_token=spend_token)
             except ClassDisabledError:
-                flash("Error: The current class is archived or disabled.  Request cannot be submitted.")
+                flash("Error: The current class is archived or disabled.")
                 return render_template("error.html")
             except NoKeyFoundError:
-                flash("Error: No API key set.  Request cannot be submitted.")
+                flash("Error: No API key set.  An API key must be set by the instructor before this page can be used.")
                 return render_template("error.html")
             except NoTokensError:
-                flash("You have used all of your free tokens.  If you are using this application in a class, please connect using the link from your class.  Otherwise, you can create a class and add an OpenAI API key or contact us if you want to continue using this application.", "warning")
+                flash("You have used all of your free queries.  If you are using this application in a class, please connect using the link from your class for continued access.  Otherwise, you can create a class and add an OpenAI API key or contact us if you want to continue using this application.", "warning")
                 return render_template("error.html")
 
             kwargs['llm'] = llm

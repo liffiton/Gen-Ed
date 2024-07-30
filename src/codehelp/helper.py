@@ -46,7 +46,8 @@ bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='template
 @bp.route("/ctx/<int:class_id>/<string:ctx_name>")
 @login_required
 @class_enabled_required
-def help_form(query_id: int | None = None, class_id: int | None = None, ctx_name: str | None = None) -> str | Response:
+@with_llm(spend_token=False)  # get information on the selected LLM, tokens remaining
+def help_form(llm: LLMConfig, query_id: int | None = None, class_id: int | None = None, ctx_name: str | None = None) -> str | Response:
     db = get_db()
     auth = get_auth()
 
@@ -99,7 +100,7 @@ def help_form(query_id: int | None = None, class_id: int | None = None, ctx_name
 
     history = get_history()
 
-    return render_template("help_form.html", query=query_row, history=history, contexts=contexts, selected_context_name=selected_context_name)
+    return render_template("help_form.html", llm=llm, query=query_row, history=history, contexts=contexts, selected_context_name=selected_context_name)
 
 
 @bp.route("/view/<int:query_id>")
@@ -224,7 +225,7 @@ def record_response(query_id: int, responses: list[dict[str, str]], texts: dict[
 @bp.route("/request", methods=["POST"])
 @login_required
 @class_enabled_required
-@with_llm()
+@with_llm(spend_token=True)
 def help_request(llm: LLMConfig) -> Response:
     if 'context' in request.form:
         context = get_context_by_name(request.form['context'])
@@ -246,7 +247,7 @@ def help_request(llm: LLMConfig) -> Response:
 
 @bp.route("/load_test", methods=["POST"])
 @admin_required
-@with_llm(use_system_key=True)  # get a populated LLMConfig
+@with_llm(use_system_key=True)  # get a populated LLMConfig; not actually used (API is mocked)
 def load_test(llm: LLMConfig) -> Response:
     # Require that we're logged in as the load_test admin user
     auth = get_auth()
@@ -284,7 +285,7 @@ def post_helpful() -> str:
 @bp.route("/topics/html/<int:query_id>", methods=["GET", "POST"])
 @login_required
 @tester_required
-@with_llm()
+@with_llm(spend_token=False)
 def get_topics_html(llm: LLMConfig, query_id: int) -> str:
     topics = get_topics(llm, query_id)
     if not topics:
@@ -296,7 +297,7 @@ def get_topics_html(llm: LLMConfig, query_id: int) -> str:
 @bp.route("/topics/raw/<int:query_id>", methods=["GET", "POST"])
 @login_required
 @tester_required
-@with_llm()
+@with_llm(spend_token=False)
 def get_topics_raw(llm: LLMConfig, query_id: int) -> list[str]:
     topics = get_topics(llm, query_id)
     return topics
