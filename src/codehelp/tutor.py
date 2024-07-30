@@ -21,7 +21,7 @@ from gened.auth import get_auth, login_required
 from gened.classes import switch_class
 from gened.db import get_db
 from gened.experiments import experiment_required
-from gened.openai import LLMDict, get_completion, with_llm
+from gened.openai import LLMConfig, get_completion, with_llm
 from gened.queries import get_query
 from openai.types.chat import ChatCompletionMessageParam
 from werkzeug.wrappers.response import Response
@@ -92,7 +92,7 @@ def tutor_form(class_id: int | None = None, ctx_name: str | None = None) -> str 
 
 @bp.route("/chat/create", methods=["POST"])
 @with_llm()
-def start_chat(llm_dict: LLMDict) -> Response:
+def start_chat(llm: LLMConfig) -> Response:
     topic = request.form['topic']
 
     if 'context' in request.form:
@@ -105,14 +105,14 @@ def start_chat(llm_dict: LLMDict) -> Response:
 
     chat_id = create_chat(topic, context)
 
-    run_chat_round(llm_dict, chat_id)
+    run_chat_round(llm, chat_id)
 
     return redirect(url_for("tutor.chat_interface", chat_id=chat_id))
 
 
 @bp.route("/chat/create_from_query", methods=["POST"])
 @with_llm()
-def start_chat_from_query(llm_dict: LLMDict) -> Response:
+def start_chat_from_query(llm: LLMConfig) -> Response:
     topic = request.form['topic']
 
     # build context from the specified query
@@ -123,7 +123,7 @@ def start_chat_from_query(llm_dict: LLMDict) -> Response:
 
     chat_id = create_chat(topic, context)
 
-    run_chat_round(llm_dict, chat_id)
+    run_chat_round(llm, chat_id)
 
     return redirect(url_for("tutor.chat_interface", chat_id=chat_id))
 
@@ -209,7 +209,7 @@ def get_chat(chat_id: int) -> tuple[list[ChatCompletionMessageParam], str, str, 
     return chat, topic, context_name, context_string
 
 
-def get_response(llm_dict: LLMDict, chat: list[ChatCompletionMessageParam]) -> tuple[dict[str, str], str]:
+def get_response(llm: LLMConfig, chat: list[ChatCompletionMessageParam]) -> tuple[dict[str, str], str]:
     ''' Get a new 'assistant' completion for the specified chat.
 
     Parameters:
@@ -221,8 +221,8 @@ def get_response(llm_dict: LLMDict, chat: list[ChatCompletionMessageParam]) -> t
       2) The response text.
     '''
     response, text = asyncio.run(get_completion(
-        client=llm_dict['client'],
-        model=llm_dict['model'],
+        client=llm.client,
+        model=llm.model,
         messages=chat,
     ))
 
@@ -238,7 +238,7 @@ def save_chat(chat_id: int, chat: list[ChatCompletionMessageParam]) -> None:
     db.commit()
 
 
-def run_chat_round(llm_dict: LLMDict, chat_id: int, message: str|None = None) -> None:
+def run_chat_round(llm: LLMConfig, chat_id: int, message: str|None = None) -> None:
     # Get the specified chat
     try:
         chat, topic, context_name, context_string = get_chat(chat_id)
@@ -262,7 +262,7 @@ def run_chat_round(llm_dict: LLMDict, chat_id: int, message: str|None = None) ->
         {'role': 'assistant', 'content': prompts.tutor_monologue},
     ]
 
-    response_obj, response_txt = get_response(llm_dict, expanded_chat)
+    response_obj, response_txt = get_response(llm, expanded_chat)
 
     # Update the chat w/ the response
     chat.append({
@@ -274,14 +274,14 @@ def run_chat_round(llm_dict: LLMDict, chat_id: int, message: str|None = None) ->
 
 @bp.route("/message", methods=["POST"])
 @with_llm()
-def new_message(llm_dict: LLMDict) -> Response:
+def new_message(llm: LLMConfig) -> Response:
     chat_id = int(request.form["id"])
     new_msg = request.form["message"]
 
     # TODO: limit length
 
     # Run a round of the chat with the given message.
-    run_chat_round(llm_dict, chat_id, new_msg)
+    run_chat_round(llm, chat_id, new_msg)
 
     # Send the user back to the now-updated chat view
     return redirect(url_for("tutor.chat_interface", chat_id=chat_id))

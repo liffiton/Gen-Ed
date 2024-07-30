@@ -3,9 +3,10 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from functools import wraps
 from sqlite3 import Row
-from typing import ParamSpec, TypedDict, TypeVar
+from typing import ParamSpec, TypeVar
 
 import openai
 from flask import current_app, flash, render_template
@@ -28,12 +29,13 @@ class NoTokensError(Exception):
     pass
 
 
-class LLMDict(TypedDict):
+@dataclass(frozen=True)
+class LLMConfig:
     client: AsyncOpenAI
     model: str
 
 
-def _get_llm(*, use_system_key: bool) -> LLMDict:
+def _get_llm(*, use_system_key: bool) -> LLMConfig:
     ''' Get model details and an initialized OpenAI client based on the
     arguments and the current user and class.
 
@@ -51,13 +53,13 @@ def _get_llm(*, use_system_key: bool) -> LLMDict:
              key is used with GPT-3.5.
 
     Returns:
-      LLMDict dictionary with an OpenAI client and model name.
+      LLMConfig with an OpenAI client and model name.
 
     Raises various exceptions in cases where a key and model are not available.
     '''
     db = get_db()
 
-    def make_system_client() -> LLMDict:
+    def make_system_client() -> LLMConfig:
         """ Factory function to initialize a default client (using the system key)
             only if/when needed.
         """
@@ -65,10 +67,10 @@ def _get_llm(*, use_system_key: bool) -> LLMDict:
         model_row = db.execute("SELECT models.model FROM models WHERE models.id=2").fetchone()
         system_model = model_row['model']
         system_key = current_app.config["OPENAI_API_KEY"]
-        return {
-            'client': AsyncOpenAI(api_key=system_key),
-            'model': system_model,
-        }
+        return LLMConfig(
+            client=AsyncOpenAI(api_key=system_key),
+            model=system_model,
+        )
 
     if use_system_key:
         return make_system_client()
@@ -102,10 +104,10 @@ def _get_llm(*, use_system_key: bool) -> LLMDict:
             raise NoKeyFoundError
 
         api_key = class_row['openai_key']
-        return {
-            'client': AsyncOpenAI(api_key=api_key),
-            'model': class_row['model'],
-        }
+        return LLMConfig(
+            client=AsyncOpenAI(api_key=api_key),
+            model=class_row['model'],
+        )
 
     # Get user data for tokens, auth_provider
     user_row = db.execute("""
@@ -139,7 +141,7 @@ R = TypeVar('R')
 def with_llm(*, use_system_key: bool = False) -> Callable[[Callable[P, R]], Callable[P, str | R]]:
     '''Decorate a view function that requires an LLM and API key.
 
-    Assigns an 'llm_dict' named argument.
+    Assigns an 'llm' named argument.
 
     Checks that the current user has access to an LLM and API key (configured
     in an LTI consumer or user-created class), then passes the appropriate
@@ -153,7 +155,7 @@ def with_llm(*, use_system_key: bool = False) -> Callable[[Callable[P, R]], Call
         @wraps(f)
         def decorated_function(*args: P.args, **kwargs: P.kwargs) -> str | R:
             try:
-                llm_dict = _get_llm(use_system_key=use_system_key)
+                llm = _get_llm(use_system_key=use_system_key)
             except ClassDisabledError:
                 flash("Error: The current class is archived or disabled.  Request cannot be submitted.")
                 return render_template("error.html")
@@ -164,7 +166,7 @@ def with_llm(*, use_system_key: bool = False) -> Callable[[Callable[P, R]], Call
                 flash("You have used all of your free tokens.  If you are using this application in a class, please connect using the link from your class.  Otherwise, you can create a class and add an OpenAI API key or contact us if you want to continue using this application.", "warning")
                 return render_template("error.html")
 
-            kwargs['llm_dict'] = llm_dict
+            kwargs['llm'] = llm
             return f(*args, **kwargs)
         return decorated_function
     return decorator

@@ -25,7 +25,7 @@ from gened.auth import (
 )
 from gened.classes import switch_class
 from gened.db import get_db
-from gened.openai import LLMDict, get_completion, with_llm
+from gened.openai import LLMConfig, get_completion, with_llm
 from gened.queries import get_history, get_query
 from gened.testing.mocks import mock_async_completion
 from werkzeug.wrappers.response import Response
@@ -119,15 +119,15 @@ def help_view(query_id: int) -> str | Response:
     return render_template("help_view.html", query=query_row, responses=responses, history=history, topics=topics)
 
 
-async def run_query_prompts(llm_dict: LLMDict, context: ContextConfig | None, code: str, error: str, issue: str) -> tuple[list[dict[str, str]], dict[str, str]]:
+async def run_query_prompts(llm: LLMConfig, context: ContextConfig | None, code: str, error: str, issue: str) -> tuple[list[dict[str, str]], dict[str, str]]:
     ''' Run the given query against the coding help system of prompts.
 
     Returns a tuple containing:
       1) A list of response objects from the OpenAI completion (to be stored in the database)
       2) A dictionary of response text, potentially including keys 'insufficient' and 'main'.
     '''
-    client = llm_dict['client']
-    model = llm_dict['model']
+    client = llm.client
+    model = llm.model
 
     context_str = context.prompt_str() if context is not None else None
 
@@ -176,10 +176,10 @@ async def run_query_prompts(llm_dict: LLMDict, context: ContextConfig | None, co
         return responses, {'insufficient': response_sufficient_txt, 'main': response_txt}
 
 
-def run_query(llm_dict: LLMDict, context: ContextConfig | None, code: str, error: str, issue: str) -> int:
+def run_query(llm: LLMConfig, context: ContextConfig | None, code: str, error: str, issue: str) -> int:
     query_id = record_query(context, code, error, issue)
 
-    responses, texts = asyncio.run(run_query_prompts(llm_dict, context, code, error, issue))
+    responses, texts = asyncio.run(run_query_prompts(llm, context, code, error, issue))
 
     record_response(query_id, responses, texts)
 
@@ -225,7 +225,7 @@ def record_response(query_id: int, responses: list[dict[str, str]], texts: dict[
 @login_required
 @class_enabled_required
 @with_llm()
-def help_request(llm_dict: LLMDict) -> Response:
+def help_request(llm: LLMConfig) -> Response:
     if 'context' in request.form:
         context = get_context_by_name(request.form['context'])
         if context is None:
@@ -239,15 +239,15 @@ def help_request(llm_dict: LLMDict) -> Response:
 
     # TODO: limit length of code/error/issue
 
-    query_id = run_query(llm_dict, context, code, error, issue)
+    query_id = run_query(llm, context, code, error, issue)
 
     return redirect(url_for(".help_view", query_id=query_id))
 
 
 @bp.route("/load_test", methods=["POST"])
 @admin_required
-@with_llm(use_system_key=True)  # get a populated LLMDict
-def load_test(llm_dict: LLMDict) -> Response:
+@with_llm(use_system_key=True)  # get a populated LLMConfig
+def load_test(llm: LLMConfig) -> Response:
     # Require that we're logged in as the load_test admin user
     auth = get_auth()
     if auth['display_name'] != 'load_test':
@@ -263,7 +263,7 @@ def load_test(llm_dict: LLMDict) -> Response:
         # simulate a 2 second delay for a network request
         mocked.side_effect = mock_async_completion(delay=2.0)
 
-        query_id = run_query(llm_dict, context, code, error, issue)
+        query_id = run_query(llm, context, code, error, issue)
 
     return redirect(url_for(".help_view", query_id=query_id))
 
@@ -285,8 +285,8 @@ def post_helpful() -> str:
 @login_required
 @tester_required
 @with_llm()
-def get_topics_html(llm_dict: LLMDict, query_id: int) -> str:
-    topics = get_topics(llm_dict, query_id)
+def get_topics_html(llm: LLMConfig, query_id: int) -> str:
+    topics = get_topics(llm, query_id)
     if not topics:
         return render_template("topics_fragment.html", error=True)
     else:
@@ -297,12 +297,12 @@ def get_topics_html(llm_dict: LLMDict, query_id: int) -> str:
 @login_required
 @tester_required
 @with_llm()
-def get_topics_raw(llm_dict: LLMDict, query_id: int) -> list[str]:
-    topics = get_topics(llm_dict, query_id)
+def get_topics_raw(llm: LLMConfig, query_id: int) -> list[str]:
+    topics = get_topics(llm, query_id)
     return topics
 
 
-def get_topics(llm_dict: LLMDict, query_id: int) -> list[str]:
+def get_topics(llm: LLMConfig, query_id: int) -> list[str]:
     query_row, responses = get_query(query_id)
 
     if not query_row or not responses or 'main' not in responses:
@@ -317,8 +317,8 @@ def get_topics(llm_dict: LLMDict, query_id: int) -> list[str]:
     )
 
     response, response_txt = asyncio.run(get_completion(
-        client=llm_dict['client'],
-        model=llm_dict['model'],
+        client=llm.client,
+        model=llm.model,
         messages=messages,
     ))
 

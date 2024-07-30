@@ -8,7 +8,7 @@ import json
 from flask import Blueprint, redirect, render_template, request, url_for
 from gened.auth import class_enabled_required, get_auth, login_required
 from gened.db import get_db
-from gened.openai import LLMDict, get_completion, with_llm
+from gened.openai import LLMConfig, get_completion, with_llm
 from gened.queries import get_history, get_query
 from werkzeug.wrappers.response import Response
 
@@ -42,7 +42,7 @@ def help_view(query_id: int) -> str:
     return render_template("help_view.html", query=query_row, responses=responses, history=history)
 
 
-async def run_query_prompts(llm_dict: LLMDict, assignment: str, topics: str) -> tuple[list[dict[str, str]], dict[str, str]]:
+async def run_query_prompts(llm: LLMConfig, assignment: str, topics: str) -> tuple[list[dict[str, str]], dict[str, str]]:
     ''' Run the given query against the coding help system of prompts.
 
     Returns a tuple containing:
@@ -51,8 +51,8 @@ async def run_query_prompts(llm_dict: LLMDict, assignment: str, topics: str) -> 
     '''
     task_main = asyncio.create_task(
         get_completion(
-            client=llm_dict['client'],
-            model=llm_dict['model'],
+            client=llm.client,
+            model=llm.model,
             prompt=prompts.make_main_prompt(assignment, topics),
         )
     )
@@ -70,10 +70,10 @@ async def run_query_prompts(llm_dict: LLMDict, assignment: str, topics: str) -> 
     return responses, {'main': response_txt}
 
 
-def run_query(llm_dict: LLMDict, assignment: str, topics: str) -> int:
+def run_query(llm: LLMConfig, assignment: str, topics: str) -> int:
     query_id = record_query(assignment, topics)
 
-    responses, texts = asyncio.run(run_query_prompts(llm_dict, assignment, topics))
+    responses, texts = asyncio.run(run_query_prompts(llm, assignment, topics))
 
     record_response(query_id, responses, texts)
 
@@ -110,11 +110,11 @@ def record_response(query_id: int, responses: list[dict[str, str]], texts: dict[
 @login_required
 @class_enabled_required
 @with_llm(use_system_key=True)
-def help_request(llm_dict: LLMDict) -> Response:
+def help_request(llm: LLMConfig) -> Response:
     assignment = request.form["assignment"]
     topics = request.form["topics"]
 
-    query_id = run_query(llm_dict, assignment, topics)
+    query_id = run_query(llm, assignment, topics)
 
     return redirect(url_for(".help_view", query_id=query_id))
 
