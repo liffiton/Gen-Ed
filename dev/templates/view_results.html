@@ -1,3 +1,8 @@
+{#
+SPDX-FileCopyrightText: 2024 Mark Liffiton <liffiton@gmail.com>
+
+SPDX-License-Identifier: AGPL-3.0-only
+#}
 {% extends "base.html" %}
 
 {% block title %}View Results - Model Evaluation Tool{% endblock %}
@@ -63,8 +68,8 @@
             <div class="eval-type">Other Evaluations:</div>
             <div class="eval-bar-container">
                 <div class="eval-bar">
-                    <div class="eval-bar-true" style="flex-basis: {{ (result.other_true / (result.other_true + result.other_false)) * 100 }}%"></div>
-                    <div class="eval-bar-false" style="flex-basis: {{ (result.other_false / (result.other_true + result.other_false)) * 100 }}%"></div>
+                    <div class="eval-bar-true" style="flex-basis: {{ (result.other_true / result.other_total) * 100 }}%"></div>
+                    <div class="eval-bar-false" style="flex-basis: {{ (result.other_false / result.other_total) * 100 }}%"></div>
                 </div>
             </div>
             <div class="eval-counts">True: {{ result.other_true }}, False: {{ result.other_false }}</div>

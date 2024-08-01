@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+
+# SPDX-FileCopyrightText: 2024 Mark Liffiton <liffiton@gmail.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
 import json
 import os
 import sqlite3
@@ -5,10 +11,11 @@ from pathlib import Path
 from secrets import token_bytes
 
 from flask import Flask, flash, redirect, render_template, request, session, url_for
-from loaders import get_available_prompts, load_queries
+from loaders import get_available_prompts
 from model_eval import gen_evals as gen_evals_func
 from model_eval import gen_responses as gen_responses_func
 from model_eval import load_data as load_data_func
+from werkzeug.wrappers.response import Response
 
 app = Flask(__name__)
 app.secret_key = token_bytes(16)  # randomizes each startup -- fine for a dev tool
@@ -18,68 +25,73 @@ app.config['DATA_DIR'] = Path('data')
 app.config['DB_PATH'] = app.config['DATA_DIR'] / 'model_evals.db'
 
 # Database connection
-def get_db():
+def get_db() -> sqlite3.Connection:
     db = sqlite3.connect(app.config['DB_PATH'], detect_types=sqlite3.PARSE_DECLTYPES)
     db.row_factory = sqlite3.Row
     return db
 
 @app.route('/', methods=['GET', 'POST'])
-def home():
+def home() -> str | Response:
     if request.method == 'POST':
         session['app'] = request.form['app']
         return redirect(url_for('home'))
     return render_template('home.html', app=session.get('app'))
 
-@app.route('/load_data', methods=['GET', 'POST'])
-def load_data():
+@app.route('/select_file')
+def select_file() -> str | Response:
     if 'app' not in session:
         return redirect(url_for('home'))
 
     files = [f for f in os.listdir(app.config['DATA_DIR']) if f.endswith(('.csv', '.ods', '.xlsx'))]
+    return render_template('select_file.html', app=session['app'], files=files)
 
-    if request.method == 'POST':
-        selected_file = request.form.get('file')
-        if selected_file:
-            file_path = app.config['DATA_DIR'] / selected_file
-            if file_path.exists():
-                queries, headers = load_queries(file_path)
-                available_prompts = get_available_prompts(session['app'])
+@app.route('/select_prompt')
+def select_prompt() -> str | Response:
+    if 'app' not in session:
+        return redirect(url_for('home'))
 
-                return render_template('select_prompt.html',
-                                       app=session['app'],
-                                       file=selected_file,
-                                       prompts=available_prompts)
-            else:
-                flash("Selected file does not exist.", "error")
+    selected_file = request.args.get('file')
+    if selected_file:
+        file_path = app.config['DATA_DIR'] / selected_file
+        if file_path.exists():
+            available_prompts = get_available_prompts(session['app'])
 
-    return render_template('load_data.html', app=session['app'], files=files)
+            return render_template('select_prompt.html',
+                                    app=session['app'],
+                                    file=selected_file,
+                                    prompts=available_prompts)
+        else:
+            flash("Selected file does not exist.", "danger")
 
-@app.route('/select_prompt', methods=['POST'])
-def select_prompt():
+    return redirect(url_for('select_file'))
+
+@app.route('/load_data', methods=['POST'])
+def load_data() -> str | Response:
     if 'app' not in session:
         return redirect(url_for('home'))
 
     selected_file = request.form.get('file')
     selected_prompt = request.form.get('prompt')
 
-    if selected_file and selected_prompt:
-        db = get_db()
-        file_path = app.config['DATA_DIR'] / selected_file
-        queries, headers = load_queries(file_path)
+    if not selected_file or not selected_prompt:
+        flash("Missing required argument.", "danger")
+        return redirect(url_for('select_file'))
 
-        try:
-            load_data_func(db, file_path, session['app'], selected_prompt)
-        except ValueError as e:
-            flash(str(e), "error")
-            return redirect(url_for('load_data'))
+    db = get_db()
+    file_path = app.config['DATA_DIR'] / selected_file
 
-        flash("Data loaded successfully.", "success")
-        return redirect(url_for('home'))
+    try:
+        load_data_func(db, file_path, session['app'], selected_prompt)
+    except ValueError as e:
+        flash(str(e), "danger")
+        return redirect(url_for('select_file'))
 
-    return render_template('select_prompt.html', app=session['app'], file=selected_file, prompts=available_prompts)
+    flash("Data loaded successfully.", "success")
+    return redirect(url_for('home'))
+
 
 @app.route('/responses', methods=['GET', 'POST'])
-def responses():
+def responses() -> str | Response:
     db = get_db()
     if request.method == 'POST':
         action = request.form['action']
@@ -122,8 +134,8 @@ def responses():
     """).fetchall()
 
     # Create sets of tuples (prompt_set_id, model) for easy lookup
-    existing_responses_set = set((r['prompt_set_id'], r['model']) for r in existing_responses)
-    existing_evaluations_set = set((e['prompt_set_id'], e['model']) for e in existing_evaluations)
+    existing_responses_set = {(r['prompt_set_id'], r['model']) for r in existing_responses}
+    existing_evaluations_set = {(e['prompt_set_id'], e['model']) for e in existing_evaluations}
 
     # Get all models
     models = sorted({r['model'] for r in existing_responses + existing_evaluations})
@@ -134,7 +146,7 @@ def responses():
                            existing_responses=existing_responses_set,
                            existing_evaluations=existing_evaluations_set)
 
-def get_response_set_id(db, prompt_set_id, model):
+def get_response_set_id(db: sqlite3.Connection, prompt_set_id: int, model: str) -> int | None:
     result = db.execute("""
         SELECT id
         FROM response_set
@@ -144,7 +156,7 @@ def get_response_set_id(db, prompt_set_id, model):
 
 
 @app.route('/view_results', methods=['GET'])
-def view_results():
+def view_results() -> str:
     db = get_db()
     eval_sets = db.execute("""
         SELECT eval_set.*, response_set.model AS response_model, prompt_set.prompt_func, prompt_set.created AS prompt_created
@@ -165,11 +177,11 @@ def view_results():
         evaluations = [json.loads(row['evaluation']) for row in eval_rows]
 
         ok_total = sum('OK.' in eval_dict for eval_dict in evaluations)
-        ok_true = sum(eval_dict.get('OK.') == True for eval_dict in evaluations)
+        ok_true = sum(v == True for eval_dict in evaluations for k, v in eval_dict.items() if k == 'OK.')
         ok_false = ok_total - ok_true
 
-        other_total = sum(len([k for k in eval_dict.keys() if k != 'OK.']) for eval_dict in evaluations)
-        other_true = sum(sum(v == True for k, v in eval_dict.items() if k != 'OK.') for eval_dict in evaluations)
+        other_total = sum(k != 'OK.' for eval_dict in evaluations for k in eval_dict)
+        other_true = sum(v == True for eval_dict in evaluations for k, v in eval_dict.items() if k != 'OK.')
         other_false = other_total - other_true
 
         results.append({
@@ -180,18 +192,19 @@ def view_results():
             'eval_model': eval_set['model'],
             'ok_true': ok_true,
             'ok_false': ok_false,
+            'other_total': other_total,
             'other_true': other_true,
-            'other_false': other_false
+            'other_false': other_false,
         })
 
     return render_template('view_results.html', results=results)
 
 @app.template_filter('percentage')
-def percentage_filter(value, total):
+def percentage_filter(value: int, total: int) -> str:
     return f"{(value / total * 100):.1f}%" if total > 0 else "N/A"
 
 @app.route('/view_false_responses/<int:eval_set_id>')
-def view_false_responses(eval_set_id):
+def view_false_responses(eval_set_id: int) -> str:
     db = get_db()
 
     # Fetch eval set details

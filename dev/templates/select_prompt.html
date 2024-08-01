@@ -1,3 +1,8 @@
+{#
+SPDX-FileCopyrightText: 2024 Mark Liffiton <liffiton@gmail.com>
+
+SPDX-License-Identifier: AGPL-3.0-only
+#}
 {% extends "base.html" %}
 
 {% block title %}Select Prompt - Model Evaluation Tool{% endblock %}
@@ -6,7 +11,7 @@
 <h1>Select Prompt</h1>
 <p>Current application: {{ app }}</p>
 <p>Selected file: {{ file }}</p>
-<form action="{{ url_for('select_prompt') }}" method="post">
+<form action="{{ url_for('load_data') }}" method="post">
     <input type="hidden" name="file" value="{{ file }}">
     <div>
         <label for="prompt">Select a prompt:</label>
