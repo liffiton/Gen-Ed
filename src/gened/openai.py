@@ -46,7 +46,7 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLMConfig:
          a) LTI class config is in the linked LTI consumer.
          b) User class config is in the user class.
          c) If there is a current class but it is disabled or has no key, raise an error.
-      3) If the user is a local-auth user, the system API key and GPT-3.5 is used.
+      3) If the user is a local-auth user, the system API key and model is used.
       4) Otherwise, we use tokens and the system API key / model.
            If spend_token is True, the user must have 1 or more tokens remaining.
              If they have 0 tokens, raise an error.
@@ -63,8 +63,7 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLMConfig:
         """ Factory function to initialize a default client (using the system key)
             only if/when needed.
         """
-        # Get the systemwide default model (TODO: better control than just id=2)
-        model_row = db.execute("SELECT models.model FROM models WHERE models.id=2").fetchone()
+        model_row = db.execute("SELECT models.model FROM models WHERE models.id=?", [current_app.config['SYSTEM_MODEL_ID']]).fetchone()
         system_model = model_row['model']
         system_key = current_app.config["OPENAI_API_KEY"]
         return LLMConfig(
@@ -183,7 +182,7 @@ def with_llm(*, use_system_key: bool = False, spend_token: bool = False) -> Call
 def get_models() -> list[Row]:
     """Enumerate the models available in the database."""
     db = get_db()
-    models = db.execute("SELECT * FROM models ORDER BY id ASC").fetchall()
+    models = db.execute("SELECT * FROM models WHERE active ORDER BY id ASC").fetchall()
     return models
 
 

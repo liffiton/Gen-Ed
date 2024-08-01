@@ -111,8 +111,8 @@ def create_user_class(user_id: int, class_name: str, openai_key: str) -> int:
     class_id = cur.lastrowid
     assert class_id is not None
     db.execute(
-        "INSERT INTO classes_user (class_id, creator_user_id, link_ident, openai_key, link_reg_expires) VALUES (?, ?, ?, ?, ?)",
-        [class_id, user_id, link_ident, openai_key, dt.date.min]
+        "INSERT INTO classes_user (class_id, creator_user_id, link_ident, openai_key, link_reg_expires, model_id) VALUES (?, ?, ?, ?, ?, ?)",
+        [class_id, user_id, link_ident, openai_key, dt.date.min, current_app.config['DEFAULT_MODEL_ID']]
     )
     db.execute(
         "INSERT INTO roles (user_id, class_id, role) VALUES (?, ?, ?)",

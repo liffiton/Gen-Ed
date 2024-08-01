@@ -29,7 +29,7 @@ CREATE TABLE consumers (
     lti_consumer  TEXT NOT NULL UNIQUE,
     lti_secret    TEXT,
     openai_key    TEXT,
-    model_id      INTEGER NOT NULL DEFAULT 1,  -- gpt-3.5
+    model_id      INTEGER NOT NULL,
     created       DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(model_id) REFERENCES models(id)
 );
@@ -111,7 +111,7 @@ CREATE UNIQUE INDEX  classes_lti_by_consumer_context ON classes_lti(lti_consumer
 CREATE TABLE classes_user (
     class_id         INTEGER PRIMARY KEY,  -- references classes.id
     openai_key       TEXT,
-    model_id         INTEGER NOT NULL DEFAULT 1,  -- gpt-3.5
+    model_id         INTEGER NOT NULL,
     link_ident       TEXT NOT NULL UNIQUE,  -- random (unguessable) identifier used in access/registration link for this class
     link_reg_expires DATE NOT NULL,  -- registration active for the class link if this date is in the future (anywhere on Earth)
     creator_user_id  INTEGER NOT NULL,  -- references users.id
@@ -158,11 +158,14 @@ CREATE TABLE models (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     name        TEXT NOT NULL UNIQUE,
     shortname   TEXT NOT NULL UNIQUE,
-    model       TEXT NOT NULL
+    model       TEXT NOT NULL,
+    active      BOOLEAN NOT NULL CHECK (active IN (0,1))
 );
-INSERT INTO models(name, shortname, model) VALUES
-    ('OpenAI GPT-3.5 Turbo', 'GPT-3.5', 'gpt-3.5-turbo-0125'),
-    ('OpenAI GPT-4o', 'GPT-4', 'gpt-4o')
+-- See also: DEFAULT_MODEL_ID in app.config (src/gened/base.py)
+INSERT INTO models(name, shortname, model, active) VALUES
+    ('OpenAI GPT-3.5 Turbo', 'GPT-3.5', 'gpt-3.5-turbo-0125', false),
+    ('OpenAI GPT-4o', 'GPT-4o', 'gpt-4o', true),
+    ('OpenAI GPT-4o-mini', 'GPT-4o-mini', 'gpt-4o-mini', false)
 ;
 
 

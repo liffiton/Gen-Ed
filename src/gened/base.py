@@ -116,6 +116,10 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
         SEND_FILE_MAX_AGE_DEFAULT=3*60*60,  # 3 hours
         # Free query tokens given to new users
         DEFAULT_TOKENS=10,
+        # Model IDs for various circumstances (see also: models table in DB schema)
+        DEFAULT_MODEL_ID=2,  # Default for new users: GPT-4o
+        SYSTEM_MODEL_ID=2,   # Default for 'system' use: GPT-4o
+
         PYLTI_CONFIG={
             # will be loaded from the consumers table in the database
             "consumers": { }
