@@ -5,7 +5,16 @@ Gen-Ed is a framework for building web applications that use generative AI
 (LLMs) for education (i.e., organized around instructors and their classes of
 students for use in teaching and learning contexts).
 
-This repository also contains two applications that are built on Gen-Ed:
+The framework provides most of the common functionality any application of this
+type might need, including:
+
+- Authentication, including single-sign-on from Google, Github, and Microsoft.
+- Class enrollment, with separate instructor and student roles.
+- Connecting to LMSes via LTI (for automatic authentication and enrolling).
+- Class management and data export.
+- Admin interfaces.
+
+The repository also contains two applications that are built on Gen-Ed:
 
 1. **CodeHelp** [1,2]: A tool for assisting students in computer science
    classes without giving them solution code. <https://codehelp.app/>
