@@ -54,7 +54,7 @@ log_level = 'DEBUG'
 testpaths = 'tests'
 addopts = [
     "--import-mode=importlib",
-    "-n 8",
+    "-n=auto",
 ]
 markers = [
     "use_real_openai: marks any test that sends requests to the real OpenAI endpoint",
