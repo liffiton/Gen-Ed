@@ -12,6 +12,7 @@ import litellm
 import pyperclip
 import urwid
 from loaders import (
+    get_available_prompts,
     load_prompt,
     load_queries,
     make_prompt,
@@ -159,7 +160,13 @@ def main() -> None:
     queries, headers = load_queries(args.file_path)
 
     # Initialize the prompt
-    prompt_func, fields = load_prompt(args.app, headers)
+    prompts = list(get_available_prompts(args.app).keys())
+    print("\x1B[33mChoose a prompt function:\x1B[m")
+    for i, name in enumerate(prompts):
+       print(f" {i+1}: {name}")
+    choice = int(input("Choice: "))
+    prompt_name = prompts[choice-1]
+    prompt_func, fields = load_prompt(args.app, prompt_name, headers)
 
     # Make the UI
     header = urwid.AttrMap(urwid.Text("Query Tester"), 'header')
