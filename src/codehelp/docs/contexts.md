@@ -65,8 +65,45 @@ One way you might use this is to have contexts defined for every assignment or e
 ## Suggestions
 
 - Set up contexts in advance of the course starting or before making CodeHelp available to your students.
-- Visit the help form page yourself to see how contexts can be selected and are displayed to your students.
+- Visit the [help form page](/help/) yourself to see how contexts can be selected and are displayed to your students.
 - Monitor the responses students are getting to look for opportunities to refine contexts and improve future responses.
   - If you see a response that suggests something you don't want students to use, add it to the avoid set.
   - If you see several responses that make incorrect assumptions or interpret queries incorrectly, consider whether additional context could help.
 - Don't overload a context.  Too much information can result in the LLM being less likely to find and use the most relevant details.  Additionally, everything included in a context adds to the length of the prompt sent to the LLM for every query, and LLM cost scales directly with prompt length.  Trying to include every possible detail that might be relevant in a context *could* make the responses worse and *will* increase the costs.
+
+## Examples
+
+**Names Only:** Often, the only context needed is to name the programming language so that students can ask questions like "How do I [x]?" without having to provide that context themselves (which they often will not think to do).  If a course uses multiple languages (such as in a web development course, perhaps), then creating one context for each language could work well.  In these cases, nothing beyond the context name is needed, and the rest could be left blank.
+
+For example, in a web development course using Python and Flask on the back-end, a complete set of contexts could be:
+
+<div class="message mb-1"><div class="message-body content p-3">
+<b>Name:</b> Conceptual Question
+</div></div>
+<div class="message mb-1"><div class="message-body content p-3">
+<b>Name:</b> HTML
+</div></div>
+<div class="message mb-1"><div class="message-body content p-3">
+<b>Name:</b> CSS
+</div></div>
+<div class="message mb-1"><div class="message-body content p-3">
+<b>Name:</b> JavaScript
+</div></div>
+<div class="message"><div class="message-body content p-3">
+<b>Name:</b> Python + Flask
+</div></div>
+
+**Additional Context:** When students are first learning a new programming language, we often want them to use the language in a particular way to emphasize certain features or ways of thinking.  In these cases, it is helpful to provide that context so that responses fit those expectations.
+
+For example, in a class introducing functional programming using the OCaml language ('utop' is an OCaml REPL students might use):
+
+<div class="message"><div class="message-body content p-3">
+
+**Name:** OCaml
+
+**Environment and tools:** Ocaml; utop
+
+**Details:** Students learning OCaml, probably as their first major introduction to functional programming.  The focus is on functional programming and recursion, so iteration and loops are not covered or used.
+
+**Keywords to Avoid:** for loop; while loop
+</div></div>
