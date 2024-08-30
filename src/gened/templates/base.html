@@ -28,7 +28,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       a.hover-show-icon:hover + svg { opacity: 100%; }
       div.flash_message { animation: fadein 1s; }
       main.site-content { flex: 1; } /* expand main content, push footer to bottom of page/viewport */
-      span[title] { text-decoration:underline; text-decoration-style: dotted; }
+      span[title] { text-decoration: underline; text-decoration-style: dotted; }
       pre, .content pre { padding: 0.5rem 0.75rem; }
       .tbl_cols { display: flex; gap: 2em; flex-wrap: wrap; }
       .tbl_col { overflow: auto; }
@@ -38,6 +38,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       .wide-labels .field-label { flex-grow: 1.5; }
       .box, .card, .panel, .dropdown-menu { box-shadow: 0.25em .5em 0.75em rgba(10,10,10,.2), 0 0 0 1px rgba(10,10,10,.05); }
       .dropdown-menu { padding-top: 0; }
+      .content a:not(.button) { text-decoration: underline; }
       /* fix spacing in some of markdownit's lists */
       .content p:has(+ul), .content p:has(+ol) { margin-bottom: 0.25em !important; }
       .content ul ol, .content ol ul, .content ul ul, .content ol ol { margin-top: 0.25em; }
@@ -250,11 +251,11 @@ ${ options.searchable ?
       <div class="content has-text-centered">
         <p><b>{{ config['APPLICATION_TITLE'] }}</b> by {{ config['APPLICATION_AUTHOR'] }}.</p>
         {% if config['DOCS_DIR'] %}
-        <p><a class="has-text-light is-underlined" href="{{ url_for("docs.main") }}">Documentation</a></p>
+        <p><a class="has-text-light" href="{{ url_for("docs.main") }}">Documentation</a></p>
         {% endif %}
-        <p><b>{{ config['APPLICATION_TITLE'] }} is open source</b>, part of the Gen-Ed framework: <a class="has-text-light is-underlined" href="https://github.com/liffiton/GenEd">code on GitHub</a>.</p>
+        <p><b>{{ config['APPLICATION_TITLE'] }} is open source</b>, part of the Gen-Ed framework: <a class="has-text-light" href="https://github.com/liffiton/GenEd">code on GitHub</a>.</p>
         {% if config['SUPPORT_EMAIL'] %}
-        <p>Contact: <a class="has-text-light is-underlined" href="mailto:{{ config['SUPPORT_EMAIL'] }}">{{ config['SUPPORT_EMAIL'] }}</a></p>
+        <p>Contact: <a class="has-text-light" href="mailto:{{ config['SUPPORT_EMAIL'] }}">{{ config['SUPPORT_EMAIL'] }}</a></p>
         {% endif %}
       </div>
     </footer>
