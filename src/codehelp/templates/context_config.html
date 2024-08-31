@@ -10,6 +10,16 @@
     <p>See the <a href="{{ url_for('docs.page', name='contexts') }}">contexts documentation</a> for more information and suggestions.</p>
   {% endif %}
   <script type="text/javascript">
+    function datePassed(date) {
+      const now_datetime = new Date();  // automatically UTC
+      const target_date = new Date(date);  // automatically UTC
+      target_date.setHours(target_date.getHours() - 12);  // UTC-12 for anywhere on Earth
+      return now_datetime >= target_date;
+    }
+    function formatDate(date) {
+      // Add 'T00:00' to force parsing as local time so UTC-local shift doesn't change date
+      return new Date(date + 'T00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    }
     document.addEventListener('alpine:init', () => {
       Alpine.data('reorderable', () => ({
         items: {{ contexts | tojson }},
@@ -64,18 +74,8 @@
             });
           });
         },
-        get status() { return this.ctx.available === '9999-12-31' ? 'Hidden' : this.datePassed(this.ctx.available) ? 'Now' : 'Scheduled'; },
+        get status() { return this.ctx.available === '9999-12-31' ? 'Hidden' : datePassed(this.ctx.available) ? 'Now' : 'Scheduled'; },
         get min_date_str() { const min_date = new Date(); min_date.setDate(min_date.getDate() + 1); return min_date.toISOString().split('T')[0]; },
-        datePassed(date) {
-          const now_datetime = new Date();  // automatically UTC
-          const target_date = new Date(date);  // automatically UTC
-          target_date.setHours(target_date.getHours() - 12);  // UTC-12 for anywhere on Earth
-          return now_datetime >= target_date;
-        },
-        formatDate(date) {
-          // Add 'T00:00' to force parsing as local time so UTC-local shift doesn't change date
-          return new Date(date + 'T00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-        },
         chooseScheduled() {
           if (this.status === 'Scheduled') {
             this.newDate = this.ctx.available;
@@ -247,6 +247,7 @@
         </tr>
       </template>
       <tr x-show="items.length == 0"><td colspan=4 class="has-text-centered"><i>No contexts defined.</i></td></tr>
+      <tr x-show="items.length > 0 && items.every(item => !datePassed(item.available))"><td colspan=4 class="has-text-centered"><span class="tag is-warning">Warning: No contexts are currently available.</span></td></tr>
     </tbody>
   </table>
   <div colspan=4 class="has-text-centered">
