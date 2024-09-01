@@ -39,7 +39,6 @@ def register_extra_section(render_func: Callable[[], str]) -> None:
 
 
 @bp.route("/")
-@instructor_required
 def config_form() -> str:
     db = get_db()
     auth = get_auth()
@@ -71,7 +70,6 @@ def config_form() -> str:
 
 
 @bp.route("/test_llm")
-@instructor_required
 @with_llm()
 def test_llm(llm: LLMConfig) -> str:
     response, response_txt = asyncio.run(get_completion(

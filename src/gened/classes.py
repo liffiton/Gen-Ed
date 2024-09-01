@@ -24,6 +24,11 @@ from .tz import date_is_past
 
 bp = Blueprint('classes', __name__, url_prefix="/classes", template_folder='templates')
 
+@bp.before_request
+@login_required
+def before_request() -> None:
+    """ Apply decorator to protect all blueprint endpoints. """
+
 
 def get_or_create_lti_class(lti_consumer_id: int, lti_context_id: str, class_name: str) -> int:
     """
@@ -166,21 +171,18 @@ def switch_class(class_id: int | None) -> bool:
 
 
 @bp.route("/switch/<int:class_id>")
-@login_required
 def switch_class_handler(class_id: int) -> Response:
     switch_class(class_id)
     return safe_redirect_next(default_endpoint="profile.main")
 
 
 @bp.route("/leave/")
-@login_required
 def leave_class_handler() -> Response:
     switch_class(None)
     return redirect(url_for("profile.main"))
 
 
 @bp.route("/create/", methods=['POST'])
-@login_required
 def create_class() -> Response:
     auth = get_auth()
     user_id = auth['user_id']
@@ -197,7 +199,6 @@ def create_class() -> Response:
 
 
 @bp.route("/access/<string:class_ident>")
-@login_required
 def access_class(class_ident: str) -> str | Response:
     '''Join a class or just login/access it.
 

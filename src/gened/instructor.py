@@ -21,6 +21,11 @@ from .redir import safe_redirect
 
 bp = Blueprint('instructor', __name__, url_prefix="/instructor", template_folder='templates')
 
+@bp.before_request
+@instructor_required
+def before_request() -> None:
+    """ Apply decorator to protect all instructor blueprint endpoints. """
+
 
 def get_queries(class_id: int, user: int | None = None) -> list[Row]:
     db = get_db()
@@ -78,7 +83,6 @@ def get_users(class_id: int, for_export: bool = False) -> list[Row]:
 
 
 @bp.route("/")
-@instructor_required
 def main() -> str | Response:
     auth = get_auth()
     class_id = auth['class_id']
@@ -99,7 +103,6 @@ def main() -> str | Response:
 
 
 @bp.route("/csv/<string:kind>")
-@instructor_required
 def get_csv(kind: str) -> str | Response:
     if kind not in ('queries', 'users'):
         return abort(404)
@@ -119,7 +122,6 @@ def get_csv(kind: str) -> str | Response:
 
 
 @bp.route("/user_class/set", methods=["POST"])
-@instructor_required
 def set_user_class_setting() -> Response:
     db = get_db()
     auth = get_auth()
@@ -160,7 +162,6 @@ def set_user_class_setting() -> Response:
 
 @bp.route("/role/set_active", methods=["POST"])  # just for url_for in the Javascript code
 @bp.route("/role/set_active/<int:role_id>/<int(min=0, max=1):bool_active>", methods=["POST"])
-@instructor_required
 def set_role_active(role_id: int, bool_active: int) -> str:
     db = get_db()
     auth = get_auth()
@@ -182,7 +183,6 @@ def set_role_active(role_id: int, bool_active: int) -> str:
 
 @bp.route("/role/set_instructor", methods=["POST"])  # just for url_for in the Javascript code
 @bp.route("/role/set_instructor/<int:role_id>/<int(min=0, max=1):bool_instructor>", methods=["POST"])
-@instructor_required
 def set_role_instructor(role_id: int, bool_instructor: int) -> str:
     db = get_db()
     auth = get_auth()
