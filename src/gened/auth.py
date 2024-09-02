@@ -154,29 +154,35 @@ def _get_auth_from_session() -> AuthDict:
     """, [auth_dict['user_id']]).fetchall()
 
     found_role = False  # track whether the current role from auth is actually found as an active role
-    if role_rows:
-        for row in role_rows:
-            if row['class_id'] == auth_dict['class_id']:
-                found_role = True
-                # add class/role info to auth_dict
-                auth_dict['class_name'] = row['name']
-                auth_dict['role_id'] = row['role_id']
-                auth_dict['role'] = row['role']
-                # check for any registered experiments in the current class
-                experiment_class_rows = db.execute("SELECT experiments.name FROM experiments JOIN experiment_class ON experiment_class.experiment_id=experiments.id WHERE experiment_class.class_id=?", [auth_dict['class_id']]).fetchall()
-                auth_dict['class_experiments'] = [row['name'] for row in experiment_class_rows]
-            elif row['enabled']:
-                # store a list of any other classes that are enabled (for switching UI)
-                class_dict: ClassDict = {
-                    'class_id': row['class_id'],
-                    'class_name': row['name'],
-                    'role': row['role'],
-                }
-                auth_dict['other_classes'].append(class_dict)
+    for row in role_rows:
+        if row['class_id'] == auth_dict['class_id']:
+            found_role = True
+            # add class/role info to auth_dict
+            auth_dict['role_id'] = row['role_id']
+            auth_dict['role'] = row['role']
+            # check for any registered experiments in the current class
+            experiment_class_rows = db.execute("SELECT experiments.name FROM experiments JOIN experiment_class ON experiment_class.experiment_id=experiments.id WHERE experiment_class.class_id=?", [auth_dict['class_id']]).fetchall()
+            auth_dict['class_experiments'] = [row['name'] for row in experiment_class_rows]
+        elif row['enabled']:
+            # store a list of any other classes that are enabled (for navbar switching UI)
+            class_dict: ClassDict = {
+                'class_id': row['class_id'],
+                'class_name': row['name'],
+                'role': row['role'],
+            }
+            auth_dict['other_classes'].append(class_dict)
 
-    if not found_role:
+    if not found_role and not auth_dict['is_admin']:
         # ensure we don't keep a class_id in auth if it's not a valid/active one
         auth_dict['class_id'] = None
+
+    if auth_dict['class_id'] is not None:
+        # get the class name (after all the above has shaken out)
+        class_row = db.execute("SELECT name FROM classes WHERE id=?", [auth_dict['class_id']]).fetchone()
+        auth_dict['class_name'] = class_row['name']
+        # admin gets instructor role in all classes automatically
+        if auth_dict['is_admin']:
+            auth_dict['role'] = 'instructor'
 
     return auth_dict
 
@@ -321,7 +327,7 @@ def instructor_required(f: Callable[P, R]) -> Callable[P, Response | R]:
     @wraps(f)
     def decorated_function(*args: P.args, **kwargs: P.kwargs) -> Response | R:
         auth = get_auth()
-        if auth['role'] != "instructor" and not auth['is_admin']:
+        if auth['role'] != "instructor":
             flash("Instructor login required.", "warning")
             return redirect(url_for('auth.login', next=request.full_path))
         return f(*args, **kwargs)

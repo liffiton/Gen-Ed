@@ -134,12 +134,19 @@ def switch_class(class_id: int | None) -> bool:
     '''Switch the current user to their role in the given class.
        Or switch them to no class / no role if class_id is None.
 
+       Admin users can switch to any class.
+
     Returns bool: True if user has an active role in that class and switch succeeds.
                   False otherwise.
     '''
     auth = get_auth()
-    user_id = auth['user_id']
 
+    # admins can access any class, but we don't bother setting last_class_id for them
+    if auth['is_admin']:
+        set_session_auth_class(class_id)
+        return True
+
+    user_id = auth['user_id']
     db = get_db()
 
     if class_id:

@@ -99,6 +99,9 @@ def init_app(app: Flask) -> None:
     # on a large instructor view page) yielded no appreciable speedup
     # over existing tables.html macro.
     #
+    # NOTE: this is not maintained and is out of sync with the current
+    # datatable macro.
+    #
     # Usage would be:
     #  {% set builder = columns | row_builder(edit_handler) %}
     #  {% for row in data %}

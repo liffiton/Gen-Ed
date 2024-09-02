@@ -14,7 +14,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       'experiments',
       [('id', 'id'), ('name', 'name'), ('description', 'description'), ('classes', 'count', 'r')],
       experiments,
-      edit_handler="admin.experiment_form",
+      extra_links=[{'text': "edit", 'handler': "admin.experiment_form", 'param': "id"}],
     ) }}
   </div>
 {% endblock %}

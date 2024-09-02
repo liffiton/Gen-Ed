@@ -229,6 +229,18 @@ ${ options.searchable ?
       </div>
     </nav>
 
+    {% if auth['is_admin'] and auth['class_id'] is integer and auth['role_id'] is none %}
+    <div class="has-background-link has-text-light has-text-centered p-2">
+      <span class="icon-text">
+        <span class="icon">
+          <svg aria-hidden="true"><use href="#svg_admin" /></svg>
+        </span>
+        Admin in '{{ auth['class_name'] }}' as instructor role.
+        <button class="button is-rounded is-light is-outlined is-small ml-3" type="button" onclick="location.assign('{{ url_for("classes.leave_class_handler") }}'); return false;">Leave class</button>
+      </span>
+    </div>
+    {% endif %}
+
     {% block second_nav %}{% endblock %}
 
     <main class="site-content">

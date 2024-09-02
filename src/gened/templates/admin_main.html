@@ -51,7 +51,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           consumers,
           link_col=0,
           link_template=filters.template_string('consumer') | safe,
-          edit_handler="admin.consumer_form"
+          extra_links=[{'icon': "pencil", 'text': "Edit consumer", 'handler': "admin.consumer_form", 'param': "id"}],
       ) }}
       <h1 class="is-size-3">Classes</h1>
       {{ datatable(
@@ -60,6 +60,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           classes,
           link_col=0,
           link_template=filters.template_string('class') | safe,
+          extra_links=[{'icon': "admin", 'text': "Administer class", 'handler': "classes.switch_class_handler", 'param': "class_id"}],
       ) }}
       <h1 class="is-size-3">Users</h1>
       {{ datatable(

@@ -4,7 +4,7 @@ SPDX-FileCopyrightText: 2023 Mark Liffiton <liffiton@gmail.com>
 SPDX-License-Identifier: AGPL-3.0-only
 #}
 
-{% macro datatable(name, columns, data, hidden_cols=[], link_col="", link_template=None, edit_handler=None, del_handler=None, csv_link="") -%}
+{% macro datatable(name, columns, data, hidden_cols=[], link_col="", link_template=None, extra_links=[], csv_link="") -%}
   <style type="text/css">
   {% for col in columns %}
     {% if col | length > 2 and (col[2] == 'r' or col[2] == 'b') %}
@@ -14,7 +14,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     }
     {% endif %}
   {% endfor %}
-  {% if edit_handler or del_handler %}
+  {% if extra_links %}
     table#tbl_{{name}} tr td:nth-child({{columns | length + 1}}) {
       text-align: right;
     }
@@ -31,7 +31,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       {% for col in columns %}
         <th {{ "data-hidden=true" if col[0] in hidden_cols else '' }}>{{ col[0] }}</th>
       {% endfor %}
-      {% if edit_handler or del_handler %}
+      {% if extra_links %}
         <th data-sortable="False" data-searchable="False"></th>
       {% endif %}
       </tr>
@@ -54,54 +54,23 @@ SPDX-License-Identifier: AGPL-3.0-only
             {%- endif -%}
             </td>
           {% endfor %}
-          {% if edit_handler or del_handler %}
+          {% if extra_links %}
             <td>
-            {% if edit_handler %}
-              <a class="button is-warning is-small p-1" href="{{ url_for(edit_handler, id=row['id']) }}">Edit</a>
-            {% endif %}
-            {% if del_handler %}
-              <button class="button is-danger is-light is-small p-1" x-on:click="confirm_remove(remove_item, {{row.id}})">Remove</button>
-            {% endif %}
+            {% for link in extra_links %}
+              {% if 'icon' in link %}
+                <a class="has-text-grey icon icon-text" title="{{ link['text'] }}" href="{{ url_for(link['handler'], **{link['param']: row['id']}) }}">
+                  <svg aria-hidden="true"><use href="#svg_{{ link['icon'] }}" /></svg>
+                </a>
+              {% else %}
+                <a class="button is-warning is-small p-1" href="{{ url_for(link['handler'], **{link['param']: row['id']}) }}">{{ link['text'] }}</a>
+              {% endif %}
+            {% endfor %}
             </td>
           {% endif %}
         </tr>
       {% endfor %}
     </tbody>
   </table>
-  {% if del_handler %}
-    <dialog id="remove_confirm_dialog" style="width: 75%; min-width: min(32em, 100vw);">
-      <div class="content box">
-        <h2>Remove <span x-text="remove_item.type"></span>?</h2>
-        <ul>
-          <template x-for="key in Object.keys(remove_item.data)">
-            <li><span x-text="key"></span>: <span x-text="remove_item.data[key]"></span></li>
-          </template>
-        </ul>
-        <p>Are you sure?</p>
-        <p x-text="remove_item.extra_text"></p>
-        <p class="has-text-danger">You will not be able to undo this action.</p>
-        <form action="{{url_for(del_handler)}}" method="post">
-          <input type="hidden" name="id" x-bind:value="remove_item.id">
-          <input type="hidden" name="next" value="{{request.url}}">
-          <button class="button" type="button" onclick="close_dialog()">Cancel</button>
-          <button class="button is-link ml-4" type="submit" >Confirm</button>
-        <form>
-      </div>
-    </dialog>
-    <script type="text/JavaScript">
-      const dialog = document.querySelector("#remove_confirm_dialog");
-      function close_dialog() {
-        dialog.close();
-      }
-      function confirm_remove(proxy_item, id) {
-        proxy_item.id = id;
-        fetch(`{{url_for(del_handler)}}/${id}`)
-          .then(response => response.json())
-          .then(obj => { proxy_item.type = obj.type; proxy_item.data = obj.data; proxy_item.extra_text = obj.extra_text; })
-          .then(() => dialog.showModal());
-      }
-    </script>
-  {% endif %}
   <script type="text/javascript">
     {% for col in columns %}
       {% if col | length > 2 and col[2] == 'b' %}
