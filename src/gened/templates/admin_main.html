@@ -51,7 +51,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           consumers,
           link_col=0,
           link_template=filters.template_string('consumer') | safe,
-          extra_links=[{'icon': "pencil", 'text': "Edit consumer", 'handler': "admin.consumer_form", 'param': "id"}],
+          extra_links=[{'icon': "pencil", 'text': "Edit consumer", 'handler': "admin.consumer_form", 'param': "consumer_id"}],
       ) }}
       <h1 class="is-size-3">Classes</h1>
       {{ datatable(

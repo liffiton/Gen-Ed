@@ -347,29 +347,29 @@ def consumer_new() -> str:
     return render_template("consumer_form.html", models=get_models())
 
 
-@bp.route("/consumer/delete/<int:id>", methods=['POST'])
-def consumer_delete(id: int) -> Response:
+@bp.route("/consumer/delete/<int:consumer_id>", methods=['POST'])
+def consumer_delete(consumer_id: int) -> Response:
     db = get_db()
 
     # Check for dependencies
-    classes_count = db.execute("SELECT COUNT(*) FROM classes_lti WHERE lti_consumer_id=?", [id]).fetchone()[0]
+    classes_count = db.execute("SELECT COUNT(*) FROM classes_lti WHERE lti_consumer_id=?", [consumer_id]).fetchone()[0]
 
     if classes_count > 0:
         flash("Cannot delete consumer: there are related classes.", "warning")
-        return redirect(url_for(".consumer_form", id=id))
+        return redirect(url_for(".consumer_form", consumer_id=consumer_id))
 
     # No dependencies, proceed with deletion
 
     # Fetch the consumer's name
-    consumer_name_row = db.execute("SELECT lti_consumer FROM consumers WHERE id=?", [id]).fetchone()
+    consumer_name_row = db.execute("SELECT lti_consumer FROM consumers WHERE id=?", [consumer_id]).fetchone()
     if not consumer_name_row:
         flash("Invalid id.", "danger")
-        return redirect(url_for(".consumer_form", id=id))
+        return redirect(url_for(".consumer_form", consumer_id=consumer_id))
 
     consumer_name = consumer_name_row['lti_consumer']
 
     # Delete the row
-    db.execute("DELETE FROM consumers WHERE id=?", [id])
+    db.execute("DELETE FROM consumers WHERE id=?", [consumer_id])
     db.commit()
     reload_consumers()
 
@@ -378,10 +378,10 @@ def consumer_delete(id: int) -> Response:
     return redirect(url_for(".main"))
 
 
-@bp.route("/consumer/<int:id>")
-def consumer_form(id: int | None = None) -> str:
+@bp.route("/consumer/<int:consumer_id>")
+def consumer_form(consumer_id: int | None = None) -> str:
     db = get_db()
-    consumer_row = db.execute("SELECT * FROM consumers WHERE id=?", [id]).fetchone()
+    consumer_row = db.execute("SELECT * FROM consumers WHERE id=?", [consumer_id]).fetchone()
     return render_template("consumer_form.html", consumer=consumer_row, models=get_models())
 
 
@@ -423,4 +423,4 @@ def consumer_update() -> Response:
     # anything might have changed: reload all consumers
     reload_consumers()
 
-    return redirect(url_for(".consumer_form", id=consumer_id))
+    return redirect(url_for(".consumer_form", consumer_id=consumer_id))

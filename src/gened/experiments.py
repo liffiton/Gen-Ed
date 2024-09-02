@@ -64,13 +64,13 @@ def experiments_view() -> str:
 def experiment_new() -> str:
     return render_template("experiment_form.html")
 
-@bp_admin.route("/experiment/<int:id>")
-def experiment_form(id: int) -> str:
+@bp_admin.route("/experiment/<int:exp_id>")
+def experiment_form(exp_id: int) -> str:
     db = get_db()
-    experiment = db.execute("SELECT * FROM experiments WHERE id=?", [id]).fetchone()
+    experiment = db.execute("SELECT * FROM experiments WHERE id=?", [exp_id]).fetchone()
     classes = db.execute("SELECT id, name FROM classes ORDER BY name").fetchall()
     classes = [dict(row) for row in classes]  # so we can tojson it in the template
-    assigned_classes = db.execute("SELECT class_id AS id, classes.name FROM experiment_class JOIN classes ON experiment_class.class_id=classes.id WHERE experiment_id=? ORDER BY name", [id]).fetchall()
+    assigned_classes = db.execute("SELECT class_id AS id, classes.name FROM experiment_class JOIN classes ON experiment_class.class_id=classes.id WHERE experiment_id=? ORDER BY name", [exp_id]).fetchall()
     assigned_classes = [dict(row) for row in assigned_classes]
     return render_template("experiment_form.html", experiment=experiment, classes=classes, assigned_classes=assigned_classes)
 
@@ -101,7 +101,7 @@ def experiment_update() -> Response:
                    [exp_id, class_id])
     db.commit()
 
-    return redirect(url_for(".experiment_form", id=exp_id))
+    return redirect(url_for(".experiment_form", exp_id=exp_id))
 
 @bp_admin.route("/experiment/delete/<int:exp_id>", methods=['POST'])
 def experiment_delete(exp_id: int) -> Response:

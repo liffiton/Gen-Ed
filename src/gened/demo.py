@@ -91,10 +91,10 @@ def demo_link_new() -> str:
     return render_template("demo_link_form.html")
 
 
-@bp_admin.route("/demo_link/<int:id>")
-def demo_link_form(id: int) -> str:
+@bp_admin.route("/demo_link/<int:demo_id>")
+def demo_link_form(demo_id: int) -> str:
     db = get_db()
-    demo_link_row = db.execute("SELECT * FROM demo_links WHERE id=?", [id]).fetchone()
+    demo_link_row = db.execute("SELECT * FROM demo_links WHERE id=?", [demo_id]).fetchone()
     demo_link_url = f"/demo/{demo_link_row['name']}"
     return render_template("demo_link_form.html", demo_link=demo_link_row, demo_link_url=demo_link_url)
 
@@ -120,4 +120,4 @@ def demo_link_update() -> Response:
         db.commit()
         flash("Demo link updated.")
 
-    return redirect(url_for(".demo_link_form", id=demo_link_id))
+    return redirect(url_for(".demo_link_form", demo_id=demo_link_id))

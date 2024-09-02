@@ -111,7 +111,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             <div class="control">
               <button class="button is-link" type="submit">Submit</button>
               {% if consumer %}
-                <button class="button is-danger" type="submit" formaction="{{ url_for('admin.consumer_delete', id=consumer.id) }}">
+                <button class="button is-danger" type="submit" formaction="{{ url_for('admin.consumer_delete', consumer_id=consumer.id) }}">
                    <span class="delete mr-2"></span>
                    Delete {{ consumer.lti_consumer }}
                 </button>

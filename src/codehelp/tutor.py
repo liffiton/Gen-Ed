@@ -291,8 +291,8 @@ def new_message(llm: LLMConfig) -> Response:
 
 @register_admin_link("Tutor Chats")
 @bp_admin.route("/tutor/")
-@bp_admin.route("/tutor/<int:id>")
-def tutor_admin(id : int|None = None) -> str:
+@bp_admin.route("/tutor/<int:chat_id>")
+def tutor_admin(chat_id : int|None = None) -> str:
     db = get_db()
     chats = db.execute("""
         SELECT
@@ -315,8 +315,8 @@ def tutor_admin(id : int|None = None) -> str:
             chats.id DESC
     """).fetchall()
 
-    if id is not None:
-        chat_row = db.execute("SELECT users.display_name, topic, chat_json FROM chats JOIN users ON chats.user_id=users.id WHERE chats.id=?", [id]).fetchone()
+    if chat_id is not None:
+        chat_row = db.execute("SELECT users.display_name, topic, chat_json FROM chats JOIN users ON chats.user_id=users.id WHERE chats.id=?", [chat_id]).fetchone()
         chat = json.loads(chat_row['chat_json'])
     else:
         chat_row = None
