@@ -53,7 +53,7 @@ INSERT INTO auth_providers(name) VALUES
 CREATE TABLE users (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     auth_provider INTEGER NOT NULL,
-    last_role_id  INTEGER,  -- most recently activated role (note: may no longer exist if deleted) used to re-activate on login
+    last_class_id INTEGER,  -- most recently active class, used to re-activate on login (note: user may no longer have active role in this class)
     full_name     TEXT,
     email         TEXT,
     auth_name     TEXT,
@@ -133,6 +133,8 @@ CREATE TABLE roles (
     FOREIGN KEY(user_id) REFERENCES users(id),
     FOREIGN KEY(class_id) REFERENCES classes(id)
 );
+DROP INDEX IF EXISTS roles_user_class_unique;
+CREATE UNIQUE INDEX  roles_user_class_unique ON roles(user_id, class_id);
 
 -- Store/manage demonstration links
 CREATE TABLE demo_links (

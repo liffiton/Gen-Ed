@@ -46,6 +46,7 @@ def check_login(
             assert sessauth['display_name'] == username
             assert sessauth['is_admin'] == is_admin
             assert sessauth['class_id'] is None
+            assert sessauth['role_id'] is None
             assert 'auth_provider' in sessauth
             assert sessauth['auth_provider'] == 'local'
 
@@ -53,10 +54,11 @@ def check_login(
             # Verify session auth contains correct values for non-logged-in user
             sessauth = get_auth()
             assert sessauth['user_id'] is None
-            assert sessauth['role_id'] is None
             assert sessauth['is_admin'] is False
+            assert sessauth['role'] is None
             assert 'display_name' not in sessauth
             assert 'class_id' not in sessauth
+            assert 'role_id' not in sessauth
             assert 'auth_provider' not in sessauth
 
         assert message in response.text
@@ -118,10 +120,10 @@ def test_logout(client, auth):
 
         sessauth = get_auth()
         assert sessauth['user_id'] is None
-        assert sessauth['role_id'] is None
         assert sessauth['is_admin'] is False
         assert 'display_name' not in sessauth
         assert 'class_id' not in sessauth
+        assert 'role_id' not in sessauth
         assert 'auth_provider' not in sessauth
 
         # Check if the user can access the login page and see the flashed message after logout

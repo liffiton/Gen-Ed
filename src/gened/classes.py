@@ -17,7 +17,7 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from .auth import get_auth, login_required, set_session_auth_role
+from .auth import get_auth, login_required, set_session_auth_class
 from .db import get_db
 from .redir import safe_redirect_next
 from .tz import date_is_past
@@ -141,7 +141,6 @@ def switch_class(class_id: int | None) -> bool:
     user_id = auth['user_id']
 
     db = get_db()
-    role_id = None  # will be used if class_id is None
 
     if class_id:
         # check for a valid role in the new class
@@ -160,12 +159,11 @@ def switch_class(class_id: int | None) -> bool:
             # no valid row found; change nothing and return failure
             return False
 
-        # otherwise, here's our new role ID
-        role_id = row['role_id']
+        # otherwise, we can continue with this class_id
 
-    set_session_auth_role(role_id)
-    # record as user's latest active role
-    db.execute("UPDATE users SET last_role_id=? WHERE users.id=?", [role_id, user_id])
+    set_session_auth_class(class_id)
+    # record as user's latest active class
+    db.execute("UPDATE users SET last_class_id=? WHERE users.id=?", [class_id, user_id])
     db.commit()
     return True
 

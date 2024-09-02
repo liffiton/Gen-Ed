@@ -2,15 +2,18 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from authlib.integrations.flask_client import OAuth, OAuthError  # type: ignore [import-untyped]
+from authlib.integrations.flask_client import (  # type: ignore [import-untyped]
+    OAuth,
+    OAuthError,
+)
 from flask import Blueprint, abort, current_app, redirect, request, session, url_for
 from flask.app import Flask
 from werkzeug.wrappers.response import Response
 
 from .auth import (
     ext_login_update_or_create,
-    get_last_role,
-    set_session_auth_role,
+    get_last_class,
+    set_session_auth_class,
     set_session_auth_user,
 )
 
@@ -114,12 +117,12 @@ def auth(provider_name: str) -> Response:
     # Given 10 tokens by default if creating an account on first login.
     user_row = ext_login_update_or_create(provider_name, user_normed, query_tokens=20)
 
-    # Get their last active role, if there is one (and it still exists and is active)
-    last_role_id = get_last_role(user_row['id'])
+    # Get their last active class, if there is one (and it still exists and user has active role in it)
+    last_class_id = get_last_class(user_row['id'])
 
     # Now, either the user existed or has been created.  Log them in!
     set_session_auth_user(user_row['id'])
-    set_session_auth_role(last_role_id)
+    set_session_auth_class(last_class_id)
 
     # Redirect to stored next_url (and reset) if one has been stored, else root path
     next_url = session.get(NEXT_URL_SESSION_KEY) or "/"

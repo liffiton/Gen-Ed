@@ -20,7 +20,7 @@ from werkzeug.wrappers.response import Response
 
 from .auth import (
     ext_login_update_or_create,
-    set_session_auth_role,
+    set_session_auth_class,
     set_session_auth_user,
 )
 from .classes import get_or_create_lti_class
@@ -106,19 +106,15 @@ def lti_login(lti: LTI) -> Response | tuple[str, int]:  # noqa: ARG001 (unused a
 
     if not role_row:
         # Register this user
-        cur = db.execute("INSERT INTO roles(user_id, class_id, role) VALUES(?, ?, ?)", [user_id, class_id, role])
+        db.execute("INSERT INTO roles(user_id, class_id, role) VALUES(?, ?, ?)", [user_id, class_id, role])
         db.commit()
-        role_id = cur.lastrowid
-    else:
-        role_id = role_row['id']
-
-        if not role_row['active']:
-            session.clear()
-            return abort(403)
+    elif not role_row['active']:
+        session.clear()
+        return abort(403)
 
     # Record them as logged in in the session
     set_session_auth_user(user_id)
-    set_session_auth_role(role_id)
+    set_session_auth_class(class_id)
 
     # Redirect to the app
     if role == "instructor":
