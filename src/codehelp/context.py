@@ -73,8 +73,12 @@ class ContextConfig:
 
     def prompt_str(self) -> str:
         """ Convert this context into a string to be used in an LLM prompt. """
+        # if nothing is provided but a name, use just that name by itself
+        if not self.tools and not self.details and not self.avoid:
+            return self.name
+
         template = jinja_env_prompt.from_string("""\
-<name>{{ name }}</name>
+Context name: <name>{{ name }}</name>
 {% if tools %}
 Environment and tools: <tools>{{ tools }}</tools>
 {% endif %}

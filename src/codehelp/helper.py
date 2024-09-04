@@ -310,10 +310,10 @@ def get_topics(llm: LLMConfig, query_id: int) -> list[str]:
         return []
 
     messages = prompts.make_topics_prompt(
-        '',  # TODO: put this back: query_row['context'],
         query_row['code'],
         query_row['error'],
         query_row['issue'],
+        '',  # TODO: put this back: query_row['context'],
         responses['main']
     )
 
