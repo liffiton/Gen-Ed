@@ -52,12 +52,12 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
         try:
             instance_path = Path(os.environ["FLASK_INSTANCE_PATH"])
         except KeyError:
-            raise KeyError("FLASK_INSTANCE_PATH environment variable not set.") from None
-    # ensure instance_path folder exists
-    if not instance_path.is_dir():
-        raise FileNotFoundError(f"FLASK_INSTANCE_PATH ({instance_path}) not found.")
+            print("Instance path not set and FLASK_INSTANCE_PATH environment variable not found.")
+            sys.exit(1)
     # Flask() requires an absolute instance path
     instance_path = instance_path.resolve()
+    # ensure instance_path folder exists
+    instance_path.mkdir(parents=True, exist_ok=True)
 
     # create the Flask application object
     app = Flask(import_name, instance_path=str(instance_path), instance_relative_config=True)

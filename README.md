@@ -55,16 +55,10 @@ pip install -e .
 Set Up an Application
 ---------------------
 
-1. In the root of the repository, create an instance folder for the database:
-
-```sh
-mkdir instance
-```
-
-2. In the root of the repository, create `.env` and populate it:
+1. In the root of the repository, create `.env` and populate it:
 
 ```
-FLASK_INSTANCE_PATH=instance
+FLASK_INSTANCE_PATH=[path to an instance folder -- for storing the DB, etc. -- commonly "instance"]
 SECRET_KEY=[a secure random string -- used to sign session cookies]
 OPENAI_API_KEY=[your OpenAI API key]
 ```
@@ -84,13 +78,13 @@ MICROSOFT_CLIENT_SECRET=[...]
 
 Then, to set up an application (CodeHelp, for example):
 
-3. Initialize database:
+2. Initialize database:
 
 ```sh
 flask --app codehelp initdb
 ```
 
-4. Create at least one admin user:
+3. Create at least one admin user:
 
 ```sh
 flask --app codehelp newuser --admin [username]
