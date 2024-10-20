@@ -6,11 +6,12 @@ import asyncio
 import json
 
 from flask import Blueprint, redirect, render_template, request, url_for
+from werkzeug.wrappers.response import Response
+
 from gened.auth import class_enabled_required, get_auth, login_required
 from gened.db import get_db
 from gened.openai import LLMConfig, get_completion, with_llm
 from gened.queries import get_history, get_query
-from werkzeug.wrappers.response import Response
 
 from . import prompts
 

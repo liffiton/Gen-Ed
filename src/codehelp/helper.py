@@ -16,6 +16,8 @@ from flask import (
     request,
     url_for,
 )
+from werkzeug.wrappers.response import Response
+
 from gened.auth import (
     admin_required,
     class_enabled_required,
@@ -28,7 +30,6 @@ from gened.db import get_db
 from gened.openai import LLMConfig, get_completion, with_llm
 from gened.queries import get_history, get_query
 from gened.testing.mocks import mock_async_completion
-from werkzeug.wrappers.response import Response
 
 from . import prompts
 from .context import (

@@ -15,6 +15,9 @@ from flask import (
     request,
     url_for,
 )
+from openai.types.chat import ChatCompletionMessageParam
+from werkzeug.wrappers.response import Response
+
 from gened.admin import bp as bp_admin
 from gened.admin import register_admin_link
 from gened.auth import get_auth, login_required
@@ -23,8 +26,6 @@ from gened.db import get_db
 from gened.experiments import experiment_required
 from gened.openai import LLMConfig, get_completion, with_llm
 from gened.queries import get_query
-from openai.types.chat import ChatCompletionMessageParam
-from werkzeug.wrappers.response import Response
 
 from . import prompts
 from .context import (

@@ -7,11 +7,12 @@ from dataclasses import asdict, dataclass
 from sqlite3 import Row
 
 from flask import current_app
-from gened.auth import get_auth
-from gened.db import get_db
 from jinja2 import Environment
 from typing_extensions import Self
 from werkzeug.datastructures import ImmutableMultiDict
+
+from gened.auth import get_auth
+from gened.db import get_db
 
 
 def _default_langs() -> list[str]:

@@ -17,11 +17,12 @@ from flask import (
     request,
     url_for,
 )
+from markupsafe import Markup
+from werkzeug.wrappers.response import Response
+
 from gened.auth import get_auth, instructor_required
 from gened.class_config import register_extra_section
 from gened.db import get_db
-from markupsafe import Markup
-from werkzeug.wrappers.response import Response
 
 from .context import ContextConfig, jinja_env_html
 
