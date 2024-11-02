@@ -165,11 +165,11 @@ CREATE TABLE models (
     model       TEXT NOT NULL,
     active      BOOLEAN NOT NULL CHECK (active IN (0,1))
 );
--- See also: DEFAULT_MODEL_ID in app.config (src/gened/base.py)
+-- See also: DEFAULT_CLASS_MODEL_SHORTNAME in base.create_app_base()
 INSERT INTO models(name, shortname, model, active) VALUES
     ('OpenAI GPT-3.5 Turbo', 'GPT-3.5', 'gpt-3.5-turbo-0125', false),
     ('OpenAI GPT-4o', 'GPT-4o', 'gpt-4o', true),
-    ('OpenAI GPT-4o-mini', 'GPT-4o-mini', 'gpt-4o-mini', false)
+    ('OpenAI GPT-4o-mini', 'GPT-4o-mini', 'gpt-4o-mini', true)
 ;
 
 

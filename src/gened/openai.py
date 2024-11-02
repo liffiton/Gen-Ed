@@ -63,8 +63,7 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLMConfig:
         """ Factory function to initialize a default client (using the system key)
             only if/when needed.
         """
-        model_row = db.execute("SELECT models.model FROM models WHERE models.id=?", [current_app.config['SYSTEM_MODEL_ID']]).fetchone()
-        system_model = model_row['model']
+        system_model = current_app.config["SYSTEM_MODEL"]
         system_key = current_app.config["OPENAI_API_KEY"]
         return LLMConfig(
             client=AsyncOpenAI(api_key=system_key),
