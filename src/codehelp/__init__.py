@@ -5,9 +5,7 @@
 from pathlib import Path
 from typing import Any
 
-from flask import send_from_directory
 from flask.app import Flask
-from flask.wrappers import Response
 
 from gened import base
 
@@ -57,11 +55,6 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
 
     # register app-specific charts in the admin interface
     admin.register_with_gened()
-
-    # make a simple route for the .well-known directory
-    @app.route('/.well-known/<path:path>')
-    def well_known(path: Path) -> Response:
-        return send_from_directory('.well-known', path)
 
     # add navbar items
     app.config['NAVBAR_ITEM_TEMPLATES'].append("tutor_nav_item.html")

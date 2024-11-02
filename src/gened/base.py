@@ -11,7 +11,8 @@ from typing import Any
 
 import flask.app
 from dotenv import load_dotenv
-from flask import Flask, render_template
+from flask import Flask, render_template, send_from_directory
+from flask.wrappers import Response
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from . import (
@@ -206,5 +207,9 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
     @app.route('/')
     def landing() -> str:
         return render_template("landing.html")
+
+    @app.route('/.well-known/<path:path>')
+    def well_known(path: Path) -> Response:
+        return send_from_directory(Path(app.instance_path) / '.well-known', path)
 
     return app

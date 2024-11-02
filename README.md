@@ -97,6 +97,10 @@ To change the password:
 flask --app codehelp setpassword [username]
 ```
 
+4. (Optional) To serve files from `/.well-known` (for domain verification,
+   etc.), place the files in a `.well-known` directory inside the Flask
+   instance folder.
+
 
 Running an Application
 ----------------------
