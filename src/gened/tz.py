@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import datetime as dt
+import platform
 
 import pytz
 from flask import request, session
@@ -35,9 +36,14 @@ def init_app(app: Flask) -> None:
         '''Use timezone from the session object, if available, to localize datetimes from UTC.'''
         # https://stackoverflow.com/a/34832184
         utc_dt = pytz.utc.localize(value)
+
+        # Windows uses a different format string for non-zero-padded hours in strftime
+        # https://strftime.org/
+        hr_fmt = '%#I' if platform.system() == "Windows" else '%-I'
+
         if 'timezone' not in session:
-            return utc_dt.strftime("%Y-%m-%d %-I:%M%P %Z")  # %Z to include 'UTC'
+            return utc_dt.strftime(f"%Y-%m-%d {hr_fmt}:%M%P %Z")  # %Z to include 'UTC'
         else:
             local_tz = pytz.timezone(session['timezone'])
             local_dt = utc_dt.astimezone(local_tz)
-            return local_dt.strftime("%Y-%m-%d %-I:%M%P")
+            return local_dt.strftime(f"%Y-%m-%d {hr_fmt}:%M%P")
