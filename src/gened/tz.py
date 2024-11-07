@@ -37,13 +37,17 @@ def init_app(app: Flask) -> None:
         # https://stackoverflow.com/a/34832184
         utc_dt = pytz.utc.localize(value)
 
-        # Windows uses a different format string for non-zero-padded hours in strftime
+        # Windows uses a different format string for non-zero-padded hours
+        # in strftime and does not support lowercase am/pm ('%P').
         # https://strftime.org/
-        hr_fmt = '%#I' if platform.system() == "Windows" else '%-I'
+        if platform.system() == "Windows":
+            time_fmt = "%Y-%m-%d %#I:%M%p"
+        else:
+            time_fmt = "%Y-%m-%d %-I:%M%P"
 
         if 'timezone' not in session:
-            return utc_dt.strftime(f"%Y-%m-%d {hr_fmt}:%M%P %Z")  # %Z to include 'UTC'
+            return utc_dt.strftime(f"{time_fmt} %Z")  # %Z to include 'UTC'
         else:
             local_tz = pytz.timezone(session['timezone'])
             local_dt = utc_dt.astimezone(local_tz)
-            return local_dt.strftime(f"%Y-%m-%d {hr_fmt}:%M%P")
+            return local_dt.strftime(time_fmt)
