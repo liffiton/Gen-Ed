@@ -335,7 +335,7 @@ def main() -> str:
 @bp.route("/get_db")
 def get_db_file() -> Response:
     db_backup_file = NamedTemporaryFile()
-    backup_db(db_backup_file.name)
+    backup_db(Path(db_backup_file.name))
     db_name = current_app.config['DATABASE_NAME']
     db_basename = Path(db_name).stem
     dl_name = f"{db_basename}_{date.today().strftime('%Y%m%d')}.db"

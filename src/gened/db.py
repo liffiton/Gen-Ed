@@ -57,13 +57,12 @@ def get_db() -> sqlite3.Connection:
     return g.db
 
 
-def backup_db(target: str | Path) -> None:
+def backup_db(target: Path) -> None:
     """ Safely make a backup of the database to the given path.
-    target: str or any path-like object.  Must not exist yet or be empty.
+    target: Path object to the location of the new backup.  Must not exist yet or be empty.
     """
-    target = Path(target)
     if target.exists() and target.stat().st_size > 0:
-        raise FileExistsError(errno.EEXIST, "File already exists or is not empty", target)
+        raise FileExistsError(errno.EEXIST, "File already exists and is not empty", target)
 
     db = get_db()
     tmp_db = sqlite3.connect(target)
