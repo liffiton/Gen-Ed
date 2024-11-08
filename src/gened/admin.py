@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import platform
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import date
@@ -334,13 +335,24 @@ def main() -> str:
 @register_admin_link("Download DB", right=True)
 @bp.route("/get_db")
 def get_db_file() -> Response:
-    db_backup_file = NamedTemporaryFile(delete_on_close=False)
-    db_backup_file.close()  # avoid double-open in the backup_db function (fails on Windows)
-    backup_db(Path(db_backup_file.name))
     db_name = current_app.config['DATABASE_NAME']
     db_basename = Path(db_name).stem
     dl_name = f"{db_basename}_{date.today().strftime('%Y%m%d')}.db"
-    return send_file(db_backup_file.name, mimetype='application/vnd.sqlite3', as_attachment=True, download_name=dl_name)
+
+    if platform.system() == "Windows":
+        # Slightly unsafe way to do it, because the file may be written while
+        # send_file is sending it.  Temp file issues make it hard to do
+        # otherwise on Windows, though, and no one should run a production
+        # server for this on Windows, anyway.
+        return send_file(current_app.config['DATABASE'],
+                         mimetype='application/vnd.sqlite3',
+                         as_attachment=True, download_name=dl_name)
+    else:
+        db_backup_file = NamedTemporaryFile()
+        backup_db(Path(db_backup_file.name))
+        return send_file(db_backup_file,
+                         mimetype='application/vnd.sqlite3',
+                         as_attachment=True, download_name=dl_name)
 
 
 @bp.route("/consumer/new")
