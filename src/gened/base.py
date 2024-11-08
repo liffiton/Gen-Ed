@@ -164,29 +164,6 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
     # configure the application
     app.config.from_mapping(total_config)
 
-    # run setup and checks that depend on the database iff it is initialized
-    with app.app_context():
-        db_conn = db.get_db()
-        try:
-            db_conn.execute("SELECT 1 FROM consumers LIMIT 1")
-            db_conn.execute("SELECT 1 FROM models LIMIT 1")
-            db_initialized = True
-        except sqlite3.OperationalError:
-            db_initialized = False
-
-        if db_initialized:
-            # load consumers from DB
-            admin.reload_consumers()
-
-            # validate that the default class model exists and is active
-            default_model_row = db_conn.execute(
-                "SELECT 1 FROM models WHERE active AND shortname = ?",
-                [app.config['DEFAULT_CLASS_MODEL_SHORTNAME']]
-            ).fetchone()
-            if not default_model_row:
-                app.logger.error(f"Default model shortname '{app.config['DEFAULT_CLASS_MODEL_SHORTNAME']}' not found in active models.")
-                sys.exit(1)
-
     admin.init_app(app)
     db.init_app(app)
     filters.init_app(app)
@@ -226,5 +203,29 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
     @app.route('/.well-known/<path:path>')
     def well_known(path: Path) -> Response:
         return send_from_directory(Path(app.instance_path) / '.well-known', path)
+
+    # run setup and checks that depend on the database (iff it is initialized)
+    # requires that db.init_app() has been called to ensure db is closed at end of context manager
+    with app.app_context():
+        db_conn = db.get_db()
+        try:
+            db_conn.execute("SELECT 1 FROM consumers LIMIT 1")
+            db_conn.execute("SELECT 1 FROM models LIMIT 1")
+            db_initialized = True
+        except sqlite3.OperationalError:
+            db_initialized = False
+
+        if db_initialized:
+            # load consumers from DB
+            admin.reload_consumers()
+
+            # validate that the default class model exists and is active
+            default_model_row = db_conn.execute(
+                "SELECT 1 FROM models WHERE active AND shortname = ?",
+                [app.config['DEFAULT_CLASS_MODEL_SHORTNAME']]
+            ).fetchone()
+            if not default_model_row:
+                app.logger.error(f"Default model shortname '{app.config['DEFAULT_CLASS_MODEL_SHORTNAME']}' not found in active models.")
+                sys.exit(1)
 
     return app

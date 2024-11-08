@@ -334,12 +334,13 @@ def main() -> str:
 @register_admin_link("Download DB", right=True)
 @bp.route("/get_db")
 def get_db_file() -> Response:
-    db_backup_file = NamedTemporaryFile()
+    db_backup_file = NamedTemporaryFile(delete_on_close=False)
+    db_backup_file.close()  # avoid double-open in the backup_db function (fails on Windows)
     backup_db(Path(db_backup_file.name))
     db_name = current_app.config['DATABASE_NAME']
     db_basename = Path(db_name).stem
     dl_name = f"{db_basename}_{date.today().strftime('%Y%m%d')}.db"
-    return send_file(db_backup_file, mimetype='application/vnd.sqlite3', as_attachment=True, download_name=dl_name)
+    return send_file(db_backup_file.name, mimetype='application/vnd.sqlite3', as_attachment=True, download_name=dl_name)
 
 
 @bp.route("/consumer/new")
