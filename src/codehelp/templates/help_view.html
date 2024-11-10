@@ -7,10 +7,17 @@ SPDX-License-Identifier: AGPL-3.0-only
 {% extends "base.html" %}
 {% from "recent_queries.html" import recent_queries %}
 
+{% block extrahead %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous"
+    onload="renderMathInElement(document.querySelector('#codehelp_response'));"></script>
+{% endblock %}
+
 {% block body %}
 <div class="columns is-desktop is-gapless">
   <div class="column is-three-quarters-desktop">
-    <section class="section">
+    <section class="section" id="codehelp_response">
     {% if query %}
 
     <div class="container">

@@ -63,7 +63,8 @@ def init_app(app: Flask) -> None:
             return markupsafe.Markup(html_string)
 
     # Jinja filter for converting Markdown to HTML
-    markdown_processor = MarkdownIt("js-default")  # https://markdown-it-py.readthedocs.io/en/latest/security.html
+    markdown_processor = MarkdownIt("js-default")  # js-default: https://markdown-it-py.readthedocs.io/en/latest/security.html
+    markdown_processor.inline.ruler.disable(['escape'])  # disable escaping so that \(, \[, etc. come through for TeX math
 
     @app.template_filter('markdown')
     def markdown_filter(value: str) -> str:
