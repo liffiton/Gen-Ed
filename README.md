@@ -55,13 +55,19 @@ pip install -e .
 Set Up an Application
 ---------------------
 
-1. In the root of the repository, create `.env` and populate it:
-
-```
-FLASK_INSTANCE_PATH=[path to an instance folder -- for storing the DB, etc. -- commonly "instance"]
-SECRET_KEY=[a secure random string -- used to sign session cookies]
-OPENAI_API_KEY=[your OpenAI API key]
-```
+1. In the root of the repository, create `.env` and populate it with
+   environment variables to configure the application.  See `.env.test` for a
+   list of all available variables.  The required variables are:
+   - `FLASK_INSTANCE_PATH`: Path to an instance folder for storing the DB,
+     etc.  Commonly set to `instance`.
+   - `SECRET_KEY`: A secure random string used to sign session cookies.
+   - `OPENAI_API_KEY`: Your OpenAI API key to be used for queries outside of a
+     class context (e.g. for free queries).
+   - `SYSTEM_MODEL`: Name from the OpenAI API of the model to be used outside
+     of a class context.  `gpt-4o` is a good default.
+   - `DEFAULT_CLASS_MODEL_SHORTNAME`: Name from the application database for
+     the default model to be used in new classes (can be configured after
+     creating the class).  `GPT-4o` is a good default.
 
 *Optionally*, if you want to allow logins from 3rd party authentication
 providers, set any of the following pairs with IDs/secrets obtained from
