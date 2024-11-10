@@ -5,6 +5,11 @@ SPDX-License-Identifier: AGPL-3.0-only
 #}
 
 {% extends "base.html" %}
+{% from "tables.html" import datatable, datatable_extrahead %}
+
+{% block extrahead %}
+{{ datatable_extrahead }}
+{% endblock %}
 
 {% block second_nav %}
 <nav class="navbar is-light is-size-5" role="navigation" aria-label="admin navigation" x-data="{admin_menu_open: false}">

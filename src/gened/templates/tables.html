@@ -4,6 +4,70 @@ SPDX-FileCopyrightText: 2023 Mark Liffiton <liffiton@gmail.com>
 SPDX-License-Identifier: AGPL-3.0-only
 #}
 
+{% set datatable_extrahead %}
+    <link href="{{ url_for('static', filename='datatables.css') }}" rel="stylesheet" type="text/css">
+    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@8" type="text/javascript"></script>
+    <script type="text/javascript">
+      function initTable(tblname, rows, link_col, link_func, csv_link=null) {
+        const table = new simpleDatatables.DataTable(`table#${tblname}`, {
+        paging: rows > 15,
+        perPage: 10,
+        perPageSelect: [[10, 10], [20, 20], [50, 50], ["All", 0]],
+        labels: {
+          perPage: "per page",
+          info: "{start} to {end} of {rows}",
+        },
+        template: options => `
+<div class='${options.classes.bottom}'>
+${ options.paging ? `<nav class='${options.classes.pagination}'></nav>` : "" }
+${ options.paging ? `<div class='${options.classes.info}'></div>` : "" }
+${ options.paging && options.perPageSelect ?
+  `<div class='${options.classes.dropdown}'>
+    <label>
+      <select class='${options.classes.selector}'></select> ${options.labels.perPage}
+    </label>
+  </div>` :
+  ""
+}
+</div>
+<div class='${options.classes.container}'${options.scrollY.length ? ` style='height: ${options.scrollY}; overflow-Y: auto;'` : ""}></div>
+<div class='${options.classes.bottom}'>
+  <div class='${options.classes.search}'>
+    <button class="button is-small" id="csv_${tblname}">Export CSV</button>
+${ options.searchable ?
+    `<input class='${options.classes.input}' placeholder='${options.labels.placeholder}' type='text' size='7'>` : ""
+}
+  </div>
+</div>
+`,
+        });
+        (link_col != "") && table.on("datatable.selectrow", (row, event) => {
+          if (event.target.tagName !== 'TD') {
+            // button or something other than the data/cell itself -- don't trigger anything and let the default happen
+            return;
+          }
+          if (event.button === 0) {
+            // left click, open in new window
+            const value = table.data.data[row][link_col].text;
+            const url = link_func(value);
+            //window.open(url, '_blank');
+            window.location = url;
+          }
+        });
+        if (csv_link) {
+          document.querySelector(`button#csv_${tblname}`).addEventListener('click', event => {
+            window.location = csv_link;
+          });
+        }
+        else {
+          document.querySelector(`button#csv_${tblname}`).addEventListener('click', event => {
+            simpleDatatables.exportCSV(table);
+          });
+        }
+      }
+    </script>
+{% endset %}
+
 {% macro datatable(name, columns, data, hidden_cols=[], link_col="", link_template=None, extra_links=[], csv_link="") -%}
   <style type="text/css">
   {% for col in columns %}
