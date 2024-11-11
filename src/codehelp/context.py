@@ -123,21 +123,25 @@ def get_available_contexts() -> list[ContextConfig]:
     return [ContextConfig.from_row(row) for row in context_rows]
 
 
-def get_context_config_by_id(ctx_id: int) -> ContextConfig | None:
-    """ Return a context object of the given class based on the specified id
-        or return None if no context exists with that name.
+def get_context_string_by_id(ctx_id: int) -> str | None:
+    """ Return a context string based on the specified id
+        or return None if no context string exists with that id.
     """
     db = get_db()
     auth = get_auth()
 
-    class_id = auth['class_id']  # just for extra safety: double-check that the context is in the current class
-
-    context_row = db.execute("SELECT * FROM contexts WHERE class_id=? AND id=?", [class_id, ctx_id]).fetchone()
+    if auth['is_admin']:
+        # admin can grab any context
+        context_row = db.execute("SELECT * FROM context_strings WHERE id=?", [ctx_id]).fetchone()
+    else:
+        # for non-admin users, double-check that the context is in the current class
+        class_id = auth['class_id']
+        context_row = db.execute("SELECT * FROM context_strings WHERE class_id=? AND id=?", [class_id, ctx_id]).fetchone()
 
     if not context_row:
         return None
 
-    return ContextConfig.from_row(context_row)
+    return str(context_row['ctx_str'])
 
 
 def get_context_by_name(ctx_name: str) -> ContextConfig | None:

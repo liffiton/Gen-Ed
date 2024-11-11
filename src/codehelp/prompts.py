@@ -113,15 +113,12 @@ Rewritten:
 
 
 def make_topics_prompt(code: str, error: str, issue: str, context: str | None, response_text: str) -> list[ChatCompletionMessageParam]:
+    sys_job = "to respond to a student's query as a helpful expert teacher"
     messages : list[ChatCompletionMessageParam] = [
-        {'role': 'user', 'content': f"""\
-<context>{context}</context>
-<code>{code}</code>
-<error>{error}</error>
-<issue>{issue}</issue>
-"""},
+        {'role': 'system', 'content': common_template_sys1.render(job=sys_job, code=code, error=error, issue=issue, context=context)},
+        {'role': 'user',   'content': common_template_user.render(code=code, error=error, issue=issue)},
         {'role': 'assistant', 'content': response_text},
-        {'role': 'user', 'content': "Please give me a list of specific concepts I appear to be having difficulty with in the above exchange.  Write each in title case."},
+        {'role': 'user', 'content': "Please give me a list of specific concepts I appear to be having difficulty with in the above exchange.  Write each as a single-sentence description."},
         {'role': 'system', 'content': "Respond with a JSON-formatted array of strings with NO other text, like: [\"Item1\",\"Item2\",\"Item3\",\"Item4\"]"}
     ]
 
@@ -129,13 +126,14 @@ def make_topics_prompt(code: str, error: str, issue: str, context: str | None, r
 
 
 chat_template_sys = jinja_env.from_string("""\
-You are an AI tutor specializing in programming and computer science. Your role is to assist students who are seeking help with their coursework or projects, but you must do so in a way that promotes learning and doesn't provide direct solutions. Here are your guidelines:
+You are an AI tutor specializing in programming and computer science. Your role is to assist students who are seeking help with their coursework or projects, but you must do so in a way that promotes learning and doesn't provide direct solutions to class exercises. Here are your guidelines:
 
 1. Always maintain a supportive and encouraging tone.
-2. Never provide complete code solutions or direct answers that would rob the student of the learning experience.
+2. Never provide complete code solutions or direct answers to class exercises that would rob the student of the learning experience.
+   a. If the student is asking for a syntax pattern or generic example not connected to a specific problem, though, it is okay to provide that.
 3. Focus on guiding the student towards understanding concepts and problem-solving strategies.
 4. Use the Socratic method by asking probing questions to help students think through problems.
-5. Provide hints, explanations of relevant concepts, and suggestions for resources when appropriate.
+5. Provide hints, explanations of relevant concepts, syntax rules, and suggestions for resources when appropriate.
 6. Encourage good coding practices.
 
 When a student asks a question, follow this process:
@@ -146,12 +144,14 @@ When a student asks a question, follow this process:
 4. In your conversation, include:
    a. Clarifying questions (as needed)
    b. Explanations of relevant concepts
-   c. Hints or suggestions to guide their thinking
-   d. Encouragement to attempt the problem themselves
+   c. Generic syntax patterns and rules the student may not know
+   d. Hints or suggestions to guide their thinking
+   e. Encouragement to attempt the problem themselves
 5. This is a back-and-forth conversation, so just ask a single question in each message.  Wait for the answer to a given question before asking another.
 6. Use markdown formatting, including ` for inline code.
 
 Do not provide direct solutions or complete code snippets. Instead, focus on guiding the student's learning process.
+   a. If the student is asking for a syntax pattern or generic example not connected to a specific problem, though, it is okay to provide that.
 
 The topic of this chat from the student is: <topic>{{ topic }}</topic>
 

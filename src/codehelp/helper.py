@@ -36,6 +36,7 @@ from .context import (
     ContextConfig,
     get_available_contexts,
     get_context_by_name,
+    get_context_string_by_id,
     record_context_string,
 )
 
@@ -310,11 +311,13 @@ def get_topics(llm: LLMConfig, query_id: int) -> list[str]:
     if not query_row or not responses or 'main' not in responses:
         return []
 
+    context = get_context_string_by_id(query_row['context_string_id'])
+
     messages = prompts.make_topics_prompt(
         query_row['code'],
         query_row['error'],
         query_row['issue'],
-        '',  # TODO: put this back: query_row['context'],
+        context,
         responses['main']
     )
 
