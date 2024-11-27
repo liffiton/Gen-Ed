@@ -28,13 +28,13 @@ SPDX-License-Identifier: AGPL-3.0-only
   </div>
   <div class="navbar-menu" x-bind:class="admin_menu_open ? 'is-active' : ''">
     <div class="navbar-start">
-      {% for page in admin_links %}
-        <a class="navbar-item is-tab {{ 'is-active' if request.endpoint == page[0] else ''}}" href="{{url_for(page[0])}}">{{page[1]}}</a>
+      {% for link in admin_links %}
+        <a class="navbar-item is-tab {{ 'is-active' if request.endpoint == link.endpoint else ''}}" href="{{url_for(link.endpoint)}}">{{link.display}}</a>
       {% endfor %}
     </div>
     <div class="navbar-end">
-      {% for page in admin_links_right %}
-        <a class="navbar-item is-tab {{ 'is-active' if request.endpoint == page[0] else ''}}" href="{{url_for(page[0])}}">{{page[1]}}</a>
+      {% for link in admin_links_right %}
+        <a class="navbar-item is-tab {{ 'is-active' if request.endpoint == link.endpoint else ''}}" href="{{url_for(link.endpoint)}}">{{link.display}}</a>
       {% endfor %}
     </div>
   </div>

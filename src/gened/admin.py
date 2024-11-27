@@ -4,7 +4,7 @@
 
 import platform
 from collections.abc import Callable, Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 from sqlite3 import Row
@@ -39,30 +39,57 @@ def before_request() -> None:
     """ Apply decorator to protect all admin blueprint endpoints. """
 
 
-# A module-level list of registered admin pages.  Updated by register_admin_link()
-_admin_links: list[tuple[str, str]] = []
-_admin_links_right: list[tuple[str, str]] = []
-
+@dataclass(frozen=True)
+class AdminLink:
+    """Represents a link in the admin interface.
+    Attributes:
+        endpoint: The Flask endpoint name
+        display: The text to show in the navigation UI
+    """
+    endpoint: str
+    display: str
 
 # For decorator type hints
 P = ParamSpec('P')
 R = TypeVar('R')
 
+@dataclass
+class AdminLinks:
+    """Container for registering admin navigation links."""
+    regular: list[AdminLink] = field(default_factory=list)
+    right: list[AdminLink] = field(default_factory=list)
 
-# Decorator function for registering routes as admin pages.
-# Use:
-#   @register_admin_link("Demo Links")
-#   @[route stuff]
-#   def handler():  [...]
-def register_admin_link(display_name: str, right: bool = False) -> Callable[[Callable[P, R]], Callable[P, R]]:
-    def decorator(route_func: Callable[P, R]) -> Callable[P, R]:
-        handler_name = f"admin.{route_func.__name__}"
-        if right:
-            _admin_links_right.append((handler_name, display_name))
-        else:
-            _admin_links.append((handler_name, display_name))
-        return route_func
-    return decorator
+    def register(self, display_name: str, right: bool = False) -> Callable[[Callable[P, R]], Callable[P, R]]:
+        """Decorator to register an admin page link.
+        Args:
+            display_name: Text to show in the admin interface navigation
+            right: If True, display this link on the right side of the nav bar
+        """
+        def decorator(route_func: Callable[P, R]) -> Callable[P, R]:
+            handler_name = f"admin.{route_func.__name__}"
+            link = AdminLink(handler_name, display_name)
+            if right:
+                self.right.append(link)
+            else:
+                self.regular.append(link)
+            return route_func
+        return decorator
+
+    def get_template_context(self) -> dict[str, list[AdminLink]]:
+        return {
+            'admin_links': self.regular,
+            'admin_links_right': self.right,
+        }
+
+# Module-level instance
+_admin_links = AdminLinks()
+register_admin_link = _admin_links.register  # name for the decorator to be imported/used in other modules
+
+
+def init_app(app: Flask) -> None:
+    @app.context_processor
+    def inject_admin_links() -> dict[str, list[AdminLink]]:
+        return _admin_links.get_template_context()
 
 
 @dataclass(frozen=True)
@@ -78,16 +105,6 @@ _admin_chart_generators: list[Callable[[str, list[str]], list[ChartData]]] = []
 
 def register_admin_chart(generator_func: Callable[[str, list[str]], list[ChartData]]) -> None:
     _admin_chart_generators.append(generator_func)
-
-
-def init_app(app: Flask) -> None:
-    # inject admin pages into template contexts
-    @app.context_processor
-    def inject_admin_links() -> dict[str, list[tuple[str, str]]]:
-        return {
-            'admin_links': _admin_links,
-            'admin_links_right': _admin_links_right
-        }
 
 
 def reload_consumers() -> None:
