@@ -221,12 +221,16 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
             admin.reload_consumers()
 
             # validate that the default class model exists and is active
-            default_model_row = db_conn.execute(
-                "SELECT 1 FROM models WHERE active AND shortname = ?",
-                [app.config['DEFAULT_CLASS_MODEL_SHORTNAME']]
-            ).fetchone()
-            if not default_model_row:
-                app.logger.error(f"Default model shortname '{app.config['DEFAULT_CLASS_MODEL_SHORTNAME']}' not found in active models.")
-                sys.exit(1)
+            try:
+                default_model_row = db_conn.execute(
+                    "SELECT 1 FROM models WHERE active AND shortname = ?",
+                    [app.config['DEFAULT_CLASS_MODEL_SHORTNAME']]
+                ).fetchone()
+                if not default_model_row:
+                    app.logger.error(f"Default model shortname '{app.config['DEFAULT_CLASS_MODEL_SHORTNAME']}' not found in active models.")
+                    sys.exit(1)
+            except sqlite3.OperationalError:
+                # e.g., pre-migration, no 'active' column; just warn
+                app.logger.warning("Error looking up default active model.  You probably need to run migrations.")
 
     return app
