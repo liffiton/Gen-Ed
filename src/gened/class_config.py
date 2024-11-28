@@ -12,7 +12,7 @@ from flask import (
     render_template,
 )
 
-from .auth import get_auth, instructor_required
+from .auth import get_auth_class, instructor_required
 from .db import get_db
 from .openai import LLMConfig, get_completion, get_models, with_llm
 from .tz import date_is_past
@@ -41,9 +41,9 @@ def register_extra_section(render_func: Callable[[], str]) -> None:
 @bp.route("/")
 def config_form() -> str:
     db = get_db()
-    auth = get_auth()
 
-    class_id = auth.class_id
+    cur_class = get_auth_class()
+    class_id = cur_class.class_id
 
     class_row = db.execute("""
         SELECT classes.id, classes.enabled, classes_user.link_ident, classes_user.link_reg_expires, classes_user.openai_key, classes_user.model_id

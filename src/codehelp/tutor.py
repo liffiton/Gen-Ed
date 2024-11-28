@@ -146,7 +146,7 @@ def create_chat(topic: str, context: ContextConfig | None) -> int:
     db = get_db()
     auth = get_auth()
     user_id = auth.user_id
-    role_id = auth.role_id
+    role_id = auth.cur_class.role_id if auth.cur_class else None
 
     if context is not None:
         context_name = context.name
@@ -196,7 +196,7 @@ def get_chat(chat_id: int) -> tuple[list[ChatCompletionMessageParam], str, str, 
     access_allowed = \
         (auth.user_id == chat_row['user_id']) \
         or auth.is_admin \
-        or (auth.role == 'instructor' and auth.class_id == chat_row['class_id'])
+        or (auth.cur_class and auth.cur_class.role == 'instructor' and auth.cur_class.class_id == chat_row['class_id'])
 
     if not access_allowed:
         raise AccessDeniedError

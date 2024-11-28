@@ -84,7 +84,7 @@ def run_query(llm: LLMConfig, assignment: str, topics: str) -> int:
 def record_query(assignment: str, topics: str) -> int:
     db = get_db()
     auth = get_auth()
-    role_id = auth.role_id
+    role_id = auth.cur_class.role_id if auth.cur_class else None
 
     cur = db.execute(
         "INSERT INTO queries (assignment, topics, user_id, role_id) VALUES (?, ?, ?, ?)",

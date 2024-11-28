@@ -172,7 +172,7 @@
                 {% macro link_display_alpinejs(route) -%}
                   {# unholy combination of Jinja templating (route available in python) and Javascript string replacement (context available in JS)... #}
                   {
-                    link_URL: '{{ url_for(route, class_id=auth.class_id, ctx_name='__replace__', _external=True) }}'.replace('__replace__', encodeURIComponent(ctx.name)),
+                    link_URL: '{{ url_for(route, class_id=auth.cur_class.class_id, ctx_name='__replace__', _external=True) }}'.replace('__replace__', encodeURIComponent(ctx.name)),
                     copied: false,
                     copy_url() {
                       navigator.clipboard.writeText(this.link_URL);

@@ -30,7 +30,7 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from .auth import get_auth, instructor_required
+from .auth import get_auth, get_auth_class, instructor_required
 from .classes import switch_class
 from .csv import csv_response
 from .db import get_db
@@ -119,9 +119,8 @@ def get_users(class_id: int, for_export: bool = False) -> list[Row]:
 
 @bp.route("/")
 def main() -> str | Response:
-    auth = get_auth()
-    class_id = auth.class_id
-    assert class_id is not None
+    cur_class = get_auth_class()
+    class_id = cur_class.class_id
 
     users = get_users(class_id)
 
@@ -142,11 +141,9 @@ def get_csv(kind: str) -> str | Response:
     if kind not in ('queries', 'users'):
         return abort(404)
 
-    auth = get_auth()
-    class_id = auth.class_id
-    class_name = auth.class_name
-    assert class_id is not None
-    assert class_name is not None
+    cur_class = get_auth_class()
+    class_id = cur_class.class_id
+    class_name = cur_class.class_name
 
     if kind == "queries":
         table = get_queries(class_id)
@@ -159,10 +156,10 @@ def get_csv(kind: str) -> str | Response:
 @bp.route("/user_class/set", methods=["POST"])
 def set_user_class_setting() -> Response:
     db = get_db()
-    auth = get_auth()
 
     # only trust class_id from auth, not from user
-    class_id = auth.class_id
+    cur_class = get_auth_class()
+    class_id = cur_class.class_id
 
     if 'clear_openai_key' in request.form:
         db.execute("UPDATE classes_user SET openai_key='' WHERE class_id=?", [class_id])
@@ -199,16 +196,16 @@ def set_user_class_setting() -> Response:
 @bp.route("/role/set_active/<int:role_id>/<int(min=0, max=1):bool_active>", methods=["POST"])
 def set_role_active(role_id: int, bool_active: int) -> str:
     db = get_db()
-    auth = get_auth()
+    cur_class = get_auth_class()
 
     # prevent instructors from mistakenly making themselves not active and locking themselves out
-    if role_id == auth.role_id:
+    if role_id == cur_class.role_id:
         return "You cannot make yourself inactive."
 
     # class_id should be redundant w/ role_id, but without it, an instructor
     # could potentially deactivate a role in someone else's class.
     # only trust class_id from auth, not from user
-    class_id = auth.class_id
+    class_id = cur_class.class_id
 
     db.execute("UPDATE roles SET active=? WHERE id=? AND class_id=?", [bool_active, role_id, class_id])
     db.commit()
@@ -220,16 +217,16 @@ def set_role_active(role_id: int, bool_active: int) -> str:
 @bp.route("/role/set_instructor/<int:role_id>/<int(min=0, max=1):bool_instructor>", methods=["POST"])
 def set_role_instructor(role_id: int, bool_instructor: int) -> str:
     db = get_db()
-    auth = get_auth()
+    cur_class = get_auth_class()
 
     # prevent instructors from mistakenly making themselves not instructors and locking themselves out
-    if role_id == auth.role_id:
+    if role_id == cur_class.role_id:
         return "You cannot change your own role."
 
     # class_id should be redundant w/ role_id, but without it, an instructor
     # could potentially deactivate a role in someone else's class.
     # only trust class_id from auth, not from user
-    class_id = auth.class_id
+    class_id = cur_class.class_id
 
     new_role = 'instructor' if bool_instructor else 'student'
 
@@ -242,10 +239,9 @@ def set_role_instructor(role_id: int, bool_instructor: int) -> str:
 @bp.route("/class/delete", methods=["POST"])
 def delete_class() -> Response:
     db = get_db()
-    auth = get_auth()
-    class_id = auth.class_id
-    assert class_id is not None
-    assert str(auth.class_id) == str(request.form.get('class_id'))
+    cur_class = get_auth_class()
+    class_id = cur_class.class_id
+    assert str(class_id) == str(request.form.get('class_id'))
 
     # Require explicit confirmation
     if request.form.get('confirm_delete') != 'DELETE':

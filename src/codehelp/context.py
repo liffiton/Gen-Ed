@@ -115,7 +115,7 @@ def get_available_contexts() -> list[ContextConfig]:
     db = get_db()
     auth = get_auth()
 
-    class_id = auth.class_id
+    class_id = auth.cur_class.class_id if auth.cur_class else None
     # Only return contexts that are available:
     #   current date anywhere on earth (using UTC+12) is at or after the saved date
     context_rows = db.execute("SELECT * FROM contexts WHERE class_id=? AND available <= date('now', '+12 hours') ORDER BY class_order ASC", [class_id]).fetchall()
@@ -135,7 +135,7 @@ def get_context_string_by_id(ctx_id: int) -> str | None:
         context_row = db.execute("SELECT * FROM context_strings WHERE id=?", [ctx_id]).fetchone()
     else:
         # for non-admin users, double-check that the context is in the current class
-        class_id = auth.class_id
+        class_id = auth.cur_class.class_id if auth.cur_class else None
         context_row = db.execute("SELECT * FROM context_strings WHERE class_id=? AND id=?", [class_id, ctx_id]).fetchone()
 
     if not context_row:
@@ -151,7 +151,7 @@ def get_context_by_name(ctx_name: str) -> ContextConfig | None:
     db = get_db()
     auth = get_auth()
 
-    class_id = auth.class_id
+    class_id = auth.cur_class.class_id if auth.cur_class else None
 
     context_row = db.execute("SELECT * FROM contexts WHERE class_id=? AND name=?", [class_id, ctx_name]).fetchone()
 

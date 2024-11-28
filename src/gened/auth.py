@@ -33,24 +33,38 @@ ProviderType = Literal['local', 'lti', 'demo', 'google', 'github', 'microsoft']
 RoleType = Literal['instructor', 'student']
 
 @dataclass(frozen=True)
+class UserData:
+    id: int
+    display_name: str
+    auth_provider: ProviderType
+    is_admin: bool = False
+    is_tester: bool = False
+
+@dataclass(frozen=True)
 class ClassData:
     class_id: int
     class_name: str
+    role_id: int
     role: RoleType
 
 @dataclass(frozen=True)
 class AuthData:
-    user_id: int | None = None
-    is_admin: bool = False
-    is_tester: bool = False
-    auth_provider: ProviderType | None = None
-    display_name: str | None = None
-    class_id: int | None = None    # current class ID
-    class_name: str | None = None  # current class name
-    role_id: int | None = None     # current role
-    role: RoleType | None = None   # current role name (e.g., 'instructor')
+    user: UserData | None = None
+    cur_class: ClassData | None = None
     class_experiments: list[str] = field(default_factory=list)  # any experiments the current class is registered in
     other_classes: list[ClassData] = field(default_factory=list)  # for storing active classes that are not the user's current class
+
+    @property
+    def user_id(self) -> int | None:
+        return self.user.id if self.user else None
+
+    @property
+    def is_admin(self) -> bool:
+        return bool(self.user and self.user.is_admin)
+
+    @property
+    def is_tester(self) -> bool:
+        return bool(self.user and self.user.is_tester)
 
 
 def _invalidate_g_auth() -> None:
@@ -92,7 +106,6 @@ def _get_auth_from_session() -> AuthData:
     # current user_id (if any).
     sess_auth = session.get(AUTH_SESSION_KEY, {})
     user_id = sess_auth.get('user_id', None)
-    class_id = sess_auth.get('class_id', None)
 
     if not user_id:
         # No logged in user; return the default/empty auth data
@@ -117,10 +130,13 @@ def _get_auth_from_session() -> AuthData:
         return AuthData()
 
     # Collect auth data values
-    display_name=user_row['display_name']
-    is_admin=user_row['is_admin']
-    is_tester=user_row['is_tester']
-    auth_provider=user_row['auth_provider']
+    user = UserData(
+        id=user_id,
+        display_name=user_row['display_name'],
+        auth_provider=user_row['auth_provider'],
+        is_admin=user_row['is_admin'],
+        is_tester=user_row['is_tester'],
+    )
 
     # Check the database for any active roles (may be changed by another user)
     # and populate class/role information.
@@ -138,54 +154,46 @@ def _get_auth_from_session() -> AuthData:
         ORDER BY roles.id DESC
     """, [user_id]).fetchall()
 
-    role_id = None
-    role = None
+    cur_class = None
     class_experiments = []
     other_classes = []
-    class_name = None
+
+    sess_class_id = sess_auth.get('class_id', None)
 
     for row in role_rows:
-        if row['class_id'] == class_id:
+        class_data = ClassData(
+            class_id=row['class_id'],
+            class_name=row['name'],
+            role_id=row['role_id'],
+            role=row['role'],
+        )
+        if row['class_id'] == sess_class_id:
+            assert cur_class is None  # sanity check: should only ever match one role/class
             # capture class/role info
-            role_id = row['role_id']
-            role = row['role']
+            cur_class = class_data
             # check for any registered experiments in the current class
-            experiment_class_rows = db.execute("SELECT experiments.name FROM experiments JOIN experiment_class ON experiment_class.experiment_id=experiments.id WHERE experiment_class.class_id=?", [class_id]).fetchall()
+            experiment_class_rows = db.execute("SELECT experiments.name FROM experiments JOIN experiment_class ON experiment_class.experiment_id=experiments.id WHERE experiment_class.class_id=?", [sess_class_id]).fetchall()
             class_experiments = [row['name'] for row in experiment_class_rows]
         elif row['enabled']:
             # store a list of any other classes that are enabled (for navbar switching UI)
-            class_data = ClassData(
-                class_id=row['class_id'],
-                class_name=row['name'],
-                role=row['role']
-            )
             other_classes.append(class_data)
 
-    if not role_id and not is_admin:
-        # ensure we don't keep a class_id in auth if it's not a valid/active one
-        class_id = None
-
-    if class_id is not None:
-        # get the class name (after all the above has shaken out)
-        class_row = db.execute("SELECT name FROM classes WHERE id=?", [class_id]).fetchone()
-        class_name = class_row['name']
-        # admin gets instructor role in all classes automatically
-        if is_admin:
-            role = 'instructor'
+    # admin gets instructor role in all classes automatically
+    if user.is_admin and cur_class is None and sess_class_id is not None:
+        class_row = db.execute("SELECT name FROM classes WHERE id=?", [sess_class_id]).fetchone()
+        cur_class = ClassData(
+            class_id=sess_class_id,
+            class_name=class_row['name'],
+            role_id=-1,
+            role='instructor',
+        )
 
     # return an AuthData with all collected values
     return AuthData(
-        user_id=user_id,
-        is_admin=is_admin,
-        is_tester=is_tester,
-        auth_provider=auth_provider,
-        display_name=display_name,
-        class_id=class_id,
-        class_name=class_name,
-        role_id=role_id,
-        role=role,
+        user=user,
+        cur_class=cur_class,
         class_experiments=class_experiments,
-        other_classes=other_classes
+        other_classes=other_classes,
     )
 
 
@@ -194,6 +202,12 @@ def get_auth() -> AuthData:
         g.auth = _get_auth_from_session()
 
     return g.auth  # type: ignore[no-any-return]
+
+
+def get_auth_class() -> ClassData:
+    auth = get_auth()
+    assert auth.cur_class
+    return auth.cur_class
 
 
 def get_last_class(user_id: int) -> int | None:
@@ -318,7 +332,7 @@ def login_required(f: Callable[P, R]) -> Callable[P, Response | R]:
     @wraps(f)
     def decorated_function(*args: P.args, **kwargs: P.kwargs) -> Response | R:
         auth = get_auth()
-        if not auth.user_id:
+        if not auth.user:
             flash("Login required.", "warning")
             return redirect(url_for('auth.login', next=request.full_path))
         return f(*args, **kwargs)
@@ -329,7 +343,7 @@ def instructor_required(f: Callable[P, R]) -> Callable[P, Response | R]:
     @wraps(f)
     def decorated_function(*args: P.args, **kwargs: P.kwargs) -> Response | R:
         auth = get_auth()
-        if auth.role != "instructor":
+        if auth.cur_class is None or auth.cur_class.role != "instructor":
             flash("Instructor login required.", "warning")
             return redirect(url_for('auth.login', next=request.full_path))
         return f(*args, **kwargs)
@@ -340,13 +354,13 @@ def class_enabled_required(f: Callable[P, R]) -> Callable[P, str | R]:
     @wraps(f)
     def decorated_function(*args: P.args, **kwargs: P.kwargs) -> str | R:
         auth = get_auth()
-        class_id = auth.class_id
 
-        if class_id is None:
+        if auth.cur_class is None:
             # No active class, no problem
             return f(*args, **kwargs)
 
         # Otherwise, there's an active class, so we require it to be enabled.
+        class_id = auth.cur_class.class_id
         db = get_db()
         class_row = db.execute("SELECT * FROM classes WHERE id=?", [class_id]).fetchone()
         if not class_row['enabled']:

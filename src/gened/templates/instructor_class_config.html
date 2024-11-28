@@ -38,7 +38,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 }
 </style>
 <section class="section">
-  <h1 class="title">{{ auth.class_name }} Configuration</h1>
+  <h1 class="title">{{ auth.cur_class.class_name }} Configuration</h1>
   <div class="conf_cols">
     <div class="conf_col">
       <h2 class="title is-size-4">Access</h2>
@@ -256,7 +256,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <p>Users will <strong>not</strong> be deleted, nor will their data in any other class.</p>
     </div>
     <form method="POST" action="{{ url_for('instructor.delete_class') }}" class="field has-addons">
-      <input type="hidden" name="class_id", value="{{ auth.class_id }}">
+      <input type="hidden" name="class_id", value="{{ auth.cur_class.class_id }}">
       <div class="control">
         <input class="input" type="text" name="confirm_delete" placeholder="Type DELETE to confirm">
       </div>

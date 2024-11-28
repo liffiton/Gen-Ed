@@ -77,7 +77,7 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLMConfig:
     auth = get_auth()
 
     # Get class data, if there is an active class
-    if auth.class_id is not None:
+    if auth.cur_class is not None:
         class_row = db.execute("""
             SELECT
                 classes.enabled,
@@ -94,7 +94,7 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLMConfig:
             LEFT JOIN models
               ON models.id = _model_id
             WHERE classes.id = ?
-        """, [auth.class_id]).fetchone()
+        """, [auth.cur_class.class_id]).fetchone()
 
         if not class_row['enabled']:
             raise ClassDisabledError

@@ -23,15 +23,16 @@ from .db import get_db
 
 
 # Functions for controlling access to experiments based on the current class
-def current_class_in_experiment(experiment_name: str) -> bool:
+def _current_class_in_experiment(experiment_name: str) -> bool:
     """ Return True if the current active class is registered in the specified experiment,
         False otherwise.
     """
     db = get_db()
     experiment_class_rows = db.execute("SELECT experiment_class.class_id FROM experiments JOIN experiment_class ON experiment_class.experiment_id=experiments.id WHERE experiments.name=?", [experiment_name]).fetchall()
     experiment_class_ids = [row['class_id'] for row in experiment_class_rows]
+
     auth = get_auth()
-    return auth.class_id in experiment_class_ids
+    return auth.cur_class is not None and auth.cur_class.class_id in experiment_class_ids
 
 # Decorator for routes designated as part of an experiment
 # For decorator type hints
@@ -42,7 +43,7 @@ def experiment_required(experiment_name: str) -> Callable[[Callable[P, R]], Call
     def decorator(f: Callable[P, R]) -> Callable[P, Response | R]:
         @wraps(f)
         def decorated_function(*args: P.args, **kwargs: P.kwargs) -> Response | R:
-            if not current_class_in_experiment(experiment_name):
+            if not _current_class_in_experiment(experiment_name):
                 return abort(404)
             else:
                 return f(*args, **kwargs)

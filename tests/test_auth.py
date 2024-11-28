@@ -42,23 +42,19 @@ def check_login(
 
             # Verify session auth contains correct values for logged-in user
             sessauth = get_auth()
+            assert sessauth.user
             assert sessauth.user_id
-            assert sessauth.display_name == username
+            assert sessauth.user.display_name == username
+            assert sessauth.user.auth_provider == 'local'
             assert sessauth.is_admin == is_admin
-            assert sessauth.class_id is None
-            assert sessauth.role_id is None
-            assert sessauth.auth_provider == 'local'
+            assert sessauth.cur_class is None
 
         else:
             # Verify session auth contains correct values for non-logged-in user
             sessauth = get_auth()
-            assert sessauth.user_id is None
+            assert sessauth.user is None
             assert sessauth.is_admin is False
-            assert sessauth.role is None
-            assert sessauth.display_name is None
-            assert sessauth.class_id is None
-            assert sessauth.role_id is None
-            assert sessauth.auth_provider is None
+            assert sessauth.cur_class is None
 
         assert message in response.text
 
@@ -111,19 +107,17 @@ def test_logout(client, auth):
     with client:
         auth.login()  # defaults to testuser (id 11)
         sessauth = get_auth()
-        assert sessauth.display_name == 'testuser'
+        assert sessauth.user
+        assert sessauth.user.display_name == 'testuser'
 
         response = auth.logout()
         assert response.status_code == 302
         assert response.location == "/auth/login"
 
         sessauth = get_auth()
-        assert sessauth.user_id is None
+        assert sessauth.user is None
         assert sessauth.is_admin is False
-        assert sessauth.display_name is None
-        assert sessauth.class_id is None
-        assert sessauth.role_id is None
-        assert sessauth.auth_provider is None
+        assert sessauth.cur_class is None
 
         # Check if the user can access the login page and see the flashed message after logout
         response = client.get(response.location)

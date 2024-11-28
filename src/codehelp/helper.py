@@ -192,7 +192,7 @@ def run_query(llm: LLMConfig, context: ContextConfig | None, code: str, error: s
 def record_query(context: ContextConfig | None, code: str, error: str, issue: str) -> int:
     db = get_db()
     auth = get_auth()
-    role_id = auth.role_id
+    role_id = auth.cur_class.role_id if auth.cur_class else None
 
     if context is not None:
         context_name = context.name
@@ -253,7 +253,7 @@ def help_request(llm: LLMConfig) -> Response:
 def load_test(llm: LLMConfig) -> Response:
     # Require that we're logged in as the load_test admin user
     auth = get_auth()
-    if auth.display_name != 'load_test':
+    if auth.user is None or auth.user.display_name != 'load_test':
         return abort(403)
 
     context = ContextConfig(name="__LOADTEST_Context")

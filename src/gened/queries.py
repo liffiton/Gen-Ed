@@ -19,8 +19,8 @@ def get_query(query_id: int) -> tuple[Row, dict[str, str]] | tuple[None, None]:
 
     if auth.is_admin:
         cur = db.execute("SELECT queries.*, users.display_name FROM queries JOIN users ON queries.user_id=users.id WHERE queries.id=?", [query_id])
-    elif auth.role == 'instructor':
-        cur = db.execute("SELECT queries.*, users.display_name FROM queries JOIN users ON queries.user_id=users.id JOIN roles ON queries.role_id=roles.id WHERE (roles.class_id=? OR queries.user_id=?) AND queries.id=?", [auth.class_id, auth.user_id, query_id])
+    elif auth.cur_class and auth.cur_class.role == 'instructor':
+        cur = db.execute("SELECT queries.*, users.display_name FROM queries JOIN users ON queries.user_id=users.id JOIN roles ON queries.role_id=roles.id WHERE (roles.class_id=? OR queries.user_id=?) AND queries.id=?", [auth.cur_class.class_id, auth.user_id, query_id])
     else:
         cur = db.execute("SELECT queries.*, users.display_name FROM queries JOIN users ON queries.user_id=users.id WHERE queries.user_id=? AND queries.id=?", [auth.user_id, query_id])
     query_row = cur.fetchone()
