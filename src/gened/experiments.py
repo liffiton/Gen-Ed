@@ -31,7 +31,7 @@ def current_class_in_experiment(experiment_name: str) -> bool:
     experiment_class_rows = db.execute("SELECT experiment_class.class_id FROM experiments JOIN experiment_class ON experiment_class.experiment_id=experiments.id WHERE experiments.name=?", [experiment_name]).fetchall()
     experiment_class_ids = [row['class_id'] for row in experiment_class_rows]
     auth = get_auth()
-    return 'class_id' in auth and auth['class_id'] in experiment_class_ids
+    return auth.class_id in experiment_class_ids
 
 # Decorator for routes designated as part of an experiment
 # For decorator type hints

@@ -172,7 +172,7 @@
                 {% macro link_display_alpinejs(route) -%}
                   {# unholy combination of Jinja templating (route available in python) and Javascript string replacement (context available in JS)... #}
                   {
-                    link_URL: '{{ url_for(route, class_id=auth['class_id'], ctx_name='__replace__', _external=True) }}'.replace('__replace__', encodeURIComponent(ctx.name)),
+                    link_URL: '{{ url_for(route, class_id=auth.class_id, ctx_name='__replace__', _external=True) }}'.replace('__replace__', encodeURIComponent(ctx.name)),
                     copied: false,
                     copy_url() {
                       navigator.clipboard.writeText(this.link_URL);
@@ -207,7 +207,7 @@
                           </div>
                         </div>
                       </div>
-                      {% if "chats_experiment" in auth['class_experiments'] %}
+                      {% if "chats_experiment" in auth.class_experiments %}
                       <div class="field has-addons is-horizontal" x-data="{{ link_display_alpinejs('tutor.tutor_form') }}">
                         <div class="field-label label is-normal">Tutor Chat:</div>
                         <div class="field-body" style="flex-grow: 5;">

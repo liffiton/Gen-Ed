@@ -120,7 +120,7 @@ def get_users(class_id: int, for_export: bool = False) -> list[Row]:
 @bp.route("/")
 def main() -> str | Response:
     auth = get_auth()
-    class_id = auth['class_id']
+    class_id = auth.class_id
     assert class_id is not None
 
     users = get_users(class_id)
@@ -143,8 +143,8 @@ def get_csv(kind: str) -> str | Response:
         return abort(404)
 
     auth = get_auth()
-    class_id = auth['class_id']
-    class_name = auth['class_name']
+    class_id = auth.class_id
+    class_name = auth.class_name
     assert class_id is not None
     assert class_name is not None
 
@@ -162,7 +162,7 @@ def set_user_class_setting() -> Response:
     auth = get_auth()
 
     # only trust class_id from auth, not from user
-    class_id = auth['class_id']
+    class_id = auth.class_id
 
     if 'clear_openai_key' in request.form:
         db.execute("UPDATE classes_user SET openai_key='' WHERE class_id=?", [class_id])
@@ -202,13 +202,13 @@ def set_role_active(role_id: int, bool_active: int) -> str:
     auth = get_auth()
 
     # prevent instructors from mistakenly making themselves not active and locking themselves out
-    if role_id == auth['role_id']:
+    if role_id == auth.role_id:
         return "You cannot make yourself inactive."
 
     # class_id should be redundant w/ role_id, but without it, an instructor
     # could potentially deactivate a role in someone else's class.
     # only trust class_id from auth, not from user
-    class_id = auth['class_id']
+    class_id = auth.class_id
 
     db.execute("UPDATE roles SET active=? WHERE id=? AND class_id=?", [bool_active, role_id, class_id])
     db.commit()
@@ -223,13 +223,13 @@ def set_role_instructor(role_id: int, bool_instructor: int) -> str:
     auth = get_auth()
 
     # prevent instructors from mistakenly making themselves not instructors and locking themselves out
-    if role_id == auth['role_id']:
+    if role_id == auth.role_id:
         return "You cannot change your own role."
 
     # class_id should be redundant w/ role_id, but without it, an instructor
     # could potentially deactivate a role in someone else's class.
     # only trust class_id from auth, not from user
-    class_id = auth['class_id']
+    class_id = auth.class_id
 
     new_role = 'instructor' if bool_instructor else 'student'
 
@@ -243,9 +243,9 @@ def set_role_instructor(role_id: int, bool_instructor: int) -> str:
 def delete_class() -> Response:
     db = get_db()
     auth = get_auth()
-    class_id = auth['class_id']
+    class_id = auth.class_id
     assert class_id is not None
-    assert str(auth['class_id']) == str(request.form.get('class_id'))
+    assert str(auth.class_id) == str(request.form.get('class_id'))
 
     # Require explicit confirmation
     if request.form.get('confirm_delete') != 'DELETE':

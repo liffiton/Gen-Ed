@@ -64,7 +64,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       </div>
       <div class="navbar-menu" x-bind:class="menu_open ? 'is-active' : ''">
         <div class="navbar-start">
-        {% if auth['user_id'] %}
+        {% if auth.user_id %}
           <a class="navbar-item has-text-success" href="{{ url_for('helper.help_form') }}">
             <div class="icon-text">
               <span class="icon">
@@ -79,15 +79,15 @@ SPDX-License-Identifier: AGPL-3.0-only
         {% endfor %}
         </div>
         <div class="navbar-end">
-          {% if auth['user_id'] %}
-            {% set class_name=auth['class_name'] %}
-            {% set has_dropdown=(class_name and auth['is_admin']) or (auth['other_classes']) %}
+          {% if auth.user_id %}
+            {% set class_name=auth.class_name %}
+            {% set has_dropdown=(class_name and auth.is_admin) or (auth.other_classes) %}
             <a class="navbar-item dropdown dropdown-trigger is-hoverable is-size-6" {% if has_dropdown %}aria-haspopup="true" aria-controls="classes-menu"{% endif %} style="flex-direction: column; justify-content: center;" href="{{ url_for('profile.main') }}">
               <div class="icon-text">
                 <span class="icon">
                   <svg aria-hidden="true"><use href="#svg_user" /></svg>
                 </span>
-                <span class="is-italic">{{ auth['display_name'] }}</span>
+                <span class="is-italic">{{ auth.display_name }}</span>
               </div>
               {% if class_name %}
                 <div>
@@ -102,12 +102,12 @@ SPDX-License-Identifier: AGPL-3.0-only
                     <div class="dropdown-item">
                       Switch class:
                     </div>
-                    {% for class in auth['other_classes'] %}
+                    {% for class in auth.other_classes %}
                     <div class="dropdown-item">
-                      <button class="button is-rounded is-link is-outlined is-small" type="button" onclick="location.assign('{{ url_for("classes.switch_class_handler", class_id=class['class_id'], next=request.path) }}'); return false;">{{ class['class_name'] }} ({{ class['role'] }})</button>
+                      <button class="button is-rounded is-link is-outlined is-small" type="button" onclick="location.assign('{{ url_for("classes.switch_class_handler", class_id=class.class_id, next=request.path) }}'); return false;">{{ class.class_name }} ({{ class.role }})</button>
                     </div>
                     {% endfor %}
-                    {% if auth['is_admin'] and class_name %}
+                    {% if auth.is_admin and class_name %}
                     <div class="dropdown-item">
                       <button class="button is-rounded is-danger is-light is-outlined is-small" type="button" onclick="location.assign('{{ url_for("classes.leave_class_handler") }}'); return false;">Leave class</button>
                     </div>
@@ -117,7 +117,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               {% endif %}
             </a>
 
-            {% if auth['role'] == 'instructor' %}
+            {% if auth.role == 'instructor' %}
               <a class="navbar-item is-size-6 has-text-success" href="/instructor/config">
                 <div class="icon-text">
                   <span class="icon" title="Configure Class">
@@ -135,7 +135,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 </div>
               </a>
             {% endif %}
-            {% if auth['is_admin'] %}
+            {% if auth.is_admin %}
               <a class="navbar-item is-size-6 has-text-danger" href="/admin/">
                 <div class="icon-text">
                   <span class="icon">
@@ -169,13 +169,13 @@ SPDX-License-Identifier: AGPL-3.0-only
       </div>
     </nav>
 
-    {% if auth['is_admin'] and auth['class_id'] is integer and auth['role_id'] is none %}
+    {% if auth.is_admin and auth.class_id is integer and auth.role_id is none %}
     <div class="has-background-link has-text-light has-text-centered p-2">
       <span class="icon-text">
         <span class="icon">
           <svg aria-hidden="true"><use href="#svg_admin" /></svg>
         </span>
-        Admin in '{{ auth['class_name'] }}' as instructor role.
+        Admin in '{{ auth.class_name }}' as instructor role.
         <button class="button is-rounded is-light is-outlined is-small ml-3" type="button" onclick="location.assign('{{ url_for("classes.leave_class_handler") }}'); return false;">Leave class</button>
       </span>
     </div>

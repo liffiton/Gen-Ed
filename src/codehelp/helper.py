@@ -81,7 +81,7 @@ def help_form(llm: LLMConfig, query_id: int | None = None, class_id: int | None 
         else:
             # no query specified,
             # but we can pre-select the most recently used context, if available
-            recent_row = db.execute("SELECT context_name FROM queries WHERE queries.user_id=? ORDER BY id DESC LIMIT 1", [auth['user_id']]).fetchone()
+            recent_row = db.execute("SELECT context_name FROM queries WHERE queries.user_id=? ORDER BY id DESC LIMIT 1", [auth.user_id]).fetchone()
             if recent_row:
                 selected_context_name = recent_row['context_name']
 
@@ -192,7 +192,7 @@ def run_query(llm: LLMConfig, context: ContextConfig | None, code: str, error: s
 def record_query(context: ContextConfig | None, code: str, error: str, issue: str) -> int:
     db = get_db()
     auth = get_auth()
-    role_id = auth['role_id']
+    role_id = auth.role_id
 
     if context is not None:
         context_name = context.name
@@ -204,7 +204,7 @@ def record_query(context: ContextConfig | None, code: str, error: str, issue: st
 
     cur = db.execute(
         "INSERT INTO queries (context_name, context_string_id, code, error, issue, user_id, role_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [context_name, context_string_id, code, error, issue, auth['user_id'], role_id]
+        [context_name, context_string_id, code, error, issue, auth.user_id, role_id]
     )
     new_row_id = cur.lastrowid
     db.commit()
@@ -253,7 +253,7 @@ def help_request(llm: LLMConfig) -> Response:
 def load_test(llm: LLMConfig) -> Response:
     # Require that we're logged in as the load_test admin user
     auth = get_auth()
-    if auth['display_name'] != 'load_test':
+    if auth.display_name != 'load_test':
         return abort(403)
 
     context = ContextConfig(name="__LOADTEST_Context")
@@ -279,7 +279,7 @@ def post_helpful() -> str:
 
     query_id = int(request.form['id'])
     value = int(request.form['value'])
-    db.execute("UPDATE queries SET helpful=? WHERE id=? AND user_id=?", [value, query_id, auth['user_id']])
+    db.execute("UPDATE queries SET helpful=? WHERE id=? AND user_id=?", [value, query_id, auth.user_id])
     db.commit()
     return ""
 

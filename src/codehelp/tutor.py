@@ -145,8 +145,8 @@ def chat_interface(chat_id: int) -> str | Response:
 def create_chat(topic: str, context: ContextConfig | None) -> int:
     db = get_db()
     auth = get_auth()
-    user_id = auth['user_id']
-    role_id = auth['role_id']
+    user_id = auth.user_id
+    role_id = auth.role_id
 
     if context is not None:
         context_name = context.name
@@ -172,7 +172,7 @@ def get_chat_history(limit: int = 10) -> list[Row]:
     db = get_db()
     auth = get_auth()
 
-    history = db.execute("SELECT * FROM chats WHERE user_id=? ORDER BY id DESC LIMIT ?", [auth['user_id'], limit]).fetchall()
+    history = db.execute("SELECT * FROM chats WHERE user_id=? ORDER BY id DESC LIMIT ?", [auth.user_id, limit]).fetchall()
     return history
 
 
@@ -194,9 +194,9 @@ def get_chat(chat_id: int) -> tuple[list[ChatCompletionMessageParam], str, str, 
         raise ChatNotFoundError
 
     access_allowed = \
-        (auth['user_id'] == chat_row['user_id']) \
-        or auth['is_admin'] \
-        or (auth['role'] == 'instructor' and auth['class_id'] == chat_row['class_id'])
+        (auth.user_id == chat_row['user_id']) \
+        or auth.is_admin \
+        or (auth.role == 'instructor' and auth.class_id == chat_row['class_id'])
 
     if not access_allowed:
         raise AccessDeniedError

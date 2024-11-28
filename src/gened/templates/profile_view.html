@@ -49,7 +49,7 @@ dl.profile dd { margin: 0; }
       {% endif %}
       <dt>Queries:</dt>
       <dd>{{ user.num_queries }} total, {{ user.num_recent_queries }} in the past week.</dd>
-      {% if not auth['role'] %}
+      {% if not auth.role %}
       <dt>Free Queries:</dt>
       <dd>
         {{ user.query_tokens }} remaining.
@@ -70,8 +70,8 @@ dl.profile dd { margin: 0; }
     </h2>
     <dl class="profile">
       <dt>Current:</dt>
-      {% if auth['role'] %}
-        <dd>{{ auth['class_name'] }} ({{ auth['role'] }})</dd>
+      {% if auth.role %}
+        <dd>{{ auth.class_name }} ({{ auth.role }})</dd>
       {% else %}
         <dd>None active.</dd>
       {% endif %}
@@ -139,7 +139,7 @@ dl.profile dd { margin: 0; }
       </div>
     </dialog>
   {% endif %}
-  {% if not auth['role'] %}
+  {% if not auth.role %}
     {% include "free_query_dialog.html" %}
   {% endif %}
 </section>

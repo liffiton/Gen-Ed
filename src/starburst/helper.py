@@ -84,11 +84,11 @@ def run_query(llm: LLMConfig, assignment: str, topics: str) -> int:
 def record_query(assignment: str, topics: str) -> int:
     db = get_db()
     auth = get_auth()
-    role_id = auth['role_id']
+    role_id = auth.role_id
 
     cur = db.execute(
         "INSERT INTO queries (assignment, topics, user_id, role_id) VALUES (?, ?, ?, ?)",
-        [assignment, topics, auth['user_id'], role_id]
+        [assignment, topics, auth.user_id, role_id]
     )
     new_row_id = cur.lastrowid
     db.commit()
@@ -128,6 +128,6 @@ def post_helpful() -> str:
 
     query_id = int(request.form['id'])
     value = int(request.form['value'])
-    db.execute("UPDATE queries SET helpful=? WHERE id=? AND user_id=?", [value, query_id, auth['user_id']])
+    db.execute("UPDATE queries SET helpful=? WHERE id=? AND user_id=?", [value, query_id, auth.user_id])
     db.commit()
     return ""

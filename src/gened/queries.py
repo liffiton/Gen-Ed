@@ -17,12 +17,12 @@ def get_query(query_id: int) -> tuple[Row, dict[str, str]] | tuple[None, None]:
 
     query_row = None
 
-    if auth['is_admin']:
+    if auth.is_admin:
         cur = db.execute("SELECT queries.*, users.display_name FROM queries JOIN users ON queries.user_id=users.id WHERE queries.id=?", [query_id])
-    elif auth['role'] == 'instructor':
-        cur = db.execute("SELECT queries.*, users.display_name FROM queries JOIN users ON queries.user_id=users.id JOIN roles ON queries.role_id=roles.id WHERE (roles.class_id=? OR queries.user_id=?) AND queries.id=?", [auth['class_id'], auth['user_id'], query_id])
+    elif auth.role == 'instructor':
+        cur = db.execute("SELECT queries.*, users.display_name FROM queries JOIN users ON queries.user_id=users.id JOIN roles ON queries.role_id=roles.id WHERE (roles.class_id=? OR queries.user_id=?) AND queries.id=?", [auth.class_id, auth.user_id, query_id])
     else:
-        cur = db.execute("SELECT queries.*, users.display_name FROM queries JOIN users ON queries.user_id=users.id WHERE queries.user_id=? AND queries.id=?", [auth['user_id'], query_id])
+        cur = db.execute("SELECT queries.*, users.display_name FROM queries JOIN users ON queries.user_id=users.id WHERE queries.user_id=? AND queries.id=?", [auth.user_id, query_id])
     query_row = cur.fetchone()
 
     if not query_row:
@@ -42,6 +42,6 @@ def get_history(limit: int = 10) -> list[Row]:
     db = get_db()
     auth = get_auth()
 
-    cur = db.execute("SELECT * FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT ?", [auth['user_id'], limit])
+    cur = db.execute("SELECT * FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT ?", [auth.user_id, limit])
     history = cur.fetchall()
     return history

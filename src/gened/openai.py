@@ -77,7 +77,7 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLMConfig:
     auth = get_auth()
 
     # Get class data, if there is an active class
-    if auth['class_id']:
+    if auth.class_id is not None:
         class_row = db.execute("""
             SELECT
                 classes.enabled,
@@ -94,7 +94,7 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLMConfig:
             LEFT JOIN models
               ON models.id = _model_id
             WHERE classes.id = ?
-        """, [auth['class_id']]).fetchone()
+        """, [auth.class_id]).fetchone()
 
         if not class_row['enabled']:
             raise ClassDisabledError
@@ -117,7 +117,7 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLMConfig:
         JOIN auth_providers
           ON users.auth_provider = auth_providers.id
         WHERE users.id = ?
-    """, [auth['user_id']]).fetchone()
+    """, [auth.user_id]).fetchone()
 
     if user_row['auth_provider_name'] == "local":
         return make_system_client()
@@ -129,7 +129,7 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLMConfig:
 
     if spend_token:
         # user.tokens > 0, so decrement it and use the system key
-        db.execute("UPDATE users SET query_tokens=query_tokens-1 WHERE id=?", [auth['user_id']])
+        db.execute("UPDATE users SET query_tokens=query_tokens-1 WHERE id=?", [auth.user_id])
         db.commit()
         tokens -= 1
 

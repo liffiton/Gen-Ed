@@ -4,7 +4,7 @@ SPDX-FileCopyrightText: 2023 Mark Liffiton <liffiton@gmail.com>
 SPDX-License-Identifier: AGPL-3.0-only
 #}
 
-{% if auth['user_id'] and "chats_experiment" in auth['class_experiments'] %}
+{% if auth.user_id and "chats_experiment" in auth.class_experiments %}
   <a class="navbar-item has-text-success" href="{{ url_for('tutor.tutor_form') }}">
     <div class="icon-text">
       <span class="icon">

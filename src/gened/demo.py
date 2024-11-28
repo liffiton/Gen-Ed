@@ -28,7 +28,7 @@ bp = Blueprint('demo', __name__, url_prefix="/demo", template_folder='templates'
 def demo_register_user(demo_name: str) -> str | Response:
     # Can't create a demo user if already logged in.
     auth = get_auth()
-    if auth['user_id']:
+    if auth.user_id:
         flash("You are already logged in.", "warning")
         return render_template("error.html")
 

@@ -159,11 +159,11 @@ def switch_class(class_id: int | None) -> bool:
     auth = get_auth()
 
     # admins can access any class, but we don't bother setting last_class_id for them
-    if auth['is_admin']:
+    if auth.is_admin:
         set_session_auth_class(class_id)
         return True
 
-    user_id = auth['user_id']
+    user_id = auth.user_id
     db = get_db()
 
     if class_id:
@@ -207,7 +207,7 @@ def leave_class_handler() -> Response:
 @bp.route("/create/", methods=['POST'])
 def create_class() -> Response:
     auth = get_auth()
-    user_id = auth['user_id']
+    user_id = auth.user_id
     assert user_id is not None
 
     class_name = request.form['class_name']
@@ -231,7 +231,7 @@ def access_class(class_ident: str) -> str | Response:
     db = get_db()
 
     auth = get_auth()
-    user_id = auth['user_id']
+    user_id = auth.user_id
 
     # Get the class info
     class_row = db.execute("""

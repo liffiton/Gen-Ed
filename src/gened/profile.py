@@ -15,7 +15,7 @@ bp = Blueprint('profile', __name__, url_prefix="/profile", template_folder='temp
 def main() -> str:
     db = get_db()
     auth = get_auth()
-    user_id = auth['user_id']
+    user_id = auth.user_id
     user = db.execute("""
         SELECT
             users.*,
@@ -28,7 +28,7 @@ def main() -> str:
         WHERE users.id=?
     """, [user_id]).fetchone()
 
-    class_id = auth['class_id'] or -1   # can't do a != to None/null, so convert that to -1 to match all classes in that case
+    class_id = auth.class_id or -1   # can't do a != to None/null, so convert that to -1 to match all classes in that case
     other_classes = db.execute("""
         SELECT
             classes.id,

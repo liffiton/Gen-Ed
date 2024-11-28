@@ -11,10 +11,10 @@ SPDX-License-Identifier: AGPL-3.0-only
   <div class="container">
     {% if context %}
       {# We're editing an existing context. #}
-      <h1 class="title">Editing context '{{ context.name }}' in class {{ auth['class_name'] }}</h1>
+      <h1 class="title">Editing context '{{ context.name }}' in class {{ auth.class_name }}</h1>
       <form class="wide-labels" action="{{ url_for(".update_context", ctx_id=context.id) }}" method="post">
     {% else %}
-      <h1 class="title">Create context in class {{ auth['class_name'] }}</h1>
+      <h1 class="title">Create context in class {{ auth.class_name }}</h1>
       <form class="wide-labels" action="{{ url_for(".create_context") }}" method="post">
     {% endif %}
 

@@ -43,7 +43,7 @@ def config_form() -> str:
     db = get_db()
     auth = get_auth()
 
-    class_id = auth['class_id']
+    class_id = auth.class_id
 
     class_row = db.execute("""
         SELECT classes.id, classes.enabled, classes_user.link_ident, classes_user.link_reg_expires, classes_user.openai_key, classes_user.model_id

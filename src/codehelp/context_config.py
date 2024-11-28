@@ -51,7 +51,7 @@ def register(app: Flask) -> None:
 def config_section_render() -> Markup:
     db = get_db()
     auth = get_auth()
-    class_id = auth['class_id']
+    class_id = auth.class_id
 
     contexts = db.execute("""
         SELECT id, name, CAST(available AS TEXT) AS available
@@ -84,7 +84,7 @@ def check_valid_context(f: Callable[P, R]) -> Callable[P, Response | R]:
         auth = get_auth()
 
         # verify the given context is in the user's current class
-        class_id = auth['class_id']
+        class_id = auth.class_id
         ctx_id = kwargs['ctx_id']
         context_row = db.execute("SELECT * FROM contexts WHERE id=?", [ctx_id]).fetchone()
         if context_row['class_id'] != class_id:
@@ -160,10 +160,10 @@ def _insert_context(class_id: int, name: str, config: str, available: str) -> in
 @bp.route("/create", methods=["POST"])
 def create_context() -> Response:
     auth = get_auth()
-    assert auth['class_id']
+    assert auth.class_id
 
     context = ContextConfig.from_request_form(request.form)
-    _insert_context(auth['class_id'], context.name, context.to_json(), "9999-12-31")  # defaults to hidden
+    _insert_context(auth.class_id, context.name, context.to_json(), "9999-12-31")  # defaults to hidden
     return redirect(url_for("class_config.config_form"))
 
 
@@ -172,11 +172,11 @@ def create_context() -> Response:
 @check_valid_context
 def copy_context(ctx_row: Row, ctx_id: int) -> Response:
     auth = get_auth()
-    assert auth['class_id']
+    assert auth.class_id
 
     # passing existing name, but _insert_context will take care of finding
     # a new, unused name in the class.
-    _insert_context(auth['class_id'], ctx_row['name'], ctx_row['config'], ctx_row['available'])
+    _insert_context(auth.class_id, ctx_row['name'], ctx_row['config'], ctx_row['available'])
     return redirect(url_for("class_config.config_form"))
 
 
@@ -189,8 +189,8 @@ def update_context(ctx_id: int, ctx_row: Row) -> Response:
 
     # names must be unique within a class: check/look for an unused name
     auth = get_auth()
-    assert auth['class_id']
-    name = _make_unique_context_name(auth['class_id'], context.name, ctx_id)
+    assert auth.class_id
+    name = _make_unique_context_name(auth.class_id, context.name, ctx_id)
 
     db.execute("UPDATE contexts SET name=?, config=? WHERE id=?", [name, context.to_json(), ctx_id])
     db.commit()
@@ -217,7 +217,7 @@ def update_order() -> str:
     db = get_db()
     auth = get_auth()
 
-    class_id = auth['class_id']  # Get the current class to ensure we don't change another class.
+    class_id = auth.class_id  # Get the current class to ensure we don't change another class.
 
     ordered_ids = request.json
     assert isinstance(ordered_ids, list)
@@ -235,7 +235,7 @@ def update_available() -> str:
     db = get_db()
     auth = get_auth()
 
-    class_id = auth['class_id']  # Get the current class to ensure we don't change another class.
+    class_id = auth.class_id  # Get the current class to ensure we don't change another class.
 
     data = request.json
     assert isinstance(data, dict)

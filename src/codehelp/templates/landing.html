@@ -33,7 +33,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       </div>
     </div>
     <p class="has-text-centered mt-5 mb-3">
-    {% if auth['user_id'] %}
+    {% if auth.user_id %}
       <a class="button is-link is-light is-rounded is-size-4" href="{{ url_for('helper.help_form') }}">
         Try it now!
       </a>
@@ -66,7 +66,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               <li>Everyone will sign in <b>automatically</b> (no separate login) via a link from your course page.</li>
               <li>Takes some time to set up, and may require support from your LMS administrator.</li>
             </ul>
-            {% if auth['user_id'] and auth['auth_provider'] != 'demo' %}
+            {% if auth.user_id and auth.auth_provider != 'demo' %}
               <a class="button button-inline is-link is-size-5" href="{{ url_for("profile.main") }}">Go to your Profile page</a> to manually create a class.
             {% else %}
               <a class="button button-inline is-link is-size-5" href="{{ url_for("auth.login", next=url_for("profile.main")) }}">Sign in using Google, GitHub, or Microsoft</a> and manually create a class from your profile page.
