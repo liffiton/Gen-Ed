@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import wraps
 from sqlite3 import Row
 from typing import ParamSpec, TypeVar
@@ -29,11 +29,19 @@ class NoTokensError(Exception):
     pass
 
 
-@dataclass(frozen=True)
+@dataclass
 class LLMConfig:
-    client: AsyncOpenAI
+    api_key: str
     model: str
     tokens_remaining: int | None = None  # None if current user is not using tokens
+    _client: AsyncOpenAI | None = field(default=None, init=False, repr=False)
+
+    @property
+    def client(self) -> AsyncOpenAI:
+        """ Lazy load the LLM client object only when requested. """
+        if self._client is None:
+            self._client = AsyncOpenAI(api_key=self.api_key)
+        return self._client
 
 
 def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLMConfig:
@@ -63,10 +71,10 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLMConfig:
         """ Factory function to initialize a default client (using the system key)
             only if/when needed.
         """
-        system_model = current_app.config["SYSTEM_MODEL"]
         system_key = current_app.config["OPENAI_API_KEY"]
+        system_model = current_app.config["SYSTEM_MODEL"]
         return LLMConfig(
-            client=AsyncOpenAI(api_key=system_key),
+            api_key=system_key,
             model=system_model,
             tokens_remaining=tokens_remaining,
         )
@@ -104,7 +112,7 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLMConfig:
 
         api_key = class_row['openai_key']
         return LLMConfig(
-            client=AsyncOpenAI(api_key=api_key),
+            api_key=api_key,
             model=class_row['model'],
         )
 
