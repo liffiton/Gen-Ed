@@ -245,7 +245,7 @@ def delete_class() -> Response:
     auth = get_auth()
     class_id = auth['class_id']
     assert class_id is not None
-    assert int(auth['class_id']) == int(request.form.get('class_id'))
+    assert str(auth['class_id']) == str(request.form.get('class_id'))
 
     # Require explicit confirmation
     if request.form.get('confirm_delete') != 'DELETE':
