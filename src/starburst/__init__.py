@@ -8,7 +8,7 @@ from flask.app import Flask
 
 from gened import base
 
-from . import helper
+from . import helper, privacy
 
 
 def create_app(test_config: dict[str, str] | None = None, instance_path: Path | None = None) -> Flask:
@@ -28,6 +28,9 @@ def create_app(test_config: dict[str, str] | None = None, instance_path: Path | 
     # load test config if provided, potentially overriding above config
     if test_config is not None:
         app_config = app_config | test_config
+
+    # register app-specific functionality with gened
+    privacy.register_with_gened()
 
     # create the base application
     app = base.create_app_base(__name__, app_config, instance_path)
