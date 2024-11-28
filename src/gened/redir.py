@@ -25,7 +25,7 @@ def safe_redirect(target_url: str, default_endpoint: str) -> Response:
     test_parse = urlparse(joined_url)
     is_safe = test_parse.scheme in ('http', 'https') and test_parse.netloc == ref_parse.netloc
 
-    if target_url != "" and is_safe:
+    if target_url and is_safe:
         return redirect(target_url)
     else:
         return redirect(url_for(default_endpoint))

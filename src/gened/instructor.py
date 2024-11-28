@@ -2,22 +2,57 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+"""Instructor-specific functionality and routes.
+
+This module handles operations that should only be available to instructors, including:
+- Viewing and managing student data
+- Class data management (viewing, exporting, deletion)
+- Student role management
+
+All routes in this blueprint require instructor privileges.
+For general class operations available to all users, see classes.py.
+"""
+
 import datetime as dt
+import sys
+from collections.abc import Callable
 from sqlite3 import Row
 
 from flask import (
     Blueprint,
+    Flask,
     abort,
     flash,
+    redirect,
     render_template,
     request,
+    url_for,
 )
 from werkzeug.wrappers.response import Response
 
 from .auth import get_auth, instructor_required
+from .classes import switch_class
 from .csv import csv_response
 from .db import get_db
 from .redir import safe_redirect
+
+DataDeletionHandler = Callable[[int], None]
+
+# Register the handler for the current application
+_deletion_handlers: list[DataDeletionHandler] = []
+
+
+def register_class_deletion_handler(handler: DataDeletionHandler) -> None:
+    """Register the application's class deletion implementation"""
+    _deletion_handlers.append(handler)
+
+
+def init_app(app: Flask) -> None:
+    """Initialize the instructor module and verify deletion handler is registered"""
+    if not _deletion_handlers:
+        app.logger.error("No data deletion handler registered. All Gen-Ed applications must provide one.")
+        sys.exit(1)
+
 
 bp = Blueprint('instructor', __name__, url_prefix="/instructor", template_folder='templates')
 
@@ -202,3 +237,34 @@ def set_role_instructor(role_id: int, bool_instructor: int) -> str:
     db.commit()
 
     return "okay"
+
+
+@bp.route("/class/delete", methods=["POST"])
+def delete_class() -> Response:
+    db = get_db()
+    auth = get_auth()
+    class_id = auth['class_id']
+    assert class_id is not None
+    assert int(auth['class_id']) == int(request.form.get('class_id'))
+
+    # Require explicit confirmation
+    if request.form.get('confirm_delete') != 'DELETE':
+        flash("Class deletion requires confirmation. Please type DELETE to confirm.", "warning")
+        return safe_redirect(request.referrer, default_endpoint="profile.main")
+
+    # Call application-specific data deletion handler(s)
+    assert _deletion_handlers  # checked during init
+    for handler in _deletion_handlers:
+        handler(class_id)
+
+    # Deactivate all roles and disable the class
+    db.execute("UPDATE roles SET user_id=-1, active = 0 WHERE class_id = ?", [class_id])
+    db.execute("UPDATE classes SET name='[deleted]', enabled = 0 WHERE id = ?", [class_id])
+    db.execute("DELETE FROM classes_lti WHERE class_id = ?", [class_id])
+    db.execute("DELETE FROM classes_user WHERE class_id = ?", [class_id])
+    db.execute("UPDATE users SET last_class_id=NULL WHERE last_class_id = ?", [class_id])
+    db.commit()
+    flash("Class data has been deleted.", "success")
+
+    switch_class(None)
+    return redirect(url_for("profile.main"))

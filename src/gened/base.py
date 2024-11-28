@@ -167,6 +167,7 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
     admin.init_app(app)
     db.init_app(app)
     filters.init_app(app)
+    instructor.init_app(app)  # This will verify data deletion handler is registered
     migrate.init_app(app)
     oauth.init_app(app)
     tz.init_app(app)

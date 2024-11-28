@@ -180,7 +180,7 @@ def test_lti_instructor_and_students(client):
     # 4) student 1 makes a query
     result = client.post('/help/request', data={'code': 'student_1_code', 'error': 'error', 'issue': 'issue'})
     assert result.status_code == 302
-    assert result.location == "/help/view/5"  # next open query ID (test_data.sql inserts up to 4)
+    assert result.location == "/help/view/101"  # next open query ID (test_data.sql inserts max 100)
     result = client.get(result.location)
     assert result.status_code == 200
     assert 'student_1_code' in result.text
@@ -195,7 +195,7 @@ def test_lti_instructor_and_students(client):
     assert result.status_code == 200
 
     # 6) student 2 cannot see student 1's query
-    result = client.get('/help/view/5')
+    result = client.get('/help/view/101')
     assert result.status_code == 400
     assert 'student_1_code' not in result.text
     assert 'Invalid id.' in result.text
@@ -206,7 +206,7 @@ def test_lti_instructor_and_students(client):
     uri, headers, body = lti.generate_launch_request("instructor")
     client.post(uri, headers=headers, data=body)
 
-    result = client.get('/help/view/5')
+    result = client.get('/help/view/101')
     assert result.status_code == 200
     assert 'student_1_code' in result.text
     assert 'Invalid id.' not in result.text

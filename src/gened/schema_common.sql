@@ -66,6 +66,8 @@ CREATE TABLE users (
     created       DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(auth_provider) REFERENCES auth_providers(id)
 );
+-- user row to link for deleted roles
+INSERT INTO users (id, auth_provider, full_name) VALUES (-1, 1, '[deleted]');
 
 
 CREATE TABLE auth_local (
@@ -136,7 +138,7 @@ CREATE TABLE roles (
     FOREIGN KEY(class_id) REFERENCES classes(id)
 );
 DROP INDEX IF EXISTS roles_user_class_unique;
-CREATE UNIQUE INDEX  roles_user_class_unique ON roles(user_id, class_id);
+CREATE UNIQUE INDEX  roles_user_class_unique ON roles(user_id, class_id) WHERE user_id != -1;  -- not unique for deleted users
 
 -- Store/manage demonstration links
 CREATE TABLE demo_links (

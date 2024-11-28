@@ -65,5 +65,5 @@ def gen_query_charts(where_clause: str, where_params: list[str]) -> list[ChartDa
 
 
 def register_with_gened() -> None:
-    """ Register any chart-generating functions with the main gened admin module."""
+    """ Register admin functionality with the main gened module."""
     register_admin_chart(gen_query_charts)

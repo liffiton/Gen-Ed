@@ -84,7 +84,12 @@ VALUES
     (1, 'ctx1', 1, 'code1', '', '', '{}', '{"main": "response1"}', 0, 21, 1),
     (2, 'ctx2', 2, 'code2', '', '', '{}', '{"main": "response2"}', 0, 22, 2),
     (3, 'ctx1', 1, 'code3', '', '', '{}', '{"main": "response3"}', 0, 21, 1),
-    (4, 'ctx2', 2, 'code4', '', '', '{}', '{"main": "response4"}', 0, 23, 3);
+    (4, 'ctx2', 2, 'code4', '', '', '{}', '{"main": "response4"}', 0, 23, 3),
+    (5, 'ctx1', 1, 'code1', 'error1', 'issue1', '{}', '{"main": "response1"}', 0, 13, 6),
+    (6, 'ctx1', 1, 'code2', 'error2', '', '{}', '{"main": "response2"}', 0, 13, 6),
+    (7, 'ctx1', 1, 'code3', '', 'issue3', '{}', '{"main": "response3"}', 0, 13, 6),
+    -- high ID so new query IDs are known (regardless of number of rows made for testing above
+    (100, 'ctx1', 1, 'code', '', '', '{}', '{"main": "response"}', 0, 21, 1);
 
 INSERT INTO demo_links (id, name, enabled, expiration, tokens, uses)
 VALUES

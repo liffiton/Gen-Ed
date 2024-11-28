@@ -238,7 +238,35 @@ SPDX-License-Identifier: AGPL-3.0-only
       {% endfor %}
     </div>
     {% endif %}
+</section>
 
+<section class="section">
+  <div class="box has-background-danger-light">
+    <h2 class="title is-4 has-text-danger">Delete Class Data</h2>
+    <div class="content">
+      <p class="has-text-danger"><strong>Warning:</strong> Deleting class data cannot be undone.</p>
+      <p>This will:
+        <ul>
+          <li>Anonymize all queries and chats and delete user inputs</li>
+          <li>Remove all users from the class, including you</li>
+          <li>Delete class configuration data</li>
+          <li>Disable the class</li>
+        </ul>
+      </p>
+      <p>Users will <strong>not</strong> be deleted, nor will their data in any other class.</p>
+    </div>
+    <form method="POST" action="{{ url_for('instructor.delete_class') }}" class="field has-addons">
+      <input type="hidden" name="class_id", value="{{ auth['class_id'] }}">
+      <div class="control">
+        <input class="input" type="text" name="confirm_delete" placeholder="Type DELETE to confirm">
+      </div>
+      <div class="control">
+        <button type="submit" class="button is-danger">
+          Delete Class Data
+        </button>
+      </div>
+    </form>
+  </div>
 </section>
 
 {% endblock %}

@@ -2,6 +2,17 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+"""General class management and access control.
+
+This module handles class-related operations available to all users, including:
+- Class creation and configuration
+- Class access and registration
+- Role switching between classes
+- Basic class state management
+
+For instructor-specific operations, see instructor.py.
+"""
+
 import datetime as dt
 import secrets
 

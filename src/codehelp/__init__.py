@@ -9,7 +9,7 @@ from flask.app import Flask
 
 from gened import base
 
-from . import admin, context_config, helper, tutor
+from . import admin, context_config, helper, privacy, tutor
 
 
 def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | None = None) -> Flask:
@@ -41,6 +41,10 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
     if test_config is not None:
         app_config = app_config | test_config
 
+    # register app-specific functionality with gened
+    privacy.register_with_gened()
+    admin.register_with_gened()
+
     # create the base application
     app = base.create_app_base(__name__, app_config, instance_path)
 
@@ -52,9 +56,6 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
     # register our custom context configuration with Gen-Ed
     # and grab a reference to the app's markdown filter
     context_config.register(app)
-
-    # register app-specific charts in the admin interface
-    admin.register_with_gened()
 
     # add navbar items
     app.config['NAVBAR_ITEM_TEMPLATES'].append("tutor_nav_item.html")

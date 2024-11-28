@@ -316,14 +316,12 @@ def main() -> str:
     roles = db.execute(f"""
         SELECT
             roles.*,
-            users.id,
             users.display_name,
             users.email,
             users.auth_name,
             classes.name AS class_name,
             COALESCE(consumers.lti_consumer, class_owner.display_name) AS class_owner,
-            auth_providers.name AS auth_provider,
-            COUNT(queries.id) AS num_queries
+            auth_providers.name AS auth_provider
         FROM roles
         LEFT JOIN users ON users.id=roles.user_id
         LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
@@ -332,9 +330,7 @@ def main() -> str:
         LEFT JOIN classes_user ON classes.id=classes_user.class_id
         LEFT JOIN users AS class_owner ON classes_user.creator_user_id=class_owner.id
         LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
-        LEFT JOIN queries ON roles.id=queries.role_id
         WHERE {where_clause}
-        GROUP BY roles.id
         ORDER BY roles.id DESC
     """, where_params).fetchall()
 
