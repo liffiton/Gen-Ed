@@ -247,7 +247,7 @@
         </tr>
       </template>
       <tr x-show="items.length == 0"><td colspan=4 class="has-text-centered"><i>No contexts defined.</i></td></tr>
-      <tr x-show="items.length > 0 && items.every(item => !datePassed(item.available))"><td colspan=4 class="has-text-centered"><span class="tag is-warning">Warning: No contexts are currently available.</span></td></tr>
+      <tr x-show="items.length > 0 && items.every(item => !datePassed(item.available))"><td colspan=4 class="has-text-centered"><span class="tag is-warning"><strong>Warning</strong>: No contexts are currently available.</span></td></tr>
     </tbody>
   </table>
   <div colspan=4 class="has-text-centered">
