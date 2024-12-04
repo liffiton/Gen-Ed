@@ -38,7 +38,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 }
 </style>
 <section class="section">
-  <h1 class="title">{{ auth.cur_class.class_name }} Configuration</h1>
+  <h1 class="title">Configure Class: {{ auth.cur_class.class_name }}</h1>
   <div class="conf_cols">
     <div class="conf_col">
       <h2 class="title is-size-4">Access</h2>
@@ -240,20 +240,26 @@ SPDX-License-Identifier: AGPL-3.0-only
     {% endif %}
 </section>
 
+<div class="conf_col_sep m-5"></div>
+
 <section class="section">
-  <div class="box has-background-danger-light">
+  <div class="box" style="max-width: 50em; margin: auto; border: 2px solid #f009; background: #ff000008">
     <h2 class="title is-4 has-text-danger">Delete Class Data</h2>
     <div class="content">
-      <p class="has-text-danger"><strong>Warning:</strong> Deleting class data cannot be undone.</p>
       <p>This will:
         <ul>
-          <li>Anonymize all queries and chats and delete user inputs</li>
+          <li>Delete all user inputs made in this class</li>
           <li>Remove all users from the class, including you</li>
           <li>Delete class configuration data</li>
-          <li>Disable the class</li>
+          <li>Anonymize all class usage data</li>
         </ul>
       </p>
-      <p>Users will <strong>not</strong> be deleted, nor will their data in any other class.</p>
+      <p>Users will <em>not</em> be deleted, nor will their data in any other class they are enrolled in.</p>
+      {% if auth.user.auth_provider == 'lti' %}
+        <p>This class was accessed using a link from an LMS.  If that link still exists in the LMS after deleting the class data here, anyone following it will create a new, distinct instance of this class in CodeHelp (without any old data, but still with the ability to submit new queries).  To prevent that, remove the link from the LMS <em>before</em> deleting the class data here.</p>
+      {% endif %}
+      <p>Type "DELETE" in the text box to confirm you want to delete data for this class.</p>
+      <p class="has-text-danger"><strong class="has-text-danger">Warning:</strong> Deleting class data cannot be undone.</p>
     </div>
     <form method="POST" action="{{ url_for('instructor.delete_class') }}" class="field has-addons">
       <input type="hidden" name="class_id", value="{{ auth.cur_class.class_id }}">
