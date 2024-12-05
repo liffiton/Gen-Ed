@@ -130,22 +130,45 @@ dl.profile dd { margin: 0; }
           </ul>
         </p>
         {% if auth.user.auth_provider == 'lti' %}
-          <p>This user was created using a link from an LMS.  If you follow that link after deleting your data here, you will create a new user on CodeHelp separate from this one.</p>
+          <p>This user was created using a link from an LMS.  If you connect to CodeHelp from your LMS after deleting your data here, you will create a new user on CodeHelp separate from this one.</p>
         {% endif %}
         <p>Type "DELETE" in the text box to confirm you want to delete your data.</p>
         <p class="has-text-danger"><strong class="has-text-danger">Warning:</strong> Deleting your data cannot be undone.</p>
       </div>
       <form method="POST" action="{{ url_for('profile.delete_data') }}">
-        <div class="field has-addons">
-          <div class="control">
-            <input class="input is-danger" type="text" name="confirm_delete" placeholder="Type DELETE to confirm">
+        {% if created_classes %}
+          <div class="field has-addons">
+            <div class="control">
+              <input disabled class="input is-danger" type="text" name="confirm_delete" placeholder="Type DELETE to confirm">
+            </div>
+            <div class="control">
+              <button disabled type="submit" class="button is-danger">
+                Delete Class Data
+              </button>
+            </div>
           </div>
-          <div class="control">
-            <button type="submit" class="button is-danger">
-              Delete Class Data
-            </button>
+          <div class="notification is-danger">
+            <p><strong>Classes cannot be orphaned.</strong></p>
+            <p>Before you can delete your data, you must first delete all classes you have created:</p>
+            <ul>
+              {% for class in created_classes %}
+                <li>{{ class.name }}</li>
+              {% endfor %}
+            </ul>
+            <p>This must be done manually, because it may require deleting other user's data.</p>
           </div>
-        </div>
+        {% else %}
+          <div class="field has-addons">
+            <div class="control">
+              <input class="input is-danger" type="text" name="confirm_delete" placeholder="Type DELETE to confirm">
+            </div>
+            <div class="control">
+              <button type="submit" class="button is-danger">
+                Delete Class Data
+              </button>
+            </div>
+          </div>
+        {% endif %}
           <div class="control">
             <button class="button" type="submit" formnovalidate formmethod="dialog">Cancel</button>
           </div>

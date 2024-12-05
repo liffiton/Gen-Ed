@@ -24,7 +24,7 @@ def verify_row_count(table: str, where_clause: str, params: list[str | int], exp
 
 def test_delete_user_data_requires_confirmation(app, client, auth):
     """Test that user data deletion requires proper confirmation"""
-    auth.login()
+    login_instructor_in_class(client, auth)
     with app.app_context():
         user_id = get_db().execute("SELECT id FROM users WHERE auth_name='testuser'").fetchone()['id']
 
@@ -47,7 +47,7 @@ def test_delete_user_data_requires_confirmation(app, client, auth):
 
 def test_delete_user_data_full_process(app, client, auth):
     """Test complete user data deletion process"""
-    auth.login()
+    login_instructor_in_class(client, auth)
     with app.app_context():
         user_id = get_db().execute("SELECT id FROM users WHERE auth_name='testuser'").fetchone()['id']
 
@@ -64,7 +64,21 @@ def test_delete_user_data_full_process(app, client, auth):
     # Perform deletion with proper confirmation
     response = client.post('/profile/delete_data', data={'confirm_delete': 'DELETE'})
     assert response.status_code == 302
-    assert response.location == "/auth/login"
+    assert response.location == "/profile/"  # redirect to profile because we have a user-created class
+    response = client.get('/profile/')
+    assert b"You must delete all classes you created before deleting your data." in response.data
+
+    # Delete the classes so user deletion can proceed
+    client.post('/instructor/class/delete', data={'class_id': 2, 'confirm_delete': 'DELETE'})
+    client.get('/classes/switch/3')
+    client.post('/instructor/class/delete', data={'class_id': 3, 'confirm_delete': 'DELETE'})
+    client.get('/classes/switch/4')
+    client.post('/instructor/class/delete', data={'class_id': 4, 'confirm_delete': 'DELETE'})
+
+    # Perform deletion with proper confirmation
+    response = client.post('/profile/delete_data', data={'confirm_delete': 'DELETE'})
+    assert response.status_code == 302
+    assert response.location == "/auth/login"  # redirect to login because user was successfully deleted
 
     # Verify final state of all affected tables
     with app.app_context():

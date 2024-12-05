@@ -74,7 +74,9 @@ VALUES
     -- testuser, testadmin, and testinstructor are in class 2 -- but not testuser2
     (4, 11, 2, 'instructor'), -- testuser created the class
     (5, 12, 2, 'student'), -- testadmin is a student
-    (6, 13, 2, 'student'); -- testinstructor is a student
+    (6, 13, 2, 'student'), -- testinstructor is a student
+    (7, 11, 3, 'instructor'), -- testuser created the class
+    (8, 11, 4, 'instructor'); -- testuser created the class
 
 INSERT INTO context_strings (id, ctx_str)
 VALUES (1, 'context 1'), (2, 'context 2');

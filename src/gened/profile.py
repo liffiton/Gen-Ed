@@ -60,7 +60,21 @@ def main() -> str:
         ORDER BY classes.id DESC
     """, [user_id, cur_class_id]).fetchall()
 
-    return render_template("profile_view.html", user=user, other_classes=other_classes, archived_classes=archived_classes)
+    # Get any classes created by this user
+    created_classes = db.execute("""
+        SELECT classes.name
+        FROM classes_user
+        JOIN classes ON classes_user.class_id = classes.id
+        WHERE creator_user_id = ?
+    """, [user_id]).fetchall()
+
+    return render_template(
+        "profile_view.html",
+        user=user,
+        other_classes=other_classes,
+        archived_classes=archived_classes,
+        created_classes=created_classes
+    )
 
 
 @bp.route("/delete_data", methods=['POST'])
@@ -71,10 +85,23 @@ def delete_data() -> Response:
         flash("Data deletion requires confirmation. Please type DELETE to confirm.", "warning")
         return safe_redirect(request.referrer, default_endpoint="profile.main")
 
-    db = get_db()
     auth = get_auth()
     user_id = auth.user_id
     assert user_id is not None  # due to @login_required
+    db = get_db()
+
+    # Check if user has any classes they created
+    created_classes = db.execute("""
+        SELECT classes.name
+        FROM classes_user
+        JOIN classes ON classes_user.class_id = classes.id
+        WHERE creator_user_id = ?
+    """, [user_id]).fetchall()
+
+    if created_classes:
+        class_names = ", ".join(row['name'] for row in created_classes)
+        flash(f"You must delete all classes you created before deleting your data. Please delete these classes first: {class_names}", "danger")
+        return safe_redirect(request.referrer, default_endpoint="profile.main")
 
     # Call application-specific data deletion handler(s)
     delete_user_data(user_id)
