@@ -20,6 +20,7 @@ from . import (
     auth,
     class_config,
     classes,
+    data_deletion,
     db,
     demo,
     docs,
@@ -164,10 +165,14 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
     # configure the application
     app.config.from_mapping(total_config)
 
+    # verify deletion handler is registered
+    if data_deletion.get_handler() is None:
+        app.logger.error("No deletion handler registered. All Gen-Ed applications must provide one.")
+        sys.exit(1)
+
     admin.init_app(app)
     db.init_app(app)
     filters.init_app(app)
-    instructor.init_app(app)  # This will verify data deletion handler is registered
     migrate.init_app(app)
     oauth.init_app(app)
     tz.init_app(app)

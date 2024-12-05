@@ -14,13 +14,10 @@ For general class operations available to all users, see classes.py.
 """
 
 import datetime as dt
-import sys
-from collections.abc import Callable
 from sqlite3 import Row
 
 from flask import (
     Blueprint,
-    Flask,
     abort,
     flash,
     redirect,
@@ -30,29 +27,12 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from .auth import get_auth, get_auth_class, instructor_required
+from .auth import get_auth_class, instructor_required
 from .classes import switch_class
 from .csv import csv_response
+from .data_deletion import delete_class_data
 from .db import get_db
 from .redir import safe_redirect
-
-DataDeletionHandler = Callable[[int], None]
-
-# Register the handler for the current application
-_deletion_handlers: list[DataDeletionHandler] = []
-
-
-def register_class_deletion_handler(handler: DataDeletionHandler) -> None:
-    """Register the application's class deletion implementation"""
-    _deletion_handlers.append(handler)
-
-
-def init_app(app: Flask) -> None:
-    """Initialize the instructor module and verify deletion handler is registered"""
-    if not _deletion_handlers:
-        app.logger.error("No data deletion handler registered. All Gen-Ed applications must provide one.")
-        sys.exit(1)
-
 
 bp = Blueprint('instructor', __name__, url_prefix="/instructor", template_folder='templates')
 
@@ -249,9 +229,7 @@ def delete_class() -> Response:
     assert str(class_id) == str(request.form.get('class_id'))
 
     # Call application-specific data deletion handler(s)
-    assert _deletion_handlers  # checked during init
-    for handler in _deletion_handlers:
-        handler(class_id)
+    delete_class_data(class_id)
 
     # Deactivate all roles and disable the class
     db.execute("UPDATE roles SET user_id=-1, active = 0 WHERE class_id = ?", [class_id])

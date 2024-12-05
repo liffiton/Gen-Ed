@@ -2,21 +2,13 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from collections.abc import Callable
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from werkzeug.wrappers.response import Response
 
 from .auth import get_auth, login_required
+from .data_deletion import delete_user_data
 from .db import get_db
 from .redir import safe_redirect
-
-# Register the handler for the current application
-_deletion_handlers: list[Callable[[int], None]] = []
-
-
-def register_user_deletion_handler(handler: Callable[[int], None]) -> None:
-    """Register the application's user deletion implementation"""
-    _deletion_handlers.append(handler)
 
 bp = Blueprint('profile', __name__, url_prefix="/profile", template_folder='templates')
 
@@ -85,8 +77,7 @@ def delete_data() -> Response:
     assert user_id is not None  # due to @login_required
 
     # Call application-specific data deletion handler(s)
-    for handler in _deletion_handlers:
-        handler(user_id)
+    delete_user_data(user_id)
 
     # Deactivate all roles
     db.execute("UPDATE roles SET user_id = -1, active = 0 WHERE user_id = ?", [user_id])
