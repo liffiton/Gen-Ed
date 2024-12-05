@@ -238,15 +238,15 @@ def set_role_instructor(role_id: int, bool_instructor: int) -> str:
 
 @bp.route("/class/delete", methods=["POST"])
 def delete_class() -> Response:
-    db = get_db()
-    cur_class = get_auth_class()
-    class_id = cur_class.class_id
-    assert str(class_id) == str(request.form.get('class_id'))
-
     # Require explicit confirmation
     if request.form.get('confirm_delete') != 'DELETE':
         flash("Class deletion requires confirmation. Please type DELETE to confirm.", "warning")
         return safe_redirect(request.referrer, default_endpoint="profile.main")
+
+    db = get_db()
+    cur_class = get_auth_class()
+    class_id = cur_class.class_id
+    assert str(class_id) == str(request.form.get('class_id'))
 
     # Call application-specific data deletion handler(s)
     assert _deletion_handlers  # checked during init

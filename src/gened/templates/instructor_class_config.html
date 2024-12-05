@@ -264,7 +264,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <form method="POST" action="{{ url_for('instructor.delete_class') }}" class="field has-addons">
       <input type="hidden" name="class_id", value="{{ auth.cur_class.class_id }}">
       <div class="control">
-        <input class="input" type="text" name="confirm_delete" placeholder="Type DELETE to confirm">
+        <input class="input is-danger" type="text" name="confirm_delete" placeholder="Type DELETE to confirm">
       </div>
       <div class="control">
         <button type="submit" class="button is-danger">

@@ -22,6 +22,121 @@ def verify_row_count(table: str, where_clause: str, params: list[str | int], exp
     assert count == expected_count, f"{msg}: expected {expected_count}, got {count}"
 
 
+def test_delete_user_data_requires_confirmation(app, client, auth):
+    """Test that user data deletion requires proper confirmation"""
+    auth.login()
+    with app.app_context():
+        user_id = get_db().execute("SELECT id FROM users WHERE auth_name='testuser'").fetchone()['id']
+
+    # Test without confirmation
+    response = client.post('/profile/delete_data', follow_redirects=True)
+    assert response.status_code == 200
+    assert b"Data deletion requires confirmation" in response.data
+
+    # Test with wrong confirmation
+    response = client.post('/profile/delete_data', data={'confirm_delete': 'WRONG'}, follow_redirects=True)
+    assert response.status_code == 200
+    assert b"Data deletion requires confirmation" in response.data
+
+    # Verify nothing was deleted
+    with app.app_context():
+        db = get_db()
+        user = db.execute("SELECT auth_name FROM users WHERE id = ?", [user_id]).fetchone()
+        assert user['auth_name'] == 'testuser'
+
+
+def test_delete_user_data_full_process(app, client, auth):
+    """Test complete user data deletion process"""
+    auth.login()
+    with app.app_context():
+        user_id = get_db().execute("SELECT id FROM users WHERE auth_name='testuser'").fetchone()['id']
+
+    # Capture initial state
+    with app.app_context():
+        db = get_db()
+        initial_queries = db.execute("SELECT * FROM queries WHERE user_id = ?", [user_id]).fetchall()
+        initial_chats = db.execute("SELECT * FROM chats WHERE user_id = ?", [user_id]).fetchall()
+        assert len(initial_queries) > 0, "Test data should include queries"
+        assert len(initial_chats) > 0, "Test data should include chats"
+        initial_query_ids = [row['id'] for row in initial_queries]
+        initial_chat_ids = [row['id'] for row in initial_chats]
+
+    # Perform deletion with proper confirmation
+    response = client.post('/profile/delete_data', data={'confirm_delete': 'DELETE'})
+    assert response.status_code == 302
+    assert response.location == "/auth/login"
+
+    # Verify final state of all affected tables
+    with app.app_context():
+        db = get_db()
+
+        # Check user account state
+        user = db.execute("SELECT * FROM users WHERE id = ?", [user_id]).fetchone()
+        assert user['full_name'] == '[deleted]'
+        assert user['email'] == '[deleted]'
+        assert user['auth_name'] == '[deleted]'
+        assert user['query_tokens'] == 0
+        assert user['last_class_id'] is None
+
+        # Check roles
+        verify_row_count(
+            "roles", "WHERE user_id = ? AND active = 1", [user_id],
+            0, "No roles should be active"
+        )
+
+        # Check auth entries removed
+        verify_row_count(
+            "auth_local", "WHERE user_id = ?", [user_id],
+            0, "Local auth entry should be deleted"
+        )
+        verify_row_count(
+            "auth_external", "WHERE user_id = ?", [user_id],
+            0, "External auth entry should be deleted"
+        )
+
+        # Check queries anonymization
+        query_list = ','.join('?' * len(initial_query_ids))  # for SQL IN clause
+        queries = db.execute(f"SELECT * FROM queries WHERE id IN ({query_list})", initial_query_ids).fetchall()
+        # Verify each query has been properly anonymized
+        assert len(queries) == len(initial_query_ids), "All original queries should still exist"
+        for query in queries:
+            assert query['user_id'] == -1, f"Query {query['id']}: user_id should be -1"
+            # NULL values should remain NULL
+            if query['code'] is not None:
+                assert query['code'] == '[deleted]', f"Query {query['id']}: non-NULL code should be '[deleted]'"
+            if query['error'] is not None:
+                assert query['error'] == '[deleted]', f"Query {query['id']}: non-NULL error should be '[deleted]'"
+            # These fields should always be '[deleted]' or NULL as specified
+            assert query['issue'] == '[deleted]', f"Query {query['id']}: issue should be '[deleted]'"
+            assert query['context_name'] == '[deleted]', f"Query {query['id']}: context_name should be '[deleted]'"
+            assert query['context_string_id'] is None, f"Query {query['id']}: context_string_id should be NULL"
+
+        # Check chats anonymization
+        chat_list = ','.join('?' * len(initial_chat_ids))  # for SQL IN clause
+        chats = db.execute(f"SELECT * FROM chats WHERE id IN ({chat_list})", initial_chat_ids).fetchall()
+        # Verify each chat has been properly anonymized
+        assert len(chats) == len(initial_chat_ids), "All original chats should still exist"
+        for chat in chats:
+            assert chat['topic'] == '[deleted]', "Chat topic should be deleted"
+            assert chat['chat_json'] == '[]', "Chat JSON should be empty"
+            assert chat['context_name'] == '[deleted]', "Chat context_name should be deleted"
+            assert chat['context_string_id'] is None, "Chat context_string_id should be nulled"
+
+
+def test_delete_user_data_unauthorized(app, client):
+    """Test unauthorized access to user data deletion"""
+    # Test without login
+    response = client.post('/profile/delete_data', data={'confirm_delete': 'DELETE'})
+    assert response.status_code == 302
+    assert response.location.startswith('/auth/login?')
+
+    # Verify nothing was deleted
+    with app.app_context():
+        db = get_db()
+        user = db.execute("SELECT * FROM users WHERE auth_name='testuser'").fetchone()
+        assert user['full_name'] != '[deleted]'
+
+
 def test_delete_class_requires_confirmation(app, client, auth):
     class_id = login_instructor_in_class(client, auth)
 

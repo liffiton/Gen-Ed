@@ -2,10 +2,21 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from flask import Blueprint, render_template
+from collections.abc import Callable
+from flask import Blueprint, flash, redirect, render_template, request, session, url_for
+from werkzeug.wrappers.response import Response
 
 from .auth import get_auth, login_required
 from .db import get_db
+from .redir import safe_redirect
+
+# Register the handler for the current application
+_deletion_handlers: list[Callable[[int], None]] = []
+
+
+def register_user_deletion_handler(handler: Callable[[int], None]) -> None:
+    """Register the application's user deletion implementation"""
+    _deletion_handlers.append(handler)
 
 bp = Blueprint('profile', __name__, url_prefix="/profile", template_folder='templates')
 
@@ -58,3 +69,46 @@ def main() -> str:
     """, [user_id, cur_class_id]).fetchall()
 
     return render_template("profile_view.html", user=user, other_classes=other_classes, archived_classes=archived_classes)
+
+
+@bp.route("/delete_data", methods=['POST'])
+@login_required
+def delete_data() -> Response:
+    # Require explicit confirmation
+    if request.form.get('confirm_delete') != 'DELETE':
+        flash("Data deletion requires confirmation. Please type DELETE to confirm.", "warning")
+        return safe_redirect(request.referrer, default_endpoint="profile.main")
+
+    db = get_db()
+    auth = get_auth()
+    user_id = auth.user_id
+    assert user_id is not None  # due to @login_required
+
+    # Call application-specific data deletion handler(s)
+    for handler in _deletion_handlers:
+        handler(user_id)
+
+    # Deactivate all roles
+    db.execute("UPDATE roles SET user_id = -1, active = 0 WHERE user_id = ?", [user_id])
+
+    # Anonymize and deactivate user account
+    db.execute("""
+        UPDATE users
+        SET full_name = '[deleted]',
+            email = '[deleted]',
+            auth_name = '[deleted]',
+            last_class_id = NULL,
+            query_tokens = 0
+        WHERE id = ?
+    """, [user_id])
+
+    # Remove auth entries
+    db.execute("DELETE FROM auth_local WHERE user_id = ?", [user_id])
+    db.execute("DELETE FROM auth_external WHERE user_id = ?", [user_id])
+
+    db.commit()
+
+    # Clear their session and log them out
+    session.clear()
+    flash("Your data has been deleted and your account has been deactivated.", "success")
+    return redirect(url_for("auth.login"))

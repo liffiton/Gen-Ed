@@ -88,6 +88,8 @@ VALUES
     (5, 'ctx1', 1, 'code1', 'error1', 'issue1', '{}', '{"main": "response1"}', 0, 13, 6),
     (6, 'ctx1', 1, 'code2', 'error2', '', '{}', '{"main": "response2"}', 0, 13, 6),
     (7, 'ctx1', 1, 'code3', '', 'issue3', '{}', '{"main": "response3"}', 0, 13, 6),
+    (8, 'ctx1', 1, 'code10', 'error10', 'issue10', '{}', '{"main": "response10"}', 0, 11, 4),  -- testuser
+    (9, 'ctx1', 1, 'code11', 'error11', 'issue11', '{}', '{"main": "response11"}', 0, 11, 4),  -- testuser
     -- high ID so new query IDs are known (regardless of number of rows made for testing above
     (100, 'ctx1', 1, 'code', '', '', '{}', '{"main": "response"}', 0, 21, 1);
 
