@@ -5,7 +5,7 @@ summary:  Privacy Policy for Starburst
 
 # Privacy Policy
 
-**Last updated June 7, 2024.**
+**Last updated December 5, 2024.**
 
 This privacy notice for Starburst ("we," "us," or "our") describes how and why we might collect, store, use, and/or share ("process") your information when you use Starburst (the "Service") at https://strbrst.xyz/ (the "Site").
 
@@ -18,9 +18,9 @@ This may give Starburst access to your personal information:
  * Your full name
  * Your email address
 
-If you join any classes in Starburst, this personal information is used to identify you on the Site to Instructors in those classes.
+If you join any classes in Starburst, this personal information is used to identify you on the Site to instructors in those classes.
 
-We may also store information you submit to the Site as part of your use of the Site (e.g., queries you make) in order to show you and Instructors in your classes a record of your usage ("Usage Data").
+We may also store information you submit to the Site as part of your use of the Site (e.g., queries you make) in order to show you and instructors in your classes a record of your usage ("Usage Data").
 
 We do not process sensitive personal information.
 
@@ -44,9 +44,11 @@ We do not share any data with third parties other than for these purposes:
 Starburst is operated in the United States, and all data is stored and processed in the United States.
 
 
-## Deletion of your data
+## Deleting your data
 
-To request we delete your personal data, please contact us using the contact form linked below.
+Any user can delete their account and associated Usage Data from the profile page.  The data is deleted immediately and cannot be restored.
+
+Instructors can delete their classes and all associated Usage Data (including the Usage Data of any students within that class) from the configuration page for each class.  The data is deleted immediately and cannot be restored.
 
 
 ## Contact Us
