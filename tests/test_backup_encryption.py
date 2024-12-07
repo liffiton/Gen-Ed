@@ -14,6 +14,7 @@ def test_db_download_status(app, monkeypatch):
         from gened.admin import inject_db_download_status
 
         # No key configured
+        monkeypatch.setattr(platform, "system", lambda: "Linux")
         app.config['AGE_PUBLIC_KEY'] = None
         status = inject_db_download_status()['db_download_status']
         assert not status.encrypted
@@ -37,6 +38,10 @@ def test_db_download_status(app, monkeypatch):
 
 def test_backup_db_encryption(app):
     """Test that backup_db handles encryption configuration correctly"""
+    # test does not run on Windows, where gened does not support db backups
+    if platform.system() == "Windows":
+        return
+
     with app.app_context():
         from gened.db import backup_db
 
@@ -47,10 +52,7 @@ def test_backup_db_encryption(app):
             header = backup_file.read(16)
             assert header.startswith(b'SQLite format 3')  # unencrypted SQLite file
 
-        # Test encrypted backup with a real SSH key (test does not run on Windows, where gened does not support this)
-        if platform.system() == "Windows":
-            return
-
+        # Test encrypted backup with a real SSH key
         with TemporaryDirectory() as temp_dir:
             # Generate SSH keypair
             key_path = Path(temp_dir) / "temp_key"
