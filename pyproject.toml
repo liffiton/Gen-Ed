@@ -30,6 +30,7 @@ dependencies = [
     "markdown-it-py~=3.0.0",
     "openai~=1.0, >=1.26",
     "pylti@git+https://github.com/liffiton/pylti",
+    "pyrage~=1.2.0",
     "python-dotenv~=1.0.0",
     "python-frontmatter~=1.1.0",
     "pytz",
@@ -46,6 +47,7 @@ test = [
     "types-colorama",
     "types-pytz",
     "types-requests",
+    "pyrage-stubs~=1.2.0",
 ]
 
 

@@ -108,6 +108,29 @@ flask --app codehelp setpassword [username]
    instance folder.
 
 
+Database Encryption
+-------------------
+
+Database backups (from migrations) and downloads (from the admin interface) can
+optionally be encrypted using age encryption. To enable encryption:
+
+1. Generate an SSH keypair (or you may use an existing identity):
+   ```sh
+   ssh-keygen -t ed25519 -f backup_key
+   ```
+
+2. Add the public key (contents of `backup_key.pub`) to `.env` as `AGE_PUBLIC_KEY`
+
+3. Keep the private key (`backup_key`) secure and offline - it should never be
+   present on the server.
+
+4. When you need to decrypt a backup, you can use
+   [rage](https://github.com/str4d/rage):
+   ```sh
+   rage -d -i backup_key backup.db.age -o backup.db
+   ```
+
+
 Running an Application
 ----------------------
 
