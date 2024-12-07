@@ -34,7 +34,23 @@ SPDX-License-Identifier: AGPL-3.0-only
     </div>
     <div class="navbar-end">
       {% for link in admin_links_right %}
-        <a class="navbar-item is-tab {{ 'is-active' if request.endpoint == link.endpoint else ''}}" href="{{url_for(link.endpoint)}}">{{link.display}}</a>
+        <a class="navbar-item is-tab {{ 'is-active' if request.endpoint == link.endpoint else ''}}" href="{{url_for(link.endpoint)}}">
+          {{link.display}}
+          {% if link.endpoint == 'admin.get_db_file' %}
+            <span class="tag ml-2 {% if db_download_status.encrypted %}is-success{% else %}is-warning{% endif %}"
+                title="{% if db_download_status.encrypted %}Download will be encrypted{% else %}{{db_download_status.reason}}{% endif %}"
+                >
+              <span class="icon">
+                <svg aria-hidden="true" style="height: 80%;">
+                  <use href="{% if db_download_status.encrypted %}#svg_admin_check{% else %}#svg_admin_alert{% endif %}" />
+                </svg>
+              </span>
+              {% if not db_download_status.encrypted %}
+                <span class="text" style="margin-left: -0.5em;">&nbsp;&nbsp;unencrypted</span>
+              {% endif %}
+            </span>
+          {% endif %}
+        </a>
       {% endfor %}
     </div>
   </div>

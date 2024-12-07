@@ -71,6 +71,8 @@ def _apply_migrations(migrations: Iterable[MigrationDict]) -> None:
     backup_dir = Path(current_app.instance_path) / "backups"
     backup_dir.mkdir(mode=0o770, exist_ok=True)
     backup_dest = backup_dir / f"{current_app.config['DATABASE_NAME']}.{timestamp}.bak"
+    if current_app.config.get('AGE_PUBLIC_KEY'):
+        backup_dest = backup_dest.with_suffix('.age')
 
     backup_db(backup_dest)
 

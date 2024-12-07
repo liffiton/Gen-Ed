@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import flask.app
+import pyrage
 from dotenv import load_dotenv
 from flask import Flask, render_template, send_from_directory
 from flask.wrappers import Response
@@ -144,6 +145,20 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
         except KeyError:
             app.logger.error(f"{varname} environment variable not set.")
             sys.exit(1)
+
+    # Optional variables:
+    #  - AGE_PUBLIC_KEY: used to encrypt database backups and exports
+    try:
+        varname = "AGE_PUBLIC_KEY"
+        env_var = os.environ[varname]
+        # test the key
+        pyrage.ssh.Recipient.from_str(env_var)
+        base_config[varname] = env_var
+    except pyrage.RecipientError:
+        app.logger.error("Invalid key provided in AGE_PUBLIC_KEY.  Must be an SSH public key.")
+        sys.exit(1)
+    except KeyError:
+        app.logger.warning(f"{varname} environment variable not set.")
 
     # CLIENT_ID/CLIENT_SECRET vars are used by authlib:
     #   https://docs.authlib.org/en/latest/client/flask.html#configuration

@@ -13,6 +13,7 @@ from importlib import resources
 from pathlib import Path
 
 import click
+import pyrage
 from flask import current_app, g
 from flask.app import Flask
 from werkzeug.security import generate_password_hash
@@ -57,18 +58,42 @@ def get_db() -> sqlite3.Connection:
     return g.db
 
 
+def encrypt_file(source: Path, target: Path) -> None:
+    """Encrypt a file using the configured public key"""
+    pubkey = current_app.config['AGE_PUBLIC_KEY']
+    recipient = pyrage.ssh.Recipient.from_str(pubkey)
+    pyrage.encrypt_file(str(source), str(target), [recipient])
+
+
 def backup_db(target: Path) -> None:
     """ Safely make a backup of the database to the given path.
-    target: Path object to the location of the new backup.  Must not exist yet or be empty.
+    If AGE_PUBLIC_KEY is set, the backup will be encrypted using that key.
+    target: Path object to the location of the new backup. Must not exist yet or be empty.
     """
     if target.exists() and target.stat().st_size > 0:
         raise FileExistsError(errno.EEXIST, "File already exists and is not empty", target)
 
+    encryption_key = current_app.config.get('AGE_PUBLIC_KEY')
+    if not encryption_key:
+        current_app.logger.warning("Creating database backup *without* encryption - no AGE_PUBLIC_KEY configured.")
+
     db = get_db()
-    tmp_db = sqlite3.connect(target)
+
+    # Create unencrypted backup (either final or temporary)
+    db_output = target
+    if encryption_key:
+        db_output = db_output.with_suffix('.tmp')
+    tmp_db = sqlite3.connect(db_output)
     with tmp_db:
         db.backup(tmp_db)
     tmp_db.close()
+
+    if encryption_key:
+        # Encrypt the backup
+        try:
+            encrypt_file(db_output, target)
+        finally:
+            db_output.unlink()  # Clean up temp file
 
 
 def close_db(e: BaseException | None = None) -> None:  # noqa: ARG001 - unused function argument

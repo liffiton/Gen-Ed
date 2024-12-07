@@ -40,6 +40,23 @@ def before_request() -> None:
 
 
 @dataclass(frozen=True)
+class DBDownloadStatus:
+    """Status of database download encryption."""
+    encrypted: bool
+    reason: str | None = None  # reason provided if not encrypted
+
+@bp.context_processor
+def inject_db_download_status() -> dict[str, DBDownloadStatus]:
+    if platform.system() == "Windows":
+        status = DBDownloadStatus(False, "Encryption unavailable on Windows servers.")
+    elif not current_app.config.get('AGE_PUBLIC_KEY'):
+        status = DBDownloadStatus(False, "No encryption key configured, AGE_PUBLIC_KEY not set.")
+    else:
+        status = DBDownloadStatus(True)
+    return {'db_download_status': status}
+
+
+@dataclass(frozen=True)
 class AdminLink:
     """Represents a link in the admin interface.
     Attributes:
@@ -351,12 +368,16 @@ def get_db_file() -> Response:
     db_name = current_app.config['DATABASE_NAME']
     db_basename = Path(db_name).stem
     dl_name = f"{db_basename}_{date.today().strftime('%Y%m%d')}.db"
+    if current_app.config.get('AGE_PUBLIC_KEY'):
+        dl_name += '.age'
 
     if platform.system() == "Windows":
         # Slightly unsafe way to do it, because the file may be written while
         # send_file is sending it.  Temp file issues make it hard to do
         # otherwise on Windows, though, and no one should run a production
         # server for this on Windows, anyway.
+        if current_app.config.get('AGE_PUBLIC_KEY'):
+            current_app.logger.warning("Database download on Windows does not support encryption")
         return send_file(current_app.config['DATABASE'],
                          mimetype='application/vnd.sqlite3',
                          as_attachment=True, download_name=dl_name)
