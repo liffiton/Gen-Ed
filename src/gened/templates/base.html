@@ -30,8 +30,8 @@ SPDX-License-Identifier: AGPL-3.0-only
       main.site-content { flex: 1; } /* expand main content, push footer to bottom of page/viewport */
       span[title] { text-decoration: underline; text-decoration-style: dotted; }
       pre, .content pre { padding: 0.5rem 0.75rem; }
-      .tbl_cols { display: flex; gap: 2em; flex-wrap: wrap; }
-      .tbl_col { overflow: auto; }
+      .flex_items { display: flex; gap: 2em; flex-wrap: wrap; }
+      .flex_item { flex: 1 0 10em; min-width: min-content; overflow-auto; }
       dialog { border: none; background: none; }
       dialog::backdrop { background: #0009; backdrop-filter: blur(4px); }
       p.help-text { font-size: 85%; margin-bottom: 0.5em; opacity: 92%; }

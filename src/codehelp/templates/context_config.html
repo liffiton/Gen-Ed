@@ -1,7 +1,7 @@
 
 <div class="content">
   <h2 class="title is-size-4">Contexts</h2>
-  <p style="max-width: 50em">Contexts provide additional information to the LLM for each query a student makes.  You can have a single default context that is always used, or you can create separate contexts for individual assignments or modules.  If multiple contexts are available, students will be able to select from them when making queries.</p>
+  <p>Contexts provide additional information to the LLM for each query a student makes.  You can have a single default context that is always used, or you can create separate contexts for individual assignments or modules.  If multiple contexts are available, students will be able to select from them when making queries.</p>
   {% if contexts | length == 0 %}
     <p class="has-text-danger">While not strictly required, we recommend defining at least one context to specify the language(s), frameworks, and/or libraries in use in this class.</p>
   {% endif %}
@@ -89,7 +89,7 @@
       }));
     });
   </script>
-  <table class="table is-hoverable is-narrow" x-data="reorderable">
+  <table class="table is-hoverable is-narrow" style="width: auto; min-width: min(40em, 80%); margin: auto;" x-data="reorderable">
     <thead>
       <tr>
         <th class="p-0 has-text-centered has-text-grey" title="Reorder">

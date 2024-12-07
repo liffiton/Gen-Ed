@@ -41,8 +41,8 @@ SPDX-License-Identifier: AGPL-3.0-only
   {% endfor %}
   </div>
 
-  <div class="tbl_cols">
-    <div class="tbl_col" style="width: 50em;">
+  <div class="flex_items">
+    <div class="flex_item">
       <h1 class="is-size-3">Consumers <a class="button is-light is-link is-small mt-2" href="{{url_for('admin.consumer_new')}}">Create New</a></h1>
       {{ datatable(
           'consumers',
@@ -52,6 +52,8 @@ SPDX-License-Identifier: AGPL-3.0-only
           link_template=filters.template_string('consumer') | safe,
           extra_links=[{'icon': "pencil", 'text': "Edit consumer", 'handler': "admin.consumer_form", 'param': "consumer_id"}],
       ) }}
+    </div>
+    <div class="flex_item">
       <h1 class="is-size-3">Classes</h1>
       {{ datatable(
           'classes',
@@ -61,6 +63,8 @@ SPDX-License-Identifier: AGPL-3.0-only
           link_template=filters.template_string('class') | safe,
           extra_links=[{'icon': "admin", 'text': "Administer class", 'handler': "classes.switch_class_handler", 'param': "class_id"}],
       ) }}
+    </div>
+    <div class="flex_item">
       <h1 class="is-size-3">Users</h1>
       {{ datatable(
           'users',
@@ -69,6 +73,8 @@ SPDX-License-Identifier: AGPL-3.0-only
           link_col=0,
           link_template=filters.template_string('user') | safe,
       ) }}
+    </div>
+    <div class="flex_item">
       <h1 class="is-size-3">Roles</h1>
       {{ datatable(
           'roles',
@@ -78,7 +84,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           link_template=filters.template_string('role') | safe,
       ) }}
     </div>
-    <div class="tbl_col" style="width: 75em; flex-grow: 1;">
+    <div class="flex_item" style="flex-basis: max-content;">
       <h1 class="is-size-3">
         Queries
       </h1>

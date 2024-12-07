@@ -13,25 +13,17 @@ SPDX-License-Identifier: AGPL-3.0-only
   max-width: 1600px;
   margin: auto;
 }
-.conf_cols {
-  display: flex;
-  justify-content: center;
-  gap: 1em;
-}
+.item_sep { border: 2px solid #ccc; margin: 1em; }
 @media (max-width: 1200px) {
   /* flip to column below a given width (instead of just using flex-wrap) so any .sep item becomes a horizontal line */
-  .conf_cols { flex-direction: column; }
+  .flex_items { flex-direction: column; }
 }
-.conf_col_sep {
-  /* draw a line between config sections */
-  border: 2px solid #ccc;
-}
-.conf_col .field-body {
+.field-body {
   /* override bulma sizing for these forms */
   flex-grow: 2;
 }
-.conf_col input[type='checkbox'],
-.conf_col input[type='radio'] {
+input[type='checkbox'],
+input[type='radio'] {
   transform: scale(2.0);
   margin: 0.5rem;
   margin-top: 0.8rem;
@@ -39,8 +31,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 </style>
 <section class="section">
   <h1 class="title">Configure Class: {{ auth.cur_class.class_name }}</h1>
-  <div class="conf_cols">
-    <div class="conf_col">
+  <div class="flex_items" style="gap: 0;">
+    <div class="flex_item">
       <h2 class="title is-size-4">Access</h2>
       <form action="{{ url_for("instructor.set_user_class_setting") }}" method="post">
         <div class="field is-horizontal">
@@ -120,7 +112,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       {% if class_row['link_ident'] %}
       {# link_ident only in classes_user, so will only be set for user classes. #}
-      <div class="conf_col_sep mt-5"></div>
+      <div class="item_sep"></div>
 
       <h2 class="title is-size-4 mt-5">Language Model</h2>
       <form action="{{ url_for("instructor.set_user_class_setting") }}" method="post" x-data="{
@@ -228,50 +220,49 @@ SPDX-License-Identifier: AGPL-3.0-only
     </div>
 
     {% if extra_sections %}
-    <div class="conf_col_sep"></div>
-    <div class="conf_col">
+    <div class="item_sep"></div>
+    <div class="flex_item">
       {% for extra_section in extra_sections %}
         {{ extra_section }}
         {% if not loop.last %}
-          <div class="conf_col_sep mt-5 mb-5"></div>
+          <div class="item_sep"></div>
         {% endif %}
       {% endfor %}
     </div>
     {% endif %}
-</section>
 
-<div class="conf_col_sep m-5"></div>
+    <div class="item_sep" style="min-width: 90%;"></div>
 
-<section class="section">
-  <div class="box" style="max-width: 50em; margin: auto; border: 2px solid #f009; background: #ff000008">
-    <h2 class="title is-4 has-text-danger">Delete Class Data</h2>
-    <div class="content">
-      <p>This will:
-        <ul>
-          <li>Delete all user inputs made in this class</li>
-          <li>Remove all users from the class, including you</li>
-          <li>Delete class configuration data</li>
-          <li>Anonymize all class usage data</li>
-        </ul>
-      </p>
-      <p>Users will <em>not</em> be deleted, nor will their data in any other class they are enrolled in.</p>
-      {% if auth.user.auth_provider == 'lti' %}
-        <p>This class was accessed using a link from an LMS.  If that link still exists in the LMS after deleting the class data here, anyone following it will create a new, distinct instance of this class in CodeHelp (without any old data, but still with the ability to submit new queries).  To prevent that, remove the link from the LMS <em>before</em> deleting the class data here.</p>
-      {% endif %}
-      <p>Type "DELETE" in the text box to confirm you want to delete data for this class.</p>
-      <p class="has-text-danger"><strong class="has-text-danger">Warning:</strong> Deleting class data cannot be undone.</p>
+    <div class="box" style="max-width: 50em; margin: auto; border: 2px solid #f009; background: #ff000008">
+      <h2 class="title is-4 has-text-danger">Delete Class Data</h2>
+      <div class="content">
+        <p>This will:
+          <ul>
+            <li>Delete all user inputs made in this class</li>
+            <li>Remove all users from the class, including you</li>
+            <li>Delete class configuration data</li>
+            <li>Anonymize all class usage data</li>
+          </ul>
+        </p>
+        <p>Users will <em>not</em> be deleted, nor will their data in any other class they are enrolled in.</p>
+        {% if auth.user.auth_provider == 'lti' %}
+          <p>This class was accessed using a link from an LMS.  If that link still exists in the LMS after deleting the class data here, anyone following it will create a new, distinct instance of this class in CodeHelp (without any old data, but still with the ability to submit new queries).  To prevent that, remove the link from the LMS <em>before</em> deleting the class data here.</p>
+        {% endif %}
+        <p>Type "DELETE" in the text box to confirm you want to delete data for this class.</p>
+        <p class="has-text-danger"><strong class="has-text-danger">Warning:</strong> Deleting class data cannot be undone.</p>
+      </div>
+      <form method="POST" action="{{ url_for('instructor.delete_class') }}" class="field has-addons">
+        <input type="hidden" name="class_id", value="{{ auth.cur_class.class_id }}">
+        <div class="control">
+          <input class="input is-danger" type="text" name="confirm_delete" placeholder="Type DELETE to confirm">
+        </div>
+        <div class="control">
+          <button type="submit" class="button is-danger">
+            Delete Class Data
+          </button>
+        </div>
+      </form>
     </div>
-    <form method="POST" action="{{ url_for('instructor.delete_class') }}" class="field has-addons">
-      <input type="hidden" name="class_id", value="{{ auth.cur_class.class_id }}">
-      <div class="control">
-        <input class="input is-danger" type="text" name="confirm_delete" placeholder="Type DELETE to confirm">
-      </div>
-      <div class="control">
-        <button type="submit" class="button is-danger">
-          Delete Class Data
-        </button>
-      </div>
-    </form>
   </div>
 </section>
 
