@@ -181,7 +181,7 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
     app.config.from_mapping(total_config)
 
     # verify deletion handler is registered
-    if data_deletion.get_handler() is None:
+    if not data_deletion.has_handler():
         app.logger.error("No deletion handler registered. All Gen-Ed applications must provide one.")
         sys.exit(1)
 

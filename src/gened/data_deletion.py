@@ -32,9 +32,9 @@ def register_handler(handler: DeletionHandler) -> None:
     _handler = handler
 
 
-def get_handler() -> DeletionHandler | None:
-    """Get the registered deletion handler."""
-    return _handler
+def has_handler() -> bool:
+    """Return whether a deletion handler has been registered (True) or not (False)."""
+    return _handler is not None
 
 
 def delete_user_data(user_id: int) -> None:

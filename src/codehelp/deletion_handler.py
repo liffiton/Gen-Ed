@@ -4,11 +4,11 @@
 
 """Implementation of personal data deletion for CodeHelp."""
 
-from gened.data_deletion import register_handler
+from gened.data_deletion import DeletionHandler, register_handler
 from gened.db import get_db
 
 
-class CodeHelpDeletionHandler:
+class CodeHelpDeletionHandler(DeletionHandler):
     """CodeHelp implementation of personal data deletion."""
 
     def delete_user_data(self, user_id: int) -> None:

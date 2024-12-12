@@ -2,11 +2,11 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from gened.data_deletion import register_handler
+from gened.data_deletion import DeletionHandler, register_handler
 from gened.db import get_db
 
 
-class StarburstDeletionHandler:
+class StarburstDeletionHandler(DeletionHandler):
     """Handler for deleting Starburst user data."""
 
     def delete_user_data(self, user_id: int) -> None:
