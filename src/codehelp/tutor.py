@@ -222,8 +222,7 @@ def get_response(llm: LLMConfig, chat: list[ChatCompletionMessageParam]) -> tupl
       2) The response text.
     '''
     response, text = asyncio.run(get_completion(
-        client=llm.client,
-        model=llm.model,
+        llm,
         messages=chat,
     ))
 

@@ -129,23 +129,18 @@ async def run_query_prompts(llm: LLMConfig, context: ContextConfig | None, code:
       1) A list of response objects from the OpenAI completion (to be stored in the database)
       2) A dictionary of response text, potentially including keys 'insufficient' and 'main'.
     '''
-    client = llm.client
-    model = llm.model
-
     context_str = context.prompt_str() if context is not None else None
 
     # Launch the "sufficient detail" check concurrently with the main prompt to save time
     task_main = asyncio.create_task(
         get_completion(
-            client,
-            model=model,
+            llm,
             messages=prompts.make_main_prompt(code, error, issue, context_str),
         )
     )
     task_sufficient = asyncio.create_task(
         get_completion(
-            client,
-            model=model,
+            llm,
             messages=prompts.make_sufficient_prompt(code, error, issue, context_str),
         )
     )
@@ -160,7 +155,7 @@ async def run_query_prompts(llm: LLMConfig, context: ContextConfig | None, code:
     if "```" in response_txt or "should look like" in response_txt or "should look something like" in response_txt:
         # That's probably too much code.  Let's clean it up...
         cleanup_prompt = prompts.make_cleanup_prompt(response_text=response_txt)
-        cleanup_response, cleanup_response_txt = await get_completion(client, model, prompt=cleanup_prompt)
+        cleanup_response, cleanup_response_txt = await get_completion(llm, prompt=cleanup_prompt)
         responses.append(cleanup_response)
         response_txt = cleanup_response_txt
 
@@ -322,8 +317,7 @@ def get_topics(llm: LLMConfig, query_id: int) -> list[str]:
     )
 
     response, response_txt = asyncio.run(get_completion(
-        client=llm.client,
-        model=llm.model,
+        llm,
         messages=messages,
     ))
 

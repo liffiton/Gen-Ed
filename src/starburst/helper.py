@@ -52,8 +52,7 @@ async def run_query_prompts(llm: LLMConfig, assignment: str, topics: str) -> tup
     '''
     task_main = asyncio.create_task(
         get_completion(
-            client=llm.client,
-            model=llm.model,
+            llm,
             prompt=prompts.make_main_prompt(assignment, topics),
         )
     )

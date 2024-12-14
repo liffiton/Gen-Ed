@@ -6,7 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import wraps
 from sqlite3 import Row
-from typing import ParamSpec, TypeVar
+from typing import ParamSpec, TypeAlias, TypeVar
 
 import openai
 from flask import current_app, flash, render_template
@@ -29,15 +29,18 @@ class NoTokensError(Exception):
     pass
 
 
+LLMClient: TypeAlias = AsyncOpenAI
+
+
 @dataclass
 class LLMConfig:
     api_key: str
     model: str
     tokens_remaining: int | None = None  # None if current user is not using tokens
-    _client: AsyncOpenAI | None = field(default=None, init=False, repr=False)
+    _client: LLMClient | None = field(default=None, init=False, repr=False)
 
     @property
-    def client(self) -> AsyncOpenAI:
+    def client(self) -> LLMClient:
         """ Lazy load the LLM client object only when requested. """
         if self._client is None:
             self._client = AsyncOpenAI(api_key=self.api_key)
@@ -45,7 +48,7 @@ class LLMConfig:
 
 
 def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLMConfig:
-    ''' Get model details and an initialized OpenAI client based on the
+    ''' Get model details and an initialized LLM API client based on the
     arguments and the current user and class.
 
     Procedure, depending on arguments, user, and class:
@@ -61,7 +64,7 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLMConfig:
              Otherwise, their token count is decremented.
 
     Returns:
-      LLMConfig with an OpenAI client and model name.
+      LLMConfig with an API client and model name.
 
     Raises various exceptions in cases where a key and model are not available.
     '''
@@ -177,7 +180,7 @@ def with_llm(*, use_system_key: bool = False, spend_token: bool = False) -> Call
                 flash("Error: No API key set.  An API key must be set by the instructor before this page can be used.")
                 return render_template("error.html")
             except NoTokensError:
-                flash("You have used all of your free queries.  If you are using this application in a class, please connect using the link from your class for continued access.  Otherwise, you can create a class and add an OpenAI API key or contact us if you want to continue using this application.", "warning")
+                flash("You have used all of your free queries.  If you are using this application in a class, please connect using the link from your class for continued access.  Otherwise, you can create a class and add an API key or contact us if you want to continue using this application.", "warning")
                 return render_template("error.html")
 
             kwargs['llm'] = llm
@@ -193,7 +196,7 @@ def get_models() -> list[Row]:
     return models
 
 
-async def get_completion(client: AsyncOpenAI, model: str, prompt: str | None = None, messages: list[ChatCompletionMessageParam] | None = None) -> tuple[dict[str, str], str]:
+async def get_completion(llm: LLMConfig, prompt: str | None = None, messages: list[ChatCompletionMessageParam] | None = None) -> tuple[dict[str, str], str]:
     '''
     model can be any valid OpenAI model name that can be used via the chat completion API.
 
@@ -208,8 +211,8 @@ async def get_completion(client: AsyncOpenAI, model: str, prompt: str | None = N
             assert prompt is not None
             messages = [{"role": "user", "content": prompt}]
 
-        response = await client.chat.completions.create(
-            model=model,
+        response = await llm.client.chat.completions.create(
+            model=llm.model,
             messages=messages,
             temperature=0.25,
             max_tokens=1000,

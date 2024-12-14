@@ -72,11 +72,7 @@ def config_form() -> str:
 @bp.route("/test_llm")
 @with_llm()
 def test_llm(llm: LLMConfig) -> str:
-    response, response_txt = asyncio.run(get_completion(
-        client=llm.client,
-        model=llm.model,
-        prompt="Please write 'OK'"
-    ))
+    response, response_txt = asyncio.run(get_completion(llm, prompt="Please write 'OK'"))
 
     if 'error' in response:
         return f"<b>Error:</b><br>{response_txt}"
