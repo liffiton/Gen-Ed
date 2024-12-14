@@ -10,7 +10,7 @@ def test_create_consumer(client, auth):
         data={
             'lti_consumer': 'test_consumer',
             'lti_secret': 'test_secret',
-            'openai_key': 'test_openai_key',
+            'llm_api_key': 'test_llm_api_key',
             'model_id': 1
         },
         follow_redirects=True
@@ -29,7 +29,7 @@ def test_edit_consumer(client, auth):
         data={
             'consumer_id': 1,
             'lti_secret': 'new_secret',
-            'openai_key': 'new_openai_key',
+            'llm_api_key': 'new_llm_api_key',
             'model_id': 2
         },
         follow_redirects=True

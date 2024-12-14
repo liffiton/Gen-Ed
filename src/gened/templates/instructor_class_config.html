@@ -116,7 +116,7 @@ input[type='radio'] {
 
       <h2 class="title is-size-4 mt-5">Language Model</h2>
       <form action="{{ url_for("instructor.set_user_class_setting") }}" method="post" x-data="{
-          llm_config_saved: {{ 'true' if class_row.openai_key else 'false' }},
+          llm_config_saved: {{ 'true' if class_row.llm_api_key else 'false' }},
           llm_test_loading: false,
           llm_test_result: null,
           dialog: document.querySelector('#llm_test_dialog'),
@@ -143,16 +143,16 @@ input[type='radio'] {
             <p class="help-text">If blank, users in this class will not be able to submit queries.</p>
           </div>
           <div class="field-body">
-            {% if class_row.openai_key %}
+            {% if class_row.llm_api_key %}
               <div style="margin-top: 0.375rem;" x-data="{show_confirm: false}">
-                {{ "*" * 20 + class_row.openai_key[-4:] }}
-                <button class="button is-danger is-small ml-3" type="button" @click="show_confirm=true" x-bind:disabled="show_confirm"><span class="delete mr-2"></span> Clear OpenAI Key</button>
-                <button class="button is-danger is-small" type="submit" name="clear_openai_key" x-show="show_confirm"><b>Confirm</b>&nbsp;clear OpenAI Key</button>
+                {{ "*" * 20 + class_row.llm_api_key[-4:] }}
+                <button class="button is-danger is-small ml-3" type="button" @click="show_confirm=true" x-bind:disabled="show_confirm"><span class="delete mr-2"></span> Clear API Key</button>
+                <button class="button is-danger is-small" type="submit" name="clear_llm_api_key" x-show="show_confirm"><b>Confirm</b>&nbsp;clear API Key</button>
               </div>
             {% else %}
               <div class="field">
                 <div class="control">
-                  <input class="input" name="openai_key">
+                  <input class="input" name="llm_api_key">
                 </div>
               </div>
             {% endif %}

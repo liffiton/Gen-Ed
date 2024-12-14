@@ -440,8 +440,8 @@ def consumer_update() -> Response:
 
     if consumer_id is None:
         # Adding a new consumer
-        cur = db.execute("INSERT INTO consumers (lti_consumer, lti_secret, openai_key, model_id) VALUES (?, ?, ?, ?)",
-                         [request.form['lti_consumer'], request.form['lti_secret'], request.form['openai_key'], request.form['model_id']])
+        cur = db.execute("INSERT INTO consumers (lti_consumer, lti_secret, llm_api_key, model_id) VALUES (?, ?, ?, ?)",
+                         [request.form['lti_consumer'], request.form['lti_secret'], request.form['llm_api_key'], request.form['model_id']])
         consumer_id = cur.lastrowid
         db.commit()
         flash(f"Consumer {request.form['lti_consumer']} created.")
@@ -451,8 +451,8 @@ def consumer_update() -> Response:
         db.commit()
         flash("Consumer secret cleared.")
 
-    elif 'clear_openai_key' in request.form:
-        db.execute("UPDATE consumers SET openai_key='' WHERE id=?", [consumer_id])
+    elif 'clear_llm_api_key' in request.form:
+        db.execute("UPDATE consumers SET llm_api_key='' WHERE id=?", [consumer_id])
         db.commit()
         flash("Consumer API key cleared.")
 
@@ -460,8 +460,8 @@ def consumer_update() -> Response:
         # Updating
         if request.form.get('lti_secret', ''):
             db.execute("UPDATE consumers SET lti_secret=? WHERE id=?", [request.form['lti_secret'], consumer_id])
-        if request.form.get('openai_key', ''):
-            db.execute("UPDATE consumers SET openai_key=? WHERE id=?", [request.form['openai_key'], consumer_id])
+        if request.form.get('llm_api_key', ''):
+            db.execute("UPDATE consumers SET llm_api_key=? WHERE id=?", [request.form['llm_api_key'], consumer_id])
         if request.form.get('model_id', ''):
             db.execute("UPDATE consumers SET model_id=? WHERE id=?", [request.form['model_id'], consumer_id])
         db.commit()

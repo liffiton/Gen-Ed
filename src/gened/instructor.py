@@ -141,8 +141,8 @@ def set_user_class_setting() -> Response:
     cur_class = get_auth_class()
     class_id = cur_class.class_id
 
-    if 'clear_openai_key' in request.form:
-        db.execute("UPDATE classes_user SET openai_key='' WHERE class_id=?", [class_id])
+    if 'clear_llm_api_key' in request.form:
+        db.execute("UPDATE classes_user SET llm_api_key='' WHERE class_id=?", [class_id])
         db.commit()
         flash("Class API key cleared.", "success")
 
@@ -163,8 +163,8 @@ def set_user_class_setting() -> Response:
         flash("Class access configuration updated.", "success")
 
     elif 'save_llm_form' in request.form:
-        if 'openai_key' in request.form:
-            db.execute("UPDATE classes_user SET openai_key=? WHERE class_id=?", [request.form['openai_key'], class_id])
+        if 'llm_api_key' in request.form:
+            db.execute("UPDATE classes_user SET llm_api_key=? WHERE class_id=?", [request.form['llm_api_key'], class_id])
         db.execute("UPDATE classes_user SET model_id=? WHERE class_id=?", [request.form['model_id'], class_id])
         db.commit()
         flash("Class language model configuration updated.", "success")

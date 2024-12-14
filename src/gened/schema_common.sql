@@ -30,7 +30,7 @@ CREATE TABLE consumers (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     lti_consumer  TEXT NOT NULL UNIQUE,
     lti_secret    TEXT,
-    openai_key    TEXT,
+    llm_api_key   TEXT,
     model_id      INTEGER NOT NULL,
     created       DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(model_id) REFERENCES models(id)
@@ -114,7 +114,7 @@ CREATE UNIQUE INDEX  classes_lti_by_consumer_context ON classes_lti(lti_consumer
 -- Classes created by a user, accessed via class link
 CREATE TABLE classes_user (
     class_id         INTEGER PRIMARY KEY,  -- references classes.id
-    openai_key       TEXT,
+    llm_api_key      TEXT,
     model_id         INTEGER NOT NULL,
     link_ident       TEXT NOT NULL UNIQUE,  -- random (unguessable) identifier used in access/registration link for this class
     link_reg_expires DATE NOT NULL,  -- registration active for the class link if this date is in the future (anywhere on Earth)

@@ -63,20 +63,20 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       <div class="field is-horizontal">
         <div class="field-label is-normal">
-          <label class="label" for="openai_key">openai_key:</label>
-          <p class="help-text">A shared secret used by this application to authenticate itself with the OpenAI API.  If blank, users from this consumer will not be able to submit queries.</p>
+          <label class="label" for="llm_api_key">llm_api_key:</label>
+          <p class="help-text">A shared secret used by this application to authenticate itself with the LLM API.  If blank, users from this consumer will not be able to submit queries.</p>
         </div>
         <div class="field-body">
-          {% if consumer and consumer.openai_key %}
+          {% if consumer and consumer.llm_api_key %}
             <div style="margin-top: 0.375rem;" x-data="{show_confirm: false}">
-              {{ "*" * 20 + consumer.openai_key[-4:] }}
-              <button class="button is-danger is-small ml-3" type="button" @click="show_confirm=true" x-bind:disabled="show_confirm"><span class="delete mr-2"></span> Clear openai_key</button>
-              <button class="button is-danger is-small" type="submit" name="clear_openai_key" x-show="show_confirm"><b>Confirm</b>&nbsp;clear openai_key</button>
+              {{ "*" * 20 + consumer.llm_api_key[-4:] }}
+              <button class="button is-danger is-small ml-3" type="button" @click="show_confirm=true" x-bind:disabled="show_confirm"><span class="delete mr-2"></span> Clear API key</button>
+              <button class="button is-danger is-small" type="submit" name="clear_llm_api_key" x-show="show_confirm"><b>Confirm</b>&nbsp;clear API key</button>
             </div>
           {% else %}
             <div class="field">
               <div class="control">
-                <input class="input" name="openai_key" id="openai_key">
+                <input class="input" name="llm_api_key" id="llm_api_key">
               </div>
             </div>
           {% endif %}

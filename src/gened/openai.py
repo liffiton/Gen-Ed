@@ -89,7 +89,7 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLMConfig:
         class_row = db.execute("""
             SELECT
                 classes.enabled,
-                COALESCE(consumers.openai_key, classes_user.openai_key) AS openai_key,
+                COALESCE(consumers.llm_api_key, classes_user.llm_api_key) AS llm_api_key,
                 COALESCE(consumers.model_id, classes_user.model_id) AS _model_id,
                 models.model
             FROM classes
@@ -107,10 +107,10 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLMConfig:
         if not class_row['enabled']:
             raise ClassDisabledError
 
-        if not class_row['openai_key']:
+        if not class_row['llm_api_key']:
             raise NoKeyFoundError
 
-        api_key = class_row['openai_key']
+        api_key = class_row['llm_api_key']
         return LLMConfig(
             api_key=api_key,
             model=class_row['model'],

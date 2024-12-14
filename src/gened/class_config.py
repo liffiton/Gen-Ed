@@ -46,7 +46,7 @@ def config_form() -> str:
     class_id = cur_class.class_id
 
     class_row = db.execute("""
-        SELECT classes.id, classes.enabled, classes_user.link_ident, classes_user.link_reg_expires, classes_user.openai_key, classes_user.model_id
+        SELECT classes.id, classes.enabled, classes_user.link_ident, classes_user.link_reg_expires, classes_user.llm_api_key, classes_user.model_id
         FROM classes
         LEFT JOIN classes_user
           ON classes.id = classes_user.class_id

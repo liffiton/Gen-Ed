@@ -95,7 +95,7 @@ def get_or_create_lti_class(lti_consumer_id: int, lti_context_id: str, class_nam
         return class_id
 
 
-def create_user_class(user_id: int, class_name: str, openai_key: str) -> int:
+def create_user_class(user_id: int, class_name: str, llm_api_key: str) -> int:
     """
     Create a user class.  Assign the given user an 'instructor' role in it.
 
@@ -105,10 +105,10 @@ def create_user_class(user_id: int, class_name: str, openai_key: str) -> int:
       id of the user creating the course -- will be given the instructor role
     class_name : str
       class name from the user
-    openai_key : str
-      OpenAI key from the user.  This is not strictly required, as a class can
+    llm_api_key : str
+      LLM API key from the user.  This is not strictly required, as a class can
       exist with no key assigned, but it is clearer for the user if we require
-      an OpenAI key up front.
+      an API key up front.
 
     Returns
     -------
@@ -133,8 +133,8 @@ def create_user_class(user_id: int, class_name: str, openai_key: str) -> int:
     ).fetchone()['id']
 
     db.execute(
-        "INSERT INTO classes_user (class_id, creator_user_id, link_ident, openai_key, link_reg_expires, model_id) VALUES (?, ?, ?, ?, ?, ?)",
-        [class_id, user_id, link_ident, openai_key, dt.date.min, model_id]
+        "INSERT INTO classes_user (class_id, creator_user_id, link_ident, llm_api_key, link_reg_expires, model_id) VALUES (?, ?, ?, ?, ?, ?)",
+        [class_id, user_id, link_ident, llm_api_key, dt.date.min, model_id]
     )
     db.execute(
         "INSERT INTO roles (user_id, class_id, role) VALUES (?, ?, ?)",
@@ -211,9 +211,9 @@ def create_class() -> Response:
     assert user_id is not None
 
     class_name = request.form['class_name']
-    openai_key = request.form['openai_key']
+    llm_api_key = request.form['llm_api_key']
 
-    class_id = create_user_class(user_id, class_name, openai_key)
+    class_id = create_user_class(user_id, class_name, llm_api_key)
     success = switch_class(class_id)
     assert success
 

@@ -66,7 +66,7 @@ def test_model_used_in_class_creation(app, client, auth):
     auth.login()
     response = client.post(
         "/classes/create/",
-        data={'class_name': 'Test Class', 'openai_key': 'test_key'}
+        data={'class_name': 'Test Class', 'llm_api_key': 'test_key'}
     )
     assert response.status_code == 302
 

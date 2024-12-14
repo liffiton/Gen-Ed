@@ -2,7 +2,7 @@
 --
 -- SPDX-License-Identifier: AGPL-3.0-only
 
-INSERT INTO consumers (id, lti_consumer, lti_secret, openai_key, model_id)
+INSERT INTO consumers (id, lti_consumer, lti_secret, llm_api_key, model_id)
 VALUES
     (1, 'consumer.domain', 'seecrits1', 'keeeez1', 1),
     (2, 'consumer.otherdomain', 'seecrits2', 'keeeez2', 2);
@@ -41,7 +41,7 @@ VALUES
     (22, 2, null, 'ltiuser2@domain.edu', null, false, false, 0),
     (23, 2, null, 'ltiuser3@domain.edu', null, false, false, 0);
 
-INSERT INTO classes_user (class_id, openai_key, link_ident, link_reg_expires, creator_user_id, model_id)
+INSERT INTO classes_user (class_id, llm_api_key, link_ident, link_reg_expires, creator_user_id, model_id)
 VALUES
     (2, 'nope', 'reg_disabled', '0001-01-01', 11, 1),
     (3, 'nope', 'reg_expired', '2023-01-01', 11, 2),

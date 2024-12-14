@@ -40,7 +40,7 @@ def test_user_class_link(auth, client, link_name, status, result):
 def _create_user_class(client, class_name):
     response = client.post(
         "/classes/create/",
-        data={'class_name': class_name, 'openai_key': "none"}
+        data={'class_name': class_name, 'llm_api_key': "none"}
     )
 
     assert response.status_code == 302

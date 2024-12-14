@@ -135,7 +135,7 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
     # Required variables:
     #  - SECRET_KEY: used by Flask to sign session cookies
     #  - OPENAI_API_KEY: the "system" API key used in certain situations
-    #  - SYSTEM_MODEL: OpenAI model string used for 'system' completions
+    #  - SYSTEM_MODEL: LLM model string used for 'system' completions
     #  - DEFAULT_CLASS_MODEL_SHORTNAME: shortname of model to use as default for new classes
     #    (see models table in db)
     for varname in ["SECRET_KEY", "OPENAI_API_KEY", "SYSTEM_MODEL", "DEFAULT_CLASS_MODEL_SHORTNAME"]:
