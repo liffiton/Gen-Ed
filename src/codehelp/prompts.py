@@ -4,7 +4,8 @@
 
 
 from jinja2 import Environment
-from openai.types.chat import ChatCompletionMessageParam
+
+from gened.llm import ChatMessage
 
 jinja_env = Environment(  # noqa: S701 - not worried about XSS in LLM prompts
     trim_blocks=True,
@@ -66,7 +67,7 @@ How would you respond to the student to guide them and explain concepts without 
 """)
 
 
-def make_main_prompt(code: str, error: str, issue: str, context: str | None = None) -> list[ChatCompletionMessageParam]:
+def make_main_prompt(code: str, error: str, issue: str, context: str | None = None) -> list[ChatMessage]:
     error = error.rstrip()
     issue = issue.rstrip()
     if error and not issue:
@@ -89,7 +90,7 @@ Please assess their query and tell them whether it contains sufficient detail fo
 """)
 
 
-def make_sufficient_prompt(code: str, error: str, issue: str, context: str | None) -> list[ChatCompletionMessageParam]:
+def make_sufficient_prompt(code: str, error: str, issue: str, context: str | None) -> list[ChatMessage]:
     error = error.rstrip()
     issue = issue.rstrip()
     if error and not issue:
@@ -112,9 +113,9 @@ Rewritten:
 """
 
 
-def make_topics_prompt(code: str, error: str, issue: str, context: str | None, response_text: str) -> list[ChatCompletionMessageParam]:
+def make_topics_prompt(code: str, error: str, issue: str, context: str | None, response_text: str) -> list[ChatMessage]:
     sys_job = "to respond to a student's query as a helpful expert teacher"
-    messages : list[ChatCompletionMessageParam] = [
+    messages : list[ChatMessage] = [
         {'role': 'system', 'content': common_template_sys1.render(job=sys_job, code=code, error=error, issue=issue, context=context)},
         {'role': 'user',   'content': common_template_user.render(code=code, error=error, issue=issue)},
         {'role': 'assistant', 'content': response_text},

@@ -10,7 +10,7 @@ from werkzeug.wrappers.response import Response
 
 from gened.auth import class_enabled_required, get_auth, login_required
 from gened.db import get_db
-from gened.openai import LLMConfig, get_completion, with_llm
+from gened.llm import LLM, with_llm
 from gened.queries import get_history, get_query
 
 from . import prompts
@@ -43,7 +43,7 @@ def help_view(query_id: int) -> str:
     return render_template("help_view.html", query=query_row, responses=responses, history=history)
 
 
-async def run_query_prompts(llm: LLMConfig, assignment: str, topics: str) -> tuple[list[dict[str, str]], dict[str, str]]:
+async def run_query_prompts(llm: LLM, assignment: str, topics: str) -> tuple[list[dict[str, str]], dict[str, str]]:
     ''' Run the given query against the coding help system of prompts.
 
     Returns a tuple containing:
@@ -51,8 +51,7 @@ async def run_query_prompts(llm: LLMConfig, assignment: str, topics: str) -> tup
       2) A dictionary of response text, potentially including the key 'main'.
     '''
     task_main = asyncio.create_task(
-        get_completion(
-            llm,
+        llm.get_completion(
             prompt=prompts.make_main_prompt(assignment, topics),
         )
     )
@@ -70,7 +69,7 @@ async def run_query_prompts(llm: LLMConfig, assignment: str, topics: str) -> tup
     return responses, {'main': response_txt}
 
 
-def run_query(llm: LLMConfig, assignment: str, topics: str) -> int:
+def run_query(llm: LLM, assignment: str, topics: str) -> int:
     query_id = record_query(assignment, topics)
 
     responses, texts = asyncio.run(run_query_prompts(llm, assignment, topics))
@@ -110,7 +109,7 @@ def record_response(query_id: int, responses: list[dict[str, str]], texts: dict[
 @login_required
 @class_enabled_required
 @with_llm(use_system_key=True)
-def help_request(llm: LLMConfig) -> Response:
+def help_request(llm: LLM) -> Response:
     assignment = request.form["assignment"]
     topics = request.form["topics"]
 

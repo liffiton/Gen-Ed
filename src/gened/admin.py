@@ -28,7 +28,7 @@ from werkzeug.wrappers.response import Response
 from .auth import admin_required
 from .csv import csv_response
 from .db import backup_db, get_db
-from .openai import get_models
+from .llm import get_models
 
 bp = Blueprint('admin', __name__, url_prefix="/admin", template_folder='templates')
 

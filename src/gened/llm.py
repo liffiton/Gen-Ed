@@ -6,50 +6,56 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import wraps
 from sqlite3 import Row
-from typing import ParamSpec, TypeAlias, TypeVar
+from typing import Literal, ParamSpec, TypeAlias, TypeVar
 
-import openai
 from flask import current_app, flash, render_template
-from openai import AsyncOpenAI
-from openai.types.chat import ChatCompletionMessageParam
 
 from .auth import get_auth
 from .db import get_db
+from .openai_client import OpenAIChatMessage, OpenAIClient
+
+LLMProvider: TypeAlias = Literal['google', 'openai']
+ChatMessage: TypeAlias = OpenAIChatMessage
+
+
+def _get_client(provider: LLMProvider, model: str, api_key: str) -> OpenAIClient:
+    """ Return a configured OpenAI client object (using OpenAI-compatible
+        endpoints for other providers) """
+    match provider:
+        case 'google':
+            # https://ai.google.dev/gemini-api/docs/openai
+            return OpenAIClient(model, api_key, base_url="https://generativelanguage.googleapis.com/v1beta/openai/")
+        case 'openai':
+            return OpenAIClient(model, api_key)
+
+
+@dataclass
+class LLM:
+    provider: LLMProvider
+    model: str
+    api_key: str
+    tokens_remaining: int | None = None  # None if current user is not using tokens
+    _client: OpenAIClient | None = field(default=None, init=False, repr=False)  # Instantiated only when needed
+
+    async def get_completion(self, prompt: str | None = None, messages: list[OpenAIChatMessage] | None = None) -> tuple[dict[str, str], str]:
+        """ Lazily instantiate the LLM client object only when used. """
+        if self._client is None:
+            self._client = _get_client(self.provider, self.model, self.api_key)
+        return await self._client.get_completion(prompt, messages)
 
 
 class ClassDisabledError(Exception):
     pass
 
-
 class NoKeyFoundError(Exception):
     pass
-
 
 class NoTokensError(Exception):
     pass
 
-
-LLMClient: TypeAlias = AsyncOpenAI
-
-
-@dataclass
-class LLMConfig:
-    api_key: str
-    model: str
-    tokens_remaining: int | None = None  # None if current user is not using tokens
-    _client: LLMClient | None = field(default=None, init=False, repr=False)
-
-    @property
-    def client(self) -> LLMClient:
-        """ Lazy load the LLM client object only when requested. """
-        if self._client is None:
-            self._client = AsyncOpenAI(api_key=self.api_key)
-        return self._client
-
-
-def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLMConfig:
-    ''' Get model details and an initialized LLM API client based on the
-    arguments and the current user and class.
+def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLM:
+    ''' Get an LLM object configured based on the arguments and the current
+    context (user and class).
 
     Procedure, depending on arguments, user, and class:
       1) If use_system_key is True, the system API key is always used with no checks.
@@ -64,19 +70,20 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLMConfig:
              Otherwise, their token count is decremented.
 
     Returns:
-      LLMConfig with an API client and model name.
+      LLM object.
 
     Raises various exceptions in cases where a key and model are not available.
     '''
     db = get_db()
 
-    def make_system_client(tokens_remaining: int | None = None) -> LLMConfig:
+    def make_system_client(tokens_remaining: int | None = None) -> LLM:
         """ Factory function to initialize a default client (using the system key)
             only if/when needed.
         """
         system_key = current_app.config["OPENAI_API_KEY"]
         system_model = current_app.config["SYSTEM_MODEL"]
-        return LLMConfig(
+        return LLM(
+            provider='openai',
             api_key=system_key,
             model=system_model,
             tokens_remaining=tokens_remaining,
@@ -113,9 +120,9 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLMConfig:
         if not class_row['llm_api_key']:
             raise NoKeyFoundError
 
-        api_key = class_row['llm_api_key']
-        return LLMConfig(
-            api_key=api_key,
+        return LLM(
+            provider='openai',
+            api_key=class_row['llm_api_key'],
             model=class_row['model'],
         )
 
@@ -194,63 +201,3 @@ def get_models() -> list[Row]:
     db = get_db()
     models = db.execute("SELECT * FROM models WHERE active ORDER BY id ASC").fetchall()
     return models
-
-
-async def get_completion(llm: LLMConfig, prompt: str | None = None, messages: list[ChatCompletionMessageParam] | None = None) -> tuple[dict[str, str], str]:
-    '''
-    model can be any valid OpenAI model name that can be used via the chat completion API.
-
-    Returns:
-       - A tuple containing:
-           - An OpenAI response object
-           - The response text (stripped)
-    '''
-    common_error_text = "Error ({error_type}).  Something went wrong with this query.  The error has been logged, and we'll work on it.  For now, please try again."
-    try:
-        if messages is None:
-            assert prompt is not None
-            messages = [{"role": "user", "content": prompt}]
-
-        response = await llm.client.chat.completions.create(
-            model=llm.model,
-            messages=messages,
-            temperature=0.25,
-            max_tokens=1000,
-        )
-
-        choice = response.choices[0]
-        response_txt = choice.message.content or ""
-
-        if choice.finish_reason == "length":  # "length" if max_tokens reached
-            response_txt += "\n\n[error: maximum length exceeded]"
-
-        return response.model_dump(), response_txt.strip()
-
-    except openai.APITimeoutError as e:
-        err_str = str(e)
-        response_txt = "Error (APITimeoutError).  The system timed out producing the response.  Please try again."
-        current_app.logger.error(f"OpenAI Timeout: {e}")
-    except openai.RateLimitError as e:
-        err_str = str(e)
-        if "exceeded your current quota" in err_str:
-            response_txt = "Error (RateLimitError).  The API key for this class has exceeded its current quota (https://platform.openai.com/docs/guides/rate-limits/usage-tiers).  The instructor should check their API plan and billing details.  Possibly the key is in the free tier, which does not cover the models used here."
-        else:
-            response_txt = "Error (RateLimitError).  The system is receiving too many requests right now.  Please try again in one minute."
-        current_app.logger.error(f"OpenAI RateLimitError: {e}")
-    except openai.AuthenticationError as e:
-        err_str = str(e)
-        response_txt = "Error (AuthenticationError).  The API key set by the instructor for this class is invalid.  The instructor needs to provide a valid API key for this application to work."
-        current_app.logger.error(f"OpenAI AuthenticationError: {e}")
-    except openai.BadRequestError as e:
-        err_str = str(e)
-        if "maximum context length" in err_str:
-            response_txt = "Error (BadRequestError).  Your query is too long for the model to process.  Please reduce the length of your input."
-        else:
-            response_txt = common_error_text.format(error_type='BadRequestError')
-        current_app.logger.error(f"OpenAI BadRequestError: {e}")
-    except openai.APIError as e:
-        err_str = str(e)
-        response_txt = common_error_text.format(error_type='APIError')
-        current_app.logger.error(f"Exception (OpenAI {type(e).__name__}, but I don't handle that specifically yet): {e}")
-
-    return {'error': err_str}, response_txt

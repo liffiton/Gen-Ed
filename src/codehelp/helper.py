@@ -27,7 +27,7 @@ from gened.auth import (
 )
 from gened.classes import switch_class
 from gened.db import get_db
-from gened.openai import LLMConfig, get_completion, with_llm
+from gened.llm import LLM, with_llm
 from gened.queries import get_history, get_query
 from gened.testing.mocks import mock_async_completion
 
@@ -49,7 +49,7 @@ bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='template
 @login_required
 @class_enabled_required
 @with_llm(spend_token=False)  # get information on the selected LLM, tokens remaining
-def help_form(llm: LLMConfig, query_id: int | None = None, class_id: int | None = None, ctx_name: str | None = None) -> str | Response:
+def help_form(llm: LLM, query_id: int | None = None, class_id: int | None = None, ctx_name: str | None = None) -> str | Response:
     db = get_db()
     auth = get_auth()
 
@@ -122,7 +122,7 @@ def help_view(query_id: int) -> str | Response:
     return render_template("help_view.html", query=query_row, responses=responses, history=history, topics=topics)
 
 
-async def run_query_prompts(llm: LLMConfig, context: ContextConfig | None, code: str, error: str, issue: str) -> tuple[list[dict[str, str]], dict[str, str]]:
+async def run_query_prompts(llm: LLM, context: ContextConfig | None, code: str, error: str, issue: str) -> tuple[list[dict[str, str]], dict[str, str]]:
     ''' Run the given query against the coding help system of prompts.
 
     Returns a tuple containing:
@@ -133,14 +133,12 @@ async def run_query_prompts(llm: LLMConfig, context: ContextConfig | None, code:
 
     # Launch the "sufficient detail" check concurrently with the main prompt to save time
     task_main = asyncio.create_task(
-        get_completion(
-            llm,
+        llm.get_completion(
             messages=prompts.make_main_prompt(code, error, issue, context_str),
         )
     )
     task_sufficient = asyncio.create_task(
-        get_completion(
-            llm,
+        llm.get_completion(
             messages=prompts.make_sufficient_prompt(code, error, issue, context_str),
         )
     )
@@ -155,7 +153,7 @@ async def run_query_prompts(llm: LLMConfig, context: ContextConfig | None, code:
     if "```" in response_txt or "should look like" in response_txt or "should look something like" in response_txt:
         # That's probably too much code.  Let's clean it up...
         cleanup_prompt = prompts.make_cleanup_prompt(response_text=response_txt)
-        cleanup_response, cleanup_response_txt = await get_completion(llm, prompt=cleanup_prompt)
+        cleanup_response, cleanup_response_txt = await llm.get_completion(prompt=cleanup_prompt)
         responses.append(cleanup_response)
         response_txt = cleanup_response_txt
 
@@ -174,7 +172,7 @@ async def run_query_prompts(llm: LLMConfig, context: ContextConfig | None, code:
         return responses, {'insufficient': response_sufficient_txt, 'main': response_txt}
 
 
-def run_query(llm: LLMConfig, context: ContextConfig | None, code: str, error: str, issue: str) -> int:
+def run_query(llm: LLM, context: ContextConfig | None, code: str, error: str, issue: str) -> int:
     query_id = record_query(context, code, error, issue)
 
     responses, texts = asyncio.run(run_query_prompts(llm, context, code, error, issue))
@@ -223,7 +221,7 @@ def record_response(query_id: int, responses: list[dict[str, str]], texts: dict[
 @login_required
 @class_enabled_required
 @with_llm(spend_token=True)
-def help_request(llm: LLMConfig) -> Response:
+def help_request(llm: LLM) -> Response:
     if 'context' in request.form:
         context = get_context_by_name(request.form['context'])
         if context is None:
@@ -244,8 +242,8 @@ def help_request(llm: LLMConfig) -> Response:
 
 @bp.route("/load_test", methods=["POST"])
 @admin_required
-@with_llm(use_system_key=True)  # get a populated LLMConfig; not actually used (API is mocked)
-def load_test(llm: LLMConfig) -> Response:
+@with_llm(use_system_key=True)  # get a populated LLM; not actually used (API is mocked)
+def load_test(llm: LLM) -> Response:
     # Require that we're logged in as the load_test admin user
     auth = get_auth()
     if auth.user is None or auth.user.display_name != 'load_test':
@@ -283,7 +281,7 @@ def post_helpful() -> str:
 @login_required
 @tester_required
 @with_llm(spend_token=False)
-def get_topics_html(llm: LLMConfig, query_id: int) -> str:
+def get_topics_html(llm: LLM, query_id: int) -> str:
     topics = get_topics(llm, query_id)
     if not topics:
         return render_template("topics_fragment.html", error=True)
@@ -295,12 +293,12 @@ def get_topics_html(llm: LLMConfig, query_id: int) -> str:
 @login_required
 @tester_required
 @with_llm(spend_token=False)
-def get_topics_raw(llm: LLMConfig, query_id: int) -> list[str]:
+def get_topics_raw(llm: LLM, query_id: int) -> list[str]:
     topics = get_topics(llm, query_id)
     return topics
 
 
-def get_topics(llm: LLMConfig, query_id: int) -> list[str]:
+def get_topics(llm: LLM, query_id: int) -> list[str]:
     query_row, responses = get_query(query_id)
 
     if not query_row or not responses or 'main' not in responses:
@@ -316,10 +314,7 @@ def get_topics(llm: LLMConfig, query_id: int) -> list[str]:
         responses['main']
     )
 
-    response, response_txt = asyncio.run(get_completion(
-        llm,
-        messages=messages,
-    ))
+    response, response_txt = asyncio.run(llm.get_completion(messages=messages))
 
     # Verify it is actually JSON
     # May be "Error (..." if an API error occurs, or every now and then may get "Here is the JSON: ..." or similar.

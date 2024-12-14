@@ -15,7 +15,6 @@ from flask import (
     request,
     url_for,
 )
-from openai.types.chat import ChatCompletionMessageParam
 from werkzeug.wrappers.response import Response
 
 from gened.admin import bp as bp_admin
@@ -24,7 +23,7 @@ from gened.auth import get_auth, login_required
 from gened.classes import switch_class
 from gened.db import get_db
 from gened.experiments import experiment_required
-from gened.openai import LLMConfig, get_completion, with_llm
+from gened.llm import LLM, ChatMessage, with_llm
 from gened.queries import get_query
 
 from . import prompts
@@ -93,7 +92,7 @@ def tutor_form(class_id: int | None = None, ctx_name: str | None = None) -> str 
 
 @bp.route("/chat/create", methods=["POST"])
 @with_llm()
-def start_chat(llm: LLMConfig) -> Response:
+def start_chat(llm: LLM) -> Response:
     topic = request.form['topic']
 
     if 'context' in request.form:
@@ -113,7 +112,7 @@ def start_chat(llm: LLMConfig) -> Response:
 
 @bp.route("/chat/create_from_query", methods=["POST"])
 @with_llm()
-def start_chat_from_query(llm: LLMConfig) -> Response:
+def start_chat_from_query(llm: LLM) -> Response:
     topic = request.form['topic']
 
     # build context from the specified query
@@ -176,7 +175,7 @@ def get_chat_history(limit: int = 10) -> list[Row]:
     return history
 
 
-def get_chat(chat_id: int) -> tuple[list[ChatCompletionMessageParam], str, str, str]:
+def get_chat(chat_id: int) -> tuple[list[ChatMessage], str, str, str]:
     db = get_db()
     auth = get_auth()
 
@@ -210,7 +209,7 @@ def get_chat(chat_id: int) -> tuple[list[ChatCompletionMessageParam], str, str, 
     return chat, topic, context_name, context_string
 
 
-def get_response(llm: LLMConfig, chat: list[ChatCompletionMessageParam]) -> tuple[dict[str, str], str]:
+def get_response(llm: LLM, chat: list[ChatMessage]) -> tuple[dict[str, str], str]:
     ''' Get a new 'assistant' completion for the specified chat.
 
     Parameters:
@@ -221,15 +220,12 @@ def get_response(llm: LLMConfig, chat: list[ChatCompletionMessageParam]) -> tupl
       1) A response object from the OpenAI completion (to be stored in the database).
       2) The response text.
     '''
-    response, text = asyncio.run(get_completion(
-        llm,
-        messages=chat,
-    ))
+    response, text = asyncio.run(llm.get_completion(messages=chat))
 
     return response, text
 
 
-def save_chat(chat_id: int, chat: list[ChatCompletionMessageParam]) -> None:
+def save_chat(chat_id: int, chat: list[ChatMessage]) -> None:
     db = get_db()
     db.execute(
         "UPDATE chats SET chat_json=? WHERE id=?",
@@ -238,7 +234,7 @@ def save_chat(chat_id: int, chat: list[ChatCompletionMessageParam]) -> None:
     db.commit()
 
 
-def run_chat_round(llm: LLMConfig, chat_id: int, message: str|None = None) -> None:
+def run_chat_round(llm: LLM, chat_id: int, message: str|None = None) -> None:
     # Get the specified chat
     try:
         chat, topic, context_name, context_string = get_chat(chat_id)
@@ -256,7 +252,7 @@ def run_chat_round(llm: LLMConfig, chat_id: int, message: str|None = None) -> No
 
     # Get a response (completion) from the API using an expanded version of the chat messages
     # Insert a system prompt beforehand and an internal monologue after to guide the assistant
-    expanded_chat : list[ChatCompletionMessageParam] = [
+    expanded_chat : list[ChatMessage] = [
         {'role': 'system', 'content': prompts.make_chat_sys_prompt(topic, context_string)},
         *chat,  # chat is a list; expand it here with *
         {'role': 'assistant', 'content': prompts.tutor_monologue},
@@ -274,7 +270,7 @@ def run_chat_round(llm: LLMConfig, chat_id: int, message: str|None = None) -> No
 
 @bp.route("/message", methods=["POST"])
 @with_llm()
-def new_message(llm: LLMConfig) -> Response:
+def new_message(llm: LLM) -> Response:
     chat_id = int(request.form["id"])
     new_msg = request.form["message"]
 

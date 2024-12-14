@@ -14,7 +14,7 @@ from flask import (
 
 from .auth import get_auth_class, instructor_required
 from .db import get_db
-from .openai import LLMConfig, get_completion, get_models, with_llm
+from .llm import LLM, get_models, with_llm
 from .tz import date_is_past
 
 bp = Blueprint('class_config', __name__, url_prefix="/instructor/config", template_folder='templates')
@@ -71,8 +71,8 @@ def config_form() -> str:
 
 @bp.route("/test_llm")
 @with_llm()
-def test_llm(llm: LLMConfig) -> str:
-    response, response_txt = asyncio.run(get_completion(llm, prompt="Please write 'OK'"))
+def test_llm(llm: LLM) -> str:
+    response, response_txt = asyncio.run(llm.get_completion(prompt="Please write 'OK'"))
 
     if 'error' in response:
         return f"<b>Error:</b><br>{response_txt}"
