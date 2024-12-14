@@ -19,8 +19,16 @@ ChatMessage: TypeAlias = OpenAIChatMessage
 
 
 def _get_client(provider: LLMProvider, model: str, api_key: str) -> OpenAIClient:
-    """ Return a configured OpenAI client object (using OpenAI-compatible
-        endpoints for other providers) """
+    """Create and configure an OpenAI-compatible client for the given provider.
+
+    Args:
+        provider: The LLM provider to use
+        model: The model identifier
+        api_key: The API key for authentication
+
+    Returns:
+        A configured OpenAIClient instance using the appropriate base URL for the provider
+    """
     match provider:
         case 'google':
             # https://ai.google.dev/gemini-api/docs/openai
@@ -31,6 +39,7 @@ def _get_client(provider: LLMProvider, model: str, api_key: str) -> OpenAIClient
 
 @dataclass
 class LLM:
+    """Manages access to language models with token tracking and lazy client initialization."""
     provider: LLMProvider
     model: str
     api_key: str
@@ -38,7 +47,12 @@ class LLM:
     _client: OpenAIClient | None = field(default=None, init=False, repr=False)  # Instantiated only when needed
 
     async def get_completion(self, prompt: str | None = None, messages: list[OpenAIChatMessage] | None = None) -> tuple[dict[str, str], str]:
-        """ Lazily instantiate the LLM client object only when used. """
+        """Get a completion from the language model.
+
+        The client is lazily instantiated on first use.
+
+        Delegates to OpenAIClient.get_completion() (see openai_client.py)
+        """
         if self._client is None:
             self._client = _get_client(self.provider, self.model, self.api_key)
         return await self._client.get_completion(prompt, messages)
@@ -197,7 +211,7 @@ def with_llm(*, use_system_key: bool = False, spend_token: bool = False) -> Call
 
 
 def get_models() -> list[Row]:
-    """Enumerate the models available in the database."""
+    """Get all active language models from the database."""
     db = get_db()
     models = db.execute("SELECT * FROM models WHERE active ORDER BY id ASC").fetchall()
     return models

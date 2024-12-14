@@ -7,7 +7,16 @@ OpenAIChatMessage: TypeAlias = openai.types.chat.ChatCompletionMessageParam
 
 
 class OpenAIClient:
+    """Client for interacting with OpenAI or compatible API endpoints."""
+
     def __init__(self, model: str, api_key: str, *, base_url: str | None = None):
+        """Initialize an OpenAI client.
+
+        Args:
+            model: The model identifier to use for completions
+            api_key: The API key for authentication
+            base_url: Optional base URL for non-OpenAI providers
+        """
         if base_url:
             self._client = openai.AsyncOpenAI(api_key=api_key, base_url=base_url)
         else:
@@ -15,12 +24,22 @@ class OpenAIClient:
         self._model = model
 
     async def get_completion(self, prompt: str | None = None, messages: list[OpenAIChatMessage] | None = None) -> tuple[dict[str, str], str]:
-        '''
+        """Get a completion from the LLM.
+
+        Args:
+            prompt: A single prompt string (converted to a message if provided)
+            messages: A list of chat messages in OpenAI format
+            (Only one of prompt or messages should be provided)
+
         Returns:
-        - A tuple containing:
-            - An OpenAI response object
+            A tuple containing:
+            - The raw API response as a dict
             - The response text (stripped)
-        '''
+
+        Note:
+            If an error occurs, the dict will contain an 'error' key with the error details,
+            and the text will contain a user-friendly error message.
+        """
         common_error_text = "Error ({error_type}).  Something went wrong with this query.  The error has been logged, and we'll work on it.  For now, please try again."
         try:
             if messages is None:
