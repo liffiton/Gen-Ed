@@ -5,7 +5,6 @@
 import csv
 import importlib
 import inspect
-import sys
 from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
@@ -47,7 +46,7 @@ def load_queries(file_path: Path) -> tuple[list[dict[str, Any]], Sequence[str]]:
 def get_available_prompts(app: str) -> dict[str, Callable[..., str | list[dict[str, str]]]]:
     prompts_module = importlib.import_module(f"{app}.prompts")
     prompt_functions = inspect.getmembers(prompts_module, inspect.isfunction)
-    return {name: func for name, func in prompt_functions}
+    return dict(prompt_functions)
 
 
 def load_prompt(app: str, prompt_func_name: str, csv_headers: Sequence[str]) -> tuple[Callable[..., str | list[dict[str, str]]], Sequence[str]]:
@@ -70,7 +69,7 @@ def reload_prompt(app: str, func_name: str) -> Callable[..., str | list[dict[str
     prompt_module = importlib.import_module(f"{app}.prompts")
     importlib.reload(prompt_module)
     new_prompt_func = getattr(prompt_module, func_name)
-    return new_prompt_func  # type: ignore
+    return new_prompt_func  # type: ignore [no-any-return]
 
 
 def make_prompt(prompt_func: Callable[..., str | list[dict[str, str]]], item: dict[str, Any]) -> list[dict[str, str]]:
