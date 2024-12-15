@@ -46,7 +46,7 @@ class LLM:
     tokens_remaining: int | None = None  # None if current user is not using tokens
     _client: OpenAIClient | None = field(default=None, init=False, repr=False)  # Instantiated only when needed
 
-    async def get_completion(self, prompt: str | None = None, messages: list[OpenAIChatMessage] | None = None, extra_args: dict[Any, Any] | None = None) -> tuple[dict[str, str], str]:
+    async def get_completion(self, prompt: str | None = None, messages: list[OpenAIChatMessage] | None = None, extra_args: dict[str, Any] | None = None) -> tuple[dict[str, str], str]:
         """Get a completion from the language model.
 
         The client is lazily instantiated on first use.

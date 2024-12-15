@@ -23,7 +23,7 @@ class OpenAIClient:
             self._client = openai.AsyncOpenAI(api_key=api_key)
         self._model = model
 
-    async def get_completion(self, prompt: str | None = None, messages: list[OpenAIChatMessage] | None = None, extra_args: dict[Any, Any] | None = None) -> tuple[dict[str, str], str]:
+    async def get_completion(self, prompt: str | None = None, messages: list[OpenAIChatMessage] | None = None, extra_args: dict[str, Any] | None = None) -> tuple[dict[str, str], str]:
         """Get a completion from the LLM.
 
         Args:
@@ -41,7 +41,12 @@ class OpenAIClient:
             and the text will contain a user-friendly error message.
         """
         common_error_text = "Error ({error_type}).  Something went wrong with this query.  The error has been logged, and we'll work on it.  For now, please try again."
-        extra_args = extra_args or {}
+        completion_args: dict[str, Any] = {
+            'temperature': 0.25,
+            'max_tokens': 1000,
+        }
+        if extra_args:
+            completion_args |= extra_args
 
         try:
             if messages is None:
@@ -51,9 +56,7 @@ class OpenAIClient:
             response = await self._client.chat.completions.create(
                 model=self._model,
                 messages=messages,
-                temperature=0.25,
-                max_tokens=1000,
-                **extra_args,
+                **completion_args
             )
 
             choice = response.choices[0]
