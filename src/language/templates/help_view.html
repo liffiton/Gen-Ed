@@ -1,0 +1,93 @@
+{#
+SPDX-FileCopyrightText: 2024 Mark Liffiton <liffiton@gmail.com>
+
+SPDX-License-Identifier: AGPL-3.0-only
+#}
+
+{% extends "base.html" %}
+{% from "recent_queries.html" import recent_queries %}
+
+{% block body %}
+<style type="text/css">
+.writing_error {
+  text-decoration: #fc7 wavy underline;
+  padding-left: 0.1em;
+  padding-right: 0.1em;
+  position: relative;
+}
+.writing_error .writing_error_details {
+  position: absolute;
+  top: 120%;
+  left: 1em;
+  z-index: 100;
+  border: 2px solid #fda;
+  background: #fec;
+  box-shadow: 3px 4px 8px 2px #0003;
+  padding: 0.25em 0.5em;
+  border-radius: 8px;
+  display: none;
+}
+.writing_error .writing_error_details li:before {
+  content: "- ";
+}
+.writing_error .writing_error_details li {
+  list-style: none;
+}
+.writing_error:hover, .writing_error:focus {
+  background: #fda5;
+  border-radius: 5px;
+}
+.writing_error:hover .writing_error_details, .writing_error:focus .writing_error_details {
+  display: block;
+}
+</style>
+<div class="columns is-desktop is-gapless">
+  <div class="column is-three-quarters-desktop">
+    <section class="section">
+    {% if query %}
+
+      <div class="container content">
+        <h2 class="title is-size-4">Writing Submission</h2>
+        {% if auth.user_id != query.user_id %}
+          <p>
+            <label class="label">User:</label>
+            {{ query.display_name }}
+          </p>
+        {% endif %}
+
+        <p>
+          <label class="label">When:</label>
+          {{ query.query_time | localtime }}
+        </p>
+
+        {% if 'error' in responses %}
+          <div class="notification is-danger">
+            {{ responses['error'] | markdown }}
+          </div>
+        {% endif %}
+        {% if marked_up %}
+          <p><em>Issues are underlined.  Hover or tap each for details.</em></p>
+          <span class="is-size-4">
+            {{ marked_up }}
+          </span>
+        {% endif %}
+      </div>
+
+      <div class="container mt-6">
+        <a href="{{ url_for('helper.help_form') }}" class="button is-link is-outlined is-rounded p-2 ml-1 mr-1" style="vertical-align: baseline; height: 2rem;">Start again</a>
+        or
+        <a href="{{ url_for('helper.help_form', query_id=query.id) }}" class="button is-link is-outlined is-rounded p-2 ml-1 mr-1" style="vertical-align: baseline; height: 2rem;">Retry this submission</a>
+      </div>
+
+      {% endif %}
+      </section>
+
+  </div>
+
+  <div class="column has-background-light">
+    {{ recent_queries(history) }}
+  </div>
+
+</div>
+
+{% endblock %}

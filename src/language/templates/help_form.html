@@ -1,0 +1,54 @@
+{#
+SPDX-FileCopyrightText: 2024 Mark Liffiton <liffiton@gmail.com>
+
+SPDX-License-Identifier: AGPL-3.0-only
+#}
+
+{% extends "base.html" %}
+{% from "recent_queries.html" import recent_queries %}
+
+{% block body %}
+<div class="columns is-desktop is-gapless">
+  <div class="column is-three-quarters-desktop">
+    <section class="section">
+
+    <div class="container">
+      <div class="content">
+        <h1 class="title">Check Writing</h1>
+        <p>Enter your writing to be checked here.</p>
+      </div>
+
+      {# debounce on the submit handler so that the form's actual submit fires *before* the form elements are disabled #}
+      <form class="wide-labels" action="{{url_for('helper.help_request')}}" method="post" x-data="{loading: false}" x-on:pageshow.window="loading = false" x-on:submit.debounce.10ms="loading = true">
+
+      <div class="field">
+        <div class="control">
+          <textarea class="textarea" rows=10 name="writing" id="writing" x-bind:disabled="loading" rows=10 required>{{ query.writing }}</textarea>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="control">
+          <button
+            class="button is-link"
+            x-bind:class="loading ? 'is-loading' : ''"
+            type="submit" >
+          Submit Request
+          </button>
+        </div>
+      </div>
+
+    </form>
+    </div>
+
+    </section>
+
+  </div>
+
+  <div class="column has-background-light">
+    {{ recent_queries(history) }}
+  </div>
+
+</div>
+
+{% endblock %}
