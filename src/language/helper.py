@@ -46,6 +46,10 @@ def insert_corrections_html(original: str, errors: list[ErrorSet]) -> str:
     # escape user inputs now, since we will be adding HTML soon
     jinja_escape = current_app.jinja_env.filters['e']
     original = jinja_escape(original)
+
+    if not errors:
+        return original
+
     error_mapping = {jinja_escape(item['original']): [jinja_escape(x) for x in item['error_types']] for item in errors}
 
     # Escape substrings to safely use them in regex
