@@ -6,7 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import wraps
 from sqlite3 import Row
-from typing import Literal, ParamSpec, TypeAlias, TypeVar
+from typing import Any, Literal, ParamSpec, TypeAlias, TypeVar
 
 from flask import current_app, flash, render_template
 
@@ -46,7 +46,7 @@ class LLM:
     tokens_remaining: int | None = None  # None if current user is not using tokens
     _client: OpenAIClient | None = field(default=None, init=False, repr=False)  # Instantiated only when needed
 
-    async def get_completion(self, prompt: str | None = None, messages: list[OpenAIChatMessage] | None = None) -> tuple[dict[str, str], str]:
+    async def get_completion(self, prompt: str | None = None, messages: list[OpenAIChatMessage] | None = None, extra_args: dict[Any, Any] | None = None) -> tuple[dict[str, str], str]:
         """Get a completion from the language model.
 
         The client is lazily instantiated on first use.
@@ -55,7 +55,7 @@ class LLM:
         """
         if self._client is None:
             self._client = _get_client(self.provider, self.model, self.api_key)
-        return await self._client.get_completion(prompt, messages)
+        return await self._client.get_completion(prompt, messages, extra_args)
 
 
 class ClassDisabledError(Exception):
