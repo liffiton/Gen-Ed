@@ -77,7 +77,6 @@ def help_view(query_id: int) -> str:
     history = get_history()
 
     if 'main' in responses:
-        print(responses['main'])
         response_data = json.loads(responses['main'])
         marked_up = insert_corrections_html(query_row['writing'], response_data['errors'])
     else:
