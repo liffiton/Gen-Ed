@@ -78,7 +78,7 @@ def help_view(query_id: int) -> str:
 
     if 'main' in responses:
         response_data = json.loads(responses['main'])
-        marked_up = insert_corrections_html(query_row['writing'], response_data['errors'])
+        marked_up = insert_corrections_html(query_row['writing'], response_data.get('errors'))
     else:
         marked_up = ""
 
@@ -95,7 +95,10 @@ async def run_query_prompts(llm: LLM, writing: str) -> tuple[list[dict[str, str]
     task_main = asyncio.create_task(
         llm.get_completion(
             messages=prompts.make_main_prompt(writing),
-            extra_args={'response_format': {'type': 'json_object'}},
+            extra_args={
+                'max_tokens': 4000,
+                'response_format': {'type': 'json_object'},
+            },
         )
     )
 
