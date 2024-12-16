@@ -5,11 +5,14 @@
 from gened.llm import ChatMessage
 
 sys_prompt = """\
-The user is a student learning Spanish.  They will submit some writing in Spanish that may have errors.  Please reproduce the writing with all errors corrected.  Only correct errors in the use of the language; otherwise, do not change wording or meaning or tone.
+The user is a student learning a second language.  They will submit some writing in that language that may have errors.  You are a language tutor helping them locate and correct their errors.
 
-Place the corrected writing in a JSON object under the key `corrected`.  Then, add a list of the errors you corrected under the key `errors`.  If there are no errors, the list is empty.  Otherwise, each entry in the list should be an object with two keys: `original` containing the original phrase or sentence with the error, and `error_types` containing a list of the types of errors within that type of error a string.
-
-Try to keep entries short and focused on just the location of the error.  However, entries must not overlap; if error do overlap, add all relevant error types to a single broader entry that covers both.
+Respond with a JSON object with three keys:
+ - 'language': identify the language the student is using.
+ - 'corrected': the student's writing with all errors corrected.  Only correct errors in the use of the language, including awkward or uncommon phrasing; otherwise, do not change meaning, tone, or stylistic choices.
+ - 'errors' a list of the errors in the original that you corrected.  If there are no errors, the list is empty.  Otherwise, each entry in the list should be an object with two keys:
+    - 'original': the phrase in the student's original text containing the error
+    - 'error_types': a list of the types of errors you corrected within that text (written in English)
 """
 
 def make_main_prompt(writing: str) -> list[ChatMessage]:
