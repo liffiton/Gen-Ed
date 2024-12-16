@@ -79,7 +79,7 @@ def insert_corrections_html(original: str, errors: list[ErrorSet]) -> str:
 
     def replacement(match: re.Match[str]) -> str:
         matched_text = match.group(0)
-        error_types = "".join(f'<span class="item">{item}</span>' for item in error_mapping[matched_text])
+        error_types = "".join(f'<span class="item">- {item}</span>' for item in error_mapping[matched_text])
         return f'<span class="writing_error" tabindex="0">{matched_text}<span class="is-size-6 writing_error_details">{error_types}</span></span>'
 
     # Replace matches with wrapped spans
