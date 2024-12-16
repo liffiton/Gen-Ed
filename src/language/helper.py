@@ -37,30 +37,49 @@ def help_form(query_id: int | None = None) -> str:
     return render_template("help_form.html", query=query_row, history=history)
 
 
+def normalize_whitespace(text: str) -> str:
+    return re.sub(r"\s+", " ", text)
 
 class ErrorSet(TypedDict):
     original: str
     error_types: list[str]
 
 def insert_corrections_html(original: str, errors: list[ErrorSet]) -> str:
-    # escape user inputs now, since we will be adding HTML soon
+    # HTML-escape user inputs now, since we will be adding HTML soon and cannot escape after that
     jinja_escape = current_app.jinja_env.filters['e']
     original = jinja_escape(original)
+
+    # Create paragraphs / maintain paragraph breaks
+    original = f"<p>{original}</p>"
+    original = re.sub("\n\n+", "</p><p>", original)
+
+    # normalize all remaining whitespace so we can be sure to match correctly
+    original = normalize_whitespace(original)
 
     if not errors:
         return original
 
-    error_mapping = {jinja_escape(item['original']): [jinja_escape(x) for x in item['error_types']] for item in errors}
+    # must normalize and HTML-escape these as well, since we're matching into already-escaped/normalized text
+    error_mapping = {
+        jinja_escape(normalize_whitespace(item['original'])): [jinja_escape(x) for x in item['error_types']]
+        for item in errors
+    }
 
-    # Escape substrings to safely use them in regex
+    # regex-escape substrings to safely use them in regex
     escaped_substrings = [re.escape(sub) for sub in error_mapping]
 
-    # Create a regex pattern to match any of the substrings
+    # and match whitespace against *any* whitespace in the original
+    # (un-normalized, and the LLM may have reformatted it)
+    # note: replacing any escaped space with *literal* "\s+" string (to be used in pattern)
+    # and: see this for explanation of weird replacement string: https://stackoverflow.com/questions/58328587/
+    escaped_substrings = [re.sub(r"\\ ", r"\\s+", sub) for sub in escaped_substrings]
+
+    # create a regex pattern to match any of the substrings
     pattern = r"(" + r"|".join(escaped_substrings) + r")"
 
     def replacement(match: re.Match[str]) -> str:
         matched_text = match.group(0)
-        error_types = "".join(f'<li>{item}</li>' for item in error_mapping[matched_text])
+        error_types = "".join(f'<span class="item">{item}</span>' for item in error_mapping[matched_text])
         return f'<span class="writing_error" tabindex="0">{matched_text}<span class="is-size-6 writing_error_details">{error_types}</span></span>'
 
     # Replace matches with wrapped spans
@@ -157,6 +176,10 @@ def record_response(query_id: int, responses: list[dict[str, str]], texts: dict[
 @with_llm(use_system_key=True)
 def help_request(llm: LLM) -> Response:
     writing = request.form["writing"]
+
+    # strip; normalize linebreaks
+    lines = writing.strip().splitlines()
+    writing = "\n".join(line.rstrip() for line in lines)
 
     query_id = run_query(llm, writing)
 

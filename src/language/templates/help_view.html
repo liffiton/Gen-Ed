@@ -27,11 +27,12 @@ SPDX-License-Identifier: AGPL-3.0-only
   border-radius: 8px;
   display: none;
 }
-.writing_error .writing_error_details li:before {
-  content: "- ";
+.writing_error .writing_error_details .item {
+  display: block;
+  font-size: 120%;
 }
-.writing_error .writing_error_details li {
-  list-style: none;
+.writing_error .writing_error_details .item:before {
+  content: "- ";
 }
 .writing_error:hover, .writing_error:focus {
   background: #fda5;
@@ -67,9 +68,9 @@ SPDX-License-Identifier: AGPL-3.0-only
         {% endif %}
         {% if marked_up %}
           <p><em>Issues are underlined.  Hover or tap each for details.</em></p>
-          <span class="is-size-4">
+          <div class="is-size-4">
             {{ marked_up }}
-          </span>
+          </div>
         {% endif %}
       </div>
 
