@@ -137,7 +137,21 @@ def reload_consumers() -> None:
 class FilterSpec:
     name: str
     column: str
-    display: str
+    display_query: str
+
+_available_filter_specs = [
+    FilterSpec('consumer', 'consumers.id', 'SELECT lti_consumer FROM consumers WHERE id=?'),
+    FilterSpec('class', 'classes.id', 'SELECT name FROM classes WHERE id=?'),
+    FilterSpec('user', 'users.id', 'SELECT display_name FROM users WHERE id=?'),
+    FilterSpec('role', 'roles.id', """
+        SELECT printf("%s (%s:%s)", users.display_name, role_class.name, roles.role)
+        FROM roles
+        LEFT JOIN users ON users.id=roles.user_id
+        LEFT JOIN classes AS role_class ON role_class.id=roles.class_id
+        WHERE roles.id=?
+    """),
+]
+
 
 @dataclass(frozen=True)
 class Filter:
@@ -217,13 +231,7 @@ def get_queries_filtered(where_clause: str, where_params: list[str], queries_lim
 def get_queries_csv() -> str | Response:
     filters = Filters()
 
-    specs = [
-        FilterSpec('consumer', 'consumers.id', 'consumers.lti_consumer'),
-        FilterSpec('class', 'classes.id', 'classes.name'),
-        FilterSpec('user', 'users.id', 'users.display_name'),
-        FilterSpec('role', 'roles.id', 'printf("%s (%s:%s)", users.display_name, role_class.name, roles.role)'),
-    ]
-    for spec in specs:
+    for spec in _available_filter_specs:
         if spec.name in request.args:
             value = request.args[spec.name]
             filters.add(spec, value, "dummy value")  # display value not used in CSV export
@@ -240,24 +248,11 @@ def main() -> str:
     db = get_db()
     filters = Filters()
 
-    specs = [
-        FilterSpec('consumer', 'consumers.id', 'consumers.lti_consumer'),
-        FilterSpec('class', 'classes.id', 'classes.name'),
-        FilterSpec('user', 'users.id', 'users.display_name'),
-        FilterSpec('role', 'roles.id', 'printf("%s (%s:%s)", users.display_name, role_class.name, roles.role)'),
-    ]
-    for spec in specs:
+    for spec in _available_filter_specs:
         if spec.name in request.args:
             value = request.args[spec.name]
             # bit of a hack to have a single SQL query cover all different filters...
-            display_row = db.execute(f"""
-                SELECT {spec.display}
-                FROM consumers, classes, users
-                LEFT JOIN roles ON roles.user_id=users.id
-                LEFT JOIN classes AS role_class ON role_class.id=roles.class_id
-                WHERE {spec.column}=?
-                LIMIT 1
-            """, [value]).fetchone()
+            display_row = db.execute(spec.display_query, [value]).fetchone()
             display_value = display_row[0]
             filters.add(spec, value, display_value)
 
