@@ -44,7 +44,6 @@ test = [
     "pytest-cov~=4.1.0",
     "pytest-xdist~=3.5.0",
     "mypy",
-    "types-colorama",
     "types-pytz",
     "types-requests",
     "pyrage-stubs~=1.2.0",
