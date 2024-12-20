@@ -155,7 +155,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 </button>
               </form>
             </div>
-          {% else %}
+          {% elif not hide_login_button %}
             <div class="navbar-item">
               <a href="{{ url_for("auth.login") }}" class="button icon-text is-link">
                 <span class="icon">
