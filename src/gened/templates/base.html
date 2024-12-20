@@ -26,7 +26,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       a.button-inline { display: inline-block; padding: 0.2em 0.5em; vertical-align: baseline; height: auto; }
       a.hover-show-icon + svg { opacity: 25%; }
       a.hover-show-icon:hover + svg { opacity: 100%; }
-      div.flash_message { animation: fadein 1s; }
+      div.flash_message { animation: fadein 0.5s ease-out; }
       main.site-content { flex: 1; } /* expand main content, push footer to bottom of page/viewport */
       span[title] { text-decoration: underline; text-decoration-style: dotted; }
       pre, .content pre { padding: 0.5rem 0.75rem; }
@@ -146,7 +146,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               </a>
             {% endif %}
             <div class="navbar-item">
-              <form action="/auth/logout" method="post">
+              <form action="{{ url_for("auth.logout") }}" method="post">
                 <button class="button icon-text is-link" type="submit">
                   <span class="icon">
                     <svg aria-hidden="true"><use href="#svg_logout" /></svg>
@@ -157,7 +157,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             </div>
           {% else %}
             <div class="navbar-item">
-              <a href="/auth/login" class="button icon-text is-link">
+              <a href="{{ url_for("auth.login") }}" class="button icon-text is-link">
                 <span class="icon">
                   <svg aria-hidden="true"><use href="#svg_login" /></svg>
                 </span>
