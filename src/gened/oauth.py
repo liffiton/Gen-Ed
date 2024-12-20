@@ -114,8 +114,9 @@ def auth(provider_name: str) -> Response:
 
     current_app.logger.debug(f"SSO login: {provider_name=} email='{user_normed['email']}' full_name='{user_normed['full_name']}'")
 
-    # Given 10 tokens by default if creating an account on first login.
-    user_row = ext_login_update_or_create(provider_name, user_normed, query_tokens=20)
+    # Create a new user (with default # of free tokens) or update the existing if matched
+    tokens = current_app.config.get('DEFAULT_TOKENS', 0)
+    user_row = ext_login_update_or_create(provider_name, user_normed, query_tokens=tokens)
 
     # Get their last active class, if there is one (and it still exists and user has active role in it)
     last_class_id = get_last_class(user_row['id'])

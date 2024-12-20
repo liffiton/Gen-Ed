@@ -118,7 +118,7 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
         # Cache timeout for static files (seconds)
         SEND_FILE_MAX_AGE_DEFAULT=3*60*60,  # 3 hours
         # Free query tokens given to new users
-        DEFAULT_TOKENS=10,
+        DEFAULT_TOKENS=20,
 
         PYLTI_CONFIG={
             # will be loaded from the consumers table in the database

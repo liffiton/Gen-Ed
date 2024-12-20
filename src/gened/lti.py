@@ -95,8 +95,8 @@ def lti_login(lti: LTI) -> Response | tuple[str, int]:  # noqa: ARG001 (unused a
         'auth_name': None,
         'ext_id': lti_id,
     }
-    # LTI users given 0 tokens by default -- should only ever use API registered w/ LTI consumer
-    user_row = ext_login_update_or_create('lti', user_normed, query_tokens=10)
+    # LTI users given 0 tokens by default -- should only ever use API key registered w/ LTI consumer
+    user_row = ext_login_update_or_create('lti', user_normed, query_tokens=0)
     user_id = user_row['id']
 
     # check for and create role if needed
