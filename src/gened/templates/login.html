@@ -52,8 +52,8 @@ SPDX-License-Identifier: AGPL-3.0-only
         <a role="button"><i>local account...</i></a>
       </div>
       <div style="overflow-y: hidden; width: 100%;">
-        <div style="width: 100%; transition-property: margin-top; transition-duration: 1s; margin-top: -12em;" x-bind:style="{'margin-top': shown && '0'}">
-          <form action="{{ url_for('auth.login', next=next_url) }}" method="post">
+        <div style="width: 100%; transition: margin-top 0.5s ease-in; margin-top: -12em;" x-bind:style="{'margin-top': shown && '0'}">
+          <form action="{{ url_for('auth.local_login', next=next_url) }}" method="post">
             <input type="hidden" name="next" value="{{ next_url }}">
 
             <div style="display: grid; grid-template-columns: max-content 1fr; align-items: end; gap: 0.5em;">

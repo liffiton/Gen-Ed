@@ -81,7 +81,7 @@ class AuthActions:
 
     def login(self, username='testuser', password='testpassword', next_url=''):
         return self._client.post(
-            '/auth/login',
+            '/auth/local_login',
             data={'username': username, 'password': password, 'next': next_url}
         )
 

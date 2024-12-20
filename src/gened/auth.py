@@ -293,26 +293,28 @@ def ext_login_update_or_create(provider_name: str, user_normed: dict[str, str | 
 bp = Blueprint('auth', __name__, url_prefix="/auth", template_folder='templates')
 
 
-@bp.route("/login", methods=['GET', 'POST'])
-def login() -> str | Response:
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        db = get_db()
-        auth_row = db.execute("SELECT * FROM auth_local JOIN users ON auth_local.user_id=users.id WHERE username=?", [username]).fetchone()
-
-        if not auth_row or not check_password_hash(auth_row['password'], password):
-            flash("Invalid username or password.", "warning")
-        else:
-            # Success!
-            last_class_id = get_last_class(auth_row['id'])
-            set_session_auth_user(auth_row['id'])
-            set_session_auth_class(last_class_id)
-            return safe_redirect_next(default_endpoint="helper.help_form")
-
-    # we either have a GET request or we fell through the POST login attempt with a failure
+@bp.route("/login")
+def login() -> str:
     next_url = request.args.get('next', '')
     return render_template("login.html", next_url=next_url)
+
+
+@bp.route("/local_login", methods=['POST'])
+def local_login() -> Response:
+    username = request.form['username']
+    password = request.form['password']
+    db = get_db()
+    auth_row = db.execute("SELECT * FROM auth_local JOIN users ON auth_local.user_id=users.id WHERE username=?", [username]).fetchone()
+
+    if not auth_row or not check_password_hash(auth_row['password'], password):
+        flash("Invalid username or password.", "warning")
+        return redirect(url_for(".login", next=request.form.get('next')))
+    else:
+        # Success!
+        last_class_id = get_last_class(auth_row['id'])
+        set_session_auth_user(auth_row['id'])
+        set_session_auth_class(last_class_id)
+        return safe_redirect_next(default_endpoint="helper.help_form")
 
 
 @bp.route("/logout", methods=['POST'])

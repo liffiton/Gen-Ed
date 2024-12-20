@@ -3,8 +3,10 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import re
+from dataclasses import dataclass
 
 import pytest
+
 from gened.auth import get_auth
 
 
@@ -18,61 +20,71 @@ def test_login_page(client):
     assert 'type="submit"' in response.text
 
 
+@dataclass
+class LoginResult:
+    target: str   # target URL of the redirect
+    content: str  # message/text expected in resulting page
+    is_authed: bool = False  # is the result a successful login
+    is_admin: bool = False   # is the resulting login an admin user
+
+invalid_login_result = LoginResult(target="/auth/login", content="Invalid username or password.", is_authed=False, is_admin=False)
+
+
 def check_login(
         client,    # fixture
         auth,      # fixture
         username,  # login username
         password,  # login password
-        next_url=None,   # value for 'next' form parameter
-        status=200,      # expected response status code
-        message=None,    # expected text in response
-        redir_tgt=None,  # expected target for redirect response
-        is_admin=False,  # expected value of is_admin in session auth
+        next_url=None,   # value to send for 'next' form parameter
+        *,
+        expect: LoginResult,  # see type above
     ):
     with client:  # so we can use session in get_auth()
         response = auth.login(username, password, next_url)
-        assert response.status_code == status
 
-        # Follow redirect if we expect one
-        if status == 302:
-            target = response.headers['Location']
-            assert target == redir_tgt
-            response = client.get(target)
-            assert response.status_code == 200
+        # We expect a redirect
+        assert response.status_code == 302
 
+        # Verify the redirect target
+        target = response.headers['Location']
+        assert target == expect.target
+        response = client.get(target)
+        assert response.status_code == 200
+
+        sessauth = get_auth()
+        if expect.is_authed:
             # Verify session auth contains correct values for logged-in user
-            sessauth = get_auth()
             assert sessauth.user
             assert sessauth.user_id
             assert sessauth.user.display_name == username
             assert sessauth.user.auth_provider == 'local'
-            assert sessauth.is_admin == is_admin
+            assert sessauth.is_admin == expect.is_admin
             assert sessauth.cur_class is None
-
         else:
             # Verify session auth contains correct values for non-logged-in user
-            sessauth = get_auth()
             assert sessauth.user is None
             assert sessauth.is_admin is False
             assert sessauth.cur_class is None
 
-        assert message in response.text
+        # Verify page contents
+        assert expect.content in response.text
 
 
 def test_newuser_command(app, runner, client, auth):
+
     username = "_newuser_"
-    check_login(client, auth, username, 'x', message="Invalid username or password.")
+    check_login(client, auth, username, 'x', expect=invalid_login_result)
     auth.logout()
 
     with app.app_context():
         cmd_result = runner.invoke(args=['newuser', username])
         password = re.search(r'password: (\w+)\b', cmd_result.output).group(1)
 
-    check_login(client, auth, username, password, status=302, redir_tgt="/help/", message="_newuser_")
+    check_login(client, auth, username, password, expect=LoginResult(target="/help/", content="_newuser_", is_authed=True))
     auth.logout()
-    check_login(client, auth, 'x', password, message="Invalid username or password.")
+    check_login(client, auth, 'x', password, expect=invalid_login_result)
     auth.logout()
-    check_login(client, auth, username, 'x', message="Invalid username or password.")
+    check_login(client, auth, username, 'x', expect=invalid_login_result)
 
 
 @pytest.mark.parametrize(('username', 'password'), [
@@ -84,7 +96,7 @@ def test_newuser_command(app, runner, client, auth):
     ('testadmin', 'y'),
 ])
 def test_invalid_login(client, auth, username, password):
-    check_login(client, auth, username, password, status=200, message="Invalid username or password.")
+    check_login(client, auth, username, password, expect=invalid_login_result)
 
 
 @pytest.mark.parametrize(('username', 'password', 'next_url', 'is_admin'), [
@@ -93,13 +105,22 @@ def test_invalid_login(client, auth, username, password):
 ])
 def test_valid_login(client, auth, username, password, next_url, is_admin):
     # Test with the next URL specified
-    check_login(client, auth, username, password, next_url=next_url, status=302, redir_tgt=next_url, message=username, is_admin=is_admin)
+    check_login(
+        client, auth, username, password, next_url=next_url,
+        expect=LoginResult(target=next_url, content=username, is_authed=True, is_admin=is_admin)
+    )
     auth.logout()
     # Test with no next URL specified: should redirect to /help
-    check_login(client, auth, username, password, next_url=None, status=302, redir_tgt="/help/", message=username, is_admin=is_admin)
+    check_login(
+        client, auth, username, password, next_url=None,
+        expect=LoginResult(target="/help/", content=username, is_authed=True, is_admin=is_admin)
+    )
     auth.logout()
     # Test with an unsafe next URL specified: should redirect to /help
-    check_login(client, auth, username, password, next_url="https://malicious.site/", status=302, redir_tgt="/help/", message=username, is_admin=is_admin)
+    check_login(
+        client, auth, username, password, next_url="https://malicious.site/",
+        expect=LoginResult(target="/help/", content=username, is_authed=True, is_admin=is_admin)
+    )
     auth.logout()
 
 
