@@ -34,7 +34,7 @@ input[type='radio'] {
   <div class="flex_items" style="gap: 0;">
     <div class="flex_item">
       <h2 class="title is-size-4">Access</h2>
-      <form action="{{ url_for("instructor.set_user_class_setting") }}" method="post">
+      <form action="{{ url_for("class_config.save_config") }}" method="post">
         <div class="field is-horizontal">
           <div class="field-label is-normal">
             <label class="label" for="class_enabled">Class Active:</label>
@@ -51,6 +51,7 @@ input[type='radio'] {
 
         {% if class_row['link_ident'] %}
         {# link_ident only in classes_user, so will only be set for user classes. #}
+        <input type="hidden" name="is_user_class" value="true">
 
         <div class="field is-horizontal">
           <div class="field-label">
@@ -72,7 +73,6 @@ input[type='radio'] {
           <div class="field-body">
             <div class="field" x-data="{ link_reg_active: '{{ link_reg_state }}' }">
               <div class="control">
-                <input type="hidden" name="link_reg_active_present" value="true">
                 <label class="radio">
                   <input name="link_reg_active" x-model="link_reg_active" id="link_reg_disabled" type="radio" value="disabled" {% if link_reg_state == "disabled" %}checked{% endif %}>
                   Disabled
@@ -95,6 +95,22 @@ input[type='radio'] {
             </div>
           </div>
         </div>
+
+        <div class="field is-horizontal">
+          <div class="field-label is-normal">
+            <label class="label" for="class_link_anon_login">Anonymous Registration:</label>
+            <p class="help-text">When this is enabled, anyone using the access link who does not already have an account will create an anonymous account.</p>
+            <p class="help-text">If they already have an account, they will join the class with that account regardless.</p>
+          </div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <input name="class_link_anon_login" id="class_link_anon_login" type="checkbox" {% if class_row['link_anon_login'] %}checked{% endif %}>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {% endif %}{# end if class['link_ident'] -- i.e., end of user-created class config #}
 
         <div class="field is-horizontal">
@@ -115,7 +131,7 @@ input[type='radio'] {
       <div class="item_sep"></div>
 
       <h2 class="title is-size-4 mt-5">Language Model</h2>
-      <form action="{{ url_for("instructor.set_user_class_setting") }}" method="post" x-data="{
+      <form action="{{ url_for("class_config.save_config") }}" method="post" x-data="{
           llm_config_saved: {{ 'true' if class_row.llm_api_key else 'false' }},
           llm_test_loading: false,
           llm_test_result: null,

@@ -9,12 +9,16 @@ from collections.abc import Callable
 from flask import (
     Blueprint,
     current_app,
+    flash,
     render_template,
+    request,
 )
+from werkzeug.wrappers.response import Response
 
 from .auth import get_auth_class, instructor_required
 from .db import get_db
 from .llm import LLM, get_models, with_llm
+from .redir import safe_redirect
 from .tz import date_is_past
 
 bp = Blueprint('class_config', __name__, url_prefix="/instructor/config", template_folder='templates')
@@ -46,7 +50,7 @@ def config_form() -> str:
     class_id = cur_class.class_id
 
     class_row = db.execute("""
-        SELECT classes.id, classes.enabled, classes_user.link_ident, classes_user.link_reg_expires, classes_user.llm_api_key, classes_user.model_id
+        SELECT classes.id, classes.enabled, classes_user.link_ident, classes_user.link_reg_expires, classes_user.link_anon_login, classes_user.llm_api_key, classes_user.model_id
         FROM classes
         LEFT JOIN classes_user
           ON classes.id = classes_user.class_id
@@ -67,6 +71,48 @@ def config_form() -> str:
     extra_sections = [render() for render in _extra_config_renderfuncs]  # rendered HTML for any extra config sections
 
     return render_template("instructor_class_config.html", class_row=class_row, link_reg_state=link_reg_state, models=get_models(), extra_sections=extra_sections)
+
+
+@bp.route("/save", methods=["POST"])
+def save_config() -> Response:
+    db = get_db()
+
+    # only trust class_id from auth, not from user
+    cur_class = get_auth_class()
+    class_id = cur_class.class_id
+
+    if 'clear_llm_api_key' in request.form:
+        db.execute("UPDATE classes_user SET llm_api_key='' WHERE class_id=?", [class_id])
+        db.commit()
+        flash("Class API key cleared.", "success")
+
+    elif 'save_access_form' in request.form:
+        if 'is_user_class' in request.form:
+            # only present for user classes, not LTI
+            link_reg_active = request.form['link_reg_active']
+            if link_reg_active == "disabled":
+                new_date = str(dt.date.min)
+            elif link_reg_active == "enabled":
+                new_date = str(dt.date.max)
+            else:
+                new_date = request.form['link_reg_expires']
+
+            class_link_anon_login = 1 if 'class_link_anon_login' in request.form else 0
+            db.execute("UPDATE classes_user SET link_reg_expires=?, link_anon_login=? WHERE class_id=?", [new_date, class_link_anon_login, class_id])
+
+        class_enabled = 1 if 'class_enabled' in request.form else 0
+        db.execute("UPDATE classes SET enabled=? WHERE id=?", [class_enabled, class_id])
+        db.commit()
+        flash("Class access configuration updated.", "success")
+
+    elif 'save_llm_form' in request.form:
+        if 'llm_api_key' in request.form:
+            db.execute("UPDATE classes_user SET llm_api_key=? WHERE class_id=?", [request.form['llm_api_key'], class_id])
+        db.execute("UPDATE classes_user SET model_id=? WHERE class_id=?", [request.form['model_id'], class_id])
+        db.commit()
+        flash("Class language model configuration updated.", "success")
+
+    return safe_redirect(request.referrer, default_endpoint="profile.main")
 
 
 @bp.route("/test_llm")

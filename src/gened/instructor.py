@@ -13,7 +13,6 @@ All routes in this blueprint require instructor privileges.
 For general class operations available to all users, see classes.py.
 """
 
-import datetime as dt
 from sqlite3 import Row
 
 from flask import (
@@ -131,45 +130,6 @@ def get_csv(kind: str) -> str | Response:
         table = get_users(class_id, for_export=True)
 
     return csv_response(class_name, kind, table)
-
-
-@bp.route("/user_class/set", methods=["POST"])
-def set_user_class_setting() -> Response:
-    db = get_db()
-
-    # only trust class_id from auth, not from user
-    cur_class = get_auth_class()
-    class_id = cur_class.class_id
-
-    if 'clear_llm_api_key' in request.form:
-        db.execute("UPDATE classes_user SET llm_api_key='' WHERE class_id=?", [class_id])
-        db.commit()
-        flash("Class API key cleared.", "success")
-
-    elif 'save_access_form' in request.form:
-        if 'link_reg_active_present' in request.form:
-            # only present for user classes, not LTI
-            link_reg_active = request.form['link_reg_active']
-            if link_reg_active == "disabled":
-                new_date = str(dt.date.min)
-            elif link_reg_active == "enabled":
-                new_date = str(dt.date.max)
-            else:
-                new_date = request.form['link_reg_expires']
-            db.execute("UPDATE classes_user SET link_reg_expires=? WHERE class_id=?", [new_date, class_id])
-        class_enabled = 1 if 'class_enabled' in request.form else 0
-        db.execute("UPDATE classes SET enabled=? WHERE id=?", [class_enabled, class_id])
-        db.commit()
-        flash("Class access configuration updated.", "success")
-
-    elif 'save_llm_form' in request.form:
-        if 'llm_api_key' in request.form:
-            db.execute("UPDATE classes_user SET llm_api_key=? WHERE class_id=?", [request.form['llm_api_key'], class_id])
-        db.execute("UPDATE classes_user SET model_id=? WHERE class_id=?", [request.form['model_id'], class_id])
-        db.commit()
-        flash("Class language model configuration updated.", "success")
-
-    return safe_redirect(request.referrer, default_endpoint="profile.main")
 
 
 @bp.route("/role/set_active", methods=["POST"])  # just for url_for in the Javascript code

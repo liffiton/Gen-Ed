@@ -35,11 +35,6 @@ from .tz import date_is_past
 
 bp = Blueprint('classes', __name__, url_prefix="/classes", template_folder='templates')
 
-@bp.before_request
-@login_required
-def before_request() -> None:
-    """ Apply decorator to protect all blueprint endpoints. """
-
 
 def get_or_create_lti_class(lti_consumer_id: int, lti_context_id: str, class_name: str) -> int:
     """
@@ -119,7 +114,7 @@ def create_user_class(user_id: int, class_name: str, llm_api_key: str) -> int:
     # generate a new, unique, unguessable link identifier
     is_unique = False
     while not is_unique:
-        link_ident = secrets.token_urlsafe(6)  # 8 characters
+        link_ident = secrets.token_urlsafe(8)
         match_row = db.execute("SELECT 1 FROM classes_user WHERE link_ident=?", [link_ident]).fetchone()
         is_unique = not match_row
 
@@ -192,18 +187,21 @@ def switch_class(class_id: int | None) -> bool:
     return True
 
 
+@login_required
 @bp.route("/switch/<int:class_id>")
 def switch_class_handler(class_id: int) -> Response:
     switch_class(class_id)
     return safe_redirect_next(default_endpoint="profile.main")
 
 
+@login_required
 @bp.route("/leave/")
 def leave_class_handler() -> Response:
     switch_class(None)
     return redirect(url_for("profile.main"))
 
 
+@login_required
 @bp.route("/create/", methods=['POST'])
 def create_class() -> Response:
     auth = get_auth()
@@ -220,6 +218,7 @@ def create_class() -> Response:
     return redirect(url_for("class_config.config_form"))
 
 
+# Not using @login_required here because we may need to redirect to anon. login specifically
 @bp.route("/access/<string:class_ident>")
 def access_class(class_ident: str) -> str | Response:
     '''Join a class or just login/access it.
@@ -231,11 +230,10 @@ def access_class(class_ident: str) -> str | Response:
     db = get_db()
 
     auth = get_auth()
-    user_id = auth.user_id
 
     # Get the class info
     class_row = db.execute("""
-        SELECT classes.id, classes_user.link_reg_expires
+        SELECT classes.id, classes.name, classes_user.link_reg_expires, classes_user.link_anon_login
         FROM classes
         JOIN classes_user
           ON classes.id = classes_user.class_id
@@ -245,8 +243,13 @@ def access_class(class_ident: str) -> str | Response:
     if not class_row:
         return abort(404)
 
-    class_id = class_row['id']
+    if not auth.user:
+        flash(f"Please log in to access class '{class_row['name']}'")
+        anon = 1 if class_row['link_anon_login'] else None
+        return redirect(url_for('auth.login', anon=anon, next=request.full_path))
 
+    class_id = class_row['id']
+    user_id = auth.user_id
     role_row = db.execute("SELECT * FROM roles WHERE class_id=? AND user_id=?", [class_id, user_id]).fetchone()
 
     if role_row:

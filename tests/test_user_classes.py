@@ -79,10 +79,10 @@ def test_user_class_usage(app):
 
     # 3) instructor enables/activates the course
     result = instructor_client.post(
-        '/instructor/user_class/set',
+        '/instructor/config/save',
         data={
             'class_enabled': 'on',
-            'link_reg_active_present': 'true',
+            'is_user_class': 'true',
             'link_reg_active': 'enabled',
             'save_access_form': '',
         },
@@ -124,10 +124,10 @@ def test_user_class_usage(app):
 
     # 9) instructor disables link registration
     result = instructor_client.post(
-        '/instructor/user_class/set',
+        '/instructor/config/save',
         data={
             'class_enabled': 'on',
-            'link_reg_active_present': 'true',
+            'is_user_class': 'true',
             'link_reg_active': 'disabled',
             'save_access_form': '',
         },
