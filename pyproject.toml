@@ -33,7 +33,7 @@ dependencies = [
     "pyrage~=1.2.0",
     "python-dotenv~=1.0.0",
     "python-frontmatter~=1.1.0",
-    "pytz",
+    "tzdata; platform_system == 'Windows'",  # Timezone data for Windows
 ]
 
 [project.optional-dependencies]

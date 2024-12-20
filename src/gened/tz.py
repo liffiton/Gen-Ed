@@ -4,13 +4,13 @@
 
 import datetime as dt
 import platform
+from zoneinfo import ZoneInfo
 
-import pytz
 from flask import request, session
 from flask.app import Flask
 
 # Anywhere-On-Earth timezone for checking expirations
-tz_aoe = dt.timezone(dt.timedelta(hours=-12), name="AOE")
+tz_aoe = ZoneInfo("Etc/GMT+12")  # IANA timezone name for UTC-12
 
 
 def date_is_past(date: dt.date) -> bool:
@@ -31,23 +31,26 @@ def init_app(app: Flask) -> None:
         session['timezone'] = timezone
         return ""
 
+
+    # Windows uses a different format string for non-zero-padded hours
+    # in strftime and does not support lowercase am/pm ('%P').
+    # https://strftime.org/
+    if platform.system() == "Windows":
+        time_fmt = "%Y-%m-%d %#I:%M%p"
+    else:
+        time_fmt = "%Y-%m-%d %-I:%M%P"
+
     @app.template_filter('localtime')
     def localtime_filter(value: dt.datetime) -> str:
-        '''Use timezone from the session object, if available, to localize datetimes from UTC.'''
-        # https://stackoverflow.com/a/34832184
-        utc_dt = pytz.utc.localize(value)
-
-        # Windows uses a different format string for non-zero-padded hours
-        # in strftime and does not support lowercase am/pm ('%P').
-        # https://strftime.org/
-        if platform.system() == "Windows":
-            time_fmt = "%Y-%m-%d %#I:%M%p"
-        else:
-            time_fmt = "%Y-%m-%d %-I:%M%P"
+        '''Use timezone from the session object, if available, to localize datetimes.'''
+        # Assume UTC timezone if no timezone specified
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=ZoneInfo("UTC"))
 
         if 'timezone' not in session:
-            return utc_dt.strftime(f"{time_fmt} %Z")  # %Z to include 'UTC'
+            # include explicit timezone (%Z) as user timezone is unknown
+            return value.strftime(f"{time_fmt} %Z")
         else:
-            local_tz = pytz.timezone(session['timezone'])
-            local_dt = utc_dt.astimezone(local_tz)
+            local_tz = ZoneInfo(session['timezone'])
+            local_dt = value.astimezone(local_tz)
             return local_dt.strftime(time_fmt)
