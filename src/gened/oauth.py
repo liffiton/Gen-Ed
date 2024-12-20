@@ -61,7 +61,6 @@ def init_app(app: Flask) -> None:
         )
 
 
-@bp.route('/login/<string:provider_name>/anon')
 @bp.route('/login/<string:provider_name>')
 def login(provider_name: AuthProviderExt) -> Response:
     if provider_name not in get_args(AuthProviderExt):
@@ -76,8 +75,8 @@ def login(provider_name: AuthProviderExt) -> Response:
     if next_url:
         session[NEXT_URL_SESSION_KEY] = next_url
 
-    # store request for anonymous user-creation (appended '/anon' to route) in session
-    if request.path.endswith('/anon'):
+    # store request for anonymous user-creation in session
+    if request.args.get('anon'):
         session[ANON_LOGIN_SESSION_KEY] = True
 
     redirect_uri = url_for('.auth', provider_name=provider_name, _external=True)

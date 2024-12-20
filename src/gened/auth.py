@@ -340,9 +340,9 @@ bp = Blueprint('auth', __name__, url_prefix="/auth", template_folder='templates'
 
 @bp.route("/login")
 def login() -> str:
-    next_url = request.args.get('next', '')
-    return render_template("login.html", next_url=next_url)
-
+    anonymous = request.args.get('anon')
+    next_url = request.args.get('next')
+    return render_template("login.html", anonymous=anonymous, next_url=next_url)
 
 @bp.route("/local_login", methods=['POST'])
 def local_login() -> Response:

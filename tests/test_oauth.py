@@ -71,7 +71,7 @@ def test_anon_signup(app, client):
     """Test initial login/signup with /anon option."""
     with app.test_request_context():
         login_url = url_for('oauth.login', provider_name='google')
-        login_url_anon = f'{login_url}/anon'
+        login_url_anon = url_for('oauth.login', provider_name='google', anon=1)
         auth_url = url_for('oauth.auth', provider_name='google')
         logout_url = url_for('auth.logout')
 
