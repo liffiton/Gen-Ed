@@ -82,6 +82,7 @@ CREATE TABLE auth_external (
     user_id       INTEGER PRIMARY KEY,
     auth_provider INTEGER NOT NULL,
     ext_id        TEXT NOT NULL,  -- the primary, unique ID used by the external provider
+    is_anon       BOOLEAN NOT NULL CHECK (is_anon IN (0,1)) DEFAULT 0,  -- registered anonymously
     created       DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id),
     FOREIGN KEY(auth_provider) REFERENCES auth_providers(id)

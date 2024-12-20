@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import random
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import wraps
@@ -29,14 +30,24 @@ from .redir import safe_redirect_next
 # Constants
 AUTH_SESSION_KEY = "__gened_auth"
 
-ProviderType = Literal['local', 'lti', 'demo', 'google', 'github', 'microsoft']
+AuthProviderExt = Literal['lti', 'google', 'github', 'microsoft']
+AuthProviderLocal = Literal['local', 'demo']
+AuthProvider = AuthProviderExt | AuthProviderLocal
 RoleType = Literal['instructor', 'student']
+
+@dataclass
+class LoginData:
+    ext_id: str  # external authentication provider user ID
+    email: str | None = None
+    full_name: str | None = None
+    auth_name: str | None = None
+    anon: bool = False
 
 @dataclass(frozen=True)
 class UserData:
     id: int
     display_name: str
-    auth_provider: ProviderType
+    auth_provider: AuthProvider
     is_admin: bool = False
     is_tester: bool = False
 
@@ -235,7 +246,28 @@ def get_last_class(user_id: int) -> int | None:
     return class_id
 
 
-def ext_login_update_or_create(provider_name: str, user_normed: dict[str, str | None], query_tokens: int=0) -> Row:
+def generate_anon_username() -> str:
+    """Generates a username with two different adjectives and an animal"""
+    adjectives = [
+        "swift", "brave", "clever", "gentle", "kind",
+        "jolly", "noble", "happy", "wise", "bright",
+        "calm", "proud", "friendly", "merry", "cheerful"
+    ]
+
+    animals = [
+        "penguin", "dolphin", "squirrel", "eagle", "butterfly",
+        "falcon", "panda", "koala", "rabbit", "robin",
+        "otter", "hamster", "sparrow", "hedgehog", "turtle",
+    ]
+
+    # Get two unique adjectives, one animal
+    adj1, adj2 = random.sample(adjectives, 2)
+    animal = random.choice(animals)
+    # Capitalize each word
+    return f"{adj1.capitalize()}{adj2.capitalize()}{animal.capitalize()}"
+
+
+def ext_login_update_or_create(provider_name: AuthProviderExt, userdata: LoginData, query_tokens: int=0) -> Row:
     """
     For an external authentication login:
       1. Create an account for the user if they do not already have an account (entry in users)
@@ -244,11 +276,11 @@ def ext_login_update_or_create(provider_name: str, user_normed: dict[str, str | 
 
     Parameters
     ----------
-    provider_name : str
-      Name of the external auth provider: in set {lti, google, github, microsoft}
-    user_normed : dict
-      User information.
-      Must contain non-null 'ext_id' key; must contain keys 'email', 'full_name', and 'auth_name', and at least one should be non-null.
+    provider_name : AuthProviderExt
+      Name of the external auth provider; see AuthProviderExt definition
+    userdata : LoginData
+      User login information.
+      Must contain non-null 'ext_id'; at least one of 'email', 'full_name', and 'auth_name' should be non-null, unless 'anon' is True.
     query_tokens : int (default 0)
       Number of query tokens to assign to the user *if* creating an account for them (on first login).
 
@@ -261,32 +293,45 @@ def ext_login_update_or_create(provider_name: str, user_normed: dict[str, str | 
     provider_row = db.execute("SELECT id FROM auth_providers WHERE name=?", [provider_name]).fetchone()
     provider_id = provider_row['id']
 
-    auth_row = db.execute("SELECT * FROM auth_external WHERE auth_provider=? AND ext_id=?", [provider_id, user_normed['ext_id']]).fetchone()
+    # check for existing user
+    auth_row = db.execute("SELECT * FROM auth_external WHERE auth_provider=? AND ext_id=?", [provider_id, userdata.ext_id]).fetchone()
 
     if auth_row:
+        # Found an existing user
         user_id = auth_row['user_id']
-        # Update w/ latest user info (name, email, etc. could conceivably change)
-        cur = db.execute(
-            "UPDATE users SET full_name=?, email=?, auth_name=? WHERE id=?",
-            [user_normed['full_name'], user_normed['email'], user_normed['auth_name'], user_id]
-        )
-        db.commit()
+        is_anon = auth_row['is_anon']
+
+        if not is_anon:
+            if userdata.anon:
+                flash("Warning: You've tried to log in anonymously, but this account was already registered with personal information.", "danger")
+            else:
+                # Update w/ latest user info (name, email, etc. could conceivably change)
+                cur = db.execute(
+                    "UPDATE users SET full_name=?, email=?, auth_name=? WHERE id=?",
+                    [userdata.full_name, userdata.email, userdata.auth_name, user_id]
+                )
+                db.commit()
 
     else:
-        # Create a new user account.
+        # No existing user.  Create a new user account.
+        if userdata.anon:
+            assert userdata.full_name is userdata.email is userdata.auth_name is None
+            userdata.full_name = generate_anon_username()
+
         cur = db.execute(
             "INSERT INTO users (auth_provider, full_name, email, auth_name, query_tokens) VALUES (?, ?, ?, ?, ?)",
-            [provider_id, user_normed['full_name'], user_normed['email'], user_normed['auth_name'], query_tokens]
+            [provider_id, userdata.full_name, userdata.email, userdata.auth_name, query_tokens]
         )
         user_id = cur.lastrowid
-        db.execute("INSERT INTO auth_external(user_id, auth_provider, ext_id) VALUES (?, ?, ?)", [user_id, provider_id, user_normed['ext_id']])
+        db.execute("INSERT INTO auth_external(user_id, auth_provider, ext_id, is_anon) VALUES (?, ?, ?, ?)", [user_id, provider_id, userdata.ext_id, userdata.anon])
         db.commit()
 
-        current_app.logger.info(f"New acct: '{user_normed['full_name']}' {user_normed['email']}({provider_name})")
+        current_app.logger.info(f"New acct: '{userdata.full_name}' {userdata.email} ({provider_name})")
 
     # get all values in newly updated/inserted row
     user_row = db.execute("SELECT * FROM users WHERE id=?", [user_id]).fetchone()
     assert isinstance(user_row, Row)
+    current_app.logger.debug(f"Signed in: '{user_row['full_name']}' {user_row['email']} ({provider_name})")
     return user_row
 
 

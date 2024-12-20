@@ -1,3 +1,4 @@
+import re
 from unittest.mock import MagicMock, patch
 from urllib.parse import quote_plus
 
@@ -65,6 +66,48 @@ def test_google_callback_success(app, client, mock_oauth):
         assert sessauth.user.auth_provider == 'google'
         assert sessauth.is_admin == False
         assert sessauth.cur_class is None
+
+def test_anon_signup(app, client):
+    """Test initial login/signup with /anon option."""
+    with app.test_request_context():
+        login_url = url_for('oauth.login', provider_name='google')
+        login_url_anon = f'{login_url}/anon'
+        auth_url = url_for('oauth.auth', provider_name='google')
+        logout_url = url_for('auth.logout')
+
+    # Patch an OAuth client creation to return our mock
+    # (can't use mock_oauth fixture here because we want a real/intact client for the login request)
+    mock_oauth_client = MagicMock()
+    mock_oauth_client.authorize_access_token.return_value = {
+        'userinfo': TEST_USER
+    }
+
+    # Login once w/ anon login URL to create anonymous user,
+    # then a second time with the normal login URL to verify still anonymous.
+    for url in [login_url_anon, login_url]:
+        # First set up the session by initiating login
+        client.get(url)
+
+        # Then handle the callback
+        with patch('gened.oauth._oauth.create_client', return_value=mock_oauth_client), client:
+            response = client.get(auth_url)
+
+            assert response.status_code == 302
+            assert response.location == '/'
+
+            # Check session is set up correctly / anonymously
+            sessauth = get_auth()
+            assert sessauth.user
+            assert sessauth.user_id
+            assert sessauth.user.display_name != TEST_USER['name']
+            # Anonymous usernames are three capitalized words concatenated
+            assert re.match(r"^(?:[A-Z][a-z]+){3}$", sessauth.user.display_name)
+            assert sessauth.user.auth_provider == 'google'
+            assert sessauth.is_admin == False
+            assert sessauth.cur_class is None
+
+        # Log out (so second iteration can verify still anonymous even when using non-/anon route)
+        client.post(logout_url)
 
 def test_github_callback_success(app, client, mock_oauth):
     """Test successful Github OAuth callback with email fetching"""

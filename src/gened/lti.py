@@ -19,6 +19,7 @@ from pylti.flask import lti as lti_flask
 from werkzeug.wrappers.response import Response
 
 from .auth import (
+    LoginData,
     ext_login_update_or_create,
     set_session_auth_class,
     set_session_auth_user,
@@ -89,12 +90,11 @@ def lti_login(lti: LTI) -> Response | tuple[str, int]:  # noqa: ARG001 (unused a
 
     # check for and create user account if needed
     lti_id = f"{lti_consumer}_{lti_user_id}_{email}"
-    user_normed = {
-        'email': email,
-        'full_name': full_name,
-        'auth_name': None,
-        'ext_id': lti_id,
-    }
+    user_normed = LoginData(
+        ext_id=lti_id,
+        email=email,
+        full_name=full_name,
+    )
     # LTI users given 0 tokens by default -- should only ever use API key registered w/ LTI consumer
     user_row = ext_login_update_or_create('lti', user_normed, query_tokens=0)
     user_id = user_row['id']

@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+from typing import get_args
+
 from authlib.integrations.flask_client import (  # type: ignore [import-untyped]
     OAuth,
     OAuthError,
@@ -11,6 +13,8 @@ from flask.app import Flask
 from werkzeug.wrappers.response import Response
 
 from .auth import (
+    AuthProviderExt,
+    LoginData,
     ext_login_update_or_create,
     get_last_class,
     set_session_auth_class,
@@ -21,6 +25,7 @@ GOOGLE_CONF_URL = "https://accounts.google.com/.well-known/openid-configuration"
 # Microsoft docs: https://learn.microsoft.com/en-us/azure/active-directory/develop/v2-protocols-oidc
 MICROSOFT_CONF_URL = "https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration"
 NEXT_URL_SESSION_KEY = "__gened_next_url"
+ANON_LOGIN_SESSION_KEY = "__gened_anon_login"
 
 
 bp = Blueprint('oauth', __name__, url_prefix="/oauth")
@@ -56,8 +61,12 @@ def init_app(app: Flask) -> None:
         )
 
 
+@bp.route('/login/<string:provider_name>/anon')
 @bp.route('/login/<string:provider_name>')
-def login(provider_name: str) -> Response:
+def login(provider_name: AuthProviderExt) -> Response:
+    if provider_name not in get_args(AuthProviderExt):
+        abort(404)
+
     client = _oauth.create_client(provider_name)
     if not client:
         abort(404)
@@ -67,6 +76,10 @@ def login(provider_name: str) -> Response:
     if next_url:
         session[NEXT_URL_SESSION_KEY] = next_url
 
+    # store request for anonymous user-creation (appended '/anon' to route) in session
+    if request.path.endswith('/anon'):
+        session[ANON_LOGIN_SESSION_KEY] = True
+
     redirect_uri = url_for('.auth', provider_name=provider_name, _external=True)
     redir = client.authorize_redirect(redirect_uri)
     assert isinstance(redir, Response)
@@ -74,7 +87,10 @@ def login(provider_name: str) -> Response:
 
 
 @bp.route('/auth/<string:provider_name>')
-def auth(provider_name: str) -> Response:
+def auth(provider_name: AuthProviderExt) -> Response:
+    if provider_name not in get_args(AuthProviderExt):
+        abort(404)
+
     client = _oauth.create_client(provider_name)
     if not client:
         abort(404)
@@ -95,24 +111,27 @@ def auth(provider_name: str) -> Response:
 
     user = token.get('userinfo') or client.userinfo()
 
-    if not user.get('email'):
-        # On Github, email will be null if user does not share email publicly, but we can enumerate
-        # their email addresses using the user api and choose the one they have marked 'primary'
-        # [https://github.com/authlib/loginpass/blob/master/loginpass/github.py]
-        assert provider_name == 'github'
-        response = client.get('user/emails')
-        response.raise_for_status()
-        data = response.json()
-        user['email'] = next(item['email'] for item in data if item['primary'])
+    # normalize user info from different providers into a common form
+    user_normed = LoginData(ext_id=( user.get('sub') or user.get('id') ))
 
-    user_normed = {
-        'email': user.get('email'),
-        'full_name': user.get('name'),
-        'auth_name': user.get('login'),
-        'ext_id': user.get('sub') or user.get('id')   # 'sub' for OpenID Connect (Google, Microsoft); 'id' for Github
-    }
+    # anonymous login requests get anonymized user info (other than the external ID)
+    if session.get(ANON_LOGIN_SESSION_KEY):
+        user_normed.anon = True
 
-    current_app.logger.debug(f"SSO login: {provider_name=} email='{user_normed['email']}' full_name='{user_normed['full_name']}'")
+    else:
+        if not user.get('email'):
+            # On Github, email will be null if user does not share email publicly, but we can enumerate
+            # their email addresses using the user api and choose the one they have marked 'primary'
+            # [https://github.com/authlib/loginpass/blob/master/loginpass/github.py]
+            assert provider_name == 'github'
+            response = client.get('user/emails')
+            response.raise_for_status()
+            data = response.json()
+            user['email'] = next(item['email'] for item in data if item['primary'])
+
+        user_normed.email = user.get('email')
+        user_normed.full_name = user.get('name')
+        user_normed.auth_name = user.get('login')
 
     # Create a new user (with default # of free tokens) or update the existing if matched
     tokens = current_app.config.get('DEFAULT_TOKENS', 0)
