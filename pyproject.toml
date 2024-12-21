@@ -38,13 +38,11 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
-    "coverage~=7.0",
     "oauthlib~=3.2.2",
     "pytest~=8.0",
     "pytest-cov~=6.0.0",
     "pytest-xdist~=3.6.1",
     "mypy",
-    "types-pytz",
     "types-requests",
     "pyrage-stubs~=1.2.0",
 ]
