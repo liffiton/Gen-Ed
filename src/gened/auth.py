@@ -255,9 +255,12 @@ def generate_anon_username() -> str:
     ]
 
     animals = [
-        "penguin", "dolphin", "squirrel", "eagle", "butterfly",
-        "falcon", "panda", "koala", "rabbit", "robin",
-        "otter", "hamster", "sparrow", "hedgehog", "turtle",
+        "penguin", "dolphin", "squirrel", "butterfly", "rabbit",
+        "panda", "koala", "otter", "falcon", "sparrow",
+        "hedgehog", "tortoise", "giraffe", "zebra", "kangaroo",
+        "alpaca", "antelope", "hummingbird", "gazelle", "seahorse",
+        "owl", "dragonfly", "pelican", "crane", "lynx",
+        "leopard", "wolf", "eagle", "deer", "swan"
     ]
 
     # Get two unique adjectives, one animal
