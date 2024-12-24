@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -23,6 +24,7 @@ class Document:
     html: str
     title: str
     summary: str
+    category: str = "Uncategorized"  # default category if none specified
 
 
 def _process_doc(docfile_path: Path) -> Document:
@@ -34,12 +36,14 @@ def _process_doc(docfile_path: Path) -> Document:
 
     title = md_doc['title']
     summary = md_doc['summary']
+    category = md_doc.get('category', "Uncategorized")
 
     return Document(
         name=docfile_path.stem,
         html=html,
         title=title,
         summary=summary,
+        category=category,
     )
 
 
@@ -65,9 +69,17 @@ def main() -> str:
         except KeyError as e:
             current_app.logger.warning(f"Failed to load docs page: {md_file}.  KeyError: {e}")
 
-    docs_pages.sort(key=lambda x: x.title)
+    # Group pages by category
+    categorized_pages = defaultdict(list)
+    for page in docs_pages:
+        categorized_pages[page.category].append(page)
 
-    return render_template("docs_index.html", pages=docs_pages)
+    # Sort categories and pages within categories
+    for category_list in categorized_pages.values():
+        category_list.sort(key=lambda x: x.title)
+    sorted_categories = sorted(categorized_pages.keys())
+
+    return render_template("docs_index.html", categorized_pages=categorized_pages, categories=sorted_categories)
 
 
 @bp.route('/<string:name>')

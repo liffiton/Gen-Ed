@@ -1,6 +1,7 @@
 ---
 title:  Privacy Policy
 summary:  Privacy Policy for CodeHelp
+category:  Privacy
 ---
 
 # Privacy Policy

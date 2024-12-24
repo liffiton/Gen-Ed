@@ -10,11 +10,14 @@ SPDX-License-Identifier: AGPL-3.0-only
 <section class="section">
   <div class="container content">
     <h1 class="title">Documentation</h1>
-    <ul class="is-size-4">
-      {% for page in pages %}
-        <li><a href="{{ url_for("docs.page", name=page['name']) }}">{{ page['title'] }}</a> <span class="is-size-5">&mdash; {{ page['summary'] }}</span></li>
-      {% endfor %}
-    </ul>
+    {% for category in categories %}
+      <h2 class="title is-4">{{ category }}</h2>
+      <ul class="is-size-4">
+        {% for page in categorized_pages[category] %}
+          <li><a href="{{ url_for("docs.page", name=page.name) }}">{{ page.title }}</a> <span class="is-size-5">&mdash; {{ page.summary }}</span></li>
+        {% endfor %}
+      </ul>
+    {% endfor %}
   </div>
 </section>
 {% endblock %}

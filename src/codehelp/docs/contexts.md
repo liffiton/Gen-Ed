@@ -1,6 +1,7 @@
 ---
 title:  Using Contexts
 summary:  Guidance and suggestions on how to use contexts in your class.
+category:  Using CodeHelp
 ---
 
 # Using Contexts
