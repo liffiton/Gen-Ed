@@ -2,19 +2,32 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from flask import Blueprint, flash, redirect, render_template, request, session, url_for
+from flask import (
+    Blueprint,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from werkzeug.wrappers.response import Response
 
-from .auth import get_auth, login_required
+from .auth import generate_anon_username, get_auth, login_required
 from .data_deletion import delete_user_data
 from .db import get_db
 from .redir import safe_redirect
 
 bp = Blueprint('profile', __name__, url_prefix="/profile", template_folder='templates')
 
+@bp.before_request
+@login_required
+def before_request() -> None:
+    """ Apply decorator to protect all profile blueprint endpoints. """
+
 
 @bp.route("/")
-@login_required
 def main() -> str:
     db = get_db()
     auth = get_auth()
@@ -78,7 +91,6 @@ def main() -> str:
 
 
 @bp.route("/delete_data", methods=['POST'])
-@login_required
 def delete_data() -> Response:
     # Require explicit confirmation
     if request.form.get('confirm_delete') != 'DELETE':
@@ -126,7 +138,54 @@ def delete_data() -> Response:
 
     db.commit()
 
-    # Clear their session and log them out
+    # Clear their session to log them out
     session.clear()
+
+    current_app.logger.info(f"Account deleted: ID {user_id}")
     flash("Your data has been deleted and your account has been deactivated.", "success")
     return redirect(url_for("auth.login"))
+
+
+@bp.route("/anonymize", methods=['POST'])
+def anonymize() -> Response:
+    auth = get_auth()
+    user_id = auth.user_id
+    assert user_id is not None  # due to @login_required
+    db = get_db()
+
+    # Check if this is an external, non-LTI account
+    auth_row = db.execute("""
+        SELECT auth_external.user_id, auth_providers.name as provider
+        FROM auth_external
+        JOIN auth_providers ON auth_providers.id = auth_external.auth_provider
+        WHERE user_id=?
+    """, [user_id]).fetchone()
+
+    if not auth_row or auth_row['provider'] == 'lti':
+        flash("Account anonymization is only available to external, non-LTI accounts.", "warning")
+        return safe_redirect(request.referrer, default_endpoint="profile.main")
+
+    # Generate new anonymous display name
+    new_name = generate_anon_username()
+
+    # Update user record to remove personal info
+    db.execute("""
+        UPDATE users
+        SET full_name = ?,
+            email = NULL,
+            auth_name = NULL
+        WHERE id = ?
+    """, [new_name, user_id])
+
+    # Mark external auth entry as anonymous
+    db.execute("""
+        UPDATE auth_external
+        SET is_anon = 1
+        WHERE user_id = ?
+    """, [user_id])
+
+    db.commit()
+
+    current_app.logger.info(f"Account anonymized: ID {user_id}")
+    flash("Your account has been anonymized.", "success")
+    return redirect(url_for("profile.main"))

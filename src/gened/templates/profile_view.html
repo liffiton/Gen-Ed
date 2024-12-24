@@ -108,18 +108,28 @@ dl.profile dd { margin: 0; }
     </dl>
 
     <h2 class="title is-size-3">Your Data</h2>
-    <button class="button ml-5 icon-text is-light is-danger" onclick="document.querySelector('#delete_data_dialog').showModal()">
-      <span class="icon">
-        <svg aria-hidden="true"><use href="#svg_trash" /></svg>
-      </span>
-      <span>Delete your data</span>
-    </button>
+    <div class="buttons">
+      {% if user.provider_name not in ['lti', 'demo', 'local'] %}
+        <button class="button ml-5 icon-text is-info" onclick="document.querySelector('#anonymize_dialog').showModal()">
+          <span class="icon">
+            <svg aria-hidden="true"><use href="#svg_user" /></svg>
+          </span>
+          <span>Anonymize account</span>
+        </button>
+      {% endif %}
+      <button class="button ml-5 icon-text is-danger" onclick="document.querySelector('#delete_dialog').showModal()">
+        <span class="icon">
+          <svg aria-hidden="true"><use href="#svg_trash" /></svg>
+        </span>
+        <span>Delete your account</span>
+      </button>
+    </div>
 
   </div>
 
-  <dialog id="delete_data_dialog" style="max-width: 50em; min-width: min(32em, 100vw);">
-    <div class="content box" style="border: 2px solid #f009; background: #fff8f8;">
-      <h2 class="has-text-danger">Delete Your Data</h2>
+  <dialog id="delete_dialog" style="max-width: 50em; min-width: min(32em, 100vw);">
+    <div class="content box" style="border: 3px solid #a00; background: #fff8f8;">
+      <h2 class="has-text-danger-dark">Delete Your Account</h2>
       <div class="content">
         <p>This will:
           <ul>
@@ -132,8 +142,8 @@ dl.profile dd { margin: 0; }
         {% if auth.user.auth_provider == 'lti' %}
           <p>This user was created using a link from an LMS.  If you connect to CodeHelp from your LMS after deleting your data here, you will create a new user on CodeHelp separate from this one.</p>
         {% endif %}
-        <p>Type "DELETE" in the text box to confirm you want to delete your data.</p>
-        <p class="has-text-danger"><strong class="has-text-danger">Warning:</strong> Deleting your data cannot be undone.</p>
+        <p>Type "DELETE" in the text box to confirm you want to delete your account.</p>
+        <p class="has-text-danger-dark"><strong class="has-text-danger-dark">Warning:</strong> Deleting your data cannot be undone.</p>
       </div>
       <form method="POST" action="{{ url_for('profile.delete_data') }}">
         {% if created_classes %}
@@ -143,13 +153,13 @@ dl.profile dd { margin: 0; }
             </div>
             <div class="control">
               <button disabled type="submit" class="button is-danger">
-                Delete Class Data
+                Delete Account
               </button>
             </div>
           </div>
           <div class="notification is-danger">
             <p><strong>Classes cannot be orphaned.</strong></p>
-            <p>Before you can delete your data, you must first delete all classes you have created:</p>
+            <p>Before you can delete your account, you must first delete all classes you have created:</p>
             <ul>
               {% for class in created_classes %}
                 <li>{{ class.name }}</li>
@@ -209,8 +219,38 @@ dl.profile dd { margin: 0; }
       </div>
     </dialog>
   {% endif %}
+
   {% if not auth.cur_class %}
     {% include "free_query_dialog.html" %}
   {% endif %}
+
+  {% if user.provider_name not in ['lti', 'demo', 'local'] %}
+    <dialog id="anonymize_dialog" style="max-width: 50em; min-width: min(32em, 100vw);">
+      <div class="content box">
+        <h2 class="has-text-info">Anonymize Your Account</h2>
+        <div class="content">
+          <p>This will:
+            <ul>
+              <li>Remove your name, email, and username from your account</li>
+              <li>Give your account a new, anonymous name</li>
+              <li>Keep your account active and your usage data intact</li>
+            </ul>
+          </p>
+          <p class="has-text-danger-dark"><strong class="has-text-danger-dark">Warning:</strong> Account anonymization cannot be undone.</p>
+        </div>
+        <form method="POST" action="{{ url_for('profile.anonymize') }}">
+          <div class="field is-grouped">
+            <div class="control">
+              <button type="submit" class="button is-info">Anonymize Account</button>
+            </div>
+            <div class="control">
+              <button class="button" type="submit" formnovalidate formmethod="dialog">Cancel</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </dialog>
+  {% endif %}
+
 </section>
 {% endblock %}

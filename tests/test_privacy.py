@@ -2,7 +2,9 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import pytest
+import re
+
+from flask import url_for
 
 from gened.db import get_db
 
@@ -263,3 +265,88 @@ def test_delete_class_unauthorized(app, client, auth):
     with app.app_context():
         verify_row_count("classes", "WHERE id = ? AND name != '[deleted]'", [class_id], 1, "Class should still exist")
 
+
+def test_anonymize_user_unauthorized(app, client):
+    """Test unauthorized access to user anonymization"""
+    # Test without login
+    response = client.post('/profile/anonymize')
+    assert response.status_code == 302
+    assert response.location.startswith('/auth/login?')
+
+
+def test_anonymize_user_provider_restrictions(app, client, auth):
+    """Test provider restrictions for anonymization"""
+    auth.login('testuser', 'testpassword')
+
+    with app.app_context():
+        db = get_db()
+        # Get original user data
+        init_user = db.execute("SELECT * FROM users WHERE auth_name='testuser'").fetchone()
+
+        # Force-set current user as LTI user
+        db.execute("""
+            UPDATE auth_external
+            SET auth_provider = (SELECT id FROM auth_providers WHERE name = 'lti')
+            WHERE user_id = (SELECT id FROM users WHERE auth_name = 'testuser')
+        """)
+        db.commit()
+
+        response = client.post('/profile/anonymize', follow_redirects=True)
+        assert response.status_code == 200
+        assert b"Account anonymization is only available to external, non-LTI accounts" in response.data
+
+        # Verify nothing was anonymized
+        user = db.execute("SELECT * FROM users WHERE auth_name='testuser'").fetchone()
+        assert user['full_name'] == init_user['full_name']
+        assert user['email'] == init_user['email']
+
+
+def test_anonymize_user_full_process(app, client, mock_oauth_patch):
+    """Test complete user anonymization process"""
+    # Set up mock OAuth login
+    with app.test_request_context():
+        auth_url = url_for('oauth.auth', provider_name='google')
+
+    # Perform OAuth login
+    with client:
+        response = client.get(auth_url)
+        assert response.status_code == 302
+
+    # Get initial state
+    with app.app_context():
+        db = get_db()
+        initial_user = db.execute("SELECT * FROM users WHERE full_name=?", [mock_oauth_patch.test_user['name']]).fetchone()
+        user_id = initial_user['id']
+        initial_auth = db.execute("SELECT * FROM auth_external WHERE user_id = ?", [user_id]).fetchone()
+
+        # Verify initial state
+        assert not initial_auth['is_anon']  # This is the key state we're testing
+
+    # Perform anonymization
+    response = client.post('/profile/anonymize')
+    assert response.status_code == 302
+    assert response.location == "/profile/"
+
+    # Verify final state
+    with app.app_context():
+        db = get_db()
+        user = db.execute("SELECT * FROM users WHERE id = ?", [user_id]).fetchone()
+        auth = db.execute("SELECT * FROM auth_external WHERE user_id = ?", [user_id]).fetchone()
+
+        # Check user record
+        assert user['full_name'] != initial_user['full_name']
+        # Anonymous usernames are three capitalized words concatenated
+        assert re.match(r"^(?:[A-Z][a-z]+){3}$", user['full_name'])
+        assert user['email'] is None
+        assert user['auth_name'] is None
+
+        # Check external auth set to anonymous
+        assert auth['is_anon'] == 1
+
+        # Verify other data remains intact
+        assert user['id'] == initial_user['id']
+        assert user['auth_provider'] == initial_user['auth_provider']
+        assert user['is_admin'] == initial_user['is_admin']
+        assert user['is_tester'] == initial_user['is_tester']
+        assert user['query_tokens'] == initial_user['query_tokens']
+        assert user['last_class_id'] == initial_user['last_class_id']
