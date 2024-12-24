@@ -2,30 +2,10 @@ import re
 from unittest.mock import MagicMock, patch
 from urllib.parse import quote_plus
 
-import pytest
 from flask import url_for
 
 from gened.auth import get_auth
 from gened.db import get_db
-
-
-TEST_USER = {
-    'email': 'test@example.com',
-    'name': 'Test User',
-    'sub': '12345',  # OpenID Connect ID
-    'id': '12345',   # Github ID
-}
-
-@pytest.fixture
-def mock_oauth(app):
-    """Create a mock OAuth client that can be configured per-test"""
-    mock_oauth_client = MagicMock()
-    mock_oauth_client.authorize_access_token.return_value = {
-        'userinfo': TEST_USER
-    }
-    # Patch OAuth client creation to return our mock
-    with patch('gened.oauth._oauth.create_client', return_value=mock_oauth_client):
-        yield mock_oauth_client
 
 
 def test_login_invalid_provider(app, client):
@@ -46,7 +26,7 @@ def test_login_google(app, client):
     assert response.location.startswith("https://accounts.google.com/o/oauth2/v2/auth?")
     assert auth_url_encoded in response.location
 
-def test_google_callback_success(app, client, mock_oauth):
+def test_google_callback_success(app, client, mock_oauth_patch):
     """Test successful Google OAuth callback"""
 
     with app.test_request_context():
@@ -62,25 +42,18 @@ def test_google_callback_success(app, client, mock_oauth):
         sessauth = get_auth()
         assert sessauth.user
         assert sessauth.user_id
-        assert sessauth.user.display_name == TEST_USER['name']
+        assert sessauth.user.display_name == mock_oauth_patch.test_user['name']
         assert sessauth.user.auth_provider == 'google'
         assert sessauth.is_admin == False
         assert sessauth.cur_class is None
 
-def test_anon_signup(app, client):
+def test_anon_signup(app, client, mock_oauth_client):
     """Test initial login/signup with /anon option."""
     with app.test_request_context():
         login_url = url_for('oauth.login', provider_name='google')
         login_url_anon = url_for('oauth.login', provider_name='google', anon=1)
         auth_url = url_for('oauth.auth', provider_name='google')
         logout_url = url_for('auth.logout')
-
-    # Patch an OAuth client creation to return our mock
-    # (can't use mock_oauth fixture here because we want a real/intact client for the login request)
-    mock_oauth_client = MagicMock()
-    mock_oauth_client.authorize_access_token.return_value = {
-        'userinfo': TEST_USER
-    }
 
     # Login once w/ anon login URL to create anonymous user,
     # then a second time with the normal login URL to verify still anonymous.
@@ -89,6 +62,8 @@ def test_anon_signup(app, client):
         client.get(url)
 
         # Then handle the callback
+        # Patch OAuth client creation to return our mock
+        # (can't use mock_oauth_patch fixture here because we want a real client for the login request above)
         with patch('gened.oauth._oauth.create_client', return_value=mock_oauth_client), client:
             response = client.get(auth_url)
 
@@ -99,7 +74,7 @@ def test_anon_signup(app, client):
             sessauth = get_auth()
             assert sessauth.user
             assert sessauth.user_id
-            assert sessauth.user.display_name != TEST_USER['name']
+            assert sessauth.user.display_name != mock_oauth_client.test_user['name']
             # Anonymous usernames are three capitalized words concatenated
             assert re.match(r"^(?:[A-Z][a-z]+){3}$", sessauth.user.display_name)
             assert sessauth.user.auth_provider == 'google'
@@ -109,11 +84,11 @@ def test_anon_signup(app, client):
         # Log out (so second iteration can verify still anonymous even when using non-/anon route)
         client.post(logout_url)
 
-def test_github_callback_success(app, client, mock_oauth):
+def test_github_callback_success(app, client, mock_oauth_patch):
     """Test successful Github OAuth callback with email fetching"""
     # Configure mock for the initial auth response to simulate how Github might
     # not provide an email address directly.
-    mock_oauth.authorize_access_token.return_value['userinfo']['email'] = None
+    mock_oauth_patch.authorize_access_token.return_value['userinfo']['email'] = None
 
     # Configure mock for the email fetch
     mock_email_response = MagicMock()
@@ -121,7 +96,7 @@ def test_github_callback_success(app, client, mock_oauth):
         {'email': 'github_test@example.com', 'primary': True},
         {'email': 'other@example.com', 'primary': False}
     ]
-    mock_oauth.get.return_value = mock_email_response
+    mock_oauth_patch.get.return_value = mock_email_response
 
     with app.test_request_context():
         auth_url = url_for('oauth.auth', provider_name='github')
@@ -133,13 +108,13 @@ def test_github_callback_success(app, client, mock_oauth):
         assert response.location == '/'  # Default redirect
 
         # Verify the email API was called
-        mock_oauth.get.assert_called_once_with('user/emails')
+        mock_oauth_patch.get.assert_called_once_with('user/emails')
 
         # Check session is set up correctly
         sessauth = get_auth()
         assert sessauth.user
         assert sessauth.user_id
-        assert sessauth.user.display_name == TEST_USER['name']
+        assert sessauth.user.display_name == mock_oauth_patch.test_user['name']
         assert sessauth.user.auth_provider == 'github'
         assert sessauth.is_admin == False
         assert sessauth.cur_class is None
@@ -149,7 +124,7 @@ def test_github_callback_success(app, client, mock_oauth):
         row = db.execute("SELECT email FROM users WHERE id=?", [sessauth.user_id]).fetchone()
         assert row['email'] == 'github_test@example.com'
 
-def test_microsoft_callback_success(app, client, mock_oauth):
+def test_microsoft_callback_success(app, client, mock_oauth_patch):
     """Test successful Microsoft OAuth callback with special claims handling"""
     with app.test_request_context():
         auth_url = url_for('oauth.auth', provider_name='microsoft')
@@ -160,9 +135,9 @@ def test_microsoft_callback_success(app, client, mock_oauth):
     assert response.location == '/'
 
     # Verify the special claims_options were used
-    mock_oauth.authorize_access_token.assert_called_once_with(claims_options={'iss': {}})
+    mock_oauth_patch.authorize_access_token.assert_called_once_with(claims_options={'iss': {}})
 
-def test_callback_with_next_url(app, client):
+def test_callback_with_next_url(app, client, mock_oauth_client):
     """Test OAuth callback with a next URL stored in session"""
     next_target = '/something_random/'
     with app.test_request_context():
@@ -174,21 +149,17 @@ def test_callback_with_next_url(app, client):
 
     # Then handle the callback
     # Patch OAuth client creation to return our mock
-    # (can't use mock_oauth fixture here because we want a real client for the login request above)
-    mock_oauth_client = MagicMock()
-    mock_oauth_client.authorize_access_token.return_value = {
-        'userinfo': TEST_USER
-    }
+    # (can't use mock_oauth_patch fixture here because we want a real client for the login request above)
     with patch('gened.oauth._oauth.create_client', return_value=mock_oauth_client):
         response = client.get(auth_url)
 
     assert response.status_code == 302
     assert response.location == next_target
 
-def test_callback_failure(app, client, mock_oauth):
+def test_callback_failure(app, client, mock_oauth_patch):
     """Test OAuth callback when authentication fails"""
     from authlib.integrations.flask_client import OAuthError
-    mock_oauth.authorize_access_token.side_effect = OAuthError("Auth failed")
+    mock_oauth_patch.authorize_access_token.side_effect = OAuthError("Auth failed")
 
     with app.test_request_context():
         auth_url = url_for('oauth.auth', provider_name='google')

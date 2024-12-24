@@ -4,6 +4,7 @@
 
 import tempfile
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import openai
 import pytest
@@ -92,3 +93,27 @@ class AuthActions:
 @pytest.fixture
 def auth(client):
     return AuthActions(client)
+
+
+TEST_OAUTH_USER = {
+    'email': 'test@example.com',
+    'name': 'Test OAuth User',
+    'sub': '12345',  # OpenID Connect ID
+    'id': '54321',   # Github ID
+}
+
+@pytest.fixture
+def mock_oauth_client(app):
+    """Create a mock OAuth client that can be configured per-test"""
+    mock_oauth_client = MagicMock()
+    mock_oauth_client.test_user = TEST_OAUTH_USER
+    mock_oauth_client.authorize_access_token.return_value = {
+        'userinfo': TEST_OAUTH_USER
+    }
+    return mock_oauth_client
+
+@pytest.fixture
+def mock_oauth_patch(mock_oauth_client):
+    # Patch OAuth client creation to return our mock
+    with patch('gened.oauth._oauth.create_client', return_value=mock_oauth_client):
+        yield mock_oauth_client
