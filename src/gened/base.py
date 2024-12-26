@@ -185,32 +185,24 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
         app.logger.error("No deletion handler registered. All Gen-Ed applications must provide one.")
         sys.exit(1)
 
-    admin.init_app(app)
+    # Register blueprints
+    app.register_blueprint(admin.bp, url_prefix='/admin')
+    app.register_blueprint(auth.bp, url_prefix='/auth')
+    app.register_blueprint(classes.bp, url_prefix='/classes')
+    app.register_blueprint(class_config.bp, url_prefix='/instructor/config')
+    app.register_blueprint(demo.bp, url_prefix='/demo')
+    app.register_blueprint(instructor.bp, url_prefix='/instructor')
+    app.register_blueprint(lti.bp, url_prefix='/lti')
+    app.register_blueprint(oauth.bp, url_prefix='/oauth')
+    app.register_blueprint(profile.bp, url_prefix='/profile')
+
+    # Initialize modules with other setup needs
     db.init_app(app)
+    docs.init_app(app, url_prefix='/docs')
     filters.init_app(app)
     migrate.init_app(app)
     oauth.init_app(app)
     tz.init_app(app)
-
-    app.register_blueprint(admin.bp)
-    app.register_blueprint(auth.bp)
-    app.register_blueprint(demo.bp)
-    app.register_blueprint(instructor.bp)
-    app.register_blueprint(lti.bp)
-    app.register_blueprint(oauth.bp)
-    app.register_blueprint(profile.bp)
-    app.register_blueprint(classes.bp)
-    app.register_blueprint(class_config.bp)
-
-    # Only register the docs blueprint if we're configured with a documentation directory
-    docs_dir = app.config.get('DOCS_DIR')
-    if docs_dir:
-        app.register_blueprint(docs.bp)
-
-        # Inject docs pages list into template contexts
-        @app.context_processor
-        def inject_docs_list() -> dict[str, list[str]]:
-            return { 'docs_pages': docs.list_pages() }
 
     # Inject auth data into template contexts
     @app.context_processor

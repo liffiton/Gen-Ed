@@ -33,7 +33,7 @@ from .db import get_db
 from .redir import safe_redirect_next
 from .tz import date_is_past
 
-bp = Blueprint('classes', __name__, url_prefix="/classes", template_folder='templates')
+bp = Blueprint('classes', __name__, template_folder='templates')
 
 
 def get_or_create_lti_class(lti_consumer_id: int, lti_context_id: str, class_name: str) -> int:

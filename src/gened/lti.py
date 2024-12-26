@@ -27,7 +27,7 @@ from .auth import (
 from .classes import get_or_create_lti_class
 from .db import get_db
 
-bp = Blueprint('lti', __name__, url_prefix="/lti", template_folder='templates')
+bp = Blueprint('lti', __name__, template_folder='templates')
 
 
 # An LTI-specific error handler

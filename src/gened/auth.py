@@ -338,7 +338,7 @@ def ext_login_update_or_create(provider_name: AuthProviderExt, userdata: LoginDa
     return user_row
 
 
-bp = Blueprint('auth', __name__, url_prefix="/auth", template_folder='templates')
+bp = Blueprint('auth', __name__, template_folder='templates')
 
 
 @bp.route("/login")

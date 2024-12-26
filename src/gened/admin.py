@@ -22,7 +22,6 @@ from flask import (
     send_file,
     url_for,
 )
-from flask.app import Flask
 from werkzeug.wrappers.response import Response
 
 from .auth import admin_required
@@ -30,8 +29,7 @@ from .csv import csv_response
 from .db import backup_db, get_db
 from .llm import get_models
 
-bp = Blueprint('admin', __name__, url_prefix="/admin", template_folder='templates')
-
+bp = Blueprint('admin', __name__, template_folder='templates')
 
 @bp.before_request
 @admin_required
@@ -102,11 +100,9 @@ class AdminLinks:
 _admin_links = AdminLinks()
 register_admin_link = _admin_links.register  # name for the decorator to be imported/used in other modules
 
-
-def init_app(app: Flask) -> None:
-    @app.context_processor
-    def inject_admin_links() -> dict[str, list[AdminLink]]:
-        return _admin_links.get_template_context()
+@bp.context_processor
+def inject_admin_links() -> dict[str, list[AdminLink]]:
+    return _admin_links.get_template_context()
 
 
 @dataclass(frozen=True)

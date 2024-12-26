@@ -21,7 +21,7 @@ from .auth import get_auth, set_session_auth_user
 from .db import get_db
 from .tz import date_is_past
 
-bp = Blueprint('demo', __name__, url_prefix="/demo", template_folder='templates')
+bp = Blueprint('demo', __name__, template_folder='templates')
 
 
 @bp.route("/<string:demo_name>", methods=['GET'])

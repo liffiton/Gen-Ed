@@ -21,7 +21,7 @@ from .llm import LLM, get_models, with_llm
 from .redir import safe_redirect
 from .tz import date_is_past
 
-bp = Blueprint('class_config', __name__, url_prefix="/instructor/config", template_folder='templates')
+bp = Blueprint('class_config', __name__, template_folder='templates')
 
 @bp.before_request
 @instructor_required

@@ -19,7 +19,7 @@ from .data_deletion import delete_user_data
 from .db import get_db
 from .redir import safe_redirect
 
-bp = Blueprint('profile', __name__, url_prefix="/profile", template_folder='templates')
+bp = Blueprint('profile', __name__, template_folder='templates')
 
 @bp.before_request
 @login_required

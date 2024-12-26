@@ -8,8 +8,16 @@ from authlib.integrations.flask_client import (  # type: ignore [import-untyped]
     OAuth,
     OAuthError,
 )
-from flask import Blueprint, abort, current_app, redirect, request, session, url_for
-from flask.app import Flask
+from flask import (
+    Blueprint,
+    Flask,
+    abort,
+    current_app,
+    redirect,
+    request,
+    session,
+    url_for,
+)
 from werkzeug.wrappers.response import Response
 
 from .auth import (
@@ -28,12 +36,11 @@ NEXT_URL_SESSION_KEY = "__gened_next_url"
 ANON_LOGIN_SESSION_KEY = "__gened_anon_login"
 
 
-bp = Blueprint('oauth', __name__, url_prefix="/oauth")
+bp = Blueprint('oauth', __name__)
 _oauth = OAuth()
 
-
 def init_app(app: Flask) -> None:
-    """Register SSO handlers with authlib.
+    """ Register SSO handlers with authlib.
     Note: _oauth.register() automatically loads client ID and secret from app config (see base.py)
     """
     _oauth.init_app(app)

@@ -7,14 +7,25 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import frontmatter  # type: ignore [import-untyped]
-from flask import Blueprint, abort, current_app, render_template
+from flask import Blueprint, Flask, abort, current_app, render_template
 from markdown_it import MarkdownIt
 
 # get a processor that does HTML parsing for our docs (trusted content, HTML parsing okay)
 _markdown_processor = MarkdownIt("commonmark", {"typographer": True})
 _markdown_processor.enable(["replacements", "smartquotes"])
 
-bp = Blueprint('docs', __name__, url_prefix="/docs", template_folder='templates')
+bp = Blueprint('docs', __name__, template_folder='templates')
+
+def init_app(app: Flask, url_prefix: str) -> None:
+    # Only register the docs blueprint if we're configured with a documentation directory
+    docs_dir = app.config.get('DOCS_DIR')
+    if docs_dir:
+        app.register_blueprint(bp, url_prefix=url_prefix)
+
+        # Inject docs pages list into template contexts
+        @app.context_processor
+        def inject_docs_list() -> dict[str, set[str]]:
+            return { 'docs_pages': list_pages() }
 
 
 @dataclass(frozen=True)
@@ -47,12 +58,12 @@ def _process_doc(docfile_path: Path) -> Document:
     )
 
 
-def list_pages() -> list[str]:
+def list_pages() -> set[str]:
     docs_dir = current_app.config.get('DOCS_DIR')
     assert docs_dir  # base.py shouldn't load this blueprint if we have no documentation directory configured
 
     pages_paths = docs_dir.glob('*.md')
-    return [path.stem for path in pages_paths]
+    return {path.stem for path in pages_paths}
 
 
 @bp.route('/')

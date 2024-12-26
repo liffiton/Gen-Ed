@@ -33,7 +33,7 @@ from .data_deletion import delete_class_data
 from .db import get_db
 from .redir import safe_redirect
 
-bp = Blueprint('instructor', __name__, url_prefix="/instructor", template_folder='templates')
+bp = Blueprint('instructor', __name__, template_folder='templates')
 
 @bp.before_request
 @instructor_required
