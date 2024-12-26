@@ -11,8 +11,8 @@ import pytest
 from dotenv import find_dotenv, load_dotenv
 
 import codehelp
-from gened.admin import reload_consumers
 from gened.db import get_db, init_db
+from gened.lti import reload_consumers
 from gened.testing.mocks import mock_async_completion, mock_completion
 
 # Load test DB data

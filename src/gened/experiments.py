@@ -63,7 +63,7 @@ def experiments_view() -> str:
 
 @bp_admin.route("/experiment/new")
 def experiment_new() -> str:
-    return render_template("experiment_form.html")
+    return render_template("admin_experiment_form.html")
 
 @bp_admin.route("/experiment/<int:exp_id>")
 def experiment_form(exp_id: int) -> str:
@@ -73,7 +73,7 @@ def experiment_form(exp_id: int) -> str:
     classes = [dict(row) for row in classes]  # so we can tojson it in the template
     assigned_classes = db.execute("SELECT class_id AS id, classes.name FROM experiment_class JOIN classes ON experiment_class.class_id=classes.id WHERE experiment_id=? ORDER BY name", [exp_id]).fetchall()
     assigned_classes = [dict(row) for row in assigned_classes]
-    return render_template("experiment_form.html", experiment=experiment, classes=classes, assigned_classes=assigned_classes)
+    return render_template("admin_experiment_form.html", experiment=experiment, classes=classes, assigned_classes=assigned_classes)
 
 @bp_admin.route("/experiment/update", methods=['POST'])
 def experiment_update() -> Response:

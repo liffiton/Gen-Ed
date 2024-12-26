@@ -30,6 +30,15 @@ from .db import get_db
 bp = Blueprint('lti', __name__, template_folder='templates')
 
 
+def reload_consumers() -> None:
+    db = get_db()
+    consumer_rows = db.execute("SELECT * FROM consumers").fetchall()
+    consumer_dict = {
+        row['lti_consumer']: {"secret": row['lti_secret']} for row in consumer_rows
+    }
+    current_app.config['PYLTI_CONFIG']['consumers'] = consumer_dict
+
+
 # An LTI-specific error handler
 def lti_error(exception: dict[str, Any]) -> tuple[str, int]:
     """Log the error and render a simple error page."""

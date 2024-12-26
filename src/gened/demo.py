@@ -88,7 +88,7 @@ def demo_link_view() -> str:
 
 @bp_admin.route("/demo_link/new")
 def demo_link_new() -> str:
-    return render_template("demo_link_form.html")
+    return render_template("admin_demo_link_form.html")
 
 
 @bp_admin.route("/demo_link/<int:demo_id>")
@@ -96,7 +96,7 @@ def demo_link_form(demo_id: int) -> str:
     db = get_db()
     demo_link_row = db.execute("SELECT * FROM demo_links WHERE id=?", [demo_id]).fetchone()
     demo_link_url = f"/demo/{demo_link_row['name']}"
-    return render_template("demo_link_form.html", demo_link=demo_link_row, demo_link_url=demo_link_url)
+    return render_template("admin_demo_link_form.html", demo_link=demo_link_row, demo_link_url=demo_link_url)
 
 
 @bp_admin.route("/demo_link/update", methods=['POST'])

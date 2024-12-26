@@ -11,7 +11,7 @@ from tempfile import NamedTemporaryFile, TemporaryDirectory
 def test_db_download_status(app, monkeypatch):
     """Test that db_download_status correctly reflects encryption availability"""
     with app.app_context():
-        from gened.admin import inject_db_download_status
+        from gened.admin.base import inject_db_download_status
 
         # No key configured
         monkeypatch.setattr(platform, "system", lambda: "Linux")

@@ -230,7 +230,7 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
 
         if db_initialized:
             # load consumers from DB
-            admin.reload_consumers()
+            lti.reload_consumers()
 
             # validate that the default class model exists and is active
             try:

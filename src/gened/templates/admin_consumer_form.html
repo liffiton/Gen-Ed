@@ -9,7 +9,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 {% block admin_body %}
   <div class="container">
 
-    <form class="wide-labels" action="{{url_for('admin.consumer_update')}}" method="post">
+    <form class="wide-labels" action="{{url_for('.consumer_update')}}" method="post">
       {% if consumer %}
         {# We're editing an existing consumer.  Provide its ID. #}
         <h1 class="title">Edit Consumer</h1>
@@ -111,7 +111,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             <div class="control">
               <button class="button is-link" type="submit">Submit</button>
               {% if consumer %}
-                <button class="button is-danger" type="submit" formaction="{{ url_for('admin.consumer_delete', consumer_id=consumer.id) }}">
+                <button class="button is-danger" type="submit" formaction="{{ url_for('.consumer_delete', consumer_id=consumer.id) }}">
                    <span class="delete mr-2"></span>
                    Delete {{ consumer.lti_consumer }}
                 </button>
