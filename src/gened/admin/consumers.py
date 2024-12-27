@@ -16,7 +16,7 @@ from gened.db import get_db
 from gened.llm import get_models
 from gened.lti import reload_consumers
 
-bp = Blueprint('admin_consumers', __name__, template_folder='templates/admin')
+bp = Blueprint('admin_consumers', __name__, template_folder='templates')
 
 
 @bp.route("/<int:consumer_id>")
@@ -59,7 +59,7 @@ def consumer_delete(consumer_id: int) -> Response:
 
     flash(f"Consumer '{consumer_name}' deleted.")
 
-    return redirect(url_for("admin.main"))
+    return redirect(url_for("admin.admin_main.main"))
 
 
 @bp.route("/update", methods=['POST'])

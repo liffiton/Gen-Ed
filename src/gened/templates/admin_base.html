@@ -14,7 +14,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 {% block second_nav %}
 <nav class="navbar is-light is-size-5" role="navigation" aria-label="admin navigation" x-data="{admin_menu_open: false}">
   <div class="navbar-brand">
-    <a class="navbar-item has-text-danger is-tab {{ 'is-active' if request.endpoint == 'admin.main' else ''}}" href="{{url_for('admin.main')}}">
+    <a class="navbar-item has-text-danger is-tab {{ 'is-active' if request.endpoint == 'admin.admin_main.main' else ''}}" href="{{url_for('admin.admin_main.main')}}">
       <span class="icon">
         <svg aria-hidden="true"><use href="#svg_admin" /></svg>
       </span>

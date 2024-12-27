@@ -7,16 +7,13 @@ from dataclasses import dataclass
 from sqlite3 import Row
 from urllib.parse import urlencode
 
-from flask import (
-    render_template,
-    request,
-)
+from flask import Blueprint, render_template, request
 from werkzeug.wrappers.response import Response
 
 from gened.csv import csv_response
 from gened.db import get_db
 
-from . import bp as bp_admin
+bp = Blueprint('admin_main', __name__, template_folder='templates')
 
 
 @dataclass(frozen=True)
@@ -28,7 +25,6 @@ class ChartData:
 
 # A module-level list of registered charts for the main admin page.  Updated by register_admin_chart()
 _admin_chart_generators: list[Callable[[str, list[str]], list[ChartData]]] = []
-
 
 def register_admin_chart(generator_func: Callable[[str, list[str]], list[ChartData]]) -> None:
     _admin_chart_generators.append(generator_func)
@@ -128,7 +124,7 @@ def get_queries_filtered(where_clause: str, where_params: list[str], queries_lim
     return queries
 
 
-@bp_admin.route("/csv/queries/")
+@bp.route("/csv/queries/")
 def get_queries_csv() -> str | Response:
     filters = Filters()
 
@@ -144,7 +140,7 @@ def get_queries_csv() -> str | Response:
     return csv_response('admin_export', 'queries', queries)
 
 
-@bp_admin.route("/")
+@bp.route("/")
 def main() -> str:
     db = get_db()
     filters = Filters()

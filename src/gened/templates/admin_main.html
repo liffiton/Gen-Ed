@@ -43,14 +43,14 @@ SPDX-License-Identifier: AGPL-3.0-only
 
   <div class="flex_items">
     <div class="flex_item">
-      <h1 class="is-size-3">Consumers <a class="button is-light is-link is-small mt-2" href="{{url_for('.admin_consumers.consumer_new')}}">Create New</a></h1>
+      <h1 class="is-size-3">Consumers <a class="button is-light is-link is-small mt-2" href="{{url_for('admin.admin_consumers.consumer_new')}}">Create New</a></h1>
       {{ datatable(
           'consumers',
           [('id', 'id'), ('consumer', 'lti_consumer'), ('model', 'model'), ('#classes', 'num_classes', 'r'), ('#users', 'num_users', 'r'), ('#queries', 'num_queries', 'r'), ('1wk', 'num_recent_queries', 'r')],
           consumers,
           link_col=0,
           link_template=filters.template_string('consumer') | safe,
-          extra_links=[{'icon': "pencil", 'text': "Edit consumer", 'handler': ".admin_consumers.consumer_form", 'param': "consumer_id"}],
+          extra_links=[{'icon': "pencil", 'text': "Edit consumer", 'handler': "admin.admin_consumers.consumer_form", 'param': "consumer_id"}],
       ) }}
     </div>
     <div class="flex_item">
