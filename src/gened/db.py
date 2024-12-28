@@ -6,6 +6,7 @@ import errno
 import secrets
 import sqlite3
 import string
+import time
 from collections.abc import Callable
 from datetime import date, datetime
 from getpass import getpass
@@ -46,11 +47,35 @@ sqlite3.register_converter("date", convert_date)
 sqlite3.register_converter("datetime", convert_datetime)
 
 
+class TimingConnection(sqlite3.Connection):
+    """A Connection subclass that logs query execution times when in debug mode."""
+    def execute(self, sql: str, *args, **kwargs) -> sqlite3.Cursor:  # type: ignore[no-untyped-def]
+        start = time.perf_counter()
+        try:
+            result = super().execute(sql, *args, **kwargs)
+        finally:
+            elapsed = time.perf_counter() - start
+            current_app.logger.debug("Query took %.3fs: %s", elapsed, sql)
+        return result
+
+    def executescript(self, *args, **kwargs) -> sqlite3.Cursor:  # type: ignore[no-untyped-def]
+        start = time.perf_counter()
+        try:
+            result = super().executescript(*args, **kwargs)
+        finally:
+            elapsed = time.perf_counter() - start
+            current_app.logger.debug("Script execution took %.3fs", elapsed)
+        return result
+
+
+
 def get_db() -> sqlite3.Connection:
     if 'db' not in g:
+        connection_class = TimingConnection if current_app.debug else sqlite3.Connection
         g.db = sqlite3.connect(
             current_app.config['DATABASE'],
-            detect_types=sqlite3.PARSE_DECLTYPES
+            detect_types=sqlite3.PARSE_DECLTYPES,
+            factory=connection_class
         )
         g.db.row_factory = sqlite3.Row
 
