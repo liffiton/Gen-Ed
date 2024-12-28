@@ -6,8 +6,17 @@ from flask import Blueprint
 
 from gened.auth import admin_required
 
-from . import consumers, download, main, navbar
-from .main import ChartData
+from . import (  # noqa: F401 -- built-in admin components register themselves when imported
+    consumers,
+    download,
+    main,
+)
+from .component_registry import (
+    register_admin_blueprint,
+    register_blueprint,
+    register_navbar_item,
+)
+from .main import ChartData, register_admin_chart
 
 bp = Blueprint('admin', __name__, template_folder='templates')
 
@@ -16,19 +25,15 @@ bp = Blueprint('admin', __name__, template_folder='templates')
 def before_request() -> None:
     """ Apply decorator to protect all admin blueprint endpoints. """
 
-download.init_bp(bp)
-navbar.init_bp(bp)
-
-bp.register_blueprint(main.bp, url_prefix='/')
-bp.register_blueprint(consumers.bp, url_prefix='/consumer')
+# Register the admin blueprint
+register_admin_blueprint(bp)
 
 
-register_admin_chart = main.register_admin_chart
-register_admin_link = navbar.register_admin_link
-
+# Public exports for other modules
 __all__ = [
     'ChartData',
     'bp',
     'register_admin_chart',
-    'register_admin_link',
+    'register_blueprint',
+    'register_navbar_item',
 ]

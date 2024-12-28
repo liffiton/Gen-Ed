@@ -17,8 +17,8 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from gened.admin import bp as bp_admin
-from gened.admin import register_admin_link
+import gened.admin
+
 from gened.auth import get_auth, login_required
 from gened.classes import switch_class
 from gened.db import get_db
@@ -284,10 +284,15 @@ def new_message(llm: LLM) -> Response:
 
 
 # ### Admin routes ###
+bp_admin = Blueprint('admin_tutor', __name__, url_prefix='/tutor', template_folder='templates')
 
-@register_admin_link("Tutor Chats")
-@bp_admin.route("/tutor/")
-@bp_admin.route("/tutor/<int:chat_id>")
+# Register the tutors admin component.
+gened.admin.register_blueprint(bp_admin)
+gened.admin.register_navbar_item("admin_tutor.tutor_admin", "Tutor Chats")
+
+
+@bp_admin.route("/")
+@bp_admin.route("/<int:chat_id>")
 def tutor_admin(chat_id : int|None = None) -> str:
     db = get_db()
     chats = db.execute("""

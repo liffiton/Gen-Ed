@@ -11,12 +11,12 @@ from tempfile import NamedTemporaryFile, TemporaryDirectory
 def test_db_download_status(app, monkeypatch):
     """Test that db_download_status correctly reflects encryption availability"""
     with app.app_context():
-        from gened.admin.download import inject_db_download_status
+        from gened.admin.download import get_encryption_status
 
         # No key configured
         monkeypatch.setattr(platform, "system", lambda: "Linux")
         app.config['AGE_PUBLIC_KEY'] = None
-        status = inject_db_download_status()['db_download_status']
+        status = get_encryption_status()
         assert not status.encrypted
         assert status.reason is not None
         assert "No encryption key configured" in status.reason
@@ -24,14 +24,14 @@ def test_db_download_status(app, monkeypatch):
         # Mock Windows platform
         monkeypatch.setattr(platform, "system", lambda: "Windows")
         app.config['AGE_PUBLIC_KEY'] = "ssh-ed25519 AAAAC3..."
-        status = inject_db_download_status()['db_download_status']
+        status = get_encryption_status()
         assert not status.encrypted
         assert status.reason is not None
         assert "Windows" in status.reason
 
         # Mock non-Windows platform
         monkeypatch.setattr(platform, "system", lambda: "Linux")
-        status = inject_db_download_status()['db_download_status']
+        status = get_encryption_status()
         assert status.encrypted
         assert status.reason is None
 

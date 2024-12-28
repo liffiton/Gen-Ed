@@ -7,13 +7,13 @@ SPDX-License-Identifier: AGPL-3.0-only
 {% extends "admin_base.html" %}
 
 {% block admin_body %}
-  <h1 class="is-size-3">Experiments <a class="button is-light is-link is-small mt-2" href="{{url_for('admin.experiment_new')}}">Create New</a></h1>
+  <h1 class="is-size-3">Experiments <a class="button is-light is-link is-small mt-2" href="{{url_for('.experiment_new')}}">Create New</a></h1>
   <div style="max-width: 50em;">
     {{ datatable(
       'experiments',
       [('id', 'id'), ('name', 'name'), ('description', 'description'), ('classes', 'count', 'r')],
       experiments,
-      extra_links=[{'text': "edit", 'handler': "admin.experiment_form", 'param': "exp_id"}],
+      extra_links=[{'text': "edit", 'handler': ".experiment_form", 'param': "exp_id"}],
     ) }}
   </div>
 {% endblock %}

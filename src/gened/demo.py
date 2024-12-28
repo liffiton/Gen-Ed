@@ -15,8 +15,7 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from .admin import bp as bp_admin
-from .admin import register_admin_link
+from . import admin
 from .auth import get_auth, set_session_auth_user
 from .db import get_db
 from .tz import date_is_past
@@ -76,9 +75,14 @@ def demo_register_user(demo_name: str) -> str | Response:
 
 
 # ### Admin routes ###
+bp_admin = Blueprint('admin_demo', __name__, url_prefix='/demo_link', template_folder='templates')
 
-@register_admin_link("Demo Links")
-@bp_admin.route("/demo_link/")
+# Register the demo links admin component.
+admin.register_blueprint(bp_admin)
+admin.register_navbar_item("admin_demo.demo_link_view", "Demo Links")
+
+
+@bp_admin.route("/")
 def demo_link_view() -> str:
     db = get_db()
     demo_links = db.execute("SELECT * FROM demo_links").fetchall()
@@ -86,12 +90,12 @@ def demo_link_view() -> str:
     return render_template("admin_demo_link.html", demo_links=demo_links)
 
 
-@bp_admin.route("/demo_link/new")
+@bp_admin.route("/new")
 def demo_link_new() -> str:
     return render_template("admin_demo_link_form.html")
 
 
-@bp_admin.route("/demo_link/<int:demo_id>")
+@bp_admin.route("/<int:demo_id>")
 def demo_link_form(demo_id: int) -> str:
     db = get_db()
     demo_link_row = db.execute("SELECT * FROM demo_links WHERE id=?", [demo_id]).fetchone()
@@ -99,7 +103,7 @@ def demo_link_form(demo_id: int) -> str:
     return render_template("admin_demo_link_form.html", demo_link=demo_link_row, demo_link_url=demo_link_url)
 
 
-@bp_admin.route("/demo_link/update", methods=['POST'])
+@bp_admin.route("/update", methods=['POST'])
 def demo_link_update() -> Response:
     db = get_db()
 

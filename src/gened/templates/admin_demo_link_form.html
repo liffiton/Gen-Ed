@@ -9,7 +9,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 {% block admin_body %}
   <div class="container">
 
-    <form class="wide-labels" action="{{url_for('admin.demo_link_update')}}" method="post">
+    <form class="wide-labels" action="{{url_for('.demo_link_update')}}" method="post">
       {% if demo_link %}
         {# We're editing an existing demo_link.  Provide its ID. #}
         <h1 class="title">Edit Demo Link</h1>

@@ -13,54 +13,83 @@ from flask import (
     current_app,
     send_file,
 )
+from markupsafe import Markup
 from werkzeug.wrappers.response import Response
 
 from gened.db import backup_db
 
-from .navbar import register_admin_link
+from .component_registry import register_blueprint, register_navbar_item
 
 
 @dataclass(frozen=True)
-class DBDownloadStatus:
+class EncryptionStatus:
     """Status of database download encryption."""
     encrypted: bool
     reason: str | None = None  # reason provided if not encrypted
 
-def inject_db_download_status() -> dict[str, DBDownloadStatus]:
+def get_encryption_status() -> EncryptionStatus:
     if platform.system() == "Windows":
-        status = DBDownloadStatus(False, "Encryption unavailable on Windows servers.")
+        return EncryptionStatus(False, "Encryption unavailable on Windows servers.")
     elif not current_app.config.get('AGE_PUBLIC_KEY'):
-        status = DBDownloadStatus(False, "No encryption key configured, AGE_PUBLIC_KEY not set.")
+        return EncryptionStatus(False, "No encryption key configured, AGE_PUBLIC_KEY not set.")
     else:
-        status = DBDownloadStatus(True)
-    return {'db_download_status': status}
+        return EncryptionStatus(True)
 
 
-def init_bp(bp: Blueprint) -> None:
-    bp.context_processor(inject_db_download_status)
+def render_link() -> Markup:
+    status = get_encryption_status()
+    if status.encrypted:
+        return Markup("""
+            Download DB
+            <span class="ml-2 icon-text px-1 has-text-success-dark" title="Download will be encrypted">
+              <span class="icon">
+                <svg aria-hidden="true" style="height: 80%;">
+                  <use href="#svg_admin_check" />
+                </svg>
+              </span>
+            </span>
+        """)
+    else:
+        return Markup(f"""
+            Download DB
+            <span class="ml-2 icon-text px-1 tag is-warning" title="{status.reason}">
+              <span class="icon">
+                <svg aria-hidden="true" style="height: 80%;">
+                  <use href="#svg_admin_alert" />
+                </svg>
+              </span>
+              <span class="text" style="margin-left: -0.5em;">&nbsp;&nbsp;unencrypted</span>
+            </span>
+        """)
 
-    @register_admin_link("Download DB", right=True)
-    @bp.route("/get_db")
-    def get_db_file() -> Response:
-        db_name = current_app.config['DATABASE_NAME']
-        db_basename = Path(db_name).stem
-        dl_name = f"{db_basename}_{date.today().strftime('%Y%m%d')}.db"
+
+bp = Blueprint('admin_download', __name__, url_prefix='/get_db', template_folder='templates')
+
+register_blueprint(bp)
+register_navbar_item("admin_download.get_db_file", render_link, right=True)
+
+@bp.route("/")
+def get_db_file() -> Response:
+    db_name = current_app.config['DATABASE_NAME']
+    db_basename = Path(db_name).stem
+    dl_name = f"{db_basename}_{date.today().strftime('%Y%m%d')}.db"
+
+    if platform.system() == "Windows":
+        # Slightly unsafe way to do it, because the file may be written while
+        # send_file is sending it.  Temp file issues make it hard to do
+        # otherwise on Windows, though, and no one should run a production
+        # server for this on Windows, anyway.
+        if current_app.config.get('AGE_PUBLIC_KEY'):
+            current_app.logger.warning("Database download on Windows does not support encryption")
+        return send_file(current_app.config['DATABASE'],
+                        mimetype='application/vnd.sqlite3',
+                        as_attachment=True, download_name=dl_name)
+    else:
+        db_backup_file = NamedTemporaryFile()
+        backup_db(Path(db_backup_file.name))
         if current_app.config.get('AGE_PUBLIC_KEY'):
             dl_name += '.age'
+        return send_file(db_backup_file,
+                        mimetype='application/vnd.sqlite3',
+                        as_attachment=True, download_name=dl_name)
 
-        if platform.system() == "Windows":
-            # Slightly unsafe way to do it, because the file may be written while
-            # send_file is sending it.  Temp file issues make it hard to do
-            # otherwise on Windows, though, and no one should run a production
-            # server for this on Windows, anyway.
-            if current_app.config.get('AGE_PUBLIC_KEY'):
-                current_app.logger.warning("Database download on Windows does not support encryption")
-            return send_file(current_app.config['DATABASE'],
-                            mimetype='application/vnd.sqlite3',
-                            as_attachment=True, download_name=dl_name)
-        else:
-            db_backup_file = NamedTemporaryFile()
-            backup_db(Path(db_backup_file.name))
-            return send_file(db_backup_file,
-                            mimetype='application/vnd.sqlite3',
-                            as_attachment=True, download_name=dl_name)

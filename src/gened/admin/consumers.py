@@ -16,7 +16,11 @@ from gened.db import get_db
 from gened.llm import get_models
 from gened.lti import reload_consumers
 
-bp = Blueprint('admin_consumers', __name__, template_folder='templates')
+from .component_registry import register_blueprint
+
+bp = Blueprint('admin_consumers', __name__, url_prefix='/consumer', template_folder='templates')
+
+register_blueprint(bp)
 
 
 @bp.route("/<int:consumer_id>")

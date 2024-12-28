@@ -7,6 +7,7 @@ from functools import wraps
 from typing import ParamSpec, TypeVar
 
 from flask import (
+    Blueprint,
     abort,
     flash,
     redirect,
@@ -16,8 +17,7 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from .admin import bp as bp_admin
-from .admin import register_admin_link
+from . import admin
 from .auth import get_auth
 from .db import get_db
 
@@ -53,19 +53,24 @@ def experiment_required(experiment_name: str) -> Callable[[Callable[P, R]], Call
 
 # ### Admin routes ###
 # Auth requirements covered by admin.before_request()
+bp_admin = Blueprint('admin_experiments', __name__, url_prefix='/experiments', template_folder='templates')
 
-@register_admin_link("Experiments")
-@bp_admin.route("/experiments/")
+# Register the experiments admin component.
+admin.register_blueprint(bp_admin)
+admin.register_navbar_item("admin_experiments.experiments_view", "Experiments")
+
+
+@bp_admin.route("/")
 def experiments_view() -> str:
     db = get_db()
     experiments = db.execute("SELECT *, (SELECT COUNT(*) FROM experiment_class WHERE experiment_id=id) AS count FROM experiments").fetchall()
     return render_template("admin_experiments.html", experiments=experiments)
 
-@bp_admin.route("/experiment/new")
+@bp_admin.route("/new")
 def experiment_new() -> str:
     return render_template("admin_experiment_form.html")
 
-@bp_admin.route("/experiment/<int:exp_id>")
+@bp_admin.route("/<int:exp_id>")
 def experiment_form(exp_id: int) -> str:
     db = get_db()
     experiment = db.execute("SELECT * FROM experiments WHERE id=?", [exp_id]).fetchone()
@@ -75,7 +80,7 @@ def experiment_form(exp_id: int) -> str:
     assigned_classes = [dict(row) for row in assigned_classes]
     return render_template("admin_experiment_form.html", experiment=experiment, classes=classes, assigned_classes=assigned_classes)
 
-@bp_admin.route("/experiment/update", methods=['POST'])
+@bp_admin.route("/update", methods=['POST'])
 def experiment_update() -> Response:
     db = get_db()
 
@@ -104,7 +109,7 @@ def experiment_update() -> Response:
 
     return redirect(url_for(".experiment_form", exp_id=exp_id))
 
-@bp_admin.route("/experiment/delete/<int:exp_id>", methods=['POST'])
+@bp_admin.route("/delete/<int:exp_id>", methods=['POST'])
 def experiment_delete(exp_id: int) -> Response:
     db = get_db()
 

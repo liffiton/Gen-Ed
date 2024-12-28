@@ -157,7 +157,7 @@ def test_logout(client, auth):
     ('/tutor/chat/3', 404, (400, "Invalid id."), 404),
     ('/tutor/chat/999', 404, (400, "Invalid id."), 404),
     ('/admin/', 302, 302, 200),         # admin_required redirects to login
-    ('/admin/get_db', 302, 302, 200),   # admin_required redirects to login
+    ('/admin/get_db/', 302, 302, 200),   # admin_required redirects to login
 ])
 def test_auth_required(client, auth, path, nologin, withlogin, withadmin):
     response = client.get(path)

@@ -13,7 +13,11 @@ from werkzeug.wrappers.response import Response
 from gened.csv import csv_response
 from gened.db import get_db
 
-bp = Blueprint('admin_main', __name__, template_folder='templates')
+from .component_registry import register_blueprint
+
+bp = Blueprint('admin_main', __name__, url_prefix='/', template_folder='templates')
+
+register_blueprint(bp)
 
 
 @dataclass(frozen=True)

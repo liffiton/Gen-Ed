@@ -25,7 +25,7 @@ from . import (
     db,
     demo,
     docs,
-    experiments,  # noqa: F401 (import registers routes even though unused here)
+    experiments,  # noqa: F401 -- importing the module registers an admin component
     filters,
     instructor,
     lti,
