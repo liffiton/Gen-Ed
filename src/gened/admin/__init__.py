@@ -10,6 +10,7 @@ from . import (  # noqa: F401 -- built-in admin components register themselves w
     consumers,
     download,
     main,
+    pruning,
 )
 from .component_registry import (
     register_admin_blueprint,

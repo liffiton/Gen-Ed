@@ -119,6 +119,8 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
         SEND_FILE_MAX_AGE_DEFAULT=3*60*60,  # 3 hours
         # Free query tokens given to new users
         DEFAULT_TOKENS=20,
+        # Default data retention length (prune user data with no activity for this period of time)
+        RETENTION_TIME_DAYS=2*365,  # 2 years
 
         PYLTI_CONFIG={
             # will be loaded from the consumers table in the database

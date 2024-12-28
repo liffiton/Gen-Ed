@@ -41,8 +41,11 @@ def init_app(app: Flask) -> None:
         time_fmt = "%Y-%m-%d %-I:%M%P"
 
     @app.template_filter('localtime')
-    def localtime_filter(value: dt.datetime) -> str:
+    def localtime_filter(value: dt.datetime | None) -> str:
         '''Use timezone from the session object, if available, to localize datetimes.'''
+        if value is None:
+            return ""
+
         # Assume UTC timezone if no timezone specified
         if value.tzinfo is None:
             value = value.replace(tzinfo=ZoneInfo("UTC"))

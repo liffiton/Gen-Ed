@@ -81,6 +81,8 @@ ignore = [
     "D",      # docstrings
     "ANN",    # type annotation
     "TD",     # TODOs
+    "PERF203",# try-except in a loop
+    "C408",   # dict() vs dict literal
 ]
 
 [tool.mypy]
