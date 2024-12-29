@@ -154,10 +154,13 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
         varname = "AGE_PUBLIC_KEY"
         env_var = os.environ[varname]
         # test the key
-        pyrage.ssh.Recipient.from_str(env_var)
+        if env_var.startswith('ssh'):
+            pyrage.ssh.Recipient.from_str(env_var)
+        else:
+            pyrage.x25519.Recipient.from_str(env_var)
         base_config[varname] = env_var
     except pyrage.RecipientError:
-        app.logger.error("Invalid key provided in AGE_PUBLIC_KEY.  Must be an SSH public key.")
+        app.logger.error("Invalid key provided in AGE_PUBLIC_KEY.  Must be an Age public key or an SSH public key.")
         sys.exit(1)
     except KeyError:
         app.logger.warning(f"{varname} environment variable not set.")

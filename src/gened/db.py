@@ -86,7 +86,11 @@ def get_db() -> sqlite3.Connection:
 def encrypt_file(source: Path, target: Path) -> None:
     """Encrypt a file using the configured public key"""
     pubkey = current_app.config['AGE_PUBLIC_KEY']
-    recipient = pyrage.ssh.Recipient.from_str(pubkey)
+    recipient: pyrage.ssh.Recipient | pyrage.x25519.Recipient
+    if pubkey.startswith('ssh'):
+        recipient = pyrage.ssh.Recipient.from_str(pubkey)
+    else:
+        recipient = pyrage.x25519.Recipient.from_str(pubkey)
     pyrage.encrypt_file(str(source), str(target), [recipient])
 
 
