@@ -4,6 +4,7 @@
 
 from flask import (
     Blueprint,
+    abort,
     current_app,
     flash,
     redirect,
@@ -15,8 +16,10 @@ from flask import (
 from werkzeug.wrappers.response import Response
 
 from .auth import generate_anon_username, get_auth, login_required
+from .csv import csv_response
 from .data_deletion import delete_user_data
 from .db import get_db
+from .queries import get_history
 from .redir import safe_redirect
 
 bp = Blueprint('profile', __name__, template_folder='templates')
@@ -88,6 +91,23 @@ def main() -> str:
         archived_classes=archived_classes,
         created_classes=created_classes
     )
+
+
+@bp.route("/data/")
+def view_data() -> str:
+    queries = get_history(limit=-1)  # -1 = no limit
+    return render_template("profile_view_data.html", queries=queries)
+
+@bp.route("/data/csv/<string:kind>")
+def get_csv(kind: str) -> str | Response:
+    if kind not in ('queries'):
+        return abort(404)
+
+    auth = get_auth()
+    assert auth.user
+
+    queries = get_history(limit=-1)  # -1 = no limit
+    return csv_response(auth.user.display_name, kind, queries)
 
 
 @bp.route("/delete_data", methods=['POST'])

@@ -6,7 +6,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 {% macro recent_queries(history) -%}
 <div class="p-4">
-  <h2 class="is-size-5">Your recent queries:</h2>
+  <a class="button is-info is-small is-pulled-right" href="{{ url_for('profile.view_data') }}">View all</a>
+  <h2 class="title is-size-5">Your recent queries:</h2>
   {% for prev in history %}
     <div class="box p-3">
       <div class="buttons has-addons are-small is-pulled-right">

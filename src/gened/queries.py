@@ -41,6 +41,7 @@ def get_history(limit: int = 10) -> list[Row]:
     '''Fetch current user's query history.'''
     db = get_db()
     auth = get_auth()
+    assert auth.user_id is not None
 
     cur = db.execute("SELECT * FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT ?", [auth.user_id, limit])
     history = cur.fetchall()

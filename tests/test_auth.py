@@ -148,7 +148,7 @@ def test_logout(client, auth):
 
 @pytest.mark.parametrize(('path', 'nologin', 'withlogin', 'withadmin'), [
     ('/', 200, 200, 200),
-    ('/profile/', 302, (200, "2 total, 2 in the past week"), (200, "0 total, 0 in the past week")),
+    ('/profile/', 302, (200, "2 in the past week"), (200, "0 in the past week")),
     ('/help/', 302, 200, 200),
     ('/help/view/1', 302, (400, "Invalid id."), (200, "response1")),
     ('/tutor/', 404, 200, 404),

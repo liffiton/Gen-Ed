@@ -49,7 +49,7 @@ dl.profile dd { margin: 0; }
         </dd>
       {% endif %}
       <dt>Queries:</dt>
-      <dd>{{ user.num_queries }} total, {{ user.num_recent_queries }} in the past week.</dd>
+      <dd><a href="{{ url_for('profile.view_data') }}">{{ user.num_queries }} total</a>, {{ user.num_recent_queries }} in the past week.</dd>
       {% if not auth.cur_class %}
       <dt>Free Queries:</dt>
       <dd>
@@ -109,6 +109,9 @@ dl.profile dd { margin: 0; }
 
     <h2 class="title is-size-3">Your Data</h2>
     <div class="buttons">
+      <a class="button ml-5 is-info" href="{{ url_for('profile.view_data') }}">
+        View &amp; export your data
+      </a>
       {% if user.provider_name not in ['lti', 'demo', 'local'] %}
         <button class="button ml-5 icon-text is-info" onclick="document.querySelector('#anonymize_dialog').showModal()">
           <span class="icon">

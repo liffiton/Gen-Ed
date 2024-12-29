@@ -11,7 +11,7 @@ from flask import flash, make_response, render_template
 from werkzeug.wrappers.response import Response
 
 
-def csv_response(class_name: str, kind: str, table: list[Row]) -> str | Response:
+def csv_response(file_name: str, kind: str, table: list[Row]) -> str | Response:
     if not table:
         flash("There are no rows to export yet.", "warning")
         return render_template("error.html")
@@ -22,9 +22,9 @@ def csv_response(class_name: str, kind: str, table: list[Row]) -> str | Response
     writer.writerows(table)
 
     output = make_response(stringio.getvalue())
-    class_name = class_name.replace(" ","-")
+    file_name = file_name.replace(" ","-")
     timestamp = dt.datetime.now().strftime("%Y%m%d")
-    output.headers["Content-Disposition"] = f"attachment; filename={timestamp}_{class_name}_{kind}.csv"
+    output.headers["Content-Disposition"] = f"attachment; filename={timestamp}_{file_name}_{kind}.csv"
     output.headers["Content-type"] = "text/csv"
 
     return output

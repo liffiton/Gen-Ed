@@ -1,0 +1,34 @@
+{#
+SPDX-FileCopyrightText: 2024 Mark Liffiton <liffiton@gmail.com>
+
+SPDX-License-Identifier: AGPL-3.0-only
+#}
+
+{% extends "base.html" %}
+{% from "tables.html" import datatable, datatable_extrahead %}
+
+{% block extrahead %}
+{{ datatable_extrahead }}
+{% endblock %}
+
+{% block body %}
+<section class="section p-5">
+  <h1 class="title">Your Queries</h1>
+  {{
+  datatable('queries', [
+      ('id', 'id'),
+      ('user', 'display_name'),
+      ('time', 'query_time', 't'),
+      ('assignment', 'assignment'),
+      ('topics', 'topics'),
+      ('response', 'response_text'),
+      ('helpful', 'helpful_emoji')
+    ],
+    queries,
+    link_col=0,
+    link_template="/ideas/view/${value}",
+    csv_link=url_for("profile.get_csv", kind="queries")
+  )
+  }}
+</section>
+{% endblock %}
