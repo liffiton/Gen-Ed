@@ -11,6 +11,8 @@ for those handlers.
 
 from typing import Protocol
 
+from .db import get_db
+
 
 class DeletionHandler(Protocol):
     """Protocol defining the interface for personal data deletion handlers."""
@@ -41,7 +43,31 @@ def delete_user_data(user_id: int) -> None:
     """Delete/anonymize all personal data for the given user."""
     if _handler is None:
         raise RuntimeError("No deletion handler registered")
+
+    db = get_db()
+
+    # Deactivate all roles
+    db.execute("UPDATE roles SET user_id = -1, active = 0 WHERE user_id = ?", [user_id])
+
+    # Anonymize and deactivate user account
+    db.execute("""
+        UPDATE users
+        SET full_name = '[deleted]',
+            email = '[deleted]',
+            auth_name = '[deleted]',
+            last_class_id = NULL,
+            query_tokens = 0
+        WHERE id = ?
+    """, [user_id])
+
+    # Remove auth entries
+    db.execute("DELETE FROM auth_local WHERE user_id = ?", [user_id])
+    db.execute("DELETE FROM auth_external WHERE user_id = ?", [user_id])
+
+    # Call application-specific data deletion handler(s)
     _handler.delete_user_data(user_id)
+
+    db.commit()
 
 
 def delete_class_data(class_id: int) -> None:

@@ -115,28 +115,7 @@ def delete_data() -> Response:
         flash(f"You must delete all classes you created before deleting your data. Please delete these classes first: {class_names}", "danger")
         return safe_redirect(request.referrer, default_endpoint="profile.main")
 
-    # Call application-specific data deletion handler(s)
     delete_user_data(user_id)
-
-    # Deactivate all roles
-    db.execute("UPDATE roles SET user_id = -1, active = 0 WHERE user_id = ?", [user_id])
-
-    # Anonymize and deactivate user account
-    db.execute("""
-        UPDATE users
-        SET full_name = '[deleted]',
-            email = '[deleted]',
-            auth_name = '[deleted]',
-            last_class_id = NULL,
-            query_tokens = 0
-        WHERE id = ?
-    """, [user_id])
-
-    # Remove auth entries
-    db.execute("DELETE FROM auth_local WHERE user_id = ?", [user_id])
-    db.execute("DELETE FROM auth_external WHERE user_id = ?", [user_id])
-
-    db.commit()
 
     # Clear their session to log them out
     session.clear()
