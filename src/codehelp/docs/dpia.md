@@ -75,7 +75,7 @@ data. These include secure third-party authentication and a role-based access
 control system. Communication is encrypted using HTTPS/TLS, and data storage
 and backups are encrypted using industry-standard tools with the AES encryption
 algorithm. The system undergoes regular security updates and monitoring. Data
-retention is limited to three years after the last user activity.
+retention is limited to two years after the last user activity.
 
 ## 3. Necessity and Proportionality Assessment
 

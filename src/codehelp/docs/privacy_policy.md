@@ -6,7 +6,7 @@ category:  Privacy
 
 # Privacy Policy
 
-**Last updated December 5, 2024.**
+**Last updated December 28, 2024.**
 
 This privacy notice for CodeHelp ("we," "us," or "our") describes how and why we might collect, store, use, and/or share ("process") your information when you use CodeHelp (the "Service") at https://codehelp.app/ (the "Site").
 
@@ -50,6 +50,8 @@ CodeHelp is operated in the United States, and all data is stored and processed 
 Any user can delete their account and associated Usage Data from the profile page.  The data is deleted immediately and cannot be restored.
 
 Instructors can delete their classes and all associated Usage Data (including the Usage Data of any students within that class) from the configuration page for each class.  The data is deleted immediately and cannot be restored.
+
+We will delete your account and your Usage Data two years after your last activity (creating an account, submitting a query, or a student submitting a query in a class for which you are an instructor).
 
 
 ## Contact Us

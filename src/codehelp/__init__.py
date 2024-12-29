@@ -25,6 +25,8 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
         HELP_LINK_TEXT='Get Help',
         DATABASE_NAME='codehelp.db',  # will be combined with app.instance_path in gened.create_app_base()
         DOCS_DIR=module_dir / 'docs',
+        # Data retention length (prune user data with no activity for this period of time)
+        RETENTION_TIME_DAYS=2*365,  # 2 years
         DEFAULT_LANGUAGES=[
             "Conceptual Question",
             "C",
