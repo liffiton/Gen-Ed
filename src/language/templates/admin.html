@@ -9,7 +9,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 {% block admin_queries %}
   {{ datatable(
     'queries',
-    [('id', 'id'), ('user', 'display_name'), ('time', 'query_time'), ('writing', 'writing'), ('response', 'response_text')],
+    [('id', 'id'), ('user', 'display_name'), ('time', 'query_time', 't'), ('writing', 'writing'), ('response', 'response_text')],
     queries,
     link_col=0,
     link_template="/check/view/${value}",

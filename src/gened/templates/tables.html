@@ -105,7 +105,7 @@ ${ options.searchable ?
         <tr>
           {% for col in columns %}
             <td>
-            {%- if 'time' in col[1] -%}
+            {%- if col | length > 2 and col[2] == 't' -%}
               {{ row[col[1]] | localtime }}
             {%- elif col[1] == 'display_name' -%}
               {{ row | user_cell }}
