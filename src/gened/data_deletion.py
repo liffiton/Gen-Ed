@@ -56,7 +56,8 @@ def delete_user_data(user_id: int) -> None:
             email = '[deleted]',
             auth_name = '[deleted]',
             last_class_id = NULL,
-            query_tokens = 0
+            query_tokens = 0,
+            delete_status = 'deleted'
         WHERE id = ?
     """, [user_id])
 

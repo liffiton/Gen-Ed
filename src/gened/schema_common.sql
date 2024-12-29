@@ -64,6 +64,7 @@ CREATE TABLE users (
     is_tester     BOOLEAN NOT NULL CHECK (is_tester IN (0,1)) DEFAULT 0,
     query_tokens  INTEGER NOT NULL DEFAULT 0,  -- number of tokens left for making queries - 0 means cut off
     created       DATETIME DEFAULT CURRENT_TIMESTAMP,
+    delete_status TEXT CHECK (delete_status IN ('', 'deleted', 'whitelisted')) DEFAULT '',
     FOREIGN KEY(auth_provider) REFERENCES auth_providers(id)
 );
 -- user row to link for deleted roles
@@ -195,3 +196,30 @@ DROP INDEX IF EXISTS exp_crs_experiment_idx;
 CREATE INDEX exp_crs_experiment_idx ON experiment_class(experiment_id);
 DROP INDEX IF EXISTS exp_crs_class_idx;
 CREATE INDEX exp_crs_class_idx ON experiment_class(class_id);
+
+-- View for user activity tracking
+DROP VIEW IF EXISTS user_activity;
+CREATE VIEW user_activity AS
+SELECT
+    users.id,
+    users.display_name,
+    users.delete_status,
+    users.created,
+    (
+        SELECT MAX(q.query_time)
+        FROM queries q
+        WHERE q.user_id = users.id
+    ) as last_query_time,
+    (
+        SELECT MAX(q.query_time)
+        FROM roles r_inst
+        JOIN roles r_student ON r_student.class_id=r_inst.class_id
+        JOIN queries q ON q.role_id=r_student.id
+        WHERE r_inst.user_id = users.id
+          AND r_inst.role = 'instructor'
+    ) as last_instructor_query_time
+FROM users
+WHERE NOT users.is_admin
+  AND users.id != -1
+  AND users.delete_status != 'deleted'
+;
