@@ -170,10 +170,9 @@ def get_data(table: str, kind: str='json') -> str | Response:
 def main() -> str:
     filters = Filters.from_args(with_display=True)
 
-    where_clause, where_params = filters.make_where(['consumer', 'class', 'user', 'role'])
     charts = []
     for generate_chart in get_admin_charts():
-        charts.extend(generate_chart(where_clause, where_params))
+        charts.extend(generate_chart(filters))
 
     init_rows = 20  # number of rows to send in the page for each table
 

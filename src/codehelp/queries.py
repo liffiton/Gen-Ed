@@ -14,12 +14,14 @@ from gened.db import get_db
 from gened.tables import Col, DataTable, NumCol, TimeCol, UserCol
 
 
-def gen_query_charts(where_clause: str, where_params: list[str | int]) -> list[ChartData]:
+def gen_query_charts(filters: Filters) -> list[ChartData]:
     """ Generate chart data for CodeHelp query charts.
     Filter using same filters as set in the admin interface
     (passed in where_clause and where_params).
     """
     db = get_db()
+
+    where_clause, where_params = filters.make_where(['consumer', 'class', 'user', 'role'])
 
     # https://www.sqlite.org/lang_with.html#recursive_query_examples
     usage_data = db.execute(f"""

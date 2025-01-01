@@ -59,6 +59,9 @@ class Filters:
     def __init__(self) -> None:
         self._filters: list[Filter] = []
 
+    def __iter__(self) -> Iterator[Filter]:
+        return self._filters.__iter__()
+
     @classmethod
     def from_args(cls, *, with_display: bool=False) -> Self:
         """ Generate a Filters object for use in a CSV export, API response,
@@ -122,7 +125,11 @@ class Filters:
         return self.filter_string_without(selected_name) + f"&{selected_name}=${{value}}"
 
 
-class TableDataCallable(Protocol):
+class ChartGenerator(Protocol):
+    def __call__(self, filters: Filters) -> list[ChartData]:
+        ...
+
+class DataSource(Protocol):
     def __call__(self, filters: Filters, /, limit: int=-1, offset: int=0) -> Cursor:
         ...
 
@@ -132,19 +139,19 @@ class AppDataConfig:
     Contains lists of registered charts/tables for the page.
     Application-specific charts/tables can be registered with register_admin_chart(), register_data().
     """
-    admin_chart_generators: list[Callable[[str, list[str | int]], list[ChartData]]] = field(default_factory=list)
-    data_source_map: dict[str, TableDataCallable] = field(default_factory=dict)
+    admin_chart_generators: list[ChartGenerator] = field(default_factory=list)
+    data_source_map: dict[str, DataSource] = field(default_factory=dict)
     table_map: dict[str, DataTable] = field(default_factory=dict)
 
 _appdata = AppDataConfig()
 
-def register_admin_chart(generator_func: Callable[[str, list[str | int]], list[ChartData]]) -> None:
+def register_admin_chart(generator_func: ChartGenerator) -> None:
     _appdata.admin_chart_generators.append(generator_func)
 
-def get_admin_charts() -> list[Callable[[str, list[str | int]], list[ChartData]]]:
+def get_admin_charts() -> list[ChartGenerator]:
     return _appdata.admin_chart_generators
 
-def register_data(name: str, data_func: TableDataCallable, data_table: DataTable) -> None:
+def register_data(name: str, data_func: DataSource, data_table: DataTable) -> None:
     if name in _appdata.data_source_map:
         # don't allow overwriting the same name
         # but this may occur in tests or other situations that re-use the module across applications...
@@ -154,10 +161,10 @@ def register_data(name: str, data_func: TableDataCallable, data_table: DataTable
     _appdata.data_source_map[name] = data_func
     _appdata.table_map[name] = data_table
 
-def get_data_sources() -> dict[str, TableDataCallable]:
+def get_data_sources() -> dict[str, DataSource]:
     return deepcopy(_appdata.data_source_map)
 
-def get_data_source(name: str) -> TableDataCallable:
+def get_data_source(name: str) -> DataSource:
     source = _appdata.data_source_map.get(name)
     if not source:
         raise RuntimeError(f"Invalid data source name: {name}")
