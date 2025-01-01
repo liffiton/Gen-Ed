@@ -13,8 +13,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       // Use textnodes to ensure that cell contents are text,
       // not treated as tags, etc. (XSS protection)
       function renderCell(data) {
-        if (!data || !data[0] || !data[0].data) { return ""; }
-        data = data[0].data;
+        if (!data) { return ""; }
         let contents;
         if (data.length > 30) {
           // truncate and put full contents in title attr of a span
@@ -36,7 +35,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           case 'user':
             return (data, td, rowIndex, cellIndex) => {
               try {
-                data = JSON.parse(data[0].data);
+                data = JSON.parse(data);
                 return `${data[0]} <span class='is-size-7 has-text-grey' ${data[2] && `title='${data[2]}'`}>(${data[1]})</span>`
               } catch (e) {
                 renderCell(data);
@@ -47,15 +46,14 @@ SPDX-License-Identifier: AGPL-3.0-only
             let reload = colspec.reload;
             if (url) {
               return (data, td, rowIndex, cellIndex) =>
-                `<input type="checkbox" ${data[0] && data[0].data == '1' && 'checked'} data-isboolcol='True' data-rowindex='${rowIndex}' data-url='${url}' data-reload='${reload}'>`
+                `<input type="checkbox" ${data == '1' && 'checked'} data-isboolcol='True' data-rowindex='${rowIndex}' data-url='${url}' data-reload='${reload}'>`
             } else {
               return (data, td, rowIndex, cellIndex) =>
-                `<input type="checkbox" ${data[0] && data[0].data == '1' && 'checked'} style='pointer-events: none;' tabindex='-1'>`
+                `<input type="checkbox" ${data == '1' && 'checked'} style='pointer-events: none;' tabindex='-1'>`
             }
           }
           default:
-            return (data, td, rowIndex, cellIndex) =>
-              data[0] && renderCell(data)
+            return (data, td, rowIndex, cellIndex) => renderCell(data)
         }
       }
       // event listener for 'b'ool columns
@@ -86,6 +84,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       function initTable(tblname, columns, rows, link_col, link_func, csv_link, ajax_url) {
         const table = new simpleDatatables.DataTable(`table#${tblname}`, {
+          type: 'string',  // important to prevent SimpleDataTables from trying to parse all sorts of junk in the cells
           columns: columns,
           paging: rows > 15,
           perPage: 10,
@@ -155,7 +154,6 @@ ${ options.searchable ?
             .then(response => response.json())
             .then(data => {
               table.insert(data);
-              table.update();
             });
         }
       }
