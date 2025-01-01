@@ -18,7 +18,7 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from gened.app_data import get_history, get_query
+from gened.app_data import get_user_data, get_query
 from gened.auth import (
     admin_required,
     class_enabled_required,
@@ -100,7 +100,7 @@ def help_form(llm: LLM, query_id: int | None = None, class_id: int | None = None
     if len(contexts) == 1:
         selected_context_name = next(iter(contexts.keys()))
 
-    history = get_history()
+    history = get_user_data(kind='queries', limit=10)
 
     return render_template("help_form.html", llm=llm, query=query_row, history=history, contexts=contexts, selected_context_name=selected_context_name)
 
@@ -113,7 +113,7 @@ def help_view(query_id: int) -> str | Response:
     if query_row is None:
         return make_response(render_template("error.html"), 400)
 
-    history = get_history()
+    history = get_user_data(kind='queries', limit=10)
     if query_row and query_row['topics_json']:
         topics = json.loads(query_row['topics_json'])
     else:

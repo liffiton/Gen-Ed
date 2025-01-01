@@ -202,12 +202,14 @@ def get_query(query_id: int) -> tuple[Row, dict[str, str]] | tuple[None, None]:
 
 
 
-def get_history(limit: int = 10) -> list[Row]:
+def get_user_data(kind: str, limit: int) -> list[Row]:
     '''Fetch current user's query history.'''
-    db = get_db()
     auth = get_auth()
     assert auth.user_id is not None
 
-    cur = db.execute("SELECT * FROM queries WHERE queries.user_id=? ORDER BY query_time DESC LIMIT ?", [auth.user_id, limit])
-    history = cur.fetchall()
-    return history
+    get_data = get_data_source(kind)
+    filters = Filters()
+    filters.add('user', auth.user_id)
+    data = get_data(filters, limit=limit).fetchall()
+
+    return data

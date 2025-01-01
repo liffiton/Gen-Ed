@@ -11,7 +11,7 @@ import markupsafe
 from flask import Blueprint, current_app, redirect, render_template, request, url_for
 from werkzeug.wrappers.response import Response
 
-from gened.app_data import get_history, get_query
+from gened.app_data import get_user_data, get_query
 from gened.auth import class_enabled_required, get_auth, login_required
 from gened.db import get_db
 from gened.llm import LLM, with_llm
@@ -32,7 +32,7 @@ def help_form(query_id: int | None = None) -> str:
     if query_id is not None:
         query_row, _ = get_query(query_id)   # _ because we don't need responses here
 
-    history = get_history()
+    history = get_user_data(kind='queries', limit=10)
 
     return render_template("help_form.html", query=query_row, history=history)
 
@@ -93,7 +93,7 @@ def help_view(query_id: int) -> str:
     query_row, responses = get_query(query_id)
     assert query_row
     assert responses
-    history = get_history()
+    history = get_user_data(kind='queries', limit=10)
 
     if 'main' in responses:
         response_data = json.loads(responses['main'])
