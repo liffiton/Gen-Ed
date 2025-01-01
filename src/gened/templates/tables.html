@@ -62,7 +62,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         if ('isboolcol' in dataset) {
           const rowIndex = dataset.rowindex;
           const row = table.data.data[rowIndex];
-          const id = row.cells[0].text;
+          const id = row.cells[0].data;
 
           const int_val = event.target.checked ? 1 : 0;
 
@@ -132,7 +132,7 @@ ${ options.searchable ?
             }
             if (event.button === 0) {
               // left click: follow the row's link
-              const value = table.data.data[row].cells[link_col].text;
+              const value = table.data.data[row].cells[link_col].data;
               const url = link_func(value);
               window.location = url;
             }
