@@ -142,9 +142,9 @@ class DataSource:
 
 @dataclass
 class AppDataConfig:
-    """ App-specific configuration of the main admin dashboard.
-    Contains lists of registered charts/tables for the page.
-    Application-specific charts/tables can be registered with register_admin_chart(), register_data().
+    """ Configuratin of app-specific data types/sources.
+    Application-specific charts and data sources can be registered with
+    register_admin_chart(), register_data().
     """
     admin_chart_generators: list[ChartGenerator] = field(default_factory=list)
     data_source_map: dict[str, DataSource] = field(default_factory=dict)
@@ -176,8 +176,7 @@ def get_data_source(name: str) -> DataSource:
     return deepcopy(source)
 
 
-# TODO: Update old functions below to use registered data sources
-
+# TODO: Update old function here to use registered data sources
 def get_query(query_id: int) -> tuple[Row, dict[str, str]] | tuple[None, None]:
     db = get_db()
     auth = get_auth()
@@ -199,7 +198,6 @@ def get_query(query_id: int) -> tuple[Row, dict[str, str]] | tuple[None, None]:
     else:
         responses = {'error': "*No response -- an error occurred.  Please try again.*"}
     return query_row, responses
-
 
 
 def get_user_data(kind: str, limit: int) -> list[Row]:
