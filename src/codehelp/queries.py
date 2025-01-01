@@ -8,7 +8,7 @@ from gened.app_data import (
     ChartData,
     Filters,
     register_admin_chart,
-    register_data_source,
+    register_data,
 )
 from gened.db import get_db
 from gened.tables import Col, DataTable, NumCol, TimeCol, UserCol
@@ -113,4 +113,4 @@ queries_table = DataTable(
 def register_with_gened() -> None:
     """ Register admin functionality with the main gened admin module."""
     register_admin_chart(gen_query_charts)
-    register_data_source('queries', get_queries, queries_table)
+    register_data('queries', get_queries, queries_table)

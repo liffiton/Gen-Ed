@@ -59,9 +59,6 @@ class Filters:
     def __init__(self) -> None:
         self._filters: list[Filter] = []
 
-    def __iter__(self) -> Iterator[Filter]:
-        return self._filters.__iter__()
-
     @classmethod
     def from_args(cls, *, with_display: bool=False) -> Self:
         """ Generate a Filters object for use in a CSV export, API response,
@@ -133,7 +130,7 @@ class TableDataCallable(Protocol):
 class AppDataConfig:
     """ App-specific configuration of the main admin dashboard.
     Contains lists of registered charts/tables for the page.
-    Application-specific charts/tables can be registered with register_admin_chart(), register_data_source().
+    Application-specific charts/tables can be registered with register_admin_chart(), register_data().
     """
     admin_chart_generators: list[Callable[[str, list[str | int]], list[ChartData]]] = field(default_factory=list)
     data_source_map: dict[str, TableDataCallable] = field(default_factory=dict)
@@ -147,7 +144,7 @@ def register_admin_chart(generator_func: Callable[[str, list[str | int]], list[C
 def get_admin_charts() -> list[Callable[[str, list[str | int]], list[ChartData]]]:
     return _appdata.admin_chart_generators
 
-def register_data_source(name: str, data_func: TableDataCallable, data_table: DataTable) -> None:
+def register_data(name: str, data_func: TableDataCallable, data_table: DataTable) -> None:
     if name in _appdata.data_source_map:
         # don't allow overwriting the same name
         # but this may occur in tests or other situations that re-use the module across applications...
