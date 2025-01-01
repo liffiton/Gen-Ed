@@ -11,7 +11,7 @@ import markupsafe
 from flask import Blueprint, current_app, redirect, render_template, request, url_for
 from werkzeug.wrappers.response import Response
 
-from gened.app_data import get_user_data, get_query
+from gened.app_data import get_query, get_user_data
 from gened.auth import class_enabled_required, get_auth, login_required
 from gened.db import get_db
 from gened.llm import LLM, with_llm

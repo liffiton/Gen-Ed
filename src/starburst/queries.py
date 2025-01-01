@@ -4,8 +4,6 @@
 
 from sqlite3 import Cursor
 
-from flask import request, url_for
-
 from gened.app_data import (
     Filters,
     register_data_source,

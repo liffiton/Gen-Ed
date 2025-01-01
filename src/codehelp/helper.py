@@ -18,7 +18,7 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from gened.app_data import get_user_data, get_query
+from gened.app_data import get_query, get_user_data
 from gened.auth import (
     admin_required,
     class_enabled_required,
