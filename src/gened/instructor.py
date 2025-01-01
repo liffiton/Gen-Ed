@@ -26,14 +26,14 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from .app_data import Filters, get_data_source
+from .app_data import Filters, get_data_source, get_table
 from .auth import get_auth_class, instructor_required
 from .classes import switch_class
 from .csv import csv_response
 from .data_deletion import delete_class_data
 from .db import get_db
 from .redir import safe_redirect
-from .tables import BoolCol, Col, DataTable, NumCol, TimeCol, UserCol
+from .tables import BoolCol, DataTable, NumCol, UserCol
 
 bp = Blueprint('instructor', __name__, template_folder='templates')
 
@@ -91,13 +91,13 @@ def _get_class_users(*, for_export: bool = False) -> list[Row]:
 def main() -> str | Response:
     users = _get_class_users()
     users_table = DataTable(
-        'users',
-        users,
-        [NumCol('role_id'), NumCol('id'), UserCol('user'), NumCol('#queries'), NumCol('1wk'), BoolCol('active?', url=url_for('.set_role_active')), BoolCol('instructor?', url=url_for('.set_role_instructor'))],
+        name='users',
+        columns=[NumCol('role_id'), NumCol('id'), UserCol('user'), NumCol('#queries'), NumCol('1wk'), BoolCol('active?', url=url_for('.set_role_active')), BoolCol('instructor?', url=url_for('.set_role_instructor'))],
         hidden_cols=['role_id', 'id'],
         link_col=1,
         link_template='?user=${value}',
         csv_link=url_for('instructor.get_csv', kind='users'),
+        data=users,
     )
 
     sel_user_name = None
@@ -107,15 +107,9 @@ def main() -> str | Response:
         if sel_user_row:
             sel_user_name = sel_user_row['display_name']
 
-    queries = _get_class_queries(sel_user_id)
-    queries_table = DataTable(
-        'queries',
-        queries,
-        [NumCol('id'), UserCol('user'), TimeCol('time'), Col('context'), Col('code'), Col('error'), Col('issue'), Col('response'), Col('helpful', align='center')],
-        link_col=0,
-        link_template="/help/view/${value}",
-        csv_link=url_for('instructor.get_csv', kind='queries'),
-    )
+    queries_table = get_table('queries')
+    queries_table.data = _get_class_queries(sel_user_id)
+    queries_table.csv_link = url_for('instructor.get_csv', kind='queries')
 
     return render_template("instructor_view.html", users=users_table, queries=queries_table, user=sel_user_name)
 

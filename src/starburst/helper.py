@@ -8,10 +8,10 @@ import json
 from flask import Blueprint, redirect, render_template, request, url_for
 from werkzeug.wrappers.response import Response
 
+from gened.app_data import get_history, get_query
 from gened.auth import class_enabled_required, get_auth, login_required
 from gened.db import get_db
 from gened.llm import LLM, with_llm
-from gened.queries import get_history, get_query
 
 from . import prompts
 

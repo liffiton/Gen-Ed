@@ -14,7 +14,13 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from gened.app_data import Filters, get_admin_charts, get_data_sources, get_tables
+from gened.app_data import (
+    Filters,
+    get_admin_charts,
+    get_data_source,
+    get_data_sources,
+    get_table,
+)
 from gened.csv import csv_response
 from gened.db import get_db
 from gened.tables import Col, DataTable, NumCol, UserCol
@@ -172,42 +178,42 @@ def main() -> str:
     init_rows = 20  # number of rows to send in the page for each table
 
     consumers = DataTable(
-        'consumers',
-        get_consumers(None, limit=init_rows).fetchall(),
-        [NumCol('id'), Col('consumer'), Col('model'), NumCol('#classes'), NumCol('#queries'), NumCol('1wk')],
+        name='consumers',
+        columns=[NumCol('id'), Col('consumer'), Col('model'), NumCol('#classes'), NumCol('#queries'), NumCol('1wk')],
         link_col=0,
         link_template=filters.template_string('consumer'),
         extra_links=[{'icon': "pencil", 'text': "Edit consumer", 'handler': "admin.admin_consumers.consumer_form", 'param': "consumer_id"}],
         create_endpoint='admin.admin_consumers.consumer_new',
         ajax_url=url_for('.get_data', table='consumers', offset=init_rows, **request.args),  # type: ignore[arg-type]
+        data=get_consumers(None, limit=init_rows).fetchall(),
     )
 
     classes = DataTable(
-        'classes',
-        get_classes(filters, limit=init_rows).fetchall(),
-        [NumCol('id'), Col('name'), Col('owner'), Col('model'), NumCol('#users'), NumCol('#queries'), NumCol('1wk')],
+        name='classes',
+        columns=[NumCol('id'), Col('name'), Col('owner'), Col('model'), NumCol('#users'), NumCol('#queries'), NumCol('1wk')],
         link_col=0,
         link_template=filters.template_string('class'),
         extra_links=[{'icon': "admin", 'text': "Administer class", 'handler': "classes.switch_class_handler", 'param': "class_id"}],
         ajax_url=url_for('.get_data', table='classes', offset=init_rows, **request.args),  # type: ignore[arg-type]
+        data=get_classes(filters, limit=init_rows).fetchall(),
     )
 
     users = DataTable(
-        'users',
-        get_users(filters, limit=init_rows).fetchall(),
-        [NumCol('id'), UserCol('user'), NumCol('#queries'), NumCol('1wk'), NumCol('tokens')],
+        name='users',
+        columns=[NumCol('id'), UserCol('user'), NumCol('#queries'), NumCol('1wk'), NumCol('tokens')],
         link_col=0,
         link_template=filters.template_string('user'),
         ajax_url=url_for('.get_data', table='users', offset=init_rows, **request.args),  # type: ignore[arg-type]
+        data=get_users(filters, limit=init_rows).fetchall(),
     )
 
     roles = DataTable(
-        'roles',
-        get_roles(filters, limit=init_rows).fetchall(),
-        [NumCol('id'), UserCol('user'), Col('role'), Col('class'), Col('class owner')],
+        name='roles',
+        columns=[NumCol('id'), UserCol('user'), Col('role'), Col('class'), Col('class owner')],
         link_col=0,
         link_template=filters.template_string('role'),
         ajax_url=url_for('.get_data', table='roles', offset=init_rows, **request.args),  # type: ignore[arg-type]
+        data=get_roles(filters, limit=init_rows).fetchall(),
     )
 
     tables = [
@@ -217,7 +223,14 @@ def main() -> str:
         roles,
     ]
 
-    tables.extend(table_gen(filters) for table_gen in get_tables().values())
+    # TODO: find a better way to import/manage these
+    queries = get_table('queries')
+    queries_source = get_data_source('queries')
+    queries.data = queries_source(filters, limit=init_rows).fetchall()
+    queries.csv_link = url_for('.get_data', table='queries', kind='csv', **request.args)  # type: ignore[arg-type]
+    queries.ajax_url = url_for('.get_data', table='queries', kind='json', offset=init_rows, limit=1000-init_rows, **request.args)  # type: ignore[arg-type]
+
+    tables.append(queries)
 
     return render_template(
         "admin_main.html",

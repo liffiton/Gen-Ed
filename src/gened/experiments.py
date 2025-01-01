@@ -69,11 +69,11 @@ def experiments_view() -> str:
     """).fetchall()
 
     table = DataTable(
-        'experiments',
-        experiments,
-        [NumCol('id'), Col('name'), Col('description'), NumCol('#classes')],
+        name='experiments',
+        columns=[NumCol('id'), Col('name'), Col('description'), NumCol('#classes')],
         create_endpoint='.experiment_new',
         extra_links=[{'text': "edit", 'handler': ".experiment_form", 'param': "exp_id"}],
+        data=experiments,
     )
 
     return render_template("admin_experiments.html", experiments=table)

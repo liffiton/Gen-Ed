@@ -104,21 +104,15 @@ def get_queries(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
     return cur
 
 
-def gen_query_table(filters: Filters) -> DataTable:
-    init_rows = 20
-    queries = DataTable(
-        'queries',
-        get_queries(filters, limit=init_rows).fetchall(),
-        [NumCol('id'), UserCol('user'), TimeCol('time'), Col('context'), Col('code'), Col('error'), Col('issue'), Col('response'), Col('helpful', align='center')],
-        link_col=0,
-        link_template="/help/view/${value}",
-        csv_link=url_for('.get_data', table='queries', kind='csv', **request.args),  # type: ignore[arg-type]
-        ajax_url=url_for('.get_data', table='queries', kind='json', offset=init_rows, limit=1000-init_rows, **request.args),  # type: ignore[arg-type]
-    )
-    return queries
+queries_table = DataTable(
+    name='queries',
+    columns=[NumCol('id'), UserCol('user'), TimeCol('time'), Col('context'), Col('code'), Col('error'), Col('issue'), Col('response'), Col('helpful', align='center')],
+    link_col=0,
+    link_template="/help/view/${value}",
+)
 
 
 def register_with_gened() -> None:
     """ Register admin functionality with the main gened admin module."""
     register_admin_chart(gen_query_charts)
-    register_data_source('queries', get_queries, gen_query_table)
+    register_data_source('queries', get_queries, queries_table)

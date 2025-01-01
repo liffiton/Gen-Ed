@@ -311,11 +311,11 @@ def tutor_admin(chat_id : int|None = None) -> str:
     """).fetchall()
 
     table = DataTable(
-        'chats',
-        chats,
-        [NumCol('id'), Col('user'), Col('topic'), NumCol('user messages')],
+        name='chats',
+        columns=[NumCol('id'), Col('user'), Col('topic'), NumCol('user messages')],
         link_col=0,
         link_template='${value}',
+        data=chats,
     )
 
     if chat_id is not None:

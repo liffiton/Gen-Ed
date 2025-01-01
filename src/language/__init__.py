@@ -8,7 +8,7 @@ from flask.app import Flask
 
 from gened import base
 
-from . import deletion_handler, helper
+from . import deletion_handler, helper, queries
 
 
 def create_app(test_config: dict[str, str] | None = None, instance_path: Path | None = None) -> Flask:
@@ -31,6 +31,7 @@ def create_app(test_config: dict[str, str] | None = None, instance_path: Path | 
 
     # register app-specific functionality with gened
     deletion_handler.register_with_gened()
+    queries.register_with_gened()
 
     # create the base application
     app = base.create_app_base(__name__, app_config, instance_path)

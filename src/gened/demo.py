@@ -89,11 +89,11 @@ def demo_link_view() -> str:
     demo_links = db.execute("SELECT * FROM demo_links").fetchall()
 
     table = DataTable(
-        'demo_links',
-        demo_links,
-        [NumCol('id'), Col('name'), Col('expiration'), NumCol('tokens'), BoolCol('enabled'), NumCol('uses')],
+        name='demo_links',
+        columns=[NumCol('id'), Col('name'), Col('expiration'), NumCol('tokens'), BoolCol('enabled'), NumCol('uses')],
         create_endpoint='.demo_link_new',
         extra_links=[{'text': "edit", 'handler': ".demo_link_form", 'param': "demo_id"}],
+        data=demo_links,
     )
 
     return render_template("admin_demo_link.html", demo_links=table)

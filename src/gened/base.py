@@ -182,6 +182,9 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
     # build total configuration
     total_config = base_config | app_config
 
+    # ensure applications have unique secret keys if testing multiple applications with same SECRET_KEY env var
+    total_config['SECRET_KEY'] = str(total_config['APPLICATION_TITLE']) + str(total_config['SECRET_KEY'])
+
     # configure the application
     app.config.from_mapping(total_config)
 

@@ -38,10 +38,9 @@ class TimeCol(Col):
     kind: Final = 'time'
 
 
-@dataclass(frozen=True)
+@dataclass(kw_only=True)
 class DataTable:
     name: str
-    data: list[Row]
     columns: list[Col]
     hidden_cols: list[str] = field(default_factory=list)
     link_col: int | None = None
@@ -50,3 +49,4 @@ class DataTable:
     create_endpoint: str | None = None
     csv_link: str | None = None
     ajax_url: str | None = None
+    data: list[Row] | None = None

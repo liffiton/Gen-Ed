@@ -4,6 +4,7 @@
 
 import json
 from collections.abc import Callable, Iterator
+from copy import deepcopy
 from dataclasses import dataclass, field
 from sqlite3 import Cursor, Row
 from typing import Final, Protocol, Self
@@ -136,7 +137,7 @@ class AppDataConfig:
     """
     admin_chart_generators: list[Callable[[str, list[str | int]], list[ChartData]]] = field(default_factory=list)
     data_source_map: dict[str, TableDataCallable] = field(default_factory=dict)
-    table_gen_map: dict[str, Callable[[Filters], DataTable]] = field(default_factory=dict)
+    table_map: dict[str, DataTable] = field(default_factory=dict)
 
 _appdata = AppDataConfig()
 
@@ -146,27 +147,33 @@ def register_admin_chart(generator_func: Callable[[str, list[str | int]], list[C
 def get_admin_charts() -> list[Callable[[str, list[str | int]], list[ChartData]]]:
     return _appdata.admin_chart_generators
 
-def register_data_source(name: str, data_func: TableDataCallable, generator_func: Callable[[Filters], DataTable]) -> None:
+def register_data_source(name: str, data_func: TableDataCallable, data_table: DataTable) -> None:
     if name in _appdata.data_source_map:
         # don't allow overwriting the same name
         # but this may occur in tests or other situations that re-use the module across applications...
         assert _appdata.data_source_map[name] == data_func
-        assert _appdata.table_gen_map[name] == generator_func
+        assert _appdata.table_map[name] == data_table
 
     _appdata.data_source_map[name] = data_func
-    _appdata.table_gen_map[name]=generator_func
+    _appdata.table_map[name] = data_table
 
 def get_data_sources() -> dict[str, TableDataCallable]:
-    return _appdata.data_source_map
+    return deepcopy(_appdata.data_source_map)
 
 def get_data_source(name: str) -> TableDataCallable:
     source = _appdata.data_source_map.get(name)
     if not source:
         raise RuntimeError(f"Invalid data source name: {name}")
-    return source
+    return deepcopy(source)
 
-def get_tables() -> dict[str, Callable[[Filters], DataTable]]:
-    return _appdata.table_gen_map
+def get_tables() -> dict[str, DataTable]:
+    return deepcopy(_appdata.table_map)
+
+def get_table(name: str) -> DataTable:
+    table = _appdata.table_map.get(name)
+    if not table:
+        raise RuntimeError(f"Invalid data source name: {name}")
+    return deepcopy(table)
 
 
 # TODO: Update old functions below to use registered data sources
