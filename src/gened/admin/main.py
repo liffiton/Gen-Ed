@@ -98,7 +98,7 @@ def get_users(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
         LEFT JOIN classes ON roles.class_id=classes.id
         LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
         LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
-        LEFT JOIN queries ON queries.user_id=users.id
+        LEFT JOIN queries ON queries.role_id=roles.id OR (queries.role_id IS NULL AND queries.user_id=users.id)
         WHERE {where_clause}
         GROUP BY users.id
         ORDER BY "1wk" DESC, users.id DESC
