@@ -59,7 +59,10 @@ def _get_class_queries(user_id: int | None = None) -> list[Row]:
     return queries
 
 
-def get_users(class_id: int, for_export: bool = False) -> list[Row]:
+def _get_class_users(*, for_export: bool = False) -> list[Row]:
+    cur_class = get_auth_class()
+    class_id = cur_class.class_id
+
     db = get_db()
 
     users = db.execute(f"""
@@ -86,10 +89,7 @@ def get_users(class_id: int, for_export: bool = False) -> list[Row]:
 
 @bp.route("/")
 def main() -> str | Response:
-    cur_class = get_auth_class()
-    class_id = cur_class.class_id
-
-    users = get_users(class_id)
+    users = _get_class_users()
     users_table = DataTable(
         'users',
         users,
@@ -126,13 +126,12 @@ def get_csv(kind: str) -> str | Response:
         return abort(404)
 
     cur_class = get_auth_class()
-    class_id = cur_class.class_id
     class_name = cur_class.class_name
 
     if kind == "queries":
         table = _get_class_queries()
     elif kind == "users":
-        table = get_users(class_id, for_export=True)
+        table = _get_class_users(for_export=True)
 
     return csv_response(class_name, kind, table)
 

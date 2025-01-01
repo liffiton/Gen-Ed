@@ -8,7 +8,7 @@ from flask.app import Flask
 
 from gened import base
 
-from . import helper, deletion_handler
+from . import deletion_handler, helper
 
 
 def create_app(test_config: dict[str, str] | None = None, instance_path: Path | None = None) -> Flask:

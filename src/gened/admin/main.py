@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from sqlite3 import Cursor, Row
+from sqlite3 import Cursor
 
 from flask import (
     Blueprint,
@@ -14,7 +14,7 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from gened.app_data import Filters, TableDataCallable, get_admin_charts, get_data_sources, get_tables
+from gened.app_data import Filters, get_admin_charts, get_data_sources, get_tables
 from gened.csv import csv_response
 from gened.db import get_db
 from gened.tables import Col, DataTable, NumCol, UserCol
