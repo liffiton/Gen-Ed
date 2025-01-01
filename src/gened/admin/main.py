@@ -17,9 +17,7 @@ from werkzeug.wrappers.response import Response
 from gened.app_data import (
     Filters,
     get_admin_charts,
-    get_data_source,
     get_data_sources,
-    get_table,
 )
 from gened.csv import csv_response
 from gened.db import get_db
@@ -140,23 +138,23 @@ def get_data(table: str, kind: str='json') -> str | Response:
     if kind not in ['json', 'csv']:
         return abort(404)
 
-    table_map = {
+    data_source_map = {
         'consumers': get_consumers,
         'classes': get_classes,
         'users': get_users,
         'roles': get_roles,
     }
 
-    table_map |= get_data_sources()
+    data_source_map |= {name: source.function for name, source in get_data_sources().items()}
 
-    if table not in table_map:
+    if table not in data_source_map:
         return abort(404)
 
     filters = Filters.from_args()
     limit = int(request.args.get('limit', -1))
     offset = int(request.args.get('offset', 0))
 
-    data_func = table_map[table]
+    data_func = data_source_map[table]
     data = data_func(filters, limit=limit, offset=offset).fetchall()
 
     if kind == 'json':
@@ -222,14 +220,13 @@ def main() -> str:
         roles,
     ]
 
-    # TODO: find a better way to import/manage these
-    queries = get_table('queries')
-    queries_source = get_data_source('queries')
-    queries.data = queries_source(filters, limit=init_rows).fetchall()
-    queries.csv_link = url_for('.get_data', table='queries', kind='csv', **request.args)  # type: ignore[arg-type]
-    queries.ajax_url = url_for('.get_data', table='queries', kind='json', offset=init_rows, limit=1000-init_rows, **request.args)  # type: ignore[arg-type]
+    for name, source in get_data_sources().items():
+        table = source.table
+        table.data = source.function(filters, limit=init_rows).fetchall()
+        table.csv_link = url_for('.get_data', table=name, kind='csv', **request.args)  # type: ignore[arg-type]
+        table.ajax_url = url_for('.get_data', table=name, kind='json', offset=init_rows, limit=1000-init_rows, **request.args)  # type: ignore[arg-type]
 
-    tables.append(queries)
+        tables.append(table)
 
     return render_template(
         "admin_main.html",

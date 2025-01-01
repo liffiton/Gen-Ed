@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import json
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from copy import deepcopy
 from dataclasses import dataclass, field
 from sqlite3 import Cursor, Row
@@ -129,9 +129,14 @@ class ChartGenerator(Protocol):
     def __call__(self, filters: Filters) -> list[ChartData]:
         ...
 
-class DataSource(Protocol):
+class DataFunction(Protocol):
     def __call__(self, filters: Filters, /, limit: int=-1, offset: int=0) -> Cursor:
         ...
+
+@dataclass(frozen=True)
+class DataSource:
+    function: DataFunction
+    table: DataTable
 
 @dataclass
 class AppDataConfig:
@@ -141,7 +146,6 @@ class AppDataConfig:
     """
     admin_chart_generators: list[ChartGenerator] = field(default_factory=list)
     data_source_map: dict[str, DataSource] = field(default_factory=dict)
-    table_map: dict[str, DataTable] = field(default_factory=dict)
 
 _appdata = AppDataConfig()
 
@@ -151,15 +155,14 @@ def register_admin_chart(generator_func: ChartGenerator) -> None:
 def get_admin_charts() -> list[ChartGenerator]:
     return _appdata.admin_chart_generators
 
-def register_data(name: str, data_func: DataSource, data_table: DataTable) -> None:
+def register_data(name: str, data_func: DataFunction, data_table: DataTable) -> None:
+    data_source = DataSource(data_func, data_table)
     if name in _appdata.data_source_map:
         # don't allow overwriting the same name
         # but this may occur in tests or other situations that re-use the module across applications...
-        assert _appdata.data_source_map[name] == data_func
-        assert _appdata.table_map[name] == data_table
+        assert _appdata.data_source_map[name] == data_source
 
-    _appdata.data_source_map[name] = data_func
-    _appdata.table_map[name] = data_table
+    _appdata.data_source_map[name] = data_source
 
 def get_data_sources() -> dict[str, DataSource]:
     return deepcopy(_appdata.data_source_map)
@@ -169,15 +172,6 @@ def get_data_source(name: str) -> DataSource:
     if not source:
         raise RuntimeError(f"Invalid data source name: {name}")
     return deepcopy(source)
-
-def get_tables() -> dict[str, DataTable]:
-    return deepcopy(_appdata.table_map)
-
-def get_table(name: str) -> DataTable:
-    table = _appdata.table_map.get(name)
-    if not table:
-        raise RuntimeError(f"Invalid data source name: {name}")
-    return deepcopy(table)
 
 
 # TODO: Update old functions below to use registered data sources
@@ -211,9 +205,10 @@ def get_user_data(kind: str, limit: int) -> list[Row]:
     auth = get_auth()
     assert auth.user_id is not None
 
-    get_data = get_data_source(kind)
     filters = Filters()
     filters.add('user', auth.user_id)
+
+    get_data = get_data_source(kind).function
     data = get_data(filters, limit=limit).fetchall()
 
     return data
