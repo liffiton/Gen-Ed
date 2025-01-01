@@ -60,6 +60,7 @@ CREATE TABLE users (
     email         TEXT,
     auth_name     TEXT,
     display_name  TEXT GENERATED ALWAYS AS (COALESCE(full_name, email, auth_name)) VIRTUAL NOT NULL,  -- NOT NULL on COALESCE effectively requires one of full_name, email, and auth_name
+    display_extra TEXT GENERATED ALWAYS AS (IIF(auth_provider = 5, '@' || auth_name, email)) VIRTUAL,  -- 5=Github, use @authname; else use email (okay if null)
     is_admin      BOOLEAN NOT NULL CHECK (is_admin IN (0,1)) DEFAULT 0,
     is_tester     BOOLEAN NOT NULL CHECK (is_tester IN (0,1)) DEFAULT 0,
     query_tokens  INTEGER NOT NULL DEFAULT 0,  -- number of tokens left for making queries - 0 means cut off
@@ -203,6 +204,8 @@ CREATE VIEW user_activity AS
 SELECT
     users.id,
     users.display_name,
+    users.display_extra,
+    auth_providers.name AS auth_provider,
     users.delete_status,
     users.created,
     (
@@ -219,6 +222,7 @@ SELECT
           AND r_inst.role = 'instructor'
     ) as last_instructor_query_time
 FROM users
+LEFT JOIN auth_providers ON auth_providers.id=users.auth_provider
 WHERE NOT users.is_admin
   AND users.id != -1
   AND users.delete_status != 'deleted'

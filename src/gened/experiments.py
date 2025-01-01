@@ -20,6 +20,7 @@ from werkzeug.wrappers.response import Response
 from . import admin
 from .auth import get_auth
 from .db import get_db
+from .tables import Col, DataTable, NumCol
 
 
 # Functions for controlling access to experiments based on the current class
@@ -63,8 +64,19 @@ admin.register_navbar_item("admin_experiments.experiments_view", "Experiments")
 @bp_admin.route("/")
 def experiments_view() -> str:
     db = get_db()
-    experiments = db.execute("SELECT *, (SELECT COUNT(*) FROM experiment_class WHERE experiment_id=id) AS count FROM experiments").fetchall()
-    return render_template("admin_experiments.html", experiments=experiments)
+    experiments = db.execute("""
+        SELECT *, (SELECT COUNT(*) FROM experiment_class WHERE experiment_id=id) AS "#classes" FROM experiments
+    """).fetchall()
+
+    table = DataTable(
+        'experiments',
+        experiments,
+        [NumCol('id'), Col('name'), Col('description'), NumCol('#classes')],
+        create_endpoint='.experiment_new',
+        extra_links=[{'text': "edit", 'handler': ".experiment_form", 'param': "exp_id"}],
+    )
+
+    return render_template("admin_experiments.html", experiments=table)
 
 @bp_admin.route("/new")
 def experiment_new() -> str:

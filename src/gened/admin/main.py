@@ -2,16 +2,22 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from collections.abc import Callable, Iterator
-from dataclasses import dataclass
-from sqlite3 import Row
-from urllib.parse import urlencode
+from sqlite3 import Cursor, Row
 
-from flask import Blueprint, render_template, request
+from flask import (
+    Blueprint,
+    abort,
+    jsonify,
+    render_template,
+    request,
+    url_for,
+)
 from werkzeug.wrappers.response import Response
 
+from gened.app_data import Filters, TableDataCallable, get_admin_charts, get_data_sources, get_tables
 from gened.csv import csv_response
 from gened.db import get_db
+from gened.tables import Col, DataTable, NumCol, UserCol
 
 from .component_registry import register_blueprint
 
@@ -20,152 +26,17 @@ bp = Blueprint('admin_main', __name__, url_prefix='/', template_folder='template
 register_blueprint(bp)
 
 
-@dataclass(frozen=True)
-class ChartData:
-    labels: list[str | int | float]
-    series: dict[str, list[int | float]]
-    colors: list[str]
-
-
-# A module-level list of registered charts for the main admin page.  Updated by register_admin_chart()
-_admin_chart_generators: list[Callable[[str, list[str]], list[ChartData]]] = []
-
-def register_admin_chart(generator_func: Callable[[str, list[str]], list[ChartData]]) -> None:
-    _admin_chart_generators.append(generator_func)
-
-
-@dataclass(frozen=True)
-class FilterSpec:
-    name: str
-    column: str
-    display_query: str
-
-_available_filter_specs = [
-    FilterSpec('consumer', 'consumers.id', 'SELECT lti_consumer FROM consumers WHERE id=?'),
-    FilterSpec('class', 'classes.id', 'SELECT name FROM classes WHERE id=?'),
-    FilterSpec('user', 'users.id', 'SELECT display_name FROM users WHERE id=?'),
-    FilterSpec('role', 'roles.id', """
-        SELECT printf("%s (%s:%s)", users.display_name, role_class.name, roles.role)
-        FROM roles
-        LEFT JOIN users ON users.id=roles.user_id
-        LEFT JOIN classes AS role_class ON role_class.id=roles.class_id
-        WHERE roles.id=?
-    """),
-]
-
-
-@dataclass(frozen=True)
-class Filter:
-    spec: FilterSpec
-    value: str
-    display_value: str
-
-
-class Filters:
-    def __init__(self) -> None:
-        self._filters: list[Filter] = []
-
-    def __iter__(self) -> Iterator[Filter]:
-        return self._filters.__iter__()
-
-    def add(self, spec: FilterSpec, value: str, display_value: str) -> None:
-        self._filters.append(Filter(spec, value, display_value))
-
-    def make_where(self, selected: list[str]) -> tuple[str, list[str]]:
-        filters = [f for f in self._filters if f.spec.name in selected]
-        if not filters:
-            return "1", []
-        else:
-            return (
-                " AND ".join(f"{f.spec.column}=?" for f in filters),
-                [f.value for f in filters]
-            )
-
-    def filter_string(self) -> str:
-        filter_dict = {f.spec.name: f.value for f in self._filters}
-        return f"?{urlencode(filter_dict)}"
-
-    def filter_string_without(self, exclude_name: str) -> str:
-        filter_dict = {f.spec.name: f.value for f in self._filters if f.spec.name != exclude_name}
-        return f"?{urlencode(filter_dict)}"
-
-    def template_string(self, selected_name: str) -> str:
-        '''
-        Return a string that will be used to create a link URL for each row in
-        a table.  This string is passed to a Javascript function as
-        `{{template_string}}`, to be used with string interpolation in
-        Javascript.  Therefore, it should contain "${{value}}" as a placeholder
-        for the value -- it is rendered by Python's f-string interpolation as
-        "${value}" in the page source, suitable for Javascript string
-        interpolation.
-        '''
-        return self.filter_string_without(selected_name) + f"&{selected_name}=${{value}}"
-
-
-def get_queries_filtered(where_clause: str, where_params: list[str], queries_limit: int | None = None) -> list[Row]:
+def get_consumers(_: Filters | None, limit: int=-1, offset: int=0) -> Cursor:
     db = get_db()
-    sql = f"""
+    return db.execute("""
         SELECT
-            queries.*,
-            users.id AS user_id,
-            users.display_name,
-            users.email,
-            users.auth_name,
-            auth_providers.name AS auth_provider
-        FROM queries
-        JOIN users ON queries.user_id=users.id
-        LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
-        LEFT JOIN roles ON queries.role_id=roles.id
-        LEFT JOIN classes ON roles.class_id=classes.id
-        LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
-        LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
-        WHERE {where_clause}
-        ORDER BY queries.id DESC
-    """
-    if queries_limit is not None:
-        sql += f"LIMIT {int(queries_limit)}"
-    queries = db.execute(sql, [*where_params]).fetchall()
-    return queries
-
-
-@bp.route("/csv/queries/")
-def get_queries_csv() -> str | Response:
-    filters = Filters()
-
-    for spec in _available_filter_specs:
-        if spec.name in request.args:
-            value = request.args[spec.name]
-            filters.add(spec, value, "dummy value")  # display value not used in CSV export
-
-    # queries, filtered by consumer, class, user, and role
-    where_clause, where_params = filters.make_where(['consumer', 'class', 'user', 'role'])
-    queries = get_queries_filtered(where_clause, where_params)
-
-    return csv_response('admin_export', 'queries', queries)
-
-
-@bp.route("/")
-def main() -> str:
-    db = get_db()
-    filters = Filters()
-
-    for spec in _available_filter_specs:
-        if spec.name in request.args:
-            value = request.args[spec.name]
-            # bit of a hack to have a single SQL query cover all different filters...
-            display_row = db.execute(spec.display_query, [value]).fetchone()
-            display_value = display_row[0]
-            filters.add(spec, value, display_value)
-
-    # all consumers
-    consumers = db.execute("""
-        SELECT
-            consumers.*,
+            consumers.id AS id,
+            consumers.lti_consumer AS consumer,
             models.shortname AS model,
-            COUNT(queries.id) AS num_queries,
-            COUNT(DISTINCT classes.id) AS num_classes,
-            COUNT(DISTINCT roles.id) AS num_users,
-            SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
+            COUNT(DISTINCT classes.id) AS "#classes",
+            COUNT(DISTINCT roles.id) AS "#users",
+            COUNT(queries.id) AS "#queries",
+            SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS "1wk"
         FROM consumers
         LEFT JOIN models ON models.id=consumers.model_id
         LEFT JOIN classes_lti ON classes_lti.lti_consumer_id=consumers.id
@@ -173,20 +44,24 @@ def main() -> str:
         LEFT JOIN roles ON roles.class_id=classes.id
         LEFT JOIN queries ON queries.role_id=roles.id
         GROUP BY consumers.id
-        ORDER BY num_recent_queries DESC, consumers.id DESC
-    """).fetchall()
+        ORDER BY "1wk" DESC, consumers.id DESC
+        LIMIT ?
+        OFFSET ?
+    """, [limit, offset])
 
-    # classes, filtered by consumer
+
+def get_classes(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
+    db = get_db()
     where_clause, where_params = filters.make_where(['consumer'])
-    classes = db.execute(f"""
+    return db.execute(f"""
         SELECT
-            classes.id,
-            classes.name,
+            classes.id AS id,
+            classes.name AS name,
             COALESCE(consumers.lti_consumer, class_owner.display_name) AS owner,
             models.shortname AS model,
-            COUNT(DISTINCT roles.id) AS num_users,
-            COUNT(queries.id) AS num_queries,
-            SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
+            COUNT(DISTINCT roles.id) AS "#users",
+            COUNT(queries.id) AS "#queries",
+            SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS "1wk"
         FROM classes
         LEFT JOIN classes_user ON classes.id=classes_user.class_id
         LEFT JOIN users AS class_owner ON classes_user.creator_user_id=class_owner.id
@@ -197,23 +72,24 @@ def main() -> str:
         LEFT JOIN queries ON queries.role_id=roles.id
         WHERE {where_clause}
         GROUP BY classes.id
-        ORDER BY num_recent_queries DESC, classes.id DESC
-    """, where_params).fetchall()
+        ORDER BY "1wk" DESC, classes.id DESC
+        LIMIT ?
+        OFFSET ?
+    """, [*where_params, limit, offset])
 
-    # users, filtered by consumer and class
+
+def get_users(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
+    db = get_db()
     where_clause, where_params = filters.make_where(['consumer', 'class'])
-    users = db.execute(f"""
+    return db.execute(f"""
         SELECT
-            users.id,
-            users.display_name,
-            users.email,
-            users.auth_name,
-            auth_providers.name AS auth_provider,
-            users.query_tokens,
-            COUNT(queries.id) AS num_queries,
-            SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
+            users.id AS id,
+            json_array(users.display_name, auth_providers.name, users.display_extra) AS user,
+            COUNT(queries.id) AS "#queries",
+            SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS "1wk",
+            users.query_tokens AS tokens
         FROM users
-        LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
+        LEFT JOIN auth_providers ON auth_providers.id=users.auth_provider
         LEFT JOIN roles ON roles.user_id=users.id
         LEFT JOIN classes ON roles.class_id=classes.id
         LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
@@ -221,20 +97,22 @@ def main() -> str:
         LEFT JOIN queries ON queries.user_id=users.id
         WHERE {where_clause}
         GROUP BY users.id
-        ORDER BY num_recent_queries DESC, users.id DESC
-    """, where_params).fetchall()
+        ORDER BY "1wk" DESC, users.id DESC
+        LIMIT ?
+        OFFSET ?
+    """, [*where_params, limit, offset])
 
-    # roles, filtered by consumer, class, and user
+
+def get_roles(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
+    db = get_db()
     where_clause, where_params = filters.make_where(['consumer', 'class', 'user'])
-    roles = db.execute(f"""
+    return db.execute(f"""
         SELECT
-            roles.*,
-            users.display_name,
-            users.email,
-            users.auth_name,
-            classes.name AS class_name,
-            COALESCE(consumers.lti_consumer, class_owner.display_name) AS class_owner,
-            auth_providers.name AS auth_provider
+            roles.id AS id,
+            json_array(users.display_name, auth_providers.name, users.display_extra) AS user,
+            roles.role AS role,
+            classes.name AS class,
+            COALESCE(consumers.lti_consumer, class_owner.display_name) AS "class owner"
         FROM roles
         LEFT JOIN users ON users.id=roles.user_id
         LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
@@ -245,15 +123,105 @@ def main() -> str:
         LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
         WHERE {where_clause}
         ORDER BY roles.id DESC
-    """, where_params).fetchall()
+        LIMIT ?
+        OFFSET ?
+    """, [*where_params, limit, offset])
 
-    # queries, filtered by consumer, class, user, and role
+
+@bp.route("/api/<string:table>/")
+@bp.route("/api/<string:table>/<string:kind>")
+def get_data(table: str, kind: str='json') -> str | Response:
+    if kind not in ['json', 'csv']:
+        return abort(404)
+
+    table_map = {
+        'consumers': get_consumers,
+        'classes': get_classes,
+        'users': get_users,
+        'roles': get_roles,
+    }
+
+    table_map |= get_data_sources()
+
+    if table not in table_map:
+        return abort(404)
+
+    filters = Filters.from_args()
+    limit = int(request.args.get('limit', -1))
+    offset = int(request.args.get('offset', 0))
+
+    data_func = table_map[table]
+    data = data_func(filters, limit=limit, offset=offset).fetchall()
+
+    if kind == 'json':
+        return jsonify([dict(row) for row in data])
+    if kind == 'csv':
+        return csv_response('admin_export', table, data)
+    return ''
+
+
+@bp.route("/")
+def main() -> str:
+    filters = Filters.from_args(with_display=True)
+
     where_clause, where_params = filters.make_where(['consumer', 'class', 'user', 'role'])
-    queries = get_queries_filtered(where_clause, where_params, queries_limit=200)
-
     charts = []
-    for generate_chart in _admin_chart_generators:
+    for generate_chart in get_admin_charts():
         charts.extend(generate_chart(where_clause, where_params))
 
-    # 'admin.html' should be defined in each individual application
-    return render_template("admin.html", charts=charts, consumers=consumers, classes=classes, users=users, roles=roles, queries=queries, filters=filters)
+    init_rows = 20  # number of rows to send in the page for each table
+
+    consumers = DataTable(
+        'consumers',
+        get_consumers(None, limit=init_rows).fetchall(),
+        [NumCol('id'), Col('consumer'), Col('model'), NumCol('#classes'), NumCol('#queries'), NumCol('1wk')],
+        link_col=0,
+        link_template=filters.template_string('consumer'),
+        extra_links=[{'icon': "pencil", 'text': "Edit consumer", 'handler': "admin.admin_consumers.consumer_form", 'param': "consumer_id"}],
+        create_endpoint='admin.admin_consumers.consumer_new',
+        ajax_url=url_for('.get_data', table='consumers', offset=init_rows, **request.args),  # type: ignore[arg-type]
+    )
+
+    classes = DataTable(
+        'classes',
+        get_classes(filters, limit=init_rows).fetchall(),
+        [NumCol('id'), Col('name'), Col('owner'), Col('model'), NumCol('#users'), NumCol('#queries'), NumCol('1wk')],
+        link_col=0,
+        link_template=filters.template_string('class'),
+        extra_links=[{'icon': "admin", 'text': "Administer class", 'handler': "classes.switch_class_handler", 'param': "class_id"}],
+        ajax_url=url_for('.get_data', table='classes', offset=init_rows, **request.args),  # type: ignore[arg-type]
+    )
+
+    users = DataTable(
+        'users',
+        get_users(filters, limit=init_rows).fetchall(),
+        [NumCol('id'), UserCol('user'), NumCol('#queries'), NumCol('1wk'), NumCol('tokens')],
+        link_col=0,
+        link_template=filters.template_string('user'),
+        ajax_url=url_for('.get_data', table='users', offset=init_rows, **request.args),  # type: ignore[arg-type]
+    )
+
+    roles = DataTable(
+        'roles',
+        get_roles(filters, limit=init_rows).fetchall(),
+        [NumCol('id'), UserCol('user'), Col('role'), Col('class'), Col('class owner')],
+        link_col=0,
+        link_template=filters.template_string('role'),
+        ajax_url=url_for('.get_data', table='roles', offset=init_rows, **request.args),  # type: ignore[arg-type]
+    )
+
+    tables = [
+        consumers,
+        classes,
+        users,
+        roles,
+    ]
+
+    tables.extend(table_gen(filters) for table_gen in get_tables().values())
+
+    return render_template(
+        "admin_main.html",
+        charts=charts,
+        filters=filters,
+        tables=tables,
+    )

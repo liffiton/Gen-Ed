@@ -68,6 +68,7 @@ bp = Blueprint('admin_download', __name__, url_prefix='/get_db', template_folder
 register_blueprint(bp)
 register_navbar_item("admin_download.get_db_file", render_link, right=True)
 
+
 @bp.route("/")
 def get_db_file() -> Response:
     db_name = current_app.config['DATABASE_NAME']

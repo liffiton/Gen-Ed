@@ -14,6 +14,8 @@ SPDX-License-Identifier: AGPL-3.0-only
   margin: auto;
 }
 .item_sep { border: 2px solid #ccc; margin: 1em; }
+.flex_items { display: flex; gap: 2em; flex-wrap: wrap; }
+.flex_item { flex: 1 0 10em; }
 @media (max-width: 1200px) {
   /* flip to column below a given width (instead of just using flex-wrap) so any .sep item becomes a horizontal line */
   .flex_items { flex-direction: column; }

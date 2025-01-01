@@ -26,12 +26,14 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
+from .app_data import Filters, get_data_source
 from .auth import get_auth_class, instructor_required
 from .classes import switch_class
 from .csv import csv_response
 from .data_deletion import delete_class_data
 from .db import get_db
 from .redir import safe_redirect
+from .tables import BoolCol, Col, DataTable, NumCol, TimeCol, UserCol
 
 bp = Blueprint('instructor', __name__, template_folder='templates')
 
@@ -41,30 +43,18 @@ def before_request() -> None:
     """ Apply decorator to protect all instructor blueprint endpoints. """
 
 
-def get_queries(class_id: int, user: int | None = None) -> list[Row]:
-    db = get_db()
+def _get_class_queries(user_id: int | None = None) -> list[Row]:
+    cur_class = get_auth_class()
+    class_id = cur_class.class_id
 
-    where_clause = "WHERE UNLIKELY(roles.class_id=?)"  # UNLIKELY() to help query planner in older sqlite versions
-    params = [class_id]
+    filters = Filters()
+    filters.add('class', class_id)
 
-    if user is not None:
-        where_clause += " AND users.id=?"
-        params += [user]
+    if user_id is not None:
+        filters.add('user', user_id)
 
-    queries = db.execute(f"""
-        SELECT
-            queries.id,
-            users.display_name,
-            users.email,
-            queries.*
-        FROM queries
-        JOIN users
-            ON queries.user_id=users.id
-        JOIN roles
-            ON queries.role_id=roles.id
-        {where_clause}
-        ORDER BY queries.id DESC
-    """, params).fetchall()
+    get_queries = get_data_source('queries')
+    queries = get_queries(filters).fetchall()
 
     return queries
 
@@ -75,15 +65,13 @@ def get_users(class_id: int, for_export: bool = False) -> list[Row]:
     users = db.execute(f"""
         SELECT
             {'roles.id AS role_id,' if not for_export else ''}
-            users.id,
-            users.display_name,
-            users.email,
-            auth_providers.name AS auth_provider,
-            users.auth_name,
-            COUNT(queries.id) AS num_queries,
-            SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries,
-            roles.active,
-            roles.role = "instructor" AS instructor_role
+            users.id AS id,
+            users.display_name AS display_name,
+            json_array(users.display_name, auth_providers.name, users.display_extra) AS user,
+            COUNT(queries.id) AS "#queries",
+            SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS "1wk",
+            roles.active AS "active?",
+            roles.role = "instructor" AS "instructor?"
         FROM users
         LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
         JOIN roles ON roles.user_id=users.id
@@ -102,6 +90,15 @@ def main() -> str | Response:
     class_id = cur_class.class_id
 
     users = get_users(class_id)
+    users_table = DataTable(
+        'users',
+        users,
+        [NumCol('role_id'), NumCol('id'), UserCol('user'), NumCol('#queries'), NumCol('1wk'), BoolCol('active?', url=url_for('.set_role_active')), BoolCol('instructor?', url=url_for('.set_role_instructor'))],
+        hidden_cols=['role_id', 'id'],
+        link_col=1,
+        link_template='?user=${value}',
+        csv_link=url_for('instructor.get_csv', kind='users'),
+    )
 
     sel_user_name = None
     sel_user_id = request.args.get('user', type=int)
@@ -110,9 +107,17 @@ def main() -> str | Response:
         if sel_user_row:
             sel_user_name = sel_user_row['display_name']
 
-    queries = get_queries(class_id, sel_user_id)
+    queries = _get_class_queries(sel_user_id)
+    queries_table = DataTable(
+        'queries',
+        queries,
+        [NumCol('id'), UserCol('user'), TimeCol('time'), Col('context'), Col('code'), Col('error'), Col('issue'), Col('response'), Col('helpful', align='center')],
+        link_col=0,
+        link_template="/help/view/${value}",
+        csv_link=url_for('instructor.get_csv', kind='queries'),
+    )
 
-    return render_template("instructor.html", users=users, queries=queries, user=sel_user_name)
+    return render_template("instructor_view.html", users=users_table, queries=queries_table, user=sel_user_name)
 
 
 @bp.route("/csv/<string:kind>")
@@ -125,7 +130,7 @@ def get_csv(kind: str) -> str | Response:
     class_name = cur_class.class_name
 
     if kind == "queries":
-        table = get_queries(class_id)
+        table = _get_class_queries()
     elif kind == "users":
         table = get_users(class_id, for_export=True)
 

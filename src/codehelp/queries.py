@@ -2,11 +2,21 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from gened.admin import ChartData, register_admin_chart
+from sqlite3 import Cursor
+
+from flask import request, url_for
+
+from gened.app_data import (
+    ChartData,
+    Filters,
+    register_admin_chart,
+    register_data_source,
+)
 from gened.db import get_db
+from gened.tables import Col, DataTable, NumCol, TimeCol, UserCol
 
 
-def gen_query_charts(where_clause: str, where_params: list[str]) -> list[ChartData]:
+def gen_query_charts(where_clause: str, where_params: list[str | int]) -> list[ChartData]:
     """ Generate chart data for CodeHelp query charts.
     Filter using same filters as set in the admin interface
     (passed in where_clause and where_params).
@@ -64,6 +74,51 @@ def gen_query_charts(where_clause: str, where_params: list[str]) -> list[ChartDa
     return charts
 
 
+def get_queries(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
+    db = get_db()
+    where_clause, where_params = filters.make_where(['consumer', 'class', 'user', 'role'])
+    sql = f"""
+        SELECT
+            queries.id AS id,
+            json_array(users.display_name, auth_providers.name, users.display_extra) AS user,
+            queries.query_time AS time,
+            queries.context_name AS context,
+            queries.code AS code,
+            queries.error AS error,
+            queries.issue AS issue,
+            queries.response_text AS response,
+            queries.helpful_emoji AS helpful
+        FROM queries
+        JOIN users ON queries.user_id=users.id
+        LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
+        LEFT JOIN roles ON UNLIKELY(queries.role_id=roles.id)  -- UNLIKELY() to help query planner in older sqlite versions
+        LEFT JOIN classes ON UNLIKELY(roles.class_id=classes.id)
+        LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
+        LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
+        WHERE {where_clause}
+        ORDER BY queries.id DESC
+        LIMIT ?
+        OFFSET ?
+    """
+    cur = db.execute(sql, [*where_params, limit, offset])
+    return cur
+
+
+def gen_query_table(filters: Filters) -> DataTable:
+    init_rows = 20
+    queries = DataTable(
+        'queries',
+        get_queries(filters, limit=init_rows).fetchall(),
+        [NumCol('id'), UserCol('user'), TimeCol('time'), Col('context'), Col('code'), Col('error'), Col('issue'), Col('response'), Col('helpful', align='center')],
+        link_col=0,
+        link_template="/help/view/${value}",
+        csv_link=url_for('.get_data', table='queries', kind='csv', **request.args),  # type: ignore[arg-type]
+        ajax_url=url_for('.get_data', table='queries', kind='json', offset=init_rows, limit=1000-init_rows, **request.args),  # type: ignore[arg-type]
+    )
+    return queries
+
+
 def register_with_gened() -> None:
-    """ Register admin functionality with the main gened module."""
+    """ Register admin functionality with the main gened admin module."""
     register_admin_chart(gen_query_charts)
+    register_data_source('queries', get_queries, gen_query_table)

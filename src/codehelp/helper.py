@@ -18,6 +18,7 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
+from gened.app_data import get_history, get_query
 from gened.auth import (
     admin_required,
     class_enabled_required,
@@ -28,7 +29,6 @@ from gened.auth import (
 from gened.classes import switch_class
 from gened.db import get_db
 from gened.llm import LLM, with_llm
-from gened.queries import get_history, get_query
 from gened.testing.mocks import mock_async_completion
 
 from . import prompts

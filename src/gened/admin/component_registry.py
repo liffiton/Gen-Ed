@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from collections.abc import Callable
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 
 from flask import Blueprint
 
@@ -28,10 +28,13 @@ class AdminLink:
             return self._display()
 
 
-# Global registry
-_admin_bp: Blueprint | None = None
-_blueprints: list[Blueprint] = []
-_navbar_items: list[AdminLink] = []
+@dataclass
+class ComponentRegistry:
+    admin_bp: Blueprint | None = None
+    blueprints: list[Blueprint] = field(default_factory=list)
+    navbar_items: list[AdminLink] = field(default_factory=list)
+
+_registry = ComponentRegistry()
 
 
 def register_admin_blueprint(admin_bp: Blueprint) -> None:
@@ -41,23 +44,22 @@ def register_admin_blueprint(admin_bp: Blueprint) -> None:
     Args:
         admin_bp: The admin blueprint to register components with
     """
-    global _admin_bp
-    _admin_bp = admin_bp
+    _registry.admin_bp = admin_bp
 
     # Register any blueprints that may have already shown up
-    for bp in _blueprints:
-        _admin_bp.register_blueprint(bp)
+    for bp in _registry.blueprints:
+        admin_bp.register_blueprint(bp)
 
     # Add nav items via context processor, ensuring endpoints are prefixed with admin blueprint name
-    @_admin_bp.context_processor
+    @admin_bp.context_processor
     def inject_nav_items() -> dict[str, list[AdminLink]]:
         def prefix_endpoint(link: AdminLink) -> AdminLink:
             """Helper to prefix an endpoint with the admin blueprint name."""
-            assert _admin_bp is not None
-            return replace(link, endpoint=f"{_admin_bp.name}.{link.endpoint}")
+            assert _registry.admin_bp is not None
+            return replace(link, endpoint=f"{_registry.admin_bp.name}.{link.endpoint}")
 
-        regular = [prefix_endpoint(item) for item in _navbar_items if not item.right]
-        right = [prefix_endpoint(item) for item in _navbar_items if item.right]
+        regular = [prefix_endpoint(item) for item in _registry.navbar_items if not item.right]
+        right = [prefix_endpoint(item) for item in _registry.navbar_items if item.right]
         return {
             'admin_links': regular,
             'admin_links_right': right,
@@ -74,12 +76,12 @@ def register_blueprint(bp: Blueprint) -> None:
     Args:
         bp: The Blueprint to register
     """
-    _blueprints.append(bp)
+    _registry.blueprints.append(bp)
 
-    if _admin_bp is not None:
-        _admin_bp.register_blueprint(bp)
+    if _registry.admin_bp is not None:
+        _registry.admin_bp.register_blueprint(bp)
 
 
 def register_navbar_item(endpoint: str, display: str | Callable[[], str], *, right: bool = False) -> None:
     """Register an item for the admin navbar."""
-    _navbar_items.append(AdminLink(endpoint, display, right))
+    _registry.navbar_items.append(AdminLink(endpoint, display, right))

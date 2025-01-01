@@ -6,7 +6,7 @@ from flask import Blueprint
 
 from gened.auth import admin_required
 
-from . import (  # noqa: F401 -- built-in admin components register themselves when imported
+from . import (  # noqa: F401 -- Importing these modules registers routes
     consumers,
     download,
     main,
@@ -17,7 +17,6 @@ from .component_registry import (
     register_blueprint,
     register_navbar_item,
 )
-from .main import ChartData, register_admin_chart
 
 bp = Blueprint('admin', __name__, template_folder='templates')
 
@@ -32,9 +31,7 @@ register_admin_blueprint(bp)
 
 # Public exports for other modules
 __all__ = [
-    'ChartData',
     'bp',
-    'register_admin_chart',
     'register_blueprint',
     'register_navbar_item',
 ]

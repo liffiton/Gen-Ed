@@ -20,6 +20,7 @@ from werkzeug.wrappers.response import Response
 from gened.data_deletion import delete_user_data
 from gened.db import get_db
 from gened.redir import safe_redirect
+from gened.tables import BoolCol, Col, DataTable, NumCol, UserCol
 
 from .component_registry import register_blueprint, register_navbar_item
 
@@ -29,14 +30,21 @@ def get_candidates() -> tuple[list[Row], int]:
         db = get_db()
         retention_time_days = current_app.config['RETENTION_TIME_DAYS']
         g.pruning_candidates = db.execute("""
-            SELECT id, display_name, delete_status = 'whitelisted' AS whitelisted, created, last_query_time AS last_query, last_instructor_query_time AS last_instructor_query,
-                MAX(IFNULL(created, ""), IFNULL(last_query_time, ""), IFNULL(last_instructor_query_time, "")) AS last_activity,
-                CAST(JULIANDAY(DATE('now')) - JULIANDAY(MAX(IFNULL(created, ""), IFNULL(last_query_time, ""), IFNULL(last_instructor_query_time, ""))) AS INTEGER) AS time_since
+            SELECT
+                id,
+                json_array(display_name, auth_provider, display_extra) AS user,
+                display_name,
+                delete_status = 'whitelisted' AS "whitelist?",
+                created,
+                last_query_time AS "last query",
+                last_instructor_query_time AS "last class query",
+                MAX(IFNULL(created, ""), IFNULL(last_query_time, ""), IFNULL(last_instructor_query_time, "")) AS "last activity",
+                CAST(JULIANDAY(DATE('now')) - JULIANDAY(MAX(IFNULL(created, ""), IFNULL(last_query_time, ""), IFNULL(last_instructor_query_time, ""))) AS INTEGER) AS "days since"
             FROM user_activity
-            WHERE last_activity < DATE('now', ?)
+            WHERE "last activity" < DATE('now', ?)
         """, [f"-{retention_time_days} days"]).fetchall()
 
-    num_candidates = sum(not row['whitelisted'] for row in g.pruning_candidates)
+    num_candidates = sum(not row['whitelist?'] for row in g.pruning_candidates)
     return g.pruning_candidates, num_candidates
 
 
@@ -59,7 +67,13 @@ def pruning_view() -> str:
     pruning_candidates, num_candidates = get_candidates()
     num_whitelisted = len(pruning_candidates) - num_candidates
 
-    return render_template("admin_pruning.html", candidates=pruning_candidates, num_candidates=num_candidates, num_whitelisted=num_whitelisted)
+    candidates = DataTable(
+        'candidates',
+        pruning_candidates,
+        [NumCol('id'), UserCol('user'), Col('created'), Col('last query'), Col('last class query'), Col('last activity'), NumCol('days since'), BoolCol('whitelist?', url=url_for('.set_whitelist'), reload=True)],
+    )
+
+    return render_template("admin_pruning.html", candidates=candidates, num_candidates=num_candidates, num_whitelisted=num_whitelisted)
 
 @bp.route("/set_whitelist", methods=['POST'])  # just for url_for in the Javascript code
 @bp.route("/set_whitelist/<int:user_id>/<int(min=0, max=1):bool_whitelist>", methods=['POST'])

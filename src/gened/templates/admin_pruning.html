@@ -10,11 +10,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   <h1 class="is-size-3">Pruning User Data</h1>
   <h2 class="is-size-5 my-3"><strong>{{ num_candidates }}</strong> candidates for pruning (no activity in > {{ config['RETENTION_TIME_DAYS'] }} days) ({{ num_whitelisted }} whitelisted)</h2>
   <div style="max-width: 50em;">
-    {{ datatable(
-      'candidates',
-      [('id', 'id'), ('name', 'display_name'), ('created', 'created'), ('last query', 'last_query'), ('last class query', 'last_instructor_query'), ('last activity', 'last_activity'), ('days since', 'time_since', 'r'), ('whitelist?', 'whitelisted', 'b', '.set_whitelist', 'reload')],
-      candidates,
-    ) }}
+    {{ datatable(candidates) }}
   </div>
 
   <div>
@@ -36,7 +32,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <p class="has-text-danger-dark"><strong class="has-text-danger-dark">Warning:</strong> Deleting this data cannot be undone.</p>
       </div>
       <form method="POST" action="{{ url_for('.prune_users') }}">
-        {% for candidate in candidates %}
+        {% for candidate in candidates.data %}
           {% if not candidate.whitelisted %}
             <input type="hidden" name="user_ids" value="{{ candidate.id }}">
           {% endif %}

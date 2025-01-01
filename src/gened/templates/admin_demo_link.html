@@ -7,8 +7,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 {% extends "admin_base.html" %}
 
 {% block admin_body %}
-  <h1 class="is-size-3">Demo Links <a class="button is-light is-link is-small mt-2" href="{{url_for('.demo_link_new')}}">Create New</a></h1>
+  <h1 class="is-size-3">Demo Links <a class="button is-light is-link is-small mt-2" href="{{ url_for(demo_links.create_endpoint) }}">Create New</a></h1>
   <div style="max-width: 50em;">
-    {{ datatable('demo_links', [('id', 'id'), ('name', 'name'), ('expiration', 'expiration'), ('tokens', 'tokens', 'r'), ('enabled', 'enabled', 'r'), ('uses', 'uses', 'r')], demo_links, extra_links=[{'text': "edit", 'handler': ".demo_link_form", 'param': "demo_id"}]) }}
+    {{ datatable(demo_links) }}
   </div>
 {% endblock %}

@@ -15,11 +15,11 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
+from .app_data import get_history
 from .auth import generate_anon_username, get_auth, login_required
 from .csv import csv_response
 from .data_deletion import delete_user_data
 from .db import get_db
-from .queries import get_history
 from .redir import safe_redirect
 
 bp = Blueprint('profile', __name__, template_folder='templates')

@@ -18,13 +18,13 @@ from flask import (
 from werkzeug.wrappers.response import Response
 
 import gened.admin
-
+from gened.app_data import get_query
 from gened.auth import get_auth, login_required
 from gened.classes import switch_class
 from gened.db import get_db
 from gened.experiments import experiment_required
 from gened.llm import LLM, ChatMessage, with_llm
-from gened.queries import get_query
+from gened.tables import Col, DataTable, NumCol
 
 from . import prompts
 from .context import (
@@ -297,24 +297,26 @@ def tutor_admin(chat_id : int|None = None) -> str:
     db = get_db()
     chats = db.execute("""
         SELECT
-            chats.id,
-            users.display_name,
-            chats.topic,
+            chats.id AS id,
+            users.display_name AS user,
+            chats.topic AS topic,
             (
-                SELECT
-                    COUNT(*)
-                FROM
-                    json_each(chats.chat_json)
-                WHERE
-                    json_extract(json_each.value, '$.role')='user'
-            ) as user_msgs
-        FROM
-            chats
-        JOIN
-            users ON chats.user_id=users.id
-        ORDER BY
-            chats.id DESC
+                SELECT COUNT(*)
+                FROM json_each(chats.chat_json)
+                WHERE json_extract(json_each.value, '$.role')='user'
+            ) as "user messages"
+        FROM chats
+        JOIN users ON chats.user_id=users.id
+        ORDER BY chats.id DESC
     """).fetchall()
+
+    table = DataTable(
+        'chats',
+        chats,
+        [NumCol('id'), Col('user'), Col('topic'), NumCol('user messages')],
+        link_col=0,
+        link_template='${value}',
+    )
 
     if chat_id is not None:
         chat_row = db.execute("SELECT users.display_name, topic, chat_json FROM chats JOIN users ON chats.user_id=users.id WHERE chats.id=?", [chat_id]).fetchone()
@@ -323,4 +325,4 @@ def tutor_admin(chat_id : int|None = None) -> str:
         chat_row = None
         chat = None
 
-    return render_template("tutor_admin.html", chats=chats, chat_row=chat_row, chat=chat)
+    return render_template("tutor_admin.html", chats=table, chat_row=chat_row, chat=chat)

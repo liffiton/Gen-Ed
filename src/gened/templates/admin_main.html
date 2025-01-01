@@ -41,55 +41,19 @@ SPDX-License-Identifier: AGPL-3.0-only
   {% endfor %}
   </div>
 
+  <style type="text/css">
+    .flex_items { display: flex; gap: 2em; flex-wrap: wrap; }
+    .flex_item { flex: 1 0 10em; min-width: clamp(30vw, 45em, 80vw); overflow-x: auto; }
+  </style>
   <div class="flex_items">
-    <div class="flex_item">
-      <h1 class="is-size-3">Consumers <a class="button is-light is-link is-small mt-2" href="{{url_for('admin.admin_consumers.consumer_new')}}">Create New</a></h1>
-      {{ datatable(
-          'consumers',
-          [('id', 'id'), ('consumer', 'lti_consumer'), ('model', 'model'), ('#classes', 'num_classes', 'r'), ('#users', 'num_users', 'r'), ('#queries', 'num_queries', 'r'), ('1wk', 'num_recent_queries', 'r')],
-          consumers,
-          link_col=0,
-          link_template=filters.template_string('consumer') | safe,
-          extra_links=[{'icon': "pencil", 'text': "Edit consumer", 'handler': "admin.admin_consumers.consumer_form", 'param': "consumer_id"}],
-      ) }}
-    </div>
-    <div class="flex_item">
-      <h1 class="is-size-3">Classes</h1>
-      {{ datatable(
-          'classes',
-          [('id', 'id'), ('name', 'name'), ('owner', 'owner'), ('model', 'model'), ('#users', 'num_users', 'r'), ('#queries', 'num_queries', 'r'), ('1wk', 'num_recent_queries', 'r')],
-          classes,
-          link_col=0,
-          link_template=filters.template_string('class') | safe,
-          extra_links=[{'icon': "admin", 'text': "Administer class", 'handler': "classes.switch_class_handler", 'param': "class_id"}],
-      ) }}
-    </div>
-    <div class="flex_item">
-      <h1 class="is-size-3">Users</h1>
-      {{ datatable(
-          'users',
-          [('id', 'id'), ('user', 'display_name'), ('#queries', 'num_queries', 'r'), ('1wk', 'num_recent_queries', 'r'), ('tokens', 'query_tokens', 'r')],
-          users,
-          link_col=0,
-          link_template=filters.template_string('user') | safe,
-      ) }}
-    </div>
-    <div class="flex_item">
-      <h1 class="is-size-3">Roles</h1>
-      {{ datatable(
-          'roles',
-          [('id', 'id'), ('user', 'display_name'), ('role', 'role'), ('class', 'class_name'), ('class owner', 'class_owner')],
-          roles,
-          link_col=0,
-          link_template=filters.template_string('role') | safe,
-      ) }}
-    </div>
-    <div class="flex_item" style="flex-basis: max-content;">
-      <h1 class="is-size-3">
-        Queries
-      </h1>
-      {% block admin_queries %}
-      {% endblock %}
-    </div>
+    {% for table in tables %}
+      <div class="flex_item">
+        <h1 class="is-size-3">
+          {{ table.name }}
+          {% if table.create_endpoint %}<a class="button is-light is-link is-small mt-2" href="{{ url_for(table.create_endpoint) }}">Create New</a>{% endif %}
+        </h1>
+        {{ datatable(table) }}
+      </div>
+    {% endfor %}
   </div>
 {% endblock %}

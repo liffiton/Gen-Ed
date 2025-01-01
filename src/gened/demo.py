@@ -18,6 +18,7 @@ from werkzeug.wrappers.response import Response
 from . import admin
 from .auth import get_auth, set_session_auth_user
 from .db import get_db
+from .tables import BoolCol, Col, DataTable, NumCol
 from .tz import date_is_past
 
 bp = Blueprint('demo', __name__, template_folder='templates')
@@ -87,7 +88,15 @@ def demo_link_view() -> str:
     db = get_db()
     demo_links = db.execute("SELECT * FROM demo_links").fetchall()
 
-    return render_template("admin_demo_link.html", demo_links=demo_links)
+    table = DataTable(
+        'demo_links',
+        demo_links,
+        [NumCol('id'), Col('name'), Col('expiration'), NumCol('tokens'), BoolCol('enabled'), NumCol('uses')],
+        create_endpoint='.demo_link_new',
+        extra_links=[{'text': "edit", 'handler': ".demo_link_form", 'param': "demo_id"}],
+    )
+
+    return render_template("admin_demo_link.html", demo_links=table)
 
 
 @bp_admin.route("/new")
