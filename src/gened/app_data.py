@@ -88,6 +88,8 @@ class Filters:
 
         if with_display and spec.display_query:
             display_row = get_db().execute(spec.display_query, [value]).fetchone()
+            if not display_row:
+                raise RuntimeError(f"Invalid filter value: {spec_name}={value}")
             display_value = display_row[0]
         else:
             display_value = None
