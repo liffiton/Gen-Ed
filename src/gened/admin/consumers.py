@@ -23,6 +23,7 @@ bp = Blueprint('admin_consumers', __name__, url_prefix='/consumer', template_fol
 register_blueprint(bp)
 
 
+@bp.route("/")
 @bp.route("/<int:consumer_id>")
 def consumer_form(consumer_id: int | None = None) -> str:
     db = get_db()

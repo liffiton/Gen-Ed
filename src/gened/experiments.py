@@ -20,7 +20,7 @@ from werkzeug.wrappers.response import Response
 from . import admin
 from .auth import get_auth
 from .db import get_db
-from .tables import Col, DataTable, NumCol
+from .tables import Action, Col, DataTable, NumCol
 
 
 # Functions for controlling access to experiments based on the current class
@@ -71,8 +71,8 @@ def experiments_view() -> str:
     table = DataTable(
         name='experiments',
         columns=[NumCol('id'), Col('name'), Col('description'), NumCol('#classes')],
+        actions=[Action("Edit experiment", icon='pencil', url=url_for('.experiment_form'), id_col=0)],
         create_endpoint='.experiment_new',
-        extra_links=[{'text': "edit", 'handler': ".experiment_form", 'param': "exp_id"}],
         data=experiments,
     )
 
@@ -82,7 +82,8 @@ def experiments_view() -> str:
 def experiment_new() -> str:
     return render_template("admin_experiment_form.html")
 
-@bp_admin.route("/<int:exp_id>")
+@bp_admin.route("/edit/")
+@bp_admin.route("/edit/<int:exp_id>")
 def experiment_form(exp_id: int) -> str:
     db = get_db()
     experiment = db.execute("SELECT * FROM experiments WHERE id=?", [exp_id]).fetchone()

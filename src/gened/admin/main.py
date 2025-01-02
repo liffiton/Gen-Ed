@@ -21,7 +21,7 @@ from gened.app_data import (
 )
 from gened.csv import csv_response
 from gened.db import get_db
-from gened.tables import Col, DataTable, NumCol, UserCol, table_prep
+from gened.tables import Col, Action, DataTable, NumCol, UserCol, table_prep
 
 from .component_registry import register_blueprint
 
@@ -179,7 +179,7 @@ def main() -> str:
         columns=[NumCol('id'), Col('consumer'), Col('model'), NumCol('#classes'), NumCol('#queries'), NumCol('1wk')],
         link_col=0,
         link_template=filters.template_string('consumer'),
-        extra_links=[{'icon': "pencil", 'text': "Edit consumer", 'handler': "admin.admin_consumers.consumer_form", 'param': "consumer_id"}],
+        actions=[Action("Edit consumer", icon='pencil', url=url_for('admin.admin_consumers.consumer_form'), id_col=0)],
         create_endpoint='admin.admin_consumers.consumer_new',
         ajax_url=url_for('.get_data', table='consumers', offset=init_rows, **request.args),  # type: ignore[arg-type]
         data=get_consumers(None, limit=init_rows).fetchall(),
@@ -190,7 +190,7 @@ def main() -> str:
         columns=[NumCol('id'), Col('name'), Col('owner'), Col('model'), NumCol('#users'), NumCol('#queries'), NumCol('1wk')],
         link_col=0,
         link_template=filters.template_string('class'),
-        extra_links=[{'icon': "admin", 'text': "Administer class", 'handler': "classes.switch_class_handler", 'param': "class_id"}],
+        actions=[Action("Administer class", icon='admin', url=url_for('classes.switch_class_handler'), id_col=0)],
         ajax_url=url_for('.get_data', table='classes', offset=init_rows, **request.args),  # type: ignore[arg-type]
         data=get_classes(filters, limit=init_rows).fetchall(),
     )

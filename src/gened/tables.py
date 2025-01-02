@@ -66,13 +66,22 @@ class DateCol(Col):
     kind: Final = 'date'
 
 
+@dataclass(frozen=True)
+class Action:
+    text: str
+    icon: str
+    url: str
+    id_col: int
+    query_arg: str | None = None
+
+
 @dataclass(kw_only=True)
 class DataTable:
     name: str
     columns: list[Col]
     link_col: int | None = None
     link_template: str | None = None
-    extra_links: list[dict[str, str]] | None = None
+    actions: list[Action] | None = None
     create_endpoint: str | None = None
     csv_link: str | None = None
     ajax_url: str | None = None

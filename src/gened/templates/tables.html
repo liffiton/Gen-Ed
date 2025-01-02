@@ -90,8 +90,28 @@ SPDX-License-Identifier: AGPL-3.0-only
           ;
         }
       }
+      // render function for the actions cell
+      function renderActionsCol(actions, table, rowIndex) {
+        const td = document.createElement('td');
+        td.style.textAlign = 'center';
+        for (const action of actions) {
+          const id = table.data.data[rowIndex].cells[action.id_col].text;
+          const el = document.createElement('a');
+          el.classList.add('has-text-grey', 'icon', 'icon-text');
+          el.title = action.text;
+          el.href = action.url + id;
+          const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          svg.aria_hidden = true;
+          const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+          use.setAttribute('href', `#svg_${action.icon}`);
+          svg.appendChild(use);
+          el.appendChild(svg);
+          td.appendChild(el);
+        }
+        return diffDOM.nodeToObj(td);
+      }
 
-      function initTable(tblname, column_spec, table_data, link_col, link_func, csv_link, ajax_url) {
+      function initTable(tblname, column_spec, table_data, link_col, link_func, actions, csv_link, ajax_url) {
         // inject column headings for the initial load to control the column order
         const initData = {
           headings: column_spec.map(spec => spec.name),
@@ -140,6 +160,16 @@ ${ options.searchable ?
 `,
         });
 
+        // Add actions column
+        if (actions) {
+          table.columns.add({
+            data: [],
+            sortable: false,
+            searchable: false,
+            render: (value, td, rowIndex, cellIndex) => renderActionsCol(actions, table, rowIndex),
+          });
+        }
+
         // We have to set a listener here to have access to the
         // correct table object, and have to do it across the
         // entire table because individual elements may be
@@ -176,6 +206,17 @@ ${ options.searchable ?
             .then(response => response.json())
             .then(data => {
               table.insert(data);
+              // reset the actions column to populate the new rows, too
+              // not sure if there's a better way, but removing and re-adding the column works
+              if (actions) {
+                table.columns.remove(table.data.headings.length - 1);
+                table.columns.add({
+                  data: [],
+                  sortable: false,
+                  searchable: false,
+                  render: (value, td, rowIndex, cellIndex) => renderActionsCol(actions, table, rowIndex),
+                });
+              }
             });
         }
       }
@@ -196,63 +237,9 @@ ${ options.searchable ?
       }
       {% endif %}
     {% endfor %}
-    {% if table.extra_links %}
-      {{css_sel}} td.extra_links {
-        text-align: right;
-      }
-      {{css_sel}} .button {
-        height: 1.5em;
-        vertical-align: text-bottom;
-      }
-    {% endif %}
     </style>
   {% endif %}
   <table id="{{name}}" class="{{ 'row_selectable' if table.link_col is not none else '' }}">
-    {#
-    <thead>
-      <tr>
-      {% for col in table.columns %}
-        <th {{ "data-hidden=true" if col.name in table.hidden_cols else '' }}>{{ col.name }}</th>
-      {% endfor %}
-      {% if table.extra_links %}
-        <th class="extra_links" data-sortable="False" data-searchable="False"></th>
-      {% endif %}
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in table.data %}
-        <tr>
-          {% for col in table.columns %}
-            <td>
-            {%- if col.kind == 'time' -%}
-              {{ row[col.name] | localtime }}
-            {%- elif col.name == 'response' -%}
-              {{ row[col.name] | fmt_response_txt }}
-            {%- elif row[col.name] is string -%}
-              {{ row[col.name][:1000] }}
-            {%- elif row[col.name] is none -%}
-            {%- else -%}
-              {{ row[col.name] }}
-            {%- endif -%}
-            </td>
-          {% endfor %}
-          {% if table.extra_links %}
-            <td>
-            {% for link in table.extra_links %}
-              {% if 'icon' in link %}
-                <a class="has-text-grey icon icon-text" title="{{ link['text'] }}" href="{{ url_for(link['handler'], **{link['param']: row['id']}) }}">
-                  <svg aria-hidden="true"><use href="#svg_{{ link['icon'] }}" /></svg>
-                </a>
-              {% else %}
-                <a class="button is-warning is-small p-1" href="{{ url_for(link['handler'], **{link['param']: row['id']}) }}">{{ link['text'] }}</a>
-              {% endif %}
-            {% endfor %}
-            </td>
-          {% endif %}
-        </tr>
-      {% endfor %}
-    </tbody>
-    #}
   </table>
   <script type="text/javascript">
     initTable(
@@ -261,6 +248,7 @@ ${ options.searchable ?
       {{table.table_data | tojson}},
       {{table.link_col | tojson}},
       value => `{{table.link_template | safe}}`,
+      {{table.actions | tojson}},
       {{table.csv_link | tojson}},
       {{table.ajax_url | tojson}},
     );

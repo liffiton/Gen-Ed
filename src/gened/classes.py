@@ -188,6 +188,7 @@ def switch_class(class_id: int | None) -> bool:
 
 
 @login_required
+@bp.route("/switch/")  # just for url_for feeding js (doesn't know the id yet)
 @bp.route("/switch/<int:class_id>")
 def switch_class_handler(class_id: int) -> Response:
     switch_class(class_id)
