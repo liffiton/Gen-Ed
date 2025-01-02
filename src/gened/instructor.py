@@ -69,7 +69,6 @@ def _get_class_users(*, for_export: bool = False) -> list[Row]:
         SELECT
             {'roles.id AS role_id,' if not for_export else ''}
             users.id AS id,
-            users.display_name AS display_name,
             json_array(users.display_name, auth_providers.name, users.display_extra) AS user,
             COUNT(queries.id) AS "#queries",
             SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS "1wk",
@@ -81,7 +80,7 @@ def _get_class_users(*, for_export: bool = False) -> list[Row]:
         LEFT JOIN queries ON queries.role_id=roles.id
         WHERE roles.class_id=?
         GROUP BY users.id
-        ORDER BY display_name
+        ORDER BY users.display_name
     """, [class_id]).fetchall()
 
     return users
@@ -92,8 +91,7 @@ def main() -> str | Response:
     users = _get_class_users()
     users_table = DataTable(
         name='users',
-        columns=[NumCol('role_id'), NumCol('id'), UserCol('user'), NumCol('#queries'), NumCol('1wk'), BoolCol('active?', url=url_for('.set_role_active')), BoolCol('instructor?', url=url_for('.set_role_instructor'))],
-        hidden_cols=['role_id', 'id'],
+        columns=[NumCol('role_id', hidden=True), NumCol('id', hidden=True), UserCol('user'), NumCol('#queries'), NumCol('1wk'), BoolCol('active?', url=url_for('.set_role_active')), BoolCol('instructor?', url=url_for('.set_role_instructor'))],
         link_col=1,
         link_template='?user=${value}',
         csv_link=url_for('instructor.get_csv', kind='users'),
@@ -103,7 +101,8 @@ def main() -> str | Response:
     sel_user_name = None
     sel_user_id = request.args.get('user', type=int)
     if sel_user_id is not None:
-        sel_user_row = next(filter(lambda row: row['id'] == int(sel_user_id), users), None)
+        db = get_db()
+        sel_user_row = db.execute("SELECT display_name FROM users WHERE users.id=?", [sel_user_id]).fetchone()
         if sel_user_row:
             sel_user_name = sel_user_row['display_name']
 

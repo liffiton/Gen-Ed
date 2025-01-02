@@ -98,7 +98,7 @@ def view_data() -> str:
     table = get_data_source('queries').table
     table.data = get_user_data(kind='queries', limit=-1)  # -1 = no limit
     table.csv_link = url_for(".get_csv", kind="queries")
-    table.hidden_cols.append('user')  # it's just the current user's data; no need to list them in every row
+    table.hide('user')  # it's just the current user's data; no need to list them in every row
 
     return render_template("profile_view_data.html", queries=table)
 

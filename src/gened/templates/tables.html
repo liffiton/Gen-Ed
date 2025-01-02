@@ -52,6 +52,15 @@ SPDX-License-Identifier: AGPL-3.0-only
                 `<input type="checkbox" ${data == '1' && 'checked'} style='pointer-events: none;' tabindex='-1'>`
             }
           }
+          case 'date':
+          case 'time': {
+            const options = {
+              dateStyle: colspec.kind === 'time' ? 'short' : 'medium',
+              timeStyle: colspec.kind === 'time' ? 'short' : undefined,
+            };
+            const fmt = Intl.DateTimeFormat(undefined /* browser's locale */, options);
+            return (data, td, rowIndex, cellIndex) => fmt.format(new Date(data));
+          }
           default:
             return (data, td, rowIndex, cellIndex) => renderCell(data)
         }
@@ -82,11 +91,24 @@ SPDX-License-Identifier: AGPL-3.0-only
         }
       }
 
-      function initTable(tblname, columns, rows, link_col, link_func, csv_link, ajax_url) {
+      function initTable(tblname, column_spec, table_data, link_col, link_func, csv_link, ajax_url) {
+        // inject column headings for the initial load to control the column order
+        const initData = {
+          headings: column_spec.map(spec => spec.name),
+          data: table_data,
+        };
+        const columns = column_spec.map((spec, index) => ({
+          select: index,
+          hidden: spec.hidden,
+          type: ['time', 'date'].includes(spec.kind) ? 'date' : 'string',
+          format: 'UNIX',  // hack to force dayjs date parsing to skip any formats (none of which match Python's RFX 2822) and use browser's built-in parsing, which might just work, thus allowing sorting the date column
+          render: makeRender(spec),
+        }));
         const table = new simpleDatatables.DataTable(`table#${tblname}`, {
           type: 'string',  // important to prevent SimpleDataTables from trying to parse all sorts of junk in the cells
           columns: columns,
-          paging: rows > 15,
+          data: initData,
+          paging: initData.data.length > 15,
           perPage: 10,
           perPageSelect: [[10, 10], [20, 20], [50, 50], ["All", 0]],
           labels: {
@@ -166,7 +188,7 @@ ${ options.searchable ?
     <style type="text/css">
     {% set css_sel = 'table#' + name %}
     {% for col in table.columns %}
-      {% set n = loop.index - (hidden_cols | length) %}
+      {% set n = loop.index - table.num_hidden %}
       {% if col.align %}
       {{css_sel}} tr td:nth-child({{n}}), 
       {{css_sel}} thead th:nth-child({{n}}) {
@@ -186,6 +208,7 @@ ${ options.searchable ?
     </style>
   {% endif %}
   <table id="{{name}}" class="{{ 'row_selectable' if table.link_col is not none else '' }}">
+    {#
     <thead>
       <tr>
       {% for col in table.columns %}
@@ -199,7 +222,6 @@ ${ options.searchable ?
     <tbody>
       {% for row in table.data %}
         <tr>
-          {# TODO: Move all rendering to client-side?  Or else homogenize rendering between HTML and JSON routes... #}
           {% for col in table.columns %}
             <td>
             {%- if col.kind == 'time' -%}
@@ -230,15 +252,17 @@ ${ options.searchable ?
         </tr>
       {% endfor %}
     </tbody>
+    #}
   </table>
   <script type="text/javascript">
-    { // limit scope to re-use varnames if this block is repeated
-      let column_spec = {{ table.columns | tojson }};
-      const columns = column_spec.map((spec, index) => ({
-        select: index,
-        render: makeRender(spec)
-      }));
-      initTable({{name | tojson}}, columns, {{table.data | length}}, {{table.link_col | tojson}}, value => `{{table.link_template | safe}}`, {{table.csv_link | tojson}}, {{table.ajax_url | tojson}});
-    }
+    initTable(
+      {{name | tojson}},
+      {{table.columns | tojson}},
+      {{table.table_data | tojson}},
+      {{table.link_col | tojson}},
+      value => `{{table.link_template | safe}}`,
+      {{table.csv_link | tojson}},
+      {{table.ajax_url | tojson}},
+    );
   </script>
 {%- endmacro %}

@@ -21,7 +21,7 @@ from gened.app_data import (
 )
 from gened.csv import csv_response
 from gened.db import get_db
-from gened.tables import Col, DataTable, NumCol, UserCol
+from gened.tables import Col, DataTable, NumCol, UserCol, table_prep
 
 from .component_registry import register_blueprint
 
@@ -38,7 +38,7 @@ def get_consumers(_: Filters | None, limit: int=-1, offset: int=0) -> Cursor:
             consumers.lti_consumer AS consumer,
             models.shortname AS model,
             COUNT(DISTINCT classes.id) AS "#classes",
-            COUNT(DISTINCT roles.id) AS "#users",
+            --COUNT(DISTINCT roles.id) AS "#users",
             COUNT(queries.id) AS "#queries",
             SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS "1wk"
         FROM consumers
@@ -158,7 +158,7 @@ def get_data(table: str, kind: str='json') -> str | Response:
     data = data_func(filters, limit=limit, offset=offset).fetchall()
 
     if kind == 'json':
-        return jsonify([dict(row) for row in data])
+        return jsonify(table_prep(data))
     if kind == 'csv':
         return csv_response('admin_export', table, data)
     return ''
@@ -172,7 +172,7 @@ def main() -> str:
     for generate_chart in get_admin_charts():
         charts.extend(generate_chart(filters))
 
-    init_rows = 20  # number of rows to send in the page for each table
+    init_rows = 20  # number of rows to send in the page for each table (remainder will load asynchronously)
 
     consumers = DataTable(
         name='consumers',
