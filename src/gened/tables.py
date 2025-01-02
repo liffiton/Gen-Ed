@@ -4,7 +4,7 @@
 
 from dataclasses import dataclass, replace
 from sqlite3 import Row
-from typing import Any, Final, Literal, Never
+from typing import Any, Final, Literal
 
 
 def table_prep(data: list[Row], max_len: int=1000) -> list[dict[str, Any]]:
@@ -13,9 +13,6 @@ def table_prep(data: list[Row], max_len: int=1000) -> list[dict[str, Any]]:
     in the table and that will just waste bandwidth) and converts into a
     format that simple-datatables accepts.
     """
-    if not data:
-        return []
-
     def truncate(val: Any) -> Any:
         if isinstance(val, str) and len(val) > max_len:
             return f"{val[:max_len]} ..."
@@ -23,10 +20,6 @@ def table_prep(data: list[Row], max_len: int=1000) -> list[dict[str, Any]]:
             return val
     headings = data[0].keys()
     return [{key: truncate(row[key]) for key in headings} for row in data]
-    #return SimpleDatatablesObject(
-        #headings=headings,
-        #data=[[truncate(row[key]) for key in headings] for row in data]
-    #)
 
 
 @dataclass(frozen=True)

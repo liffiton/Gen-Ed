@@ -21,7 +21,7 @@ from gened.app_data import (
 )
 from gened.csv import csv_response
 from gened.db import get_db
-from gened.tables import Col, Action, DataTable, NumCol, UserCol, table_prep
+from gened.tables import Action, Col, DataTable, NumCol, UserCol, table_prep
 
 from .component_registry import register_blueprint
 
