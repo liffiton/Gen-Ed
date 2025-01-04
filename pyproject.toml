@@ -61,6 +61,7 @@ markers = [
 
 
 [tool.ruff]
+include = ["pyproject.toml", "src/**/*.py"]
 output-format = "concise"
 
 [tool.ruff.lint]
@@ -85,7 +86,12 @@ ignore = [
     "C408",   # dict() vs dict literal
 ]
 
+[tool.djlint]
+profile = "jinja"
+files = ["src/"]
+ignore = "T001,H021,H023,H029"
+
 [tool.mypy]
-files = [ "src/**/*.py" ]
+files = [ "src/" ]
 strict = "True"
 pretty = "True"

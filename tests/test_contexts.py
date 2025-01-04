@@ -1,4 +1,5 @@
 import pytest
+
 from gened.db import get_db
 
 
@@ -29,7 +30,7 @@ def test_update_context(app, client, auth):
     client.post('/instructor/context/create', data={
         'name': 'Update Test Context',
     })
-    
+
     with app.app_context():
         # Get the id of the created context
         db = get_db()
@@ -61,7 +62,7 @@ def test_delete_context(app, client, auth):
     client.post('/instructor/context/create', data={
         'name': 'Delete Test Context',
     })
-    
+
     with app.app_context():
         # Get the id of the created context
         db = get_db()

@@ -119,12 +119,16 @@ working order.
 
 ### Code Style and Standards
 
-The project is configured to use Ruff for linting and style checks (with
-exceptions defined in `pyproject.toml`) and mypy for type checking (in strict
-mode).  Run `ruff check` in any folder to check for issues, and run `mypy` in
-the project root to check types.  All code should be correctly typed with no
-type errors outside of issues caused by 3rd-party libraries without typing
-information.
+The project is configured to use Ruff and djLint for linting and style checks
+(with exceptions defined in `pyproject.toml`) and mypy for type checking (in
+strict mode).  We recommend installing and managing them using
+[pipx](https://pipx.pypa.io/).
+
+Run `ruff check` in the project root or in any subfolder to check for issues in
+Python code.  Run `djlint -` in the project root to look for issues in the
+templates.  And run `mypy` in the project root to perform static type checking.
+All code should be correctly typed with no type errors outside of issues caused
+by 3rd-party libraries without typing information.
 
 ### Contributing
 
@@ -134,10 +138,11 @@ Contributions to the project are welcome!  Please follow these steps:
 2. Create a new branch for your feature or bug fix.
 3. Make your changes and commit them to the branch with descriptive messages.
 4. Run `mypy` to check for type errors in the new code.  Correct any you find.
-5. Push your changes to your fork.
-6. If the main repository has changed since you made your branch, please
+5. Run `pytest` to run tests.  Ensure they all pass.
+6. Push your changes to your fork.
+7. If the main repository has changed since you made your branch, please
    merge the new main into your branch *or* rebase onto the latest commit.
-7. Submit a pull request to the main repository.
-8. In the pull request, you will be asked to sign the CLA found in
+8. Submit a pull request to the main repository.
+9. In the pull request, you will be asked to sign the CLA found in
    `contributors/contributor_license_agreement.md`.
 

@@ -5,7 +5,7 @@
 import pytest
 
 
-@pytest.mark.use_real_openai()
+@pytest.mark.use_real_openai
 def test_openai_exception(client, auth):
     """ Check that we raise the correct OpenAI exception if we have an invalid API key.
     NOTE that this is using base_app, and so openai is *not* monkey-patched.

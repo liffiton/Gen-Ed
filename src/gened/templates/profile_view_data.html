@@ -9,11 +9,11 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 {% block extrahead %}
 {{ datatable_extrahead }}
-{% endblock %}
+{% endblock extrahead %}
 
 {% block body %}
 <section class="section p-5">
   <h1 class="title">Your Queries</h1>
   {{ datatable(queries) }}
 </section>
-{% endblock %}
+{% endblock body %}

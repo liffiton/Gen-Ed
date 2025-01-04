@@ -5,6 +5,7 @@
 import sqlite3
 
 import pytest
+
 from gened.db import get_db
 
 

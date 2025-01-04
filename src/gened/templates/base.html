@@ -9,7 +9,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {% block head %}{% endblock %}
+    {% block head %}{% endblock head %}
     {% if 'FAVICON' in config %}
       <link rel="icon" type="image/png" href="{{url_for('static', filename=config['FAVICON'])}}">
     {% endif %}
@@ -42,14 +42,14 @@ SPDX-License-Identifier: AGPL-3.0-only
       .content ul ol, .content ol ul, .content ul ul, .content ol ol { margin-top: 0.25em; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer type="text/javascript"></script>
-    {% block extrahead %}{% endblock %}
+    {% block extrahead %}{% endblock extrahead %}
     <title>{{ config['APPLICATION_TITLE'] }}</title>
   </head>
   <body>
     {% include "icons.html" %}
     <nav class="navbar is-dark is-size-5" style="z-index: auto;" role="navigation" aria-label="main navigation" x-data="{menu_open: false}">
       <div class="navbar-brand">
-        <a class="navbar-item is-size-3" href="/">
+        <a class="navbar-item is-size-3" href="{{ url_for('landing') }}">
           {% include "logo.html" %}
           <svg aria-hidden="true" style="height: 1.5em; margin-right: 0.2em;" viewBox="0 0 14 10"><use href="#svg_app_logo" /></svg>
           {{ config['APPLICATION_TITLE'] }}
@@ -116,7 +116,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             </a>
 
             {% if auth.cur_class.role == 'instructor' %}
-              <a class="navbar-item is-size-6 has-text-success" href="/instructor/config">
+              <a class="navbar-item is-size-6 has-text-success" href="{{ url_for('class_config.config_form') }}">
                 <div class="icon-text">
                   <span class="icon" title="Configure Class">
                     <svg aria-hidden="true"><use href="#svg_config" /></svg>
@@ -124,7 +124,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                   <span class="is-hidden-desktop-only">Configure Class</span>
                 </div>
               </a>
-              <a class="navbar-item is-size-6 has-text-warning" href="/instructor/">
+              <a class="navbar-item is-size-6 has-text-warning" href="{{ url_for('instructor.main') }}">
                 <div class="icon-text">
                   <span class="icon" title="Instructor View">
                     <svg aria-hidden="true"><use href="#svg_table_grid" /></svg>
@@ -134,7 +134,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               </a>
             {% endif %}
             {% if auth.is_admin %}
-              <a class="navbar-item is-size-6 has-text-danger" href="/admin/">
+              <a class="navbar-item is-size-6 has-text-danger" href="{{ url_for('admin.admin_main.main') }}">
                 <div class="icon-text">
                   <span class="icon">
                     <svg aria-hidden="true"><use href="#svg_admin" /></svg>
@@ -179,7 +179,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     </div>
     {% endif %}
 
-    {% block second_nav %}{% endblock %}
+    {% block second_nav %}{% endblock second_nav %}
 
     <main class="site-content">
       {% with messages = get_flashed_messages(with_categories=true) %}
@@ -194,7 +194,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       {% endif %}
       {% endwith %}
 
-      {% block body %}{% endblock %}
+      {% block body %}{% endblock body %}
     </main>
 
     <footer class="footer has-background-dark has-text-light">

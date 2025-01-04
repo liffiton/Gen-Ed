@@ -9,7 +9,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 {% block extrahead %}
 {{ datatable_extrahead }}
-{% endblock %}
+{% endblock extrahead %}
 
 {% block second_nav %}
 <nav class="navbar is-light is-size-5" role="navigation" aria-label="admin navigation" x-data="{admin_menu_open: false}">
@@ -41,11 +41,11 @@ SPDX-License-Identifier: AGPL-3.0-only
     </div>
   </div>
 </nav>
-{% endblock %}
+{% endblock second_nav %}
 
 {% block body %}
 <section class="section pt-3 pb-4 pl-5 pr-5">
   {% block admin_body %}
-  {% endblock %}
+  {% endblock admin_body %}
 </section>
-{% endblock %}
+{% endblock body %}
