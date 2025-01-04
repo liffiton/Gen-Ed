@@ -7,10 +7,11 @@ from collections.abc import Iterator
 from copy import deepcopy
 from dataclasses import dataclass, field
 from sqlite3 import Cursor, Row
-from typing import Final, Protocol, Self
+from typing import Final, Protocol
 from urllib.parse import urlencode
 
 from flask import flash, request
+from typing_extensions import Self  # for 3.10
 
 from gened.tables import DataTable
 

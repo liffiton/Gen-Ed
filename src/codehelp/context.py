@@ -8,7 +8,7 @@ from sqlite3 import Row
 
 from flask import current_app
 from jinja2 import Environment
-from typing_extensions import Self
+from typing_extensions import Self  # for 3.10
 from werkzeug.datastructures import ImmutableMultiDict
 
 from gened.auth import get_auth
