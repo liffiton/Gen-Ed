@@ -86,7 +86,7 @@ admin.register_navbar_item("admin_demo.demo_link_view", "Demo Links")
 @bp_admin.route("/")
 def demo_link_view() -> str:
     db = get_db()
-    demo_links = db.execute("SELECT * FROM demo_links").fetchall()
+    demo_links = db.execute("SELECT id, name, expiration, tokens, enabled, uses FROM demo_links").fetchall()
 
     table = DataTable(
         name='demo_links',

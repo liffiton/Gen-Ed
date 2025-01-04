@@ -15,13 +15,14 @@ from flask import (
 from werkzeug.wrappers.response import Response
 
 from gened.app_data import (
+    DataSource,
     Filters,
     get_admin_charts,
-    get_data_sources,
+    get_registered_data_sources,
 )
 from gened.csv import csv_response
 from gened.db import get_db
-from gened.tables import Action, Col, DataTable, NumCol, UserCol, table_prep
+from gened.tables import Action, Col, DataTable, NumCol, UserCol
 
 from .component_registry import register_blueprint
 
@@ -106,7 +107,6 @@ def get_users(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
         OFFSET ?
     """, [*where_params, limit, offset])
 
-
 def get_roles(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
     db = get_db()
     where_clause, where_params = filters.make_where(['consumer', 'class', 'user'])
@@ -132,35 +132,73 @@ def get_roles(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
     """, [*where_params, limit, offset])
 
 
-@bp.route("/api/<string:table>/")
-@bp.route("/api/<string:table>/<string:kind>")
-def get_data(table: str, kind: str='json') -> str | Response:
-    if kind not in ['json', 'csv']:
-        return abort(404)
+def get_data_sources(filters: Filters) -> dict[str, DataSource]:
+    consumers_table = DataTable(
+        name='consumers',
+        columns=[NumCol('id'), Col('consumer'), Col('model'), NumCol('#classes'), NumCol('#queries'), NumCol('1wk')],
+        link_col=0,
+        link_template=filters.template_string('consumer'),
+        actions=[Action("Edit consumer", icon='pencil', url=url_for('admin.admin_consumers.consumer_form'), id_col=0)],
+        create_endpoint='admin.admin_consumers.consumer_new',
+    )
 
-    data_source_map = {
-        'consumers': get_consumers,
-        'classes': get_classes,
-        'users': get_users,
-        'roles': get_roles,
+    classes_table = DataTable(
+        name='classes',
+        columns=[NumCol('id'), Col('name'), Col('owner'), Col('model'), NumCol('#users'), NumCol('#queries'), NumCol('1wk')],
+        link_col=0,
+        link_template=filters.template_string('class'),
+        actions=[Action("Administer class", icon='admin', url=url_for('classes.switch_class_handler'), id_col=0)],
+    )
+
+    users_table = DataTable(
+        name='users',
+        columns=[NumCol('id'), UserCol('user'), NumCol('#queries'), NumCol('1wk'), NumCol('tokens')],
+        link_col=0,
+        link_template=filters.template_string('user'),
+    )
+
+    roles_table = DataTable(
+        name='roles',
+        columns=[NumCol('id'), UserCol('user'), Col('role'), Col('class'), Col('class owner')],
+        link_col=0,
+        link_template=filters.template_string('role'),
+    )
+
+    built_ins = {
+        'consumers': DataSource('consumers', get_consumers, consumers_table),
+        'classes': DataSource('classes', get_classes, classes_table),
+        'users': DataSource('users', get_users, users_table),
+        'roles': DataSource('roles', get_roles, roles_table),
     }
 
-    data_source_map |= {name: source.function for name, source in get_data_sources().items()}
+    registered = get_registered_data_sources()
 
-    if table not in data_source_map:
+    return built_ins | registered
+
+
+@bp.route("/api/<string:name>/")
+@bp.route("/api/<string:name>/<string:kind>")
+def get_data(name: str, kind: str='json') -> str | Response:
+    if kind not in ['json', 'csv']:
         return abort(404)
 
     filters = Filters.from_args()
     limit = int(request.args.get('limit', -1))
     offset = int(request.args.get('offset', 0))
 
-    data_func = data_source_map[table]
-    data = data_func(filters, limit=limit, offset=offset).fetchall()
+    all_data_sources = get_data_sources(filters)
+
+    if name not in all_data_sources:
+        return abort(404)
+
+    source = all_data_sources[name]
+    table = source.table
+    table.data = source.function(filters, limit=limit, offset=offset).fetchall()
 
     if kind == 'json':
-        return jsonify(table_prep(data))
+        return jsonify(table.table_data)
     if kind == 'csv':
-        return csv_response('admin_export', table, data)
+        return csv_response('admin_export', name, table.data)
     return ''
 
 
@@ -174,57 +212,15 @@ def main() -> str:
 
     init_rows = 20  # number of rows to send in the page for each table (remainder will load asynchronously)
 
-    consumers = DataTable(
-        name='consumers',
-        columns=[NumCol('id'), Col('consumer'), Col('model'), NumCol('#classes'), NumCol('#queries'), NumCol('1wk')],
-        link_col=0,
-        link_template=filters.template_string('consumer'),
-        actions=[Action("Edit consumer", icon='pencil', url=url_for('admin.admin_consumers.consumer_form'), id_col=0)],
-        create_endpoint='admin.admin_consumers.consumer_new',
-        ajax_url=url_for('.get_data', table='consumers', offset=init_rows, **request.args),  # type: ignore[arg-type]
-        data=get_consumers(None, limit=init_rows).fetchall(),
-    )
+    all_data_sources = get_data_sources(filters)
+    tables = []
 
-    classes = DataTable(
-        name='classes',
-        columns=[NumCol('id'), Col('name'), Col('owner'), Col('model'), NumCol('#users'), NumCol('#queries'), NumCol('1wk')],
-        link_col=0,
-        link_template=filters.template_string('class'),
-        actions=[Action("Administer class", icon='admin', url=url_for('classes.switch_class_handler'), id_col=0)],
-        ajax_url=url_for('.get_data', table='classes', offset=init_rows, **request.args),  # type: ignore[arg-type]
-        data=get_classes(filters, limit=init_rows).fetchall(),
-    )
-
-    users = DataTable(
-        name='users',
-        columns=[NumCol('id'), UserCol('user'), NumCol('#queries'), NumCol('1wk'), NumCol('tokens')],
-        link_col=0,
-        link_template=filters.template_string('user'),
-        ajax_url=url_for('.get_data', table='users', offset=init_rows, **request.args),  # type: ignore[arg-type]
-        data=get_users(filters, limit=init_rows).fetchall(),
-    )
-
-    roles = DataTable(
-        name='roles',
-        columns=[NumCol('id'), UserCol('user'), Col('role'), Col('class'), Col('class owner')],
-        link_col=0,
-        link_template=filters.template_string('role'),
-        ajax_url=url_for('.get_data', table='roles', offset=init_rows, **request.args),  # type: ignore[arg-type]
-        data=get_roles(filters, limit=init_rows).fetchall(),
-    )
-
-    tables = [
-        consumers,
-        classes,
-        users,
-        roles,
-    ]
-
-    for name, source in get_data_sources().items():
+    for name, source in all_data_sources.items():
         table = source.table
         table.data = source.function(filters, limit=init_rows).fetchall()
-        table.csv_link = url_for('.get_data', table=name, kind='csv', **request.args)  # type: ignore[arg-type]
-        table.ajax_url = url_for('.get_data', table=name, kind='json', offset=init_rows, limit=1000-init_rows, **request.args)  # type: ignore[arg-type]
+        table.csv_link = url_for('.get_data', name=name, kind='csv', **request.args)  # type: ignore[arg-type]
+        limit = 1000 if name == 'queries' else 50000
+        table.ajax_url = url_for('.get_data', name=name, kind='json', offset=init_rows, limit=limit-init_rows, **request.args)  # type: ignore[arg-type]
 
         tables.append(table)
 

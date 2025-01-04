@@ -6,14 +6,16 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 {% set datatable_extrahead %}
     <link href="{{ url_for('static', filename='datatables.css') }}" rel="stylesheet" type="text/css">
-    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@9" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@9/dist/umd/simple-datatables.js" type="text/javascript"></script>
     <script src="https://cdn.jsdelivr.net/npm/diff-dom@5/browser/diffDOM.min.js" type="text/javascript"></script>
     <script type="text/javascript">
       // Basic render function for normal cells
       // Use textnodes to ensure that cell contents are text,
       // not treated as tags, etc. (XSS protection)
       function renderCell(data) {
-        if (!data) { return ""; }
+        if (data === null) {
+          data = "";
+        }
         let contents;
         if (data.length > 30) {
           // truncate and put full contents in title attr of a span
@@ -32,15 +34,6 @@ SPDX-License-Identifier: AGPL-3.0-only
       // build render functions for various column types
       function makeRender(colspec) {
         switch (colspec.kind) {
-          case 'user':
-            return (data, td, rowIndex, cellIndex) => {
-              try {
-                data = JSON.parse(data);
-                return `${data[0]} <span class='is-size-7 has-text-grey' ${data[2] && `title='${data[2]}'`}>(${data[1]})</span>`
-              } catch (e) {
-                renderCell(data);
-              }
-            }
           case 'bool': {
             let url = colspec.url;
             let reload = colspec.reload;
@@ -61,6 +54,20 @@ SPDX-License-Identifier: AGPL-3.0-only
             const fmt = Intl.DateTimeFormat(undefined /* browser's locale */, options);
             return (data, td, rowIndex, cellIndex) => fmt.format(new Date(data));
           }
+          case 'html':
+            return (data, td, rowIndex, cellIndex) => {
+              // simple-datatables fails to parse these HTML entities,
+              // so we'll do it manually here.
+              data.forEach(obj => {
+                if (obj.attributes && obj.attributes.title) {
+                  obj.attributes.title = obj.attributes.title.replaceAll('&#39;', '\'').replaceAll('&#13;', '\n');
+                }
+              });
+              // ... and we have to wrap it in a TD to make simple-datatables happy, too.
+              el = diffDOM.nodeToObj(document.createElement('td'))
+              el.childNodes = data;
+              return el;
+            }
           default:
             return (data, td, rowIndex, cellIndex) => renderCell(data)
         }
@@ -117,15 +124,25 @@ SPDX-License-Identifier: AGPL-3.0-only
           headings: column_spec.map(spec => spec.name),
           data: table_data,
         };
+        function mapColType(kind) {
+          switch(kind) {
+            case 'time':
+            case 'date':
+              return 'date';
+            case 'html':
+              return 'html';
+            default:
+              return 'string';  // important to prevent SimpleDataTables from trying to parse all sorts of junk in the cells
+          }
+        }
         const columns = column_spec.map((spec, index) => ({
           select: index,
           hidden: spec.hidden,
-          type: ['time', 'date'].includes(spec.kind) ? 'date' : 'string',
-          format: 'UNIX',  // hack to force dayjs date parsing to skip any formats (none of which match Python's RFX 2822) and use browser's built-in parsing, which might just work, thus allowing sorting the date column
+          type: mapColType(spec.kind),
+          format: 'UNIX',  // hack to force dayjs date parsing to skip any formats (none of which match Python's RFC 2822) and use browser's built-in parsing, which might just work, thus allowing sorting the date column
           render: makeRender(spec),
         }));
         const table = new simpleDatatables.DataTable(`table#${tblname}`, {
-          type: 'string',  // important to prevent SimpleDataTables from trying to parse all sorts of junk in the cells
           columns: columns,
           data: initData,
           paging: initData.data.length > 15,

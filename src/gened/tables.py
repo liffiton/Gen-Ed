@@ -2,24 +2,12 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from sqlite3 import Row
 from typing import Any, Final, Literal
 
-
-def table_prep(data: list[Row], max_len: int=1000) -> list[dict[str, Any]]:
-    """ Prepare tabular data to be sent to the simple-datatables as JSON.
-    This both shortens overly-long strings (that the user doesn't care to see
-    in the table and that will just waste bandwidth) and converts into a
-    format that simple-datatables accepts.
-    """
-    def truncate(val: Any) -> Any:
-        if isinstance(val, str) and len(val) > max_len:
-            return f"{val[:max_len]} ..."
-        else:
-            return val
-    headings = data[0].keys()
-    return [{key: truncate(row[key]) for key in headings} for row in data]
+from .filters import fmt_user
 
 
 @dataclass(frozen=True)
@@ -46,7 +34,8 @@ class BoolCol(Col):
 
 @dataclass(frozen=True)
 class UserCol(Col):
-    kind: Final = 'user'
+    kind: Final = 'html'
+    prerender: Final[Callable[[str], str]] = fmt_user
 
 
 @dataclass(frozen=True)
@@ -66,6 +55,27 @@ class Action:
     url: str
     id_col: int
     query_arg: str | None = None
+
+
+def table_prep(cols: list[Col], data: list[Row], max_len: int=1000) -> list[dict[str, Any]]:
+    """ Prepare tabular data to be sent to the simple-datatables as JSON.
+    This pre-renders columns that have hooks for that, shortens overly-long
+    strings (that the user doesn't care to see in the table and that will just
+    waste bandwidth) and converts into a format that simple-datatables accepts.
+    """
+    def process(col: Col, val: Any) -> Any:
+        if hasattr(col, 'prerender'):
+            return col.prerender(val)
+        elif isinstance(val, str) and len(val) > max_len:
+            return f"{val[:max_len]} ..."
+        else:
+            return val
+
+    assert not data or data[0].keys() == [col.name for col in cols], "Data column headings must match column spec names."
+    return [
+        {col.name: process(col, row[col.name]) for col in cols}
+        for row in data
+    ]
 
 
 @dataclass(kw_only=True)
@@ -92,4 +102,4 @@ class DataTable:
 
     @property
     def table_data(self) -> list[dict[str, Any]]:
-        return table_prep(self.data or [])
+        return table_prep(self.columns, self.data or [])

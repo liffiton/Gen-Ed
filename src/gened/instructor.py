@@ -26,7 +26,7 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from .app_data import Filters, get_data_source
+from .app_data import Filters, get_registered_data_source
 from .auth import get_auth_class, instructor_required
 from .classes import switch_class
 from .csv import csv_response
@@ -53,7 +53,7 @@ def _get_class_queries(user_id: int | None = None) -> list[Row]:
     if user_id is not None:
         filters.add('user', user_id)
 
-    get_queries = get_data_source('queries').function
+    get_queries = get_registered_data_source('queries').function
     queries = get_queries(filters).fetchall()
 
     return queries
@@ -106,7 +106,7 @@ def main() -> str | Response:
         if sel_user_row:
             sel_user_name = sel_user_row['display_name']
 
-    queries_table = get_data_source('queries').table
+    queries_table = get_registered_data_source('queries').table
     queries_table.data = _get_class_queries(sel_user_id)
     queries_table.csv_link = url_for('instructor.get_csv', kind='queries')
 

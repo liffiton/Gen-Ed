@@ -2,7 +2,10 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+from collections.abc import Callable
+from dataclasses import dataclass
 from sqlite3 import Cursor
+from typing import Final
 
 from gened.app_data import (
     ChartData,
@@ -11,6 +14,7 @@ from gened.app_data import (
     register_data,
 )
 from gened.db import get_db
+from gened.filters import fmt_response_txt
 from gened.tables import Col, DataTable, NumCol, TimeCol, UserCol
 
 
@@ -104,9 +108,15 @@ def get_queries(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
     return cur
 
 
+@dataclass(frozen=True)
+class ResponseCol(Col):
+    kind: Final = 'html'
+    prerender: Final[Callable[[str], str]] = fmt_response_txt
+
+
 queries_table = DataTable(
     name='queries',
-    columns=[NumCol('id'), UserCol('user'), TimeCol('time'), Col('context'), Col('code'), Col('error'), Col('issue'), Col('response'), Col('helpful', align='center')],
+    columns=[NumCol('id'), UserCol('user'), TimeCol('time'), Col('context'), Col('code'), Col('error'), Col('issue'), ResponseCol('response'), Col('helpful', align='center')],
     link_col=0,
     link_template="/help/view/${value}",
 )

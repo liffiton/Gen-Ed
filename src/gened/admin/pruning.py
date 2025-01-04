@@ -33,13 +33,12 @@ def get_candidates() -> tuple[list[Row], int]:
             SELECT
                 id,
                 json_array(display_name, auth_provider, display_extra) AS user,
-                display_name,
-                delete_status = 'whitelisted' AS "whitelist?",
                 created,
                 last_query_time AS "last query",
                 last_instructor_query_time AS "last class query",
                 MAX(IFNULL(created, ""), IFNULL(last_query_time, ""), IFNULL(last_instructor_query_time, "")) AS "last activity",
-                CAST(JULIANDAY(DATE('now')) - JULIANDAY(MAX(IFNULL(created, ""), IFNULL(last_query_time, ""), IFNULL(last_instructor_query_time, ""))) AS INTEGER) AS "days since"
+                CAST(JULIANDAY(DATE('now')) - JULIANDAY(MAX(IFNULL(created, ""), IFNULL(last_query_time, ""), IFNULL(last_instructor_query_time, ""))) AS INTEGER) AS "days since",
+                delete_status = 'whitelisted' AS "whitelist?"
             FROM user_activity
             WHERE "last activity" < DATE('now', ?)
         """, [f"-{retention_time_days} days"]).fetchall()
@@ -51,7 +50,8 @@ def get_candidates() -> tuple[list[Row], int]:
 def render_link() -> Markup:
     _, num_candidates = get_candidates()
     if num_candidates:
-        return Markup("Pruning<span style='font-size: 50%'>🔴</span>")
+        #return Markup("Pruning<span style='font-size: 50%'>🔴</span>")
+        return Markup(f"Pruning <span style='font-size: 50%;' class='tag is-rounded is-danger px-1 py-0 ml-1'>{num_candidates}</span>")
     else:
         return Markup("Pruning")
 

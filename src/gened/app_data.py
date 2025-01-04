@@ -137,6 +137,7 @@ class DataFunction(Protocol):
 
 @dataclass(frozen=True)
 class DataSource:
+    name: str
     function: DataFunction
     table: DataTable
 
@@ -158,7 +159,7 @@ def get_admin_charts() -> list[ChartGenerator]:
     return _appdata.admin_chart_generators
 
 def register_data(name: str, data_func: DataFunction, data_table: DataTable) -> None:
-    data_source = DataSource(data_func, data_table)
+    data_source = DataSource(name, data_func, data_table)
     if name in _appdata.data_source_map:
         # don't allow overwriting the same name
         # but this may occur in tests or other situations that re-use the module across applications...
@@ -166,10 +167,10 @@ def register_data(name: str, data_func: DataFunction, data_table: DataTable) -> 
 
     _appdata.data_source_map[name] = data_source
 
-def get_data_sources() -> dict[str, DataSource]:
+def get_registered_data_sources() -> dict[str, DataSource]:
     return deepcopy(_appdata.data_source_map)
 
-def get_data_source(name: str) -> DataSource:
+def get_registered_data_source(name: str) -> DataSource:
     source = _appdata.data_source_map.get(name)
     if not source:
         raise RuntimeError(f"Invalid data source name: {name}")
@@ -208,7 +209,7 @@ def get_user_data(kind: str, limit: int) -> list[Row]:
     filters = Filters()
     filters.add('user', auth.user_id)
 
-    get_data = get_data_source(kind).function
+    get_data = get_registered_data_source(kind).function
     data = get_data(filters, limit=limit).fetchall()
 
     return data
