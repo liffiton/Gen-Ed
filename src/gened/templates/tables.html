@@ -60,7 +60,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               // so we'll do it manually here.
               data.forEach(obj => {
                 if (obj.attributes && obj.attributes.title) {
-                  obj.attributes.title = obj.attributes.title.replaceAll('&#39;', '\'').replaceAll('&#13;', '\n');
+                  obj.attributes.title = obj.attributes.title.replaceAll('&#34;', '"').replaceAll('&#39;', '\'').replaceAll('&#13;', '\n');
                 }
               });
               // ... and we have to wrap it in a TD to make simple-datatables happy, too.

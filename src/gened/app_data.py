@@ -2,7 +2,6 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import json
 from collections.abc import Iterator
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -10,7 +9,7 @@ from sqlite3 import Cursor, Row
 from typing import Final, Protocol
 from urllib.parse import urlencode
 
-from flask import flash, request
+from flask import request
 from typing_extensions import Self  # for 3.10
 
 from gened.tables import DataTable
@@ -178,28 +177,40 @@ def get_registered_data_source(name: str) -> DataSource:
     return deepcopy(source)
 
 
-# TODO: Update old function here to use registered data sources
-def get_query(query_id: int) -> tuple[Row, dict[str, str]] | tuple[None, None]:
-    db = get_db()
+class DataAccessError(Exception):
+    pass
+
+class RowNotFoundError(DataAccessError):
+    pass
+
+class AccessDeniedError(DataAccessError):
+    pass
+
+def get_query(query_id: int) -> Row:
+    '''Fetch a single query with an access permission check.'''
     auth = get_auth()
+    assert auth.user_id is not None
 
-    if auth.is_admin:
-        cur = db.execute("SELECT queries.*, users.display_name FROM queries JOIN users ON queries.user_id=users.id WHERE queries.id=?", [query_id])
-    elif auth.cur_class and auth.cur_class.role == 'instructor':
-        cur = db.execute("SELECT queries.*, users.display_name FROM queries JOIN users ON queries.user_id=users.id JOIN roles ON queries.role_id=roles.id WHERE (roles.class_id=? OR queries.user_id=?) AND queries.id=?", [auth.cur_class.class_id, auth.user_id, query_id])
-    else:
-        cur = db.execute("SELECT queries.*, users.display_name FROM queries JOIN users ON queries.user_id=users.id WHERE queries.user_id=? AND queries.id=?", [auth.user_id, query_id])
-    query_row = cur.fetchone()
+    filters = Filters()
+    filters.add('query', query_id)
 
-    if not query_row:
-        flash("Invalid id.", "warning")
-        return None, None
+    get_data = get_registered_data_source('queries').function
+    row = get_data(filters).fetchone()
 
-    if query_row['response_text']:
-        responses = json.loads(query_row['response_text'])
-    else:
-        responses = {'error': "*No response -- an error occurred.  Please try again.*"}
-    return query_row, responses
+    if not row:
+        raise RowNotFoundError
+
+    access_permitted = (
+        auth.user_id == row['user_id']
+        or auth.is_admin
+        or (auth.cur_class and auth.cur_class.role == 'instructor' and auth.cur_class.class_id == row['class_id'])
+    )
+
+    if not access_permitted:
+        raise AccessDeniedError
+
+    assert isinstance(row, Row)
+    return row
 
 
 def get_user_data(kind: str, limit: int) -> list[Row]:

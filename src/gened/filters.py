@@ -52,8 +52,9 @@ def fmt_response_txt(value: str) -> str:
 
 
 def init_app(app: Flask) -> None:
-    # Jinja filter for formatting response text
+    # Jinja filter for formatting certain fields
     app.jinja_env.filters['fmt_response_txt'] = fmt_response_txt
+    app.jinja_env.filters['fmt_user'] = fmt_user
 
     # Customize app's JSON provider
     assert isinstance(app.json, DefaultJSONProvider)

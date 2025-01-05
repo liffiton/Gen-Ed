@@ -4,6 +4,7 @@
 
 import asyncio
 import json
+from contextlib import suppress
 from unittest.mock import patch
 
 from flask import (
@@ -18,7 +19,7 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from gened.app_data import get_query, get_user_data
+from gened.app_data import DataAccessError, get_query, get_user_data
 from gened.auth import (
     admin_required,
     class_enabled_required,
@@ -75,9 +76,9 @@ def help_form(llm: LLM, query_id: int | None = None, class_id: int | None = None
         contexts_list = get_available_contexts()  # all *available* contexts will be shown
         if query_id is not None:
             # populate with a query if one is specified in the query string
-            query_row, _ = get_query(query_id)   # _ because we don't need responses here
-            if query_row is not None:
-                selected_context_name = query_row['context_name']
+            with suppress(DataAccessError):
+                query_row = get_query(query_id)
+                selected_context_name = query_row['context']
         else:
             # no query specified,
             # but we can pre-select the most recently used context, if available
@@ -108,12 +109,19 @@ def help_form(llm: LLM, query_id: int | None = None, class_id: int | None = None
 @bp.route("/view/<int:query_id>")
 @login_required
 def help_view(query_id: int) -> str | Response:
-    query_row, responses = get_query(query_id)
-
-    if query_row is None:
+    try:
+        query_row = get_query(query_id)
+    except DataAccessError:
+        flash("Invalid id.", "warning")
         return make_response(render_template("error.html"), 400)
 
+    if query_row['response']:
+        responses = json.loads(query_row['response'])
+    else:
+        responses = {'error': "*No response -- an error occurred.  Please try again.*"}
+
     history = get_user_data(kind='queries', limit=10)
+
     if query_row and query_row['topics_json']:
         topics = json.loads(query_row['topics_json'])
     else:
@@ -299,10 +307,17 @@ def get_topics_raw(llm: LLM, query_id: int) -> list[str]:
 
 
 def get_topics(llm: LLM, query_id: int) -> list[str]:
-    query_row, responses = get_query(query_id)
-
-    if not query_row or not responses or 'main' not in responses:
+    try:
+        query_row = get_query(query_id)
+    except DataAccessError:
         return []
+
+    if not query_row['response']:
+        return []
+    else:
+        responses = json.loads(query_row['response'])
+        if 'main' not in responses:
+            return []
 
     context = get_context_string_by_id(query_row['context_string_id'])
 

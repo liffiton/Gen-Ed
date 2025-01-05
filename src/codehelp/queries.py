@@ -2,10 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from collections.abc import Callable
-from dataclasses import dataclass
 from sqlite3 import Cursor
-from typing import Final
 
 from gened.app_data import (
     ChartData,
@@ -14,8 +11,7 @@ from gened.app_data import (
     register_data,
 )
 from gened.db import get_db
-from gened.filters import fmt_response_txt
-from gened.tables import Col, DataTable, NumCol, TimeCol, UserCol
+from gened.tables import Col, DataTable, NumCol, ResponseCol, TimeCol, UserCol
 
 
 def gen_query_charts(filters: Filters) -> list[ChartData]:
@@ -25,7 +21,7 @@ def gen_query_charts(filters: Filters) -> list[ChartData]:
     """
     db = get_db()
 
-    where_clause, where_params = filters.make_where(['consumer', 'class', 'user', 'role'])
+    where_clause, where_params = filters.make_where(['consumer', 'class', 'user', 'role', 'query'])
 
     # https://www.sqlite.org/lang_with.html#recursive_query_examples
     usage_data = db.execute(f"""
@@ -80,7 +76,7 @@ def gen_query_charts(filters: Filters) -> list[ChartData]:
 
 def get_queries(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
     db = get_db()
-    where_clause, where_params = filters.make_where(['consumer', 'class', 'user', 'role'])
+    where_clause, where_params = filters.make_where(['consumer', 'class', 'user', 'role', 'query'])
     sql = f"""
         SELECT
             queries.id AS id,
@@ -91,7 +87,11 @@ def get_queries(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
             queries.error AS error,
             queries.issue AS issue,
             queries.response_text AS response,
-            queries.helpful_emoji AS helpful
+            queries.helpful_emoji AS helpful,
+            queries.user_id AS user_id,
+            queries.context_string_id AS context_string_id,
+            classes.id AS class_id,
+            queries.topics_json AS topics_json
         FROM queries
         JOIN users ON queries.user_id=users.id
         LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
@@ -106,12 +106,6 @@ def get_queries(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
     """
     cur = db.execute(sql, [*where_params, limit, offset])
     return cur
-
-
-@dataclass(frozen=True)
-class ResponseCol(Col):
-    kind: Final = 'html'
-    prerender: Final[Callable[[str], str]] = fmt_response_txt
 
 
 queries_table = DataTable(

@@ -7,7 +7,7 @@ from dataclasses import dataclass, replace
 from sqlite3 import Row
 from typing import Any, Final, Literal
 
-from .filters import fmt_user
+from .filters import fmt_response_txt, fmt_user
 
 
 @dataclass(frozen=True)
@@ -49,6 +49,12 @@ class DateCol(Col):
 
 
 @dataclass(frozen=True)
+class ResponseCol(Col):
+    kind: Final = 'html'
+    prerender: Final[Callable[[str], str]] = fmt_response_txt
+
+
+@dataclass(frozen=True)
 class Action:
     text: str
     icon: str
@@ -71,7 +77,7 @@ def table_prep(cols: list[Col], data: list[Row], max_len: int=1000) -> list[dict
         else:
             return val
 
-    assert not data or data[0].keys() == [col.name for col in cols], "Data column headings must match column spec names."
+    assert not data or set(data[0].keys()).issuperset(col.name for col in cols), "Data column headings must match column spec names."
     return [
         {col.name: process(col, row[col.name]) for col in cols}
         for row in data

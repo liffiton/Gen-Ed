@@ -9,19 +9,21 @@ from gened.app_data import (
     register_data,
 )
 from gened.db import get_db
-from gened.tables import Col, DataTable, NumCol, TimeCol, UserCol
+from gened.tables import Col, DataTable, NumCol, ResponseCol, TimeCol, UserCol
 
 
 def get_queries(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
     db = get_db()
-    where_clause, where_params = filters.make_where(['consumer', 'class', 'user', 'role'])
+    where_clause, where_params = filters.make_where(['consumer', 'class', 'user', 'role', 'query'])
     sql = f"""
         SELECT
             queries.id AS id,
             json_array(users.display_name, auth_providers.name, users.display_extra) AS user,
             queries.query_time AS time,
             queries.writing AS writing,
-            queries.response_text AS response
+            queries.response_text AS response,
+            queries.user_id AS user_id,
+            classes.id AS class_id
         FROM queries
         JOIN users ON queries.user_id=users.id
         LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
@@ -40,7 +42,7 @@ def get_queries(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
 
 queries_table = DataTable(
     name='queries',
-    columns=[NumCol('id'), UserCol('user'), TimeCol('time'), Col('writing'), Col('response')],
+    columns=[NumCol('id'), UserCol('user'), TimeCol('time'), Col('writing'), ResponseCol('response')],
     link_col=0,
     link_template="/check/view/${value}",
 )

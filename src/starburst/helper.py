@@ -4,11 +4,20 @@
 
 import asyncio
 import json
+from contextlib import suppress
 
-from flask import Blueprint, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    flash,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from werkzeug.wrappers.response import Response
 
-from gened.app_data import get_query, get_user_data
+from gened.app_data import DataAccessError, get_query, get_user_data
 from gened.auth import class_enabled_required, get_auth, login_required
 from gened.db import get_db
 from gened.llm import LLM, with_llm
@@ -27,7 +36,8 @@ def help_form(query_id: int | None = None) -> str:
 
     # populate with a query+response if one is specified
     if query_id is not None:
-        query_row, _ = get_query(query_id)   # _ because we don't need responses here
+        with suppress(DataAccessError):
+            query_row = get_query(query_id)
 
     history = get_user_data(kind='queries', limit=10)
 
@@ -36,8 +46,18 @@ def help_form(query_id: int | None = None) -> str:
 
 @bp.route("/view/<int:query_id>")
 @login_required
-def help_view(query_id: int) -> str:
-    query_row, responses = get_query(query_id)
+def help_view(query_id: int) -> Response | str:
+    try:
+        query_row = get_query(query_id)
+    except DataAccessError:
+        flash("Invalid id.", "warning")
+        return make_response(render_template("error.html"), 400)
+
+    if query_row['response']:
+        responses = json.loads(query_row['response'])
+    else:
+        responses = {'error': "*No response -- an error occurred.  Please try again.*"}
+
     history = get_user_data(kind='queries', limit=10)
 
     return render_template("help_view.html", query=query_row, responses=responses, history=history)

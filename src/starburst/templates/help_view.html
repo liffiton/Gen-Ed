@@ -20,7 +20,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           <label class="label">User:</label>
         </div>
         <div class="field-body">
-          {{ query.display_name }}
+          {{ query.user | fmt_user }}
         </div>
       </div>
       {% endif %}
@@ -30,7 +30,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           <label class="label">When:</label>
         </div>
         <div class="field-body">
-          {{ query.query_time | localtime }}
+          {{ query.time | localtime }}
         </div>
       </div>
 

@@ -50,13 +50,13 @@ SPDX-License-Identifier: AGPL-3.0-only
         {% if auth.user_id != query.user_id %}
           <p>
             <label class="label">User:</label>
-            {{ query.display_name }}
+            {{ query.user | fmt_user }}
           </p>
         {% endif %}
 
         <p>
           <label class="label">When:</label>
-          {{ query.query_time | localtime }}
+          {{ query.time | localtime }}
         </p>
 
         {% if 'error' in responses %}
