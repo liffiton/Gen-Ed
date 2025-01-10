@@ -54,6 +54,11 @@ Instructors can delete their classes and all associated Usage Data (including th
 We will delete your account and your Usage Data two years after your last activity (creating an account, submitting a query, or a student submitting a query in a class for which you are an instructor).
 
 
+## GDPR Compliance
+
+Following our technical review and implementation of the practices described above, we believe CodeHelp is compliant with the EU's General Data Protection Regulation (GDPR).  You may review our [Data Protection Impact Assessment (DPIA)](dpia) for additional details.
+
+
 ## Contact Us
 
 If you have any questions about this privacy notice, please contact us using the email in the footer below.
