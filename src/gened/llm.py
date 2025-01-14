@@ -67,6 +67,9 @@ class NoKeyFoundError(Exception):
 class NoTokensError(Exception):
     pass
 
+class MaxQueriesUsed(Exception):
+    pass
+
 def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLM:
     ''' Get an LLM object configured based on the arguments and the current
     context (user and class).
@@ -115,6 +118,7 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLM:
                 classes.enabled,
                 classes.query_limit_enabled,
                 classes.max_queries,
+                classes.name as class_name,
                 roles.role,
                 users.queries_used,
                 COALESCE(consumers.llm_api_key, classes_user.llm_api_key) AS llm_api_key,
@@ -144,10 +148,7 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLM:
         
         if class_row['query_limit_enabled'] and class_row['role'] == 'student':
             if class_row['queries_used'] >= class_row['max_queries']:
-                raise NoTokensError(
-                    f"You have reached the maximum limit of {class_row['max_queries']} queries. "
-                    "Please contact your instructor."
-                )
+                raise MaxQueriesUsed
 
             if spend_token:
                 db.execute(
@@ -224,6 +225,9 @@ def with_llm(*, use_system_key: bool = False, spend_token: bool = False) -> Call
                 return render_template("error.html")
             except NoTokensError:
                 flash("You have used all of your free queries.  If you are using this application in a class, please connect using the link from your class for continued access.  Otherwise, you can create a class and add an API key or contact us if you want to continue using this application.", "warning")
+                return render_template("error.html")
+            except MaxQueriesUsed:
+                flash("You have used the maximum of queries alloted to you by the professor. Please see the professor to reset the number of queries and get access")
                 return render_template("error.html")
 
             kwargs['llm'] = llm
