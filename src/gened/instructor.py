@@ -32,6 +32,7 @@ from .classes import switch_class
 from .csv import csv_response
 from .data_deletion import delete_class_data
 from .db import get_db
+from .auth import get_auth
 from .redir import safe_redirect
 from .tables import BoolCol, DataTable, NumCol, UserCol
 
@@ -199,3 +200,42 @@ def delete_class() -> Response:
 
     switch_class(None)
     return redirect(url_for("profile.main"))
+
+@bp.route("/class/config/save", methods=["POST"])
+def save_class_config() -> Response:
+    db = get_db()
+    cur_class = get_auth_class()  # Use get_auth_class() instead of get_auth()
+    class_id = cur_class.class_id
+
+    query_limit_enabled = 'query_limit_enabled' in request.form
+    max_queries = int(request.form.get('max_queries', 50))  # Default to 50 if not provided
+
+    db.execute("""
+        UPDATE classes
+        SET query_limit_enabled = ?, max_queries = ?
+        WHERE id = ?
+    """, [query_limit_enabled, max_queries, class_id])
+    db.commit()
+
+    flash("Class configuration updated.", "success")
+    return redirect(url_for("class_config.config_form"))
+
+@bp.route("/class/reset_queries", methods=["POST"])
+def reset_queries() -> Response:
+    db = get_db()
+    cur_class = get_auth_class()  # Use get_auth_class() instead of get_auth()
+    class_id = cur_class.class_id
+
+    db.execute("""
+        UPDATE users 
+        SET queries_used = 0 
+        WHERE id IN (
+            SELECT user_id 
+            FROM roles 
+            WHERE class_id = ? AND role = 'student'
+        )
+    """, [class_id])
+    db.commit()
+
+    flash("Query counts reset for all students.", "success")
+    return redirect(url_for("instructor.main"))  # Redirect to instructor main page

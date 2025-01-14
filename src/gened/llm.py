@@ -113,6 +113,10 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLM:
         class_row = db.execute("""
             SELECT
                 classes.enabled,
+                classes.query_limit_enabled,
+                classes.max_queries,
+                roles.role,
+                users.queries_used,
                 COALESCE(consumers.llm_api_key, classes_user.llm_api_key) AS llm_api_key,
                 COALESCE(consumers.model_id, classes_user.model_id) AS _model_id,
                 models.model
@@ -125,14 +129,32 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLM:
               ON classes.id = classes_user.class_id
             LEFT JOIN models
               ON models.id = _model_id
+            LEFT JOIN roles 
+              ON roles.class_id = classes.id AND roles.user_id = ?
+            LEFT JOIN users
+              ON users.id = ?
             WHERE classes.id = ?
-        """, [auth.cur_class.class_id]).fetchone()
+        """, [auth.user_id, auth.user_id, auth.cur_class.class_id]).fetchone()
 
         if not class_row['enabled']:
             raise ClassDisabledError
 
         if not class_row['llm_api_key']:
             raise NoKeyFoundError
+        
+        if class_row['query_limit_enabled'] and class_row['role'] == 'student':
+            if class_row['queries_used'] >= class_row['max_queries']:
+                raise NoTokensError(
+                    f"You have reached the maximum limit of {class_row['max_queries']} queries. "
+                    "Please contact your instructor."
+                )
+
+            if spend_token:
+                db.execute(
+                    "UPDATE users SET queries_used = queries_used + 1 WHERE id = ?",
+                    [auth.user_id]
+                )
+                db.commit()
 
         return LLM(
             provider='openai',
