@@ -236,6 +236,9 @@ input[type='radio'] {
       <div class="item_sep"></div>
 
       <h2 class="title is-size-4 mt-5">Query Limits</h2>
+      <p class="mb-4"><em>Query limits allow instructors to control the number of AI queries each student can make. 
+        When enabled, students will be limited to a specified number of queries for the duration of the class. 
+        This helps manage AI usage and ensures fair distribution of resources among students.</em></p>
       <form action="{{ url_for('instructor.save_class_config') }}" method="post">
         <div class="field is-horizontal">
             <div class="field-label is-normal">
