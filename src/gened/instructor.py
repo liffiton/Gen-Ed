@@ -34,7 +34,7 @@ from .data_deletion import delete_class_data
 from .db import get_db
 from .auth import get_auth
 from .redir import safe_redirect
-from .tables import BoolCol, DataTable, NumCol, UserCol
+from .tables import ButtonCol, BoolCol, Col, DataTable, NumCol, UserCol
 
 bp = Blueprint('instructor', __name__, template_folder='templates')
 
@@ -86,6 +86,31 @@ def _get_class_users(*, for_export: bool = False) -> list[Row]:
 
     return users
 
+def _get_query_limits_data() -> list[Row]:
+    cur_class = get_auth_class()
+    class_id = cur_class.class_id
+    db = get_db()
+
+    users = db.execute("""
+        SELECT
+            users.id,
+            json_array(users.display_name, auth_providers.name, users.display_extra) AS user,
+            users.queries_used,
+            classes.max_queries,
+            ('<form method="POST" action="/instructor/reset_student_queries/' || users.id || 
+             '" style="display:inline"><button class="button is-small is-warning" type="submit">' ||
+             '<span class="icon"><i class="fas fa-rotate"></i></span>' ||
+             '<span>Reset</span></button></form>') AS reset_button
+        FROM users
+        LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
+        JOIN roles ON roles.user_id=users.id
+        JOIN classes ON roles.class_id=classes.id
+        WHERE roles.class_id=? AND roles.role='student'
+        ORDER BY users.display_name
+    """, [class_id]).fetchall()
+
+    return users
+
 
 @bp.route("/")
 def main() -> str | Response:
@@ -97,6 +122,12 @@ def main() -> str | Response:
         link_template='?user=${value}',
         csv_link=url_for('instructor.get_csv', kind='users'),
         data=users,
+    )
+
+    queries_limits_table = DataTable(
+        name='query_limits',
+        columns=[NumCol('id', hidden=True), UserCol('user'), NumCol('queries_used', align="center"), NumCol('max_queries', align="center"), Col('reset_button', kind='html', align="center")],
+        data=_get_query_limits_data()
     )
 
     sel_user_name = None
@@ -111,7 +142,8 @@ def main() -> str | Response:
     queries_table.data = _get_class_queries(sel_user_id)
     queries_table.csv_link = url_for('instructor.get_csv', kind='queries')
 
-    return render_template("instructor_view.html", users=users_table, queries=queries_table, user=sel_user_name)
+    return render_template( "instructor_view.html", users=users_table, queries=queries_table, query_limits=queries_limits_table, user=sel_user_name
+)
 
 
 @bp.route("/csv/<string:kind>")
@@ -239,3 +271,52 @@ def reset_queries() -> Response:
 
     flash("Query counts reset for all students.", "success")
     return redirect(url_for("instructor.main"))  # Redirect to instructor main page
+
+@bp.route("/reset_student_queries/<int:user_id>", methods=["POST"])
+def reset_student_queries(user_id: int) -> Response:
+    db = get_db()
+    cur_class = get_auth_class()
+    class_id = cur_class.class_id
+
+    # Verify user belongs to class and is a student
+    student = db.execute("""
+        SELECT users.id 
+        FROM users 
+        JOIN roles ON roles.user_id = users.id 
+        WHERE users.id = ? AND roles.class_id = ? AND roles.role = 'student'
+    """, [user_id, class_id]).fetchone()
+
+    if not student:
+        flash("Invalid student ID.", "error")
+        return redirect(url_for("instructor.main"))
+
+    # Reset queries for student
+    db.execute(
+        "UPDATE users SET queries_used = 0 WHERE id = ?",
+        [user_id]
+    )
+    db.commit()
+
+    flash("Query count reset for student.", "success")
+    return redirect(url_for("instructor.main"))
+
+@bp.route("/reset_all_queries", methods=["POST"])
+def reset_all_queries() -> Response:
+    db = get_db()
+    cur_class = get_auth_class()
+    class_id = cur_class.class_id
+
+    # Reset queries for all students in class
+    db.execute("""
+        UPDATE users 
+        SET queries_used = 0 
+        WHERE id IN (
+            SELECT user_id 
+            FROM roles 
+            WHERE class_id = ? AND role = 'student'
+        )
+    """, [class_id])
+    db.commit()
+
+    flash("Query counts reset for all students.", "success")
+    return redirect(url_for("instructor.main"))

@@ -1,5 +1,7 @@
 {#
 SPDX-FileCopyrightText: 2023 Mark Liffiton <liffiton@gmail.com>
+SPDX-FileCopyrightText: 2023 Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com
+                        License - https://fontawesome.com/license/free (Icons: CC BY 4.0)
 
 SPDX-License-Identifier: AGPL-3.0-only
 #}
@@ -11,7 +13,11 @@ SPDX-License-Identifier: AGPL-3.0-only
 {{ datatable_extrahead }}
 {% endblock extrahead %}
 
-{% block body %}
+{% block body %}'
+<head>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
 <section class="section p-5">
   <h1 class="title">{{ auth.cur_class.class_name }}</h1>
   <div class="tbl_cols">
@@ -20,6 +26,13 @@ SPDX-License-Identifier: AGPL-3.0-only
       {{ datatable(users) }}
       <p><em>Users that are not active will not be able to access this class.</em></p>
     </div>
+
+    <div class="tbl_col" style="width: 35em;">
+      <h2 class="is-size-3">Query Limits</h2>
+      {{ datatable(query_limits) }}
+      <p><em>The query limit feature is only relevant if it has been enabled in the class configuration setting.</em></p>
+  </div>
+
     <div class="tbl_col" style="width: 75em; flex-grow: 1;">
       <h2 class="is-size-3">
         Queries

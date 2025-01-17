@@ -7,7 +7,7 @@ from dataclasses import dataclass, replace
 from sqlite3 import Row
 from typing import Any, Final, Literal
 
-from .filters import fmt_response_txt, fmt_user
+from .filters import fmt_response_txt, fmt_user, fmt_button_text
 
 
 @dataclass(frozen=True)
@@ -53,6 +53,23 @@ class ResponseCol(Col):
     kind: Final = 'html'
     prerender: Final[Callable[[str], str]] = fmt_response_txt
 
+@dataclass(frozen=True)
+class ButtonCol(Col):
+    """Column that displays an action button."""
+    url_template: str | None = None  # Change 'url' to 'url_template'
+    text: str | None = None
+    icon: str | None = None
+    align: Final = 'center'
+    kind: Final = 'html'
+    prerender: Final[Callable[[dict[str, str]], str]] = fmt_button_text
+
+    def render(self, row_data: dict[str, str]) -> str:
+        """Prepare the button HTML with interpolated values."""
+        if self.url_template is None:
+            url = ''
+        else:
+            url = self.url_template.format(**row_data)
+        return self.prerender({'url': url, 'icon': self.icon or '', 'text': self.text or ''})
 
 @dataclass(frozen=True)
 class Action:

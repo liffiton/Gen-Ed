@@ -82,3 +82,20 @@ def init_app(app: Flask) -> None:
         html = markdown_processor.render(value)
         # relying on MarkdownIt's escaping (w/o HTML parsing, due to "js-default"), so mark this as safe
         return Markup(html)
+
+def fmt_button_text(button_data: dict[str, str]) -> str:
+    """Format button HTML to be displayed in a table cell. Not used right now as could not get ButtonCol to work properly. """
+    url = button_data.get('url', '')
+    icon = button_data.get('icon', '')
+    text = button_data.get('text', '')
+    
+    icon_html = f'<span class="icon"><i class="fas fa-{icon}"></i></span>' if icon else ''
+    
+    return Markup(f'''
+        <form method="POST" action="{url}" style="display:inline">
+            <button class="button is-small is-info" type="submit">
+                {icon_html}
+                <span>{text}</span>
+            </button>
+        </form>
+    ''')
