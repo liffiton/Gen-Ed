@@ -15,5 +15,3 @@ venv/
 *.egg-info/
 
 .aider*
-
-cmoocenv
