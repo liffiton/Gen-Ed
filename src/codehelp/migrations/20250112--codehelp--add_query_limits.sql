@@ -2,7 +2,6 @@
 --
 -- SPDX-License-Identifier: AGPL-3.0-only
 
-PRAGMA foreign_keys = OFF;
 BEGIN;
 
 -- Add columns to the classes table
@@ -13,4 +12,3 @@ ALTER TABLE classes ADD COLUMN max_queries INTEGER NOT NULL DEFAULT 50;
 ALTER TABLE users ADD COLUMN queries_used INTEGER NOT NULL DEFAULT 0;
 
 COMMIT;
-PRAGMA foreign_keys = ON;
