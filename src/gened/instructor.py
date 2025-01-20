@@ -99,8 +99,9 @@ def _get_query_limits_data() -> list[Row]:
             classes.max_queries,
             ('<form method="POST" action="/instructor/reset_student_queries/' || users.id || 
              '" style="display:inline"><button class="button is-small is-warning" type="submit">' ||
-             '<span class="icon"><i class="fas fa-rotate"></i></span>' ||
+             '<span class="icon"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWEtYXJyb3ctZG93biI+PHBhdGggZD0iTTMuNSAxM2g2Ii8+PHBhdGggZD0ibTIgMTYgNC41LTkgNC41IDkiLz48cGF0aCBkPSJNMTggN3Y5Ii8+PHBhdGggZD0ibTE0IDEyIDQgNCA0LTQiLz48L3N2Zz4=" alt="reset icon" style="width: 1em; height: 1em;"></span>' ||
              '<span>Reset</span></button></form>') AS reset_button
+            
         FROM users
         LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
         JOIN roles ON roles.user_id=users.id
