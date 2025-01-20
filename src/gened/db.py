@@ -14,7 +14,7 @@ from importlib import resources
 from pathlib import Path
 
 import click
-import pyrage # type: ignore
+import pyrage
 from flask import current_app, g
 from flask.app import Flask
 from werkzeug.security import generate_password_hash
