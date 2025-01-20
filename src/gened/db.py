@@ -153,7 +153,7 @@ def init_db() -> None:
         db.executescript(f.read())
 
     # App-specific schema in the app's package
-    with current_app.open_resource('schema.sql', mode='r') as f:
+    with current_app.open_resource('schema.sql', mode='r', encoding='utf-8') as f:
         db.executescript(f.read())
 
     # Mark all existing migrations as applied (since this is a fresh DB)
