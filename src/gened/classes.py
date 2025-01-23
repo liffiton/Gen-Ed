@@ -187,23 +187,23 @@ def switch_class(class_id: int | None) -> bool:
     return True
 
 
-@login_required
 @bp.route("/switch/")  # just for url_for feeding js (doesn't know the id yet)
 @bp.route("/switch/<int:class_id>")
+@login_required
 def switch_class_handler(class_id: int) -> Response:
     switch_class(class_id)
     return safe_redirect_next(default_endpoint="profile.main")
 
 
-@login_required
 @bp.route("/leave/")
+@login_required
 def leave_class_handler() -> Response:
     switch_class(None)
     return redirect(url_for("profile.main"))
 
 
-@login_required
 @bp.route("/create/", methods=['POST'])
+@login_required
 def create_class() -> Response:
     auth = get_auth()
     user_id = auth.user_id
