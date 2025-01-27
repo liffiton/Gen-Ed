@@ -107,8 +107,22 @@ SPDX-License-Identifier: AGPL-3.0-only
 
   </div>
 
-  <div class="column has-background-light">
-    {{ recent_queries(history) }}
+  <div class="column is-one-quarter-desktop">
+    {% if auth.cur_class and auth.cur_class.query_limit_enabled and auth.cur_class.role == 'student' %}
+      <div class="notification {% if auth.user.queries_used >= auth.cur_class.max_queries %}is-warning{% else %}is-info{% endif %} is-light mb-4">
+        <div class="level">
+          <div class="level-item has-text-centered">
+            <div>
+              <p class="heading">Query Usage</p>
+              <p class="title">
+                {{ auth.user.queries_used }}/{{ auth.cur_class.max_queries }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+    {{ recent_queries() }}
   </div>
 
 </div>

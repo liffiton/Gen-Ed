@@ -233,6 +233,62 @@ input[type='radio'] {
 
       </form>
 
+      <div class="item_sep"></div>
+
+      <h2 class="title is-size-4 mt-5">Query Limits</h2>
+      <p class="mb-4"><em>Query limits allow instructors to control the number of AI queries each student can make. 
+        When enabled, students will be limited to a specified number of queries for the duration of the class. 
+        This helps manage AI usage and ensures fair distribution of resources among students.</em></p>
+      <form action="{{ url_for('instructor.save_class_config') }}" method="post">
+        <div class="field is-horizontal">
+            <div class="field-label is-normal">
+                <label class="label" for="query_limit_enabled">Enable Query Limit:</label>
+            </div>
+            <div class="field-body">
+                <div class="field">
+                    <div class="control">
+                        <input 
+                            name="query_limit_enabled" 
+                            id="query_limit_enabled" 
+                            type="checkbox" 
+                            {% if class_row.query_limit_enabled %}checked{% endif %}
+                        >
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="field is-horizontal">
+            <div class="field-label is-normal">
+                <label class="label" for="max_queries">Max Queries:</label>
+            </div>
+            <div class="field-body">
+                <div class="field">
+                    <div class="control">
+                        <input 
+                            class="input" 
+                            name="max_queries" 
+                            id="max_queries" 
+                            type="number" 
+                            value="{{ class_row.max_queries or 50 }}"
+                        >
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+        <div class="field is-horizontal">
+            <div class="field-label"></div>
+            <div class="field-body">
+                <div class="field">
+                    <div class="control">
+                        <button class="button is-link" type="submit">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
       {% endif %}{# end if class['link_ident'] -- i.e., end of user-created class config #}
 
     </div>

@@ -114,3 +114,10 @@ VALUES
 INSERT INTO experiment_class(experiment_id, class_id)
 VALUES
     (1, 2);  -- experiment active in class 2 (where the test chats are registered (via roles 4, 5))
+
+-- Add query limit columns to classes
+ALTER TABLE classes ADD COLUMN query_limit_enabled BOOLEAN NOT NULL DEFAULT 0;
+ALTER TABLE classes ADD COLUMN max_queries INTEGER NOT NULL DEFAULT 1000;
+
+-- Add queries used limit to users
+ALTER TABLE users ADD COLUMN queries_used INTEGER NOT NULL DEFAULT 0;

@@ -67,6 +67,9 @@ class NoKeyFoundError(Exception):
 class NoTokensError(Exception):
     pass
 
+class MaxQueriesUsed(Exception):
+    pass
+
 def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLM:
     ''' Get an LLM object configured based on the arguments and the current
     context (user and class).
@@ -113,6 +116,11 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLM:
         class_row = db.execute("""
             SELECT
                 classes.enabled,
+                classes.query_limit_enabled,
+                classes.max_queries,
+                classes.name as class_name,
+                roles.role,
+                users.queries_used,
                 COALESCE(consumers.llm_api_key, classes_user.llm_api_key) AS llm_api_key,
                 COALESCE(consumers.model_id, classes_user.model_id) AS _model_id,
                 models.model
@@ -125,14 +133,29 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLM:
               ON classes.id = classes_user.class_id
             LEFT JOIN models
               ON models.id = _model_id
+            LEFT JOIN roles 
+              ON roles.class_id = classes.id AND roles.user_id = ?
+            LEFT JOIN users
+              ON users.id = ?
             WHERE classes.id = ?
-        """, [auth.cur_class.class_id]).fetchone()
+        """, [auth.user_id, auth.user_id, auth.cur_class.class_id]).fetchone()
 
         if not class_row['enabled']:
             raise ClassDisabledError
 
         if not class_row['llm_api_key']:
             raise NoKeyFoundError
+        
+        if class_row['query_limit_enabled'] and class_row['role'] == 'student':
+            if class_row['queries_used'] >= class_row['max_queries']:
+                raise MaxQueriesUsed
+
+            if spend_token:
+                db.execute(
+                    "UPDATE users SET queries_used = queries_used + 1 WHERE id = ?",
+                    [auth.user_id]
+                )
+                db.commit()
 
         return LLM(
             provider='openai',
@@ -202,6 +225,9 @@ def with_llm(*, use_system_key: bool = False, spend_token: bool = False) -> Call
                 return render_template("error.html")
             except NoTokensError:
                 flash("You have used all of your free queries.  If you are using this application in a class, please connect using the link from your class for continued access.  Otherwise, you can create a class and add an API key or contact us if you want to continue using this application.", "warning")
+                return render_template("error.html")
+            except MaxQueriesUsed:
+                flash("You have used the maximum of queries alloted to you by the professor. Please see the professor to reset the number of queries and get access")
                 return render_template("error.html")
 
             kwargs['llm'] = llm

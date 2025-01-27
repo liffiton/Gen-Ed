@@ -48,8 +48,9 @@ class UserData:
     id: int
     display_name: str
     auth_provider: AuthProvider
+    queries_used: int
     is_admin: bool = False
-    is_tester: bool = False
+    is_tester: bool = False 
 
 @dataclass(frozen=True)
 class ClassData:
@@ -57,6 +58,8 @@ class ClassData:
     class_name: str
     role_id: int
     role: RoleType
+    query_limit_enabled: int
+    max_queries: int
 
 @dataclass(frozen=True)
 class AuthData:
@@ -130,7 +133,8 @@ def _get_auth_from_session() -> AuthData:
             users.display_name,
             users.is_admin,
             users.is_tester,
-            auth_providers.name AS auth_provider
+            auth_providers.name AS auth_provider,
+            users.queries_used
         FROM users
         LEFT JOIN auth_providers ON auth_providers.id=users.auth_provider
         WHERE users.id=?
@@ -147,6 +151,7 @@ def _get_auth_from_session() -> AuthData:
         auth_provider=user_row['auth_provider'],
         is_admin=user_row['is_admin'],
         is_tester=user_row['is_tester'],
+        queries_used=user_row['queries_used']
     )
 
     # Check the database for any active roles (may be changed by another user)
@@ -158,7 +163,9 @@ def _get_auth_from_session() -> AuthData:
             roles.class_id,
             roles.role,
             classes.name,
-            classes.enabled
+            classes.enabled,
+            classes.query_limit_enabled,
+            classes.max_queries
         FROM roles
         JOIN classes ON classes.id=roles.class_id
         WHERE roles.user_id=? AND roles.active=1
@@ -177,6 +184,8 @@ def _get_auth_from_session() -> AuthData:
             class_name=row['name'],
             role_id=row['role_id'],
             role=row['role'],
+            query_limit_enabled=row['query_limit_enabled'],
+            max_queries=row['max_queries'],
         )
         if row['class_id'] == sess_class_id:
             assert cur_class is None  # sanity check: should only ever match one role/class
@@ -191,12 +200,14 @@ def _get_auth_from_session() -> AuthData:
 
     # admin gets instructor role in all classes automatically
     if user.is_admin and cur_class is None and sess_class_id is not None:
-        class_row = db.execute("SELECT name FROM classes WHERE id=?", [sess_class_id]).fetchone()
+        class_row = db.execute("SELECT name, query_limit_enabled, max_queries FROM classes WHERE id=?", [sess_class_id]).fetchone()
         cur_class = ClassData(
             class_id=sess_class_id,
             class_name=class_row['name'],
             role_id=-1,
             role='instructor',
+            query_limit_enabled=class_row['query_limit_enabled'],
+            max_queries=class_row['max_queries']
         )
 
     # return an AuthData with all collected values

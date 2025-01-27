@@ -11,7 +11,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 {{ datatable_extrahead }}
 {% endblock extrahead %}
 
-{% block body %}
+{% block body %}'
 <section class="section p-5">
   <h1 class="title">{{ auth.cur_class.class_name }}</h1>
   <div class="tbl_cols">
@@ -20,6 +20,13 @@ SPDX-License-Identifier: AGPL-3.0-only
       {{ datatable(users) }}
       <p><em>Users that are not active will not be able to access this class.</em></p>
     </div>
+
+    <div class="tbl_col" style="width: 35em;">
+      <h2 class="is-size-3">Query Limits</h2>
+      {{ datatable(query_limits) }}
+      <p><em>The query limit feature is only relevant if it has been enabled in the class configuration setting.</em></p>
+  </div>
+
     <div class="tbl_col" style="width: 75em; flex-grow: 1;">
       <h2 class="is-size-3">
         Queries
