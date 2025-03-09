@@ -22,7 +22,6 @@ from loaders import (
 )
 from tqdm.auto import tqdm
 
-DEFAULT_MODEL = "anthropic/claude-3-haiku-20240307"
 TEMPERATURE = 0.25
 MAX_TOKENS = 2000
 
@@ -118,6 +117,7 @@ def gen_responses(db: sqlite3.Connection, prompt_set_id: int, model: str) -> Non
                 temperature=TEMPERATURE,
                 max_tokens=MAX_TOKENS,
                 n=1,
+                drop_params = True,  # OpenAI o* models don't allow temp!=1.0; this bypasses that error
             )
             response_time = time.time() - start_time
             response_json = json.dumps(response.model_dump())
@@ -319,17 +319,11 @@ def main() -> None:
 
     parser_response = subparsers.add_parser('response', help='Generate a response set for a given prompt set.')
     parser_response.set_defaults(command_func=cli_gen_responses)
-    parser_response.add_argument(
-        'model', type=str, nargs='?', default=DEFAULT_MODEL,
-        help=f"(Optional. Default='{DEFAULT_MODEL}')  The LLM to use."
-    )
+    parser_response.add_argument('model', type=str, help="The LLM to use.")
 
     parser_eval = subparsers.add_parser('eval', help='Evaluate a given response set.')
     parser_eval.set_defaults(command_func=cli_gen_evals)
-    parser_eval.add_argument(
-        'model', type=str, nargs='?', default=DEFAULT_MODEL,
-        help=f"(Optional. Default='{DEFAULT_MODEL}')  The LLM to use."
-    )
+    parser_eval.add_argument('model', type=str, help="The LLM to use.")
 
     parser_show_evals = subparsers.add_parser('show_evals', help="Display the results of past evals.")
     parser_show_evals.set_defaults(command_func=show_evals)
