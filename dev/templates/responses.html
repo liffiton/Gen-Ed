@@ -8,8 +8,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 {% block title %}Generate and Evaluate Responses - Model Evaluation Tool{% endblock %}
 
 {% block content %}
-<h1>Generate and Evaluate Responses</h1>
-
+<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 <style>
     table {
         border-collapse: collapse;
@@ -34,7 +33,18 @@ SPDX-License-Identifier: AGPL-3.0-only
         background-color: #d4edda;
         text-align: center;
     }
+    .compare-controls {
+        margin: 20px 0;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    .checkbox-cell {
+        text-align: center;
+    }
 </style>
+
+<h1>Generate and Evaluate Responses</h1>
 
 <table>
     <tr>
@@ -67,15 +77,98 @@ SPDX-License-Identifier: AGPL-3.0-only
                     {% endif %}
                     {% if (prompt_set.id, model) in response_times and response_times[(prompt_set.id, model)]['count'] > 0 %}
                         <div style="font-size: 0.8em; margin-top: 5px;">
-                            {{ "%.2f"|format(response_times[(prompt_set.id, model)]['min']) }}s / 
-                            {{ "%.2f"|format(response_times[(prompt_set.id, model)]['avg']) }}s / 
+                            {{ "%.2f"|format(response_times[(prompt_set.id, model)]['min']) }}s /
+                            {{ "%.2f"|format(response_times[(prompt_set.id, model)]['avg']) }}s /
                             {{ "%.2f"|format(response_times[(prompt_set.id, model)]['max']) }}s
                             <br><small>(min/avg/max)</small>
                         </div>
                     {% endif %}
+                    {% if (prompt_set.id, model) in existing_responses %}
+                        <div class="checkbox-cell" x-data>
+                            <input type="checkbox" class="response-checkbox"
+                                   data-prompt-set="{{ prompt_set.id }}"
+                                   data-model="{{ model }}"
+                                   @change="$dispatch('toggle-selection', { promptSet: '{{ prompt_set.id }}', model: '{{ model }}', checked: $event.target.checked })">
+                        </div>
+                    {% endif %}
+
                 </td>
             {% endfor %}
         </tr>
     {% endfor %}
 </table>
+
+<div class="compare-controls" x-data="responseSelector" @toggle-selection.window="toggleSelection($event.detail.promptSet, $event.detail.model, $event)">
+    <form action="{{ url_for('compare_responses') }}" method="get" id="compareForm">
+        <input type="hidden" name="set1" x-bind:value="set1Value">
+        <input type="hidden" name="set2" x-bind:value="set2Value">
+        <button type="button" x-bind:disabled="!isReadyToCompare" @click="submitCompare">Compare Selected Responses</button>
+        <span x-text="selectionMessage"></span>
+    </form>
+</div>
+
+<script>
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('responseSelector', () => ({
+      selectedSets: [],
+
+      init() {
+        // No initialization needed
+      },
+
+      toggleSelection(promptSet, model, event) {
+        if (event.target.checked) {
+          // Add to selected sets
+          this.selectedSets.push({ promptSet, model });
+
+          // If more than 2 are selected, uncheck the first one
+          if (this.selectedSets.length > 2) {
+            const removed = this.selectedSets.shift();
+            // Find and uncheck the checkbox (without triggering this handler again)
+            document.querySelector(`input[data-prompt-set="${removed.promptSet}"][data-model="${removed.model}"]`).checked = false;
+          }
+        } else {
+          // Remove from selected sets
+          this.selectedSets = this.selectedSets.filter(set =>
+            !(set.promptSet === promptSet && set.model === model)
+          );
+        }
+      },
+
+      get isReadyToCompare() {
+        return this.selectedSets.length === 2;
+      },
+
+      get selectionMessage() {
+        return this.isReadyToCompare
+          ? "Ready to compare!"
+          : `(Select exactly 2 response sets to compare, ${2 - this.selectedSets.length} more needed)`;
+      },
+
+      get set1Value() {
+        return this.selectedSets.length > 0
+          ? JSON.stringify({
+              prompt_set_id: this.selectedSets[0].promptSet,
+              model: this.selectedSets[0].model
+            })
+          : '';
+      },
+
+      get set2Value() {
+        return this.selectedSets.length > 1
+          ? JSON.stringify({
+              prompt_set_id: this.selectedSets[1].promptSet,
+              model: this.selectedSets[1].model
+            })
+          : '';
+      },
+
+      submitCompare() {
+        if (this.isReadyToCompare) {
+          document.getElementById('compareForm').submit();
+        }
+      }
+    }));
+  });
+</script>
 {% endblock %}

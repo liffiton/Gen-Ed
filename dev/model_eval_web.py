@@ -12,6 +12,8 @@ from secrets import token_bytes
 
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 from loaders import get_available_prompts
+from markdown_it import MarkdownIt
+from markupsafe import Markup
 from model_eval import gen_evals as gen_evals_func
 from model_eval import gen_responses as gen_responses_func
 from model_eval import load_data as load_data_func
@@ -284,3 +286,154 @@ def view_false_responses(eval_set_id: int) -> str:
     ]
 
     return render_template('view_false_responses.html', eval_set=eval_set, false_responses=false_responses)
+
+@app.route('/compare_responses')
+def compare_responses() -> Response | str:
+    db = get_db()
+
+    # Get the selected response sets from the query parameters
+    set1_json = request.args.get('set1')
+    set2_json = request.args.get('set2')
+
+    if not set1_json or not set2_json:
+        flash("Please select two response sets to compare.", "danger")
+        return redirect(url_for('responses'))
+
+    try:
+        set1 = json.loads(set1_json)
+        set2 = json.loads(set2_json)
+    except (json.JSONDecodeError, KeyError, ValueError) as e:
+        flash(f"Error processing comparison request: {e!s}", "danger")
+        return redirect(url_for('responses'))
+
+    # Get response set IDs
+    set1_id = get_response_set_id(db, int(set1['prompt_set_id']), set1['model'])
+    set2_id = get_response_set_id(db, int(set2['prompt_set_id']), set2['model'])
+
+    if not set1_id or not set2_id:
+        flash("One or both of the selected response sets could not be found.", "danger")
+        return redirect(url_for('responses'))
+
+    # Check if both response sets are from the same prompt set
+    prompt_set_id1 = db.execute("SELECT prompt_set_id FROM response_set WHERE id = ?", [set1_id]).fetchone()['prompt_set_id']
+    prompt_set_id2 = db.execute("SELECT prompt_set_id FROM response_set WHERE id = ?", [set2_id]).fetchone()['prompt_set_id']
+
+    if prompt_set_id1 != prompt_set_id2:
+        flash("The selected response sets must be from the same prompt set for comparison.", "danger")
+        return redirect(url_for('responses'))
+
+    # Get prompt set details
+    prompt_set = db.execute("""
+        SELECT prompt_set.id, prompt_set.created, prompt_set.query_src_file, prompt_set.prompt_func
+        FROM prompt_set
+        WHERE prompt_set.id = ?
+    """, [prompt_set_id1]).fetchone()
+
+    # Get all prompts from this prompt set
+    prompts = db.execute("""
+        SELECT prompt.id, prompt.msgs_json, prompt.model_response
+        FROM prompt
+        WHERE prompt.set_id = ?
+        ORDER BY prompt.id
+    """, [prompt_set_id1]).fetchall()
+
+    if not prompts:
+        flash("No prompts found in the selected prompt set.", "danger")
+        return redirect(url_for('responses'))
+
+    # Get responses for both models
+    responses1 = db.execute("""
+        SELECT response.prompt_id, response.text, response.response_time
+        FROM response
+        WHERE response.set_id = ?
+    """, [set1_id]).fetchall()
+
+    responses2 = db.execute("""
+        SELECT response.prompt_id, response.text, response.response_time
+        FROM response
+        WHERE response.set_id = ?
+    """, [set2_id]).fetchall()
+
+    # Get evaluation results if available
+    eval_set1 = db.execute("""
+        SELECT eval_set.id
+        FROM eval_set
+        WHERE eval_set.response_set_id = ?
+    """, [set1_id]).fetchone()
+
+    eval_set2 = db.execute("""
+        SELECT eval_set.id
+        FROM eval_set
+        WHERE eval_set.response_set_id = ?
+    """, [set2_id]).fetchone()
+
+    evals1 = {}
+    evals2 = {}
+
+    if eval_set1:
+        eval_results1 = db.execute("""
+            SELECT eval.response_id, eval.evaluation
+            FROM eval
+            JOIN response ON response.id = eval.response_id
+            WHERE eval.set_id = ?
+        """, [eval_set1['id']]).fetchall()
+
+        for eval_result in eval_results1:
+            response_id = eval_result['response_id']
+            prompt_id = db.execute("SELECT prompt_id FROM response WHERE id = ?", [response_id]).fetchone()['prompt_id']
+            evals1[prompt_id] = json.loads(eval_result['evaluation'])
+
+    if eval_set2:
+        eval_results2 = db.execute("""
+            SELECT eval.response_id, eval.evaluation
+            FROM eval
+            JOIN response ON response.id = eval.response_id
+            WHERE eval.set_id = ?
+        """, [eval_set2['id']]).fetchall()
+
+        for eval_result in eval_results2:
+            response_id = eval_result['response_id']
+            prompt_id = db.execute("SELECT prompt_id FROM response WHERE id = ?", [response_id]).fetchone()['prompt_id']
+            evals2[prompt_id] = json.loads(eval_result['evaluation'])
+
+    # Create a mapping of prompt_id to responses and evaluations
+    comparison_data = []
+
+    # Jinja filter for converting Markdown to HTML
+    markdown_processor = MarkdownIt("js-default")  # js-default: https://markdown-it-py.readthedocs.io/en/latest/security.html
+    markdown_processor.inline.ruler.disable(['escape'])  # disable escaping so that \(, \[, etc. come through for TeX math
+
+    def markdown(value: str) -> str:
+        '''Convert markdown to HTML.'''
+        html = markdown_processor.render(value)
+        # relying on MarkdownIt's escaping (w/o HTML parsing, due to "js-default"), so mark this as safe
+        return Markup(html)
+
+    for prompt in prompts:
+        prompt_id = prompt['id']
+
+        # Find corresponding responses
+        response1 = next((r for r in responses1 if r['prompt_id'] == prompt_id), None)
+        response2 = next((r for r in responses2 if r['prompt_id'] == prompt_id), None)
+
+        comparison_data.append({
+            'prompt_id': prompt_id,
+            'prompt_msgs': json.loads(prompt['msgs_json']),
+            'model_response': prompt['model_response'],
+            'response1': {
+                'text': markdown(response1['text']) if response1 else "No response",
+                'response_time': response1['response_time'] if response1 else None,
+                'evaluation': evals1.get(prompt_id, {})
+            },
+            'response2': {
+                'text': markdown(response2['text']) if response2 else "No response",
+                'response_time': response2['response_time'] if response2 else None,
+                'evaluation': evals2.get(prompt_id, {})
+            }
+        })
+
+    return render_template('compare_responses.html',
+                            prompt_set=prompt_set,
+                            model1=set1['model'],
+                            model2=set2['model'],
+                            comparison_data=comparison_data)

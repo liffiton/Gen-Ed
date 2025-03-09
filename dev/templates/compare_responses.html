@@ -1,0 +1,215 @@
+{#
+SPDX-FileCopyrightText: 2024 Mark Liffiton <liffiton@gmail.com>
+
+SPDX-License-Identifier: AGPL-3.0-only
+#}
+{% extends "base.html" %}
+
+{% block title %}Compare Model Responses - Model Evaluation Tool{% endblock %}
+
+{% block content %}
+<h1>Compare Model Responses</h1>
+
+<style>
+    .comparison-container {
+        margin: 20px 0;
+    }
+    .prompt-container {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+    .responses-container {
+        display: flex;
+        gap: 20px;
+    }
+    .response-box {
+        flex: 1;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: #fff;
+    }
+    .response-header {
+        font-weight: bold;
+        margin-bottom: 10px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #ddd;
+    }
+    .prompt-content {
+        white-space: pre-wrap;
+        font-family: monospace;
+    }
+    .response-meta {
+        margin-top: 10px;
+        font-size: 0.9em;
+        color: #666;
+    }
+    .navigation {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 20px 0;
+    }
+    .nav-buttons {
+        display: flex;
+        gap: 10px;
+    }
+    .eval-result {
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 5px;
+    }
+    .eval-success {
+        background-color: #d4edda;
+    }
+    .eval-failure {
+        background-color: #f8d7da;
+    }
+    .model-response {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #e9ecef;
+        border-radius: 5px;
+        font-style: italic;
+    }
+    .prompt-meta {
+        margin-bottom: 10px;
+        font-size: 0.9em;
+        color: #666;
+    }
+</style>
+
+<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
+<div class="prompt-set-info">
+    <h2>Prompt Set: {{ prompt_set.query_src_file }} ({{ prompt_set.prompt_func }})</h2>
+    <p>Created: {{ prompt_set.created }}</p>
+</div>
+
+<div x-data="{
+    currentIndex: 0,
+    totalItems: {{ comparison_data|length }},
+
+    init() {
+        // Add keyboard navigation
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                this.prev();
+            } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                this.next();
+            }
+        });
+    },
+
+    showItem(index) {
+        this.currentIndex = index;
+    },
+
+    next() {
+        if (this.currentIndex < this.totalItems - 1) {
+            this.currentIndex++;
+        }
+    },
+
+    prev() {
+        if (this.currentIndex > 0) {
+            this.currentIndex--;
+        }
+    }
+}">
+    <div class="navigation">
+        <div class="nav-buttons">
+            <button @click="prev()" :disabled="currentIndex === 0" class="btn btn-secondary">Previous Prompt</button>
+            <button @click="next()" :disabled="currentIndex === totalItems - 1" class="btn btn-secondary">Next Prompt</button>
+        </div>
+        <div class="prompt-selector">
+            <label for="promptSelect">Jump to prompt:</label>
+            <select id="promptSelect" x-model.number="currentIndex">
+                {% for item in comparison_data %}
+                    <option value="{{ loop.index0 }}">Prompt {{ loop.index }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="prompt-counter">
+            <span x-text="currentIndex + 1"></span> of {{ comparison_data|length }}
+        </div>
+    </div>
+
+    <div class="comparison-container">
+        {% for item in comparison_data %}
+            <div class="comparison-item" x-show="currentIndex === {{ loop.index0 }}">
+                <div class="prompt-container">
+                    <div class="prompt-meta">Prompt ID: {{ item.prompt_id }}</div>
+                    {% for msg in item.prompt_msgs %}
+                        {% if msg.role == "user" %}
+                            <div class="prompt-content">{{ msg.content }} </div>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if item.model_response %}
+                        <div class="model-response">
+                            <strong>Expected response:</strong> {{ item.model_response }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="responses-container">
+                    <div class="response-box">
+                        <div class="response-header">{{ model1.split('/')[-1] }}</div>
+                        <div class="response-content">{{ item.response1.text }}</div>
+                        <div class="response-meta">
+                            {% if item.response1.response_time %}
+                                Response time: {{ "%.2f"|format(item.response1.response_time) }}s
+                            {% endif %}
+                        </div>
+
+                        {% if item.response1.evaluation %}
+                            <div class="eval-result {{ 'eval-success' if item.response1.evaluation.get('OK.', False) else 'eval-failure' }}">
+                                <strong>Evaluation:</strong>
+                                <ul>
+                                    {% for key, value in item.response1.evaluation.items() %}
+                                        <li>{{ key }}: {{ value }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="response-box">
+                        <div class="response-header">{{ model2.split('/')[-1] }}</div>
+                        <div class="response-content">{{ item.response2.text }}</div>
+                        <div class="response-meta">
+                            {% if item.response2.response_time %}
+                                Response time: {{ "%.2f"|format(item.response2.response_time) }}s
+                            {% endif %}
+                        </div>
+
+                        {% if item.response2.evaluation %}
+                            <div class="eval-result {{ 'eval-success' if item.response2.evaluation.get('OK.', False) else 'eval-failure' }}">
+                                <strong>Evaluation:</strong>
+                                <ul>
+                                    {% for key, value in item.response2.evaluation.items() %}
+                                        <li>{{ key }}: {{ value }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="navigation">
+        <div class="nav-buttons">
+            <button @click="prev()" :disabled="currentIndex === 0" class="btn btn-secondary">Previous Prompt</button>
+            <button @click="next()" :disabled="currentIndex === totalItems - 1" class="btn btn-secondary">Next Prompt</button>
+        </div>
+        <div class="prompt-counter">
+            <span x-text="currentIndex + 1"></span> of {{ comparison_data|length }}
+        </div>
+    </div>
+</div>
+{% endblock %}
