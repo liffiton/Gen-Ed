@@ -74,6 +74,20 @@ SPDX-License-Identifier: AGPL-3.0-only
             </div>
             <div class="eval-counts">True: {{ result.other_true }}, False: {{ result.other_false }}</div>
         </div>
+
+        {% if result.response_times %}
+        <div class="eval-flex-container">
+            <div class="eval-type">Response Times:</div>
+            <div class="eval-bar-container">
+                <div style="font-size: 0.9em; padding: 2px 0;">
+                    Min: {{ "%.2f"|format(result.response_times.min) }}s | 
+                    Avg: {{ "%.2f"|format(result.response_times.avg) }}s | 
+                    Max: {{ "%.2f"|format(result.response_times.max) }}s
+                    <small>({{ result.response_times.count }} responses)</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
         
         <div>
             <a href="{{ url_for('view_false_responses', eval_set_id=result.id) }}">View False Responses</a>

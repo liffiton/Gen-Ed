@@ -104,7 +104,7 @@ def responses() -> str | Response:
         elif action == 'evaluate':
             cur = db.execute("SELECT id FROM response_set WHERE response_set.prompt_set_id=? AND response_set.model=?", [prompt_set_id, model])
             response_set_id = cur.fetchone()['id']
-            eval_model = "gemini/gemini-1.5-flash-latest"   # TODO: un-hardcode evaluating model
+            eval_model = "gemini/gemini-2.0-flash"   # TODO: un-hardcode evaluating model
             gen_evals_func(db, eval_model, response_set_id, "make_sufficient_prompt")  # TODO: un-hardcode prompt type
             flash("Responses evaluated successfully.", "success")
 
@@ -133,6 +133,32 @@ def responses() -> str | Response:
         JOIN response_set ON eval_set.response_set_id = response_set.id
     """).fetchall()
 
+    # Get response time statistics
+    response_times_rows = db.execute("""
+        SELECT
+            response_set.prompt_set_id,
+            response_set.model,
+            MIN(response.response_time) as min_time,
+            AVG(response.response_time) as avg_time,
+            MAX(response.response_time) as max_time,
+            COUNT(response.response_time) as count_with_time
+        FROM response
+        JOIN response_set ON response.set_id = response_set.id
+        WHERE response.response_time IS NOT NULL
+        GROUP BY response_set.prompt_set_id, response_set.model
+    """).fetchall()
+
+    # Create a dictionary of response times for easy lookup
+    response_times = {
+        (row['prompt_set_id'], row['model']): {
+            'min': row['min_time'],
+            'avg': row['avg_time'],
+            'max': row['max_time'],
+            'count': row['count_with_time']
+        }
+        for row in response_times_rows
+    }
+
     # Create sets of tuples (prompt_set_id, model) for easy lookup
     existing_responses_set = {(r['prompt_set_id'], r['model']) for r in existing_responses}
     existing_evaluations_set = {(e['prompt_set_id'], e['model']) for e in existing_evaluations}
@@ -144,7 +170,8 @@ def responses() -> str | Response:
                            prompt_sets=prompt_sets,
                            models=models,
                            existing_responses=existing_responses_set,
-                           existing_evaluations=existing_evaluations_set)
+                           existing_evaluations=existing_evaluations_set,
+                           response_times=response_times)
 
 def get_response_set_id(db: sqlite3.Connection, prompt_set_id: int, model: str) -> int | None:
     result = db.execute("""
@@ -174,6 +201,26 @@ def view_results() -> str:
             WHERE eval.set_id = ?
         """, [eval_set['id']]).fetchall()
 
+        # Get response time statistics for this response set
+        time_stats_row = db.execute("""
+            SELECT 
+                MIN(response_time) as min_time,
+                AVG(response_time) as avg_time,
+                MAX(response_time) as max_time,
+                COUNT(response_time) as count_with_time
+            FROM response
+            WHERE set_id = ? AND response_time IS NOT NULL
+        """, [eval_set['response_set_id']]).fetchone()
+
+        response_times = None
+        if time_stats_row and time_stats_row['count_with_time'] > 0:
+            response_times = {
+                'min': time_stats_row['min_time'],
+                'avg': time_stats_row['avg_time'],
+                'max': time_stats_row['max_time'],
+                'count': time_stats_row['count_with_time']
+            }
+
         evaluations = [json.loads(row['evaluation']) for row in eval_rows]
 
         ok_total = sum('OK.' in eval_dict for eval_dict in evaluations)
@@ -195,6 +242,7 @@ def view_results() -> str:
             'other_total': other_total,
             'other_true': other_true,
             'other_false': other_false,
+            'response_times': response_times
         })
 
     return render_template('view_results.html', results=results)
@@ -218,7 +266,7 @@ def view_false_responses(eval_set_id: int) -> str:
 
     # Fetch responses that evaluated as False
     false_responses = db.execute("""
-        SELECT response.text, eval.evaluation, prompt.model_response
+        SELECT response.text, response.response_time, eval.evaluation, prompt.model_response
         FROM eval
         JOIN response ON response.id = eval.response_id
         JOIN prompt ON prompt.id = response.prompt_id
@@ -228,6 +276,7 @@ def view_false_responses(eval_set_id: int) -> str:
     false_responses = [
         {
             'text': row['text'],
+            'response_time': row['response_time'],
             'evaluation': json.loads(row['evaluation']),
             'model_response': row['model_response']
         }

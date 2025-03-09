@@ -18,8 +18,9 @@ def test_and_report_model(model: str) -> None:
     response = litellm.completion(
         model=model,
         messages=[{"role": "user", "content": "Write \"OK.\""}],
-        max_tokens=3,
+        max_completion_tokens=1000,
     )
+    print(response)
     assert response.choices[0].message.content.strip() == "OK."
     print(f"Using model: \x1B[32m{model}\x1B[m")
 

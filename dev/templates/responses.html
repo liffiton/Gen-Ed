@@ -66,6 +66,14 @@ SPDX-License-Identifier: AGPL-3.0-only
                     {% else %}
                         ✅
                     {% endif %}
+                    {% if (prompt_set.id, model) in response_times and response_times[(prompt_set.id, model)]['count'] > 0 %}
+                        <div style="font-size: 0.8em; margin-top: 5px;">
+                            {{ "%.2f"|format(response_times[(prompt_set.id, model)]['min']) }}s / 
+                            {{ "%.2f"|format(response_times[(prompt_set.id, model)]['avg']) }}s / 
+                            {{ "%.2f"|format(response_times[(prompt_set.id, model)]['max']) }}s
+                            <br><small>(min/avg/max)</small>
+                        </div>
+                    {% endif %}
                 </td>
             {% endfor %}
         </tr>

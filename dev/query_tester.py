@@ -22,7 +22,7 @@ from loaders import (
 
 DEFAULT_MODEL = "gpt-3.5-turbo"
 TEMPERATURE = 0.25
-MAX_TOKENS = 1000
+MAX_TOKENS = 2000
 
 
 def msgs2str(messages: list[dict[str, str]]) -> str:
@@ -123,15 +123,16 @@ class QueryView(urwid.WidgetWrap):
                 model=self._model,
                 messages=messages,
                 temperature=TEMPERATURE,
-                max_tokens=MAX_TOKENS,
+                max_completion_tokens=MAX_TOKENS,
                 n=1,
+                drop_params=True,
             )
         except Exception as e:  # noqa
             item['__tester_response'] = f"[An error occurred in the openai completion.]\n{e}"
             return
 
         response_txt = '\n\n----------\n\n'.join(x.message.content for x in response.choices)
-        response_reason = response.choices[-1].finish_reason  # e.g. "length" if max_tokens reached
+        response_reason = response.choices[-1].finish_reason  # e.g. "length" if max_completion_tokens reached
 
         if response_reason == "length":
             response_txt += "\n\n[error: maximum length exceeded]"

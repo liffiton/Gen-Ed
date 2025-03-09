@@ -24,7 +24,7 @@ from tqdm.auto import tqdm
 
 DEFAULT_MODEL = "anthropic/claude-3-haiku-20240307"
 TEMPERATURE = 0.25
-MAX_TOKENS = 1000
+MAX_TOKENS = 2000
 
 
 def get_db(db_path: Path) -> sqlite3.Connection:
@@ -109,7 +109,9 @@ def gen_responses(db: sqlite3.Connection, prompt_set_id: int, model: str) -> Non
 
     for prompt in tqdm(prompts, ncols=60):
         msgs = json.loads(prompt['msgs_json'])
+        response_time = None
         try:
+            start_time = time.time()
             response = litellm.completion(
                 model=model,
                 messages=msgs,
@@ -117,6 +119,7 @@ def gen_responses(db: sqlite3.Connection, prompt_set_id: int, model: str) -> Non
                 max_tokens=MAX_TOKENS,
                 n=1,
             )
+            response_time = time.time() - start_time
             response_json = json.dumps(response.model_dump())
             text = response.choices[0].message.content
         except Exception as e:  # noqa
@@ -125,14 +128,10 @@ def gen_responses(db: sqlite3.Connection, prompt_set_id: int, model: str) -> Non
             response_json = json.dumps(text)
 
         db.execute(
-            "INSERT INTO response(set_id, prompt_id, response, text) VALUES(?, ?, ?, ?)",
-            [response_set_id, prompt['id'], response_json, text]
+            "INSERT INTO response(set_id, prompt_id, response, text, response_time) VALUES(?, ?, ?, ?, ?)",
+            [response_set_id, prompt['id'], response_json, text, response_time]
         )
         db.commit()
-
-        # hack for now for Claude rate limits
-        if "sonnet" in model:
-            time.sleep(0.25)
 
 
 def choose_response_set(db: sqlite3.Connection, eval_model: str) -> tuple[int, str]:
@@ -197,7 +196,6 @@ def eval_sufficient(model: str, row: Row) -> dict[str, bool]:
         {"role": "system", "content": _SUFFICIENT_SYS_PROMPT},
         {"role": "user", "content": f"<response>\n{response}\n</response>\n\n<model>\n{model_response}\n</model>"},
     ]
-    litellm.drop_params = True  # still run if 'response_format' not accepted by the current model
     response = litellm.completion(
         model=model,
         response_format={ "type": "json_object" },
@@ -205,8 +203,8 @@ def eval_sufficient(model: str, row: Row) -> dict[str, bool]:
         temperature=TEMPERATURE,
         max_tokens=MAX_TOKENS,
         n=1,
+        drop_params = True,  # still run if 'response_format' not accepted by the current model
     )
-    litellm.drop_params = False  # reset to default
     text = response.choices[0].message.content
 
     try:
@@ -327,7 +325,7 @@ def main() -> None:
     )
 
     parser_eval = subparsers.add_parser('eval', help='Evaluate a given response set.')
-    parser_eval.set_defaults(command_func=gen_evals)
+    parser_eval.set_defaults(command_func=cli_gen_evals)
     parser_eval.add_argument(
         'model', type=str, nargs='?', default=DEFAULT_MODEL,
         help=f"(Optional. Default='{DEFAULT_MODEL}')  The LLM to use."

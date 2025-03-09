@@ -35,6 +35,7 @@ CREATE TABLE response (
     prompt_id   INTEGER NOT NULL,
     response    TEXT NOT NULL,  -- full json response object
     text        TEXT NOT NULL,  -- just the text
+    response_time REAL,         -- time in seconds to generate the response
     FOREIGN KEY(prompt_id) REFERENCES prompt(id),
     FOREIGN KEY(set_id) REFERENCES response_set(id) ON DELETE CASCADE
 );
