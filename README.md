@@ -61,10 +61,10 @@ Set Up an Application
    - `FLASK_INSTANCE_PATH`: Path to an instance folder for storing the DB,
      etc.  Commonly set to `instance`.
    - `SECRET_KEY`: A secure random string used to sign session cookies.
-   - `OPENAI_API_KEY`: Your OpenAI API key to be used for queries outside of a
+   - `SYSTEM_MODEL_SHORTNAME`: Name from the application databse of the model
+     to be used outside of a class context.  `GPT-4o` is a good default.
+   - `SYSTEM_API_KEY`: Your LLM API key to be used for queries outside of a
      class context (e.g. for free queries).
-   - `SYSTEM_MODEL`: Name from the OpenAI API of the model to be used outside
-     of a class context.  `gpt-4o` is a good default.
    - `DEFAULT_CLASS_MODEL_SHORTNAME`: Name from the application database for
      the default model to be used in new classes (can be configured after
      creating the class).  `GPT-4o` is a good default.

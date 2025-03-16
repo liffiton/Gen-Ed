@@ -28,6 +28,7 @@ from . import (
     experiments,  # noqa: F401 -- importing the module registers an admin component
     filters,
     instructor,
+    llm,
     lti,
     migrate,
     oauth,
@@ -136,11 +137,11 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
     # Add vars set in .env, loaded by load_dotenv() above, to config dictionary.
     # Required variables:
     #  - SECRET_KEY: used by Flask to sign session cookies
-    #  - OPENAI_API_KEY: the "system" API key used in certain situations
-    #  - SYSTEM_MODEL: LLM model string used for 'system' completions
-    #  - DEFAULT_CLASS_MODEL_SHORTNAME: shortname of model to use as default for new classes
+    #  - SYSTEM_API_KEY: the "system" LLM API key used in certain situations
+    #  - SYSTEM_MODEL_SHORTNAME: shortname of model (in db) used for 'system' completions
+    #  - DEFAULT_CLASS_MODEL_SHORTNAME: shortname of model (in db) used as default for new classes
     #    (see models table in db)
-    for varname in ["SECRET_KEY", "OPENAI_API_KEY", "SYSTEM_MODEL", "DEFAULT_CLASS_MODEL_SHORTNAME"]:
+    for varname in ["SECRET_KEY", "SYSTEM_API_KEY", "SYSTEM_MODEL_SHORTNAME", "DEFAULT_CLASS_MODEL_SHORTNAME"]:
         try:
             env_var = os.environ[varname]
             base_config[varname] = env_var
@@ -240,15 +241,14 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
             # load consumers from DB
             lti.reload_consumers()
 
-            # validate that the default class model exists and is active
+            # validate that the system and default class models exist
+            # and are active
             try:
-                default_model_row = db_conn.execute(
-                    "SELECT 1 FROM models WHERE active AND shortname = ?",
-                    [app.config['DEFAULT_CLASS_MODEL_SHORTNAME']]
-                ).fetchone()
-                if not default_model_row:
-                    app.logger.error(f"Default model shortname '{app.config['DEFAULT_CLASS_MODEL_SHORTNAME']}' not found in active models.")
-                    sys.exit(1)
+                for var in "SYSTEM_MODEL_SHORTNAME", "DEFAULT_CLASS_MODEL_SHORTNAME":
+                    shortname = app.config[var]
+                    if not llm.get_model(by_shortname=shortname):
+                        app.logger.error(f"Default model shortname '{app.config['DEFAULT_CLASS_MODEL_SHORTNAME']}' not found in active models.")
+                        sys.exit(1)
             except sqlite3.OperationalError:
                 # e.g., pre-migration, no 'active' column; just warn
                 app.logger.warning("Error looking up default active model.  You probably need to run migrations.")

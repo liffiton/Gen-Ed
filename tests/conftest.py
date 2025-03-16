@@ -52,7 +52,7 @@ def app(monkeypatch, request):
             test_config={
                 'TESTING': True,
                 'DATABASE': str(db_path),
-                'OPENAI_API_KEY': 'invalid',  # ensure an invalid API key for testing
+                'SYSTEM_API_KEY': 'invalid',  # ensure an invalid API key for testing
             },
             instance_path=instance_path,
         )

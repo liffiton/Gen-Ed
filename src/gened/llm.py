@@ -6,7 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import wraps
 from sqlite3 import Row
-from typing import Any, Literal, ParamSpec, TypeAlias, TypeVar
+from typing import Any, ParamSpec, TypeAlias, TypeVar
 
 from flask import current_app, flash, render_template
 
@@ -14,36 +14,19 @@ from .auth import get_auth
 from .db import get_db
 from .openai_client import OpenAIChatMessage, OpenAIClient
 
-LLMProvider: TypeAlias = Literal['google', 'openai']
 ChatMessage: TypeAlias = OpenAIChatMessage
-
-
-def _get_client(provider: LLMProvider, model: str, api_key: str) -> OpenAIClient:
-    """Create and configure an OpenAI-compatible client for the given provider.
-
-    Args:
-        provider: The LLM provider to use
-        model: The model identifier
-        api_key: The API key for authentication
-
-    Returns:
-        A configured OpenAIClient instance using the appropriate base URL for the provider
-    """
-    match provider:
-        case 'google':
-            # https://ai.google.dev/gemini-api/docs/openai
-            return OpenAIClient(model, api_key, base_url="https://generativelanguage.googleapis.com/v1beta/openai/")
-        case 'openai':
-            return OpenAIClient(model, api_key)
 
 
 @dataclass
 class LLM:
     """Manages access to language models with token tracking and lazy client initialization."""
-    provider: LLMProvider
+    provider: str
+    shortname: str
     model: str
-    api_key: str
+    endpoint: str | None  # if None, use the default OpenAI endpoint
+    api_key: str | None
     tokens_remaining: int | None = None  # None if current user is not using tokens
+    # TODO: store & use model config
     _client: OpenAIClient | None = field(default=None, init=False, repr=False)  # Instantiated only when needed
 
     async def get_completion(self, prompt: str | None = None, messages: list[OpenAIChatMessage] | None = None, extra_args: dict[str, Any] | None = None) -> tuple[dict[str, str], str]:
@@ -53,8 +36,9 @@ class LLM:
 
         Delegates to OpenAIClient.get_completion() (see openai_client.py)
         """
+        assert self.api_key is not None
         if self._client is None:
-            self._client = _get_client(self.provider, self.model, self.api_key)
+            self._client = OpenAIClient(self.model, self.api_key, base_url=self.endpoint)
         return await self._client.get_completion(prompt, messages, extra_args)
 
 
@@ -90,18 +74,16 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLM:
     '''
     db = get_db()
 
-    def make_system_client(tokens_remaining: int | None = None) -> LLM:
+    def make_system_client() -> LLM:
         """ Factory function to initialize a default client (using the system key)
             only if/when needed.
         """
-        system_key = current_app.config["OPENAI_API_KEY"]
-        system_model = current_app.config["SYSTEM_MODEL"]
-        return LLM(
-            provider='openai',
-            api_key=system_key,
-            model=system_model,
-            tokens_remaining=tokens_remaining,
-        )
+        system_key = current_app.config["SYSTEM_API_KEY"]
+        system_model = current_app.config["SYSTEM_MODEL_SHORTNAME"]
+        model = get_model(by_shortname=system_model)
+        assert model is not None
+        model.api_key = system_key
+        return model
 
     if use_system_key:
         return make_system_client()
@@ -114,8 +96,7 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLM:
             SELECT
                 classes.enabled,
                 COALESCE(consumers.llm_api_key, classes_user.llm_api_key) AS llm_api_key,
-                COALESCE(consumers.model_id, classes_user.model_id) AS _model_id,
-                models.model
+                COALESCE(consumers.model_id, classes_user.model_id) AS model_id
             FROM classes
             LEFT JOIN classes_lti
               ON classes.id = classes_lti.class_id
@@ -123,8 +104,6 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLM:
               ON classes_lti.lti_consumer_id = consumers.id
             LEFT JOIN classes_user
               ON classes.id = classes_user.class_id
-            LEFT JOIN models
-              ON models.id = _model_id
             WHERE classes.id = ?
         """, [auth.cur_class.class_id]).fetchone()
 
@@ -134,11 +113,10 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLM:
         if not class_row['llm_api_key']:
             raise NoKeyFoundError
 
-        return LLM(
-            provider='openai',
-            api_key=class_row['llm_api_key'],
-            model=class_row['model'],
-        )
+        model = get_model(by_id=class_row['model_id'])
+        assert model is not None
+        model.api_key = class_row['llm_api_key']
+        return model
 
     # Get user data for tokens, auth_provider
     user_row = db.execute("""
@@ -165,7 +143,9 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLM:
         db.commit()
         tokens -= 1
 
-    return make_system_client(tokens_remaining = tokens)
+    model = make_system_client()
+    model.tokens_remaining = tokens
+    return model
 
 
 # For decorator type hints
@@ -208,6 +188,42 @@ def with_llm(*, use_system_key: bool = False, spend_token: bool = False) -> Call
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+
+
+def get_model(*, by_id: int | None = None, by_shortname: str | None = None) -> LLM | None:
+    """Get a model from the database either by id (if by_id is set) or by
+       shortname (if by_shortname is set).
+    """
+    db = get_db()
+    model_row = db.execute("""
+        SELECT
+            m.id,
+            p.name AS provider,
+            m.shortname,
+            m.model,
+            COALESCE(m.custom_endpoint, p.endpoint) AS endpoint,
+            m.config,
+            p.config_schema,
+            m.active
+        FROM models AS m
+        JOIN llm_providers AS p ON p.id=m.provider_id
+        WHERE m.active
+        AND (m.id = ? OR m.shortname =?)
+        ORDER BY m.id ASC
+    """, [by_id, by_shortname]
+    ).fetchone()
+
+    if not model_row:
+        return None
+
+    # TODO: validate and parse config JSON
+    return LLM(
+        provider=model_row['provider'],
+        shortname=model_row['shortname'],
+        model=model_row['model'],
+        endpoint=model_row['endpoint'],
+        api_key=None,  # to be filled in later if needed
+    )
 
 
 def get_models() -> list[Row]:
