@@ -188,7 +188,7 @@ input[type='radio'] {
                   <select required name="model_id" id="model_id" x-on:change="llm_config_saved=false">
                     <option value="">Please select one</option>
                     {% for model in models %}
-                      <option value="{{model.id}}" {% if model.id == class_row.model_id %}selected{% endif %}>{{model.name}}</option>
+                      <option value="{{model.id}}" {% if model.id == class_row.model_id %}selected{% endif %}>{{model.provider}} {{model.shortname}}</option>
                     {% endfor %}
                   </select>
                 </div>

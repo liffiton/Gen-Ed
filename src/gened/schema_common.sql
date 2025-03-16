@@ -19,6 +19,7 @@ DROP TABLE IF EXISTS classes_lti;
 DROP TABLE IF EXISTS classes_user;
 DROP TABLE IF EXISTS demo_links;
 DROP TABLE IF EXISTS migrations;
+DROP TABLE IF EXISTS llm_providers;
 DROP TABLE IF EXISTS models;
 DROP TABLE IF EXISTS experiments;
 DROP TABLE IF EXISTS experiment_class;
@@ -164,18 +165,46 @@ CREATE TABLE migrations (
 );
 
 -- Models (LLMs via API) to be assigned per-consumer or per-class
-CREATE TABLE models (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    name        TEXT NOT NULL UNIQUE,
-    shortname   TEXT NOT NULL UNIQUE,
-    model       TEXT NOT NULL,
-    active      BOOLEAN NOT NULL CHECK (active IN (0,1))
+CREATE TABLE llm_providers (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    name            TEXT NOT NULL UNIQUE,
+    endpoint        TEXT,  -- can be null if overridden in models table
+    config_schema   TEXT NOT NULL DEFAULT '{}'
 );
+
+CREATE TABLE models (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    provider_id     INTEGER NOT NULL,
+    shortname       TEXT NOT NULL UNIQUE,
+    model           TEXT NOT NULL,
+    custom_endpoint TEXT,  -- can be null to use default from providers table
+    config          TEXT NOT NULL DEFAULT '{}',  -- defaults from llm_providers.config_schema will be used for anything not specified here
+    active          BOOLEAN NOT NULL CHECK (active IN (0,1)),
+    FOREIGN KEY(provider_id) REFERENCES llm_providers(id)
+);
+
+INSERT INTO llm_providers(name, endpoint, config_schema) VALUES
+    ('OpenAI', 'https://api.openai.com/v1', '{
+        "type": "object",
+        "properties": {
+            "temperature": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 2,
+                "default": 0.25
+            },
+            "max_tokens": {
+                "type": "integer", 
+                "minimum": 1,
+                "default": 2000
+            }
+        }
+    }');
+
 -- See also: DEFAULT_CLASS_MODEL_SHORTNAME in base.create_app_base()
-INSERT INTO models(name, shortname, model, active) VALUES
-    ('OpenAI GPT-3.5 Turbo', 'GPT-3.5', 'gpt-3.5-turbo-0125', false),
-    ('OpenAI GPT-4o', 'GPT-4o', 'gpt-4o', true),
-    ('OpenAI GPT-4o-mini', 'GPT-4o-mini', 'gpt-4o-mini', true)
+INSERT INTO models(provider_id, shortname, model, active) VALUES
+    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4o', 'gpt-4o', true),
+    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4o-mini', 'gpt-4o-mini', true)
 ;
 
 

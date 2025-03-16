@@ -95,7 +95,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <select name="model_id" required id="model_id">
                   <option value="">Please select one</option>
                   {% for model in models %}
-                    <option value="{{model.id}}" {% if consumer and model.id == consumer.model_id %}selected{% endif %}>{{model.name}}</option>
+                    <option value="{{model.id}}" {% if consumer and model.id == consumer.model_id %}selected{% endif %}>{{model.provider}} {{model.shortname}}</option>
                   {% endfor %}
                 </select>
               </div>

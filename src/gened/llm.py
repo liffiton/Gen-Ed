@@ -213,5 +213,19 @@ def with_llm(*, use_system_key: bool = False, spend_token: bool = False) -> Call
 def get_models() -> list[Row]:
     """Get all active language models from the database."""
     db = get_db()
-    models = db.execute("SELECT * FROM models WHERE active ORDER BY id ASC").fetchall()
+    models = db.execute("""
+        SELECT
+            m.id,
+            p.name AS provider,
+            m.shortname,
+            m.model,
+            COALESCE(m.custom_endpoint, p.endpoint) AS endpoint,
+            m.config,
+            p.config_schema,
+            m.active
+        FROM models AS m
+        JOIN llm_providers AS p ON p.id=m.provider_id
+        WHERE m.active
+        ORDER BY m.id ASC
+    """).fetchall()
     return models
