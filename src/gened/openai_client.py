@@ -80,11 +80,13 @@ class OpenAIClient:
             current_app.logger.error(f"OpenAI RateLimitError: {e}")
         except openai.AuthenticationError as e:
             err_str = str(e)
-            response_txt = "Error (AuthenticationError).  The API key set by the instructor for this class is invalid.  The instructor needs to provide a valid API key for this application to work."
+            response_txt = "Error (AuthenticationError).  The API key set by the instructor for this class is invalid.  A valid API key is needed for this application to work."
             current_app.logger.error(f"OpenAI AuthenticationError: {e}")
         except openai.BadRequestError as e:
             err_str = str(e)
-            if "maximum context length" in err_str:
+            if "API key not valid" in err_str:
+                response_txt = "Error (BadRequestError).  The API key set by the instructor for this class is invalid.  A valid API key is needed for this application to work."
+            elif "maximum context length" in err_str:
                 response_txt = "Error (BadRequestError).  Your query is too long for the model to process.  Please reduce the length of your input."
             else:
                 response_txt = common_error_text.format(error_type='BadRequestError')
