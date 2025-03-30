@@ -67,7 +67,7 @@ async def run_query_prompts(llm: LLM, assignment: str, topics: str) -> tuple[lis
     ''' Run the given query against the coding help system of prompts.
 
     Returns a tuple containing:
-      1) A list of response objects from the OpenAI completion (to be stored in the database)
+      1) A list of response objects from the LLM completion (to be stored in the database)
       2) A dictionary of response text, potentially including the key 'main'.
     '''
     task_main = asyncio.create_task(

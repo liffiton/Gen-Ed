@@ -134,7 +134,7 @@ async def run_query_prompts(llm: LLM, context: ContextConfig | None, code: str, 
     ''' Run the given query against the coding help system of prompts.
 
     Returns a tuple containing:
-      1) A list of response objects from the OpenAI completion (to be stored in the database)
+      1) A list of response objects from the LLM completion (to be stored in the database)
       2) A dictionary of response text, potentially including keys 'insufficient' and 'main'.
     '''
     context_str = context.prompt_str() if context is not None else None

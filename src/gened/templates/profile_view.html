@@ -193,7 +193,7 @@ dl.profile dd { margin: 0; }
     <dialog id="new_class_dialog" style="width: 75%; min-width: min(32em, 100vw);">
       <div class="content box">
         <h2>Create a New Class</h2>
-        <p>You can create a class, attach an OpenAI API key to it, and invite others to join it as students.  You will be given the 'instructor' role in the class, and you will be able to configure it, control access and registration, and see all queries from students who join.</p>
+        <p>You can create a class, attach an LLM API key to it, and invite others to join it as students.  You will be given the 'instructor' role in the class, and you will be able to configure it, control access and registration, and see all queries from students who join.</p>
         <form action="{{url_for('classes.create_class')}}" method="post">
           <div class="field">
             <label class="label is-size-5" for="class_name">Class Name:</label>
@@ -203,7 +203,7 @@ dl.profile dd { margin: 0; }
           </div>
           <div class="field">
             <label class="label is-size-5" for="llm_api_key">
-              OpenAI API Key:
+              LLM API Key:
             </label>
             <div class="control">
               <input class="input" name="llm_api_key" id="llm_api_key">

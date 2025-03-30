@@ -217,7 +217,7 @@ def get_response(llm: LLM, chat: list[ChatMessage]) -> tuple[dict[str, str], str
               following the OpenAI chat completion API spec.
 
     Returns a tuple containing:
-      1) A response object from the OpenAI completion (to be stored in the database).
+      1) A response object from the LLM completion (to be stored in the database).
       2) The response text.
     '''
     response, text = asyncio.run(llm.get_completion(messages=chat))

@@ -137,6 +137,12 @@ input[type='radio'] {
           llm_config_saved: {{ 'true' if class_row.llm_api_key else 'false' }},
           llm_test_loading: false,
           llm_test_result: null,
+          model: {{ class_row.model_id }},
+          model_providers: {
+            {% for model in models %}
+            {{model.id}}: '{{model.provider}}'{% if not loop.last %},{% endif %}
+            {% endfor %}
+          },
           dialog: document.querySelector('#llm_test_dialog'),
           showDialog() {
             this.dialog.showModal();
@@ -156,8 +162,28 @@ input[type='radio'] {
       }">
         <div class="field is-horizontal">
           <div class="field-label is-normal">
-            <label class="label">OpenAI API Key:</label>
-            <p class="help-text">Your key must be in a <a href="https://platform.openai.com/docs/guides/rate-limits/usage-tiers">usage tier</a> that allows for the level of usage you expect.  The free tier does not support the models used here.</p>
+            <label class="label" for="model_id">Model:</label>
+          </div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <div class="select">
+                  <select required x-model="model" name="model_id" id="model_id" x-on:change="llm_config_saved=false">
+                    <option disabled value="">Please select one</option>
+                    {% for model in models %}
+                      <option value="{{model.id}}" {% if model.id == class_row.model_id %}selected{% endif %}>{{model.provider}} {{model.shortname}}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field is-horizontal">
+          <div class="field-label is-normal">
+            <label class="label">LLM API Key:</label>
+            <p class="help-text" x-show="model_providers[model]=='OpenAI'">Your key must be in an <a href="https://platform.openai.com/docs/guides/rate-limits/usage-tiers">OpenAI usage tier</a> that allows for the level of usage you expect.  The free tier does not support the models used here.</p>
             <p class="help-text">If blank, users in this class will not be able to submit queries.</p>
           </div>
           <div class="field-body">
@@ -174,26 +200,6 @@ input[type='radio'] {
                 </div>
               </div>
             {% endif %}
-          </div>
-        </div>
-
-        <div class="field is-horizontal">
-          <div class="field-label is-normal">
-            <label class="label" for="model_id">Model:</label>
-          </div>
-          <div class="field-body">
-            <div class="field">
-              <div class="control">
-                <div class="select">
-                  <select required name="model_id" id="model_id" x-on:change="llm_config_saved=false">
-                    <option value="">Please select one</option>
-                    {% for model in models %}
-                      <option value="{{model.id}}" {% if model.id == class_row.model_id %}selected{% endif %}>{{model.provider}} {{model.shortname}}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -227,7 +233,7 @@ input[type='radio'] {
         <dialog id="llm_test_dialog">
           <div class="notification"
                x-bind:class="llm_test_result === 'ok' ? 'is-success' : 'is-danger'"
-               x-html="llm_test_result === 'ok' ? 'Your API key and chosen model worked!' : llm_test_result">
+               x-html="llm_test_result === 'ok' ? 'Your API key worked with the chosen model!' : llm_test_result">
           </div>
         </dialog>
 

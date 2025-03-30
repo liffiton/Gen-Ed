@@ -23,12 +23,12 @@ Whatever account you use will be registered as an "instructor" for the new class
 Once logged in, go to your <a href="/profile/">profile page</a> (also accessible by clicking on your user info in the navigation bar at the top of the page).
 
 In the "Classes" section, press "Create new class."
-This will bring up a dialog asking for a class name and an OpenAI API key.
+This will bring up a dialog asking for a class name and an LLM API key.
 
-The OpenAI API key will be used for your students' queries in CodeHelp.
+The LLM API key will be used for your students' queries in CodeHelp.
 If you don't have an API key yet, you can leave it blank for now, but it will be required for anyone to submit queries in your class.
 You can create an API key using an account at <a href="https://openai.com/">openai.com</a>.
-OpenAI will charge you directly for your students' usage, so you will need to purchase usage credits using a credit card.
+The LLM provider (e.g., OpenAI) will charge you directly for your students' usage, so you will need to purchase usage credits using a credit card.
 The cost is low.
 One query from CodeHelp costs roughly US$0.01 if using GPT-4o (the recommended model) or $0.0004 using GPT-4o-mini (which is less accurate).
 
@@ -40,7 +40,7 @@ Anyone using the link will register as a student in the class if "Registration v
 You can control whether registration is allowed by manually enabling and disabling it or by setting a date up through which registration will be enabled.
 Once students have registered, they can use the same link to access CodeHelp and make queries connected to your class.
 
-In the configuration screen, you can also archive the class (so students can see their past queries but not make new ones) and change or delete the OpenAI API key you have connected to it.
+In the configuration screen, you can also archive the class (so students can see their past queries but not make new ones) and change or delete the API key you have connected to it.
 
 ## Adding Instructors
 
