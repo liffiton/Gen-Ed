@@ -8,6 +8,7 @@ from collections.abc import Callable
 
 from flask import (
     Blueprint,
+    abort,
     current_app,
     flash,
     render_template,
@@ -70,40 +71,53 @@ def config_form() -> str:
 
     extra_sections = [render() for render in _extra_config_renderfuncs]  # rendered HTML for any extra config sections
 
-    return render_template("instructor_class_config.html", class_row=class_row, link_reg_state=link_reg_state, models=get_models(), extra_sections=extra_sections)
+    return render_template("instructor_class_config.html", class_row=class_row, link_reg_state=link_reg_state, user_is_creator=cur_class.user_is_creator, models=get_models(), extra_sections=extra_sections)
 
 
-@bp.route("/save", methods=["POST"])
-def save_config() -> Response:
+@bp.route("/save/access", methods=["POST"])
+def save_access_config() -> Response:
     db = get_db()
 
     # only trust class_id from auth, not from user
     cur_class = get_auth_class()
     class_id = cur_class.class_id
 
+    if 'is_user_class' in request.form:
+        # only present for user classes, not LTI
+        link_reg_active = request.form['link_reg_active']
+        if link_reg_active == "disabled":
+            new_date = str(dt.date.min)
+        elif link_reg_active == "enabled":
+            new_date = str(dt.date.max)
+        else:
+            new_date = request.form['link_reg_expires']
+
+        class_link_anon_login = 1 if 'class_link_anon_login' in request.form else 0
+        db.execute("UPDATE classes_user SET link_reg_expires=?, link_anon_login=? WHERE class_id=?", [new_date, class_link_anon_login, class_id])
+
+    class_enabled = 1 if 'class_enabled' in request.form else 0
+    db.execute("UPDATE classes SET enabled=? WHERE id=?", [class_enabled, class_id])
+    db.commit()
+    flash("Class access configuration updated.", "success")
+
+    return safe_redirect(request.referrer, default_endpoint="profile.main")
+
+@bp.route("/save/llm", methods=["POST"])
+def save_llm_config() -> Response:
+    db = get_db()
+
+    # only trust class_id from auth, not from user
+    cur_class = get_auth_class()
+    class_id = cur_class.class_id
+
+    # only class creators can edit LLM config
+    if not cur_class.user_is_creator:
+        return abort(403)
+
     if 'clear_llm_api_key' in request.form:
         db.execute("UPDATE classes_user SET llm_api_key='' WHERE class_id=?", [class_id])
         db.commit()
         flash("Class API key cleared.", "success")
-
-    elif 'save_access_form' in request.form:
-        if 'is_user_class' in request.form:
-            # only present for user classes, not LTI
-            link_reg_active = request.form['link_reg_active']
-            if link_reg_active == "disabled":
-                new_date = str(dt.date.min)
-            elif link_reg_active == "enabled":
-                new_date = str(dt.date.max)
-            else:
-                new_date = request.form['link_reg_expires']
-
-            class_link_anon_login = 1 if 'class_link_anon_login' in request.form else 0
-            db.execute("UPDATE classes_user SET link_reg_expires=?, link_anon_login=? WHERE class_id=?", [new_date, class_link_anon_login, class_id])
-
-        class_enabled = 1 if 'class_enabled' in request.form else 0
-        db.execute("UPDATE classes SET enabled=? WHERE id=?", [class_enabled, class_id])
-        db.commit()
-        flash("Class access configuration updated.", "success")
 
     elif 'save_llm_form' in request.form:
         if 'llm_api_key' in request.form:

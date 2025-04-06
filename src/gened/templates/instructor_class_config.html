@@ -36,7 +36,7 @@ input[type='radio'] {
   <div class="flex_items" style="gap: 0;">
     <div class="flex_item">
       <h2 class="title is-size-4">Access</h2>
-      <form action="{{ url_for("class_config.save_config") }}" method="post">
+      <form action="{{ url_for("class_config.save_access_config") }}" method="post">
         <div class="field is-horizontal">
           <div class="field-label is-normal">
             <label class="label" for="class_enabled">Class Active:</label>
@@ -120,7 +120,7 @@ input[type='radio'] {
           <div class="field-body">
             <div class="field">
               <div class="control">
-                <button class="button is-link" type="submit" name="save_access_form">Save</button>
+                <button class="button is-link" type="submit">Save</button>
               </div>
             </div>
           </div>
@@ -133,7 +133,8 @@ input[type='radio'] {
       <div class="item_sep"></div>
 
       <h2 class="title is-size-4 mt-5">Language Model</h2>
-      <form action="{{ url_for("class_config.save_config") }}" method="post" x-data="{
+      {% if user_is_creator %}
+      <form action="{{ url_for("class_config.save_llm_config") }}" method="post" x-data="{
           llm_config_saved: {{ 'true' if class_row.llm_api_key else 'false' }},
           llm_test_loading: false,
           llm_test_result: null,
@@ -238,6 +239,25 @@ input[type='radio'] {
         </dialog>
 
       </form>
+      {% else %}{# here, user_is_creator is False #}
+        <div class="field is-horizontal">
+          <div class="field-label">
+            <label class="label" for="model_id">Model:</label>
+          </div>
+          <div class="field-body">
+            <div class="field content">
+              <p>
+              {%- for model in models -%}
+                {%- if model.id == class_row.model_id -%}
+                  {{model.provider}} {{model.shortname}}
+                {%- endif -%}
+              {%- endfor -%}
+              </p>
+              <p><i>This can be configured by the creator of the class.</i></p>
+            </div>
+          </div>
+        </div>
+      {% endif %}{# end if user_is_creator #}
 
       {% endif %}{# end if class['link_ident'] -- i.e., end of user-created class config #}
 

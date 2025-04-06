@@ -57,6 +57,7 @@ class ClassData:
     class_name: str
     role_id: int
     role: RoleType
+    user_is_creator: bool
 
 @dataclass(frozen=True)
 class AuthData:
@@ -158,9 +159,12 @@ def _get_auth_from_session() -> AuthData:
             roles.class_id,
             roles.role,
             classes.name,
-            classes.enabled
+            classes.enabled,
+            classes_user.creator_user_id
         FROM roles
         JOIN classes ON classes.id=roles.class_id
+        LEFT JOIN classes_user
+          ON classes.id = classes_user.class_id
         WHERE roles.user_id=? AND roles.active=1
         ORDER BY roles.id DESC
     """, [user_id]).fetchall()
@@ -177,6 +181,7 @@ def _get_auth_from_session() -> AuthData:
             class_name=row['name'],
             role_id=row['role_id'],
             role=row['role'],
+            user_is_creator=(user_id == row['creator_user_id']),
         )
         if row['class_id'] == sess_class_id:
             assert cur_class is None  # sanity check: should only ever match one role/class
@@ -189,7 +194,7 @@ def _get_auth_from_session() -> AuthData:
             # store a list of any other classes that are enabled (for navbar switching UI)
             other_classes.append(class_data)
 
-    # admin gets instructor role in all classes automatically
+    # admin gets instructor/creator role in all classes automatically
     if user.is_admin and cur_class is None and sess_class_id is not None:
         class_row = db.execute("SELECT name FROM classes WHERE id=?", [sess_class_id]).fetchone()
         cur_class = ClassData(
@@ -197,6 +202,7 @@ def _get_auth_from_session() -> AuthData:
             class_name=class_row['name'],
             role_id=-1,
             role='instructor',
+            user_is_creator=True,
         )
 
     # return an AuthData with all collected values
