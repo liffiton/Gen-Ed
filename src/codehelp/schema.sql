@@ -2,8 +2,6 @@
 --
 -- SPDX-License-Identifier: AGPL-3.0-only
 
-PRAGMA foreign_keys = ON;
-
 DROP TABLE IF EXISTS queries;
 CREATE TABLE queries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

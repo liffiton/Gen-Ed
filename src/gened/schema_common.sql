@@ -2,10 +2,6 @@
 --
 -- SPDX-License-Identifier: AGPL-3.0-only
 
-PRAGMA journal_mode = WAL;    -- to enable Litestream backups
-PRAGMA synchronous = NORMAL;  -- recommended setting for WAL mode
-PRAGMA busy_timeout = 5000;   -- to avoid immediate errors on some blocked writes
-
 PRAGMA foreign_keys = OFF;  -- just for not worrying about table deletion order
 
 DROP TABLE IF EXISTS consumers;
