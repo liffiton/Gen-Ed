@@ -49,6 +49,7 @@ class CodeHelpDeletionHandler(DeletionHandler):
     def delete_class_data(self, class_id: int) -> None:
         """Delete/Anonymize personal data for a class while preserving non-personal data for analysis."""
         db = get_db()
+        db.execute("PRAGMA foreign_keys=OFF")  # so we can delete context_string entries before NULLing the foreign keys referencing them
 
         # Remove context names and configs as they may contain personal information
         db.execute("""
@@ -109,6 +110,7 @@ class CodeHelpDeletionHandler(DeletionHandler):
             )
         """, [class_id])
 
+        db.execute("PRAGMA foreign_keys=ON")
         db.commit()
 
 
