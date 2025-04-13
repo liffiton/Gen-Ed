@@ -25,13 +25,13 @@ classifiers = [
 ]
 
 dependencies = [
-    "Authlib~=1.3.0",
+    "Authlib~=1.5.2",
     "Flask~=3.1.0",
     "markdown-it-py~=3.0.0",
     "openai~=1.0, >=1.26",
     "pylti@git+https://github.com/liffiton/pylti",
     "pyrage~=1.2.0",
-    "python-dotenv~=1.0.0",
+    "python-dotenv~=1.1.0",
     "python-frontmatter~=1.1.0",
     "tzdata; platform_system == 'Windows'",  # Timezone data for Windows
 ]
@@ -40,7 +40,7 @@ dependencies = [
 test = [
     "oauthlib~=3.2.2",
     "pytest~=8.0",
-    "pytest-cov~=6.0.0",
+    "pytest-cov~=6.1.0",
     "pytest-xdist~=3.6.1",
     "mypy",
     "types-requests",
