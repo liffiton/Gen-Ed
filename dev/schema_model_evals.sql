@@ -18,7 +18,7 @@ CREATE TABLE prompt (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     set_id      INTEGER NOT NULL,
     msgs_json   TEXT NOT NULL,
-    model_response  TEXT NOT NULL,  -- A model response for this prompt -- form depends on the type of prompt
+    model_response  TEXT,  -- A model response for this prompt -- form depends on the type of prompt
     FOREIGN KEY(set_id) REFERENCES prompt_set(id) ON DELETE CASCADE
 );
 

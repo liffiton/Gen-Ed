@@ -22,7 +22,6 @@ from loaders import (
 )
 from tqdm.auto import tqdm
 
-TEMPERATURE = 0.25
 MAX_TOKENS = 2000
 
 
@@ -75,7 +74,7 @@ def load_data(db: sqlite3.Connection, file_path: Path, app: str, prompt_name: st
         prompt_msgs = make_prompt(prompt_func, query)
         db.execute(
             "INSERT INTO prompt(msgs_json, model_response, set_id) VALUES(?, ?, ?)",
-            [json.dumps(prompt_msgs), query[model_field], prompt_set_id]
+            [json.dumps(prompt_msgs), query.get(model_field), prompt_set_id]
         )
         db.commit()
 
@@ -114,8 +113,7 @@ def gen_responses(db: sqlite3.Connection, prompt_set_id: int, model: str) -> Non
             response = litellm.completion(
                 model=model,
                 messages=msgs,
-                temperature=TEMPERATURE,
-                max_tokens=MAX_TOKENS,
+                max_completion_tokens=MAX_TOKENS,
                 n=1,
                 drop_params = True,  # OpenAI o* models don't allow temp!=1.0; this bypasses that error
             )
@@ -200,8 +198,7 @@ def eval_sufficient(model: str, row: Row) -> dict[str, bool]:
         model=model,
         response_format={ "type": "json_object" },
         messages=msgs,
-        temperature=TEMPERATURE,
-        max_tokens=MAX_TOKENS,
+        max_completion_tokens=MAX_TOKENS,
         n=1,
         drop_params = True,  # still run if 'response_format' not accepted by the current model
     )
