@@ -10,17 +10,20 @@ from gened.db import get_db
 def test_valid_default_model(app):
     """Test that a valid default model shortname works.
 
-    Uses app fixture to be able to use its initialized database
+    Uses app fixture to be able to use its config and initialized database
     when creating a new app for the test.
     """
+    instance_path = Path(app.instance_path)
     # Should work without raising any exceptions
     test_app = codehelp.create_app(
         test_config={
             'TESTING': True,
-            'DATABASE': Path(app.instance_path) / 'test.db',
-            # Use an existing, active model from schema_common.sql
-            'DEFAULT_CLASS_MODEL_SHORTNAME': 'GPT-4o-mini',
-        }
+            'DATABASE': instance_path / 'test.db',
+            # Use existing, active models (loaded into config from .env.test for all tests)
+            'SYSTEM_MODEL_SHORTNAME': app.config['SYSTEM_MODEL_SHORTNAME'],
+            'DEFAULT_CLASS_MODEL_SHORTNAME': app.config['DEFAULT_CLASS_MODEL_SHORTNAME'],
+        },
+        instance_path = instance_path
     )
     assert isinstance(test_app, Flask)
 
@@ -31,30 +34,22 @@ def test_invalid_model_shortname(app):
     Uses app fixture to be able to use its initialized database
     when creating a new app for the test.
     """
+    instance_path = Path(app.instance_path)
     with pytest.raises(SystemExit) as exc_info:
         codehelp.create_app(
             test_config={
                 'TESTING': True,
-                'DATABASE': Path(app.instance_path) / 'test.db',
+                'DATABASE': instance_path / 'test.db',
                 'DEFAULT_CLASS_MODEL_SHORTNAME': 'NONEXISTENT-MODEL',
             }
         )
     assert exc_info.value.code == 1
-
-
-def test_inactive_model_shortname(app):
-    """Test that an inactive model shortname raises an error.
-
-    Uses app fixture to be able to use its initialized database
-    when creating a new app for the test.
-    """
     with pytest.raises(SystemExit) as exc_info:
         codehelp.create_app(
             test_config={
                 'TESTING': True,
-                'DATABASE': Path(app.instance_path) / 'test.db',
-                # GPT-3.5 should be inactive in the database
-                'DEFAULT_CLASS_MODEL_SHORTNAME': 'GPT-3.5',
+                'DATABASE': instance_path / 'test.db',
+                'SYSTEM_MODEL_SHORTNAME': 'NONEXISTENT-MODEL',
             }
         )
     assert exc_info.value.code == 1

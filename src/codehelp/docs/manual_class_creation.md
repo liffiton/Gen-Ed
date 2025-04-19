@@ -29,8 +29,7 @@ The LLM API key will be used for your students' queries in CodeHelp.
 If you don't have an API key yet, you can leave it blank for now, but it will be required for anyone to submit queries in your class.
 You can create an API key using an account at <a href="https://openai.com/">openai.com</a>.
 The LLM provider (e.g., OpenAI) will charge you directly for your students' usage, so you will need to purchase usage credits using a credit card.
-The cost is low.
-One query from CodeHelp costs roughly US$0.01 if using GPT-4o (the recommended model) or $0.0004 using GPT-4o-mini (which is less accurate).
+The cost is low.  See the [Models](models) documentation for details.
 
 ## Configuration
 

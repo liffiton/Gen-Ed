@@ -29,7 +29,7 @@ If you don't have an API key yet, you can leave it blank for now, but it will be
 You can create an API key using an account at <a href="https://openai.com/">openai.com</a>.
 The LLM provider (e.g., OpenAI) will charge you directly for your students' usage, so you will need to purchase usage credits using a credit card.
 The cost is low.
-One query costs roughly US$0.01 if using GPT-4o (the recommended model) or $0.0004 using GPT-4o-mini (which is less accurate).
+One query costs less than US$0.01 if using GPT-4.1 (the recommended model).
 
 ## Configuration
 

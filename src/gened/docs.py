@@ -12,7 +12,7 @@ from markdown_it import MarkdownIt
 
 # get a processor that does HTML parsing for our docs (trusted content, HTML parsing okay)
 _markdown_processor = MarkdownIt("commonmark", {"typographer": True})
-_markdown_processor.enable(["replacements", "smartquotes"])
+_markdown_processor.enable(["replacements", "smartquotes", "table"])
 
 bp = Blueprint('docs', __name__, template_folder='templates')
 

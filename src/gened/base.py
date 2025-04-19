@@ -246,7 +246,8 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
             try:
                 for var in "SYSTEM_MODEL_SHORTNAME", "DEFAULT_CLASS_MODEL_SHORTNAME":
                     shortname = app.config[var]
-                    if not llm.get_model(by_shortname=shortname):
+                    model = llm.get_model(by_shortname=shortname)
+                    if not model or not model.active:
                         app.logger.error(f"Default model shortname '{app.config['DEFAULT_CLASS_MODEL_SHORTNAME']}' not found in active models.")
                         sys.exit(1)
             except sqlite3.OperationalError:

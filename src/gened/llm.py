@@ -25,6 +25,7 @@ class LLM:
     model: str
     endpoint: str | None  # if None, use the default OpenAI endpoint
     api_key: str | None
+    active: bool
     tokens_remaining: int | None = None  # None if current user is not using tokens
     # TODO: store & use model config
     _client: OpenAIClient | None = field(default=None, init=False, repr=False)  # Instantiated only when needed
@@ -82,6 +83,7 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLM:
         system_model = current_app.config["SYSTEM_MODEL_SHORTNAME"]
         model = get_model(by_shortname=system_model)
         assert model is not None
+        assert model.active
         model.api_key = system_key
         return model
 
@@ -207,7 +209,6 @@ def get_model(*, by_id: int | None = None, by_shortname: str | None = None) -> L
             m.active
         FROM models AS m
         JOIN llm_providers AS p ON p.id=m.provider_id
-        WHERE m.active
         AND (m.id = ? OR m.shortname =?)
         ORDER BY m.id ASC
     """, [by_id, by_shortname]
@@ -222,12 +223,16 @@ def get_model(*, by_id: int | None = None, by_shortname: str | None = None) -> L
         shortname=model_row['shortname'],
         model=model_row['model'],
         endpoint=model_row['endpoint'],
+        active=model_row['active'],
         api_key=None,  # to be filled in later if needed
     )
 
 
-def get_models() -> list[Row]:
-    """Get all active language models from the database."""
+def get_models(plus_id : int | None = None) -> list[Row]:
+    """Get all active language models from the database.
+    The plus_id argument can be used to add a currently-selected model to the
+    list even if it is not marked as active in the database.
+    """
     db = get_db()
     models = db.execute("""
         SELECT
@@ -241,7 +246,7 @@ def get_models() -> list[Row]:
             m.active
         FROM models AS m
         JOIN llm_providers AS p ON p.id=m.provider_id
-        WHERE m.active
+        WHERE m.active OR m.id = ?
         ORDER BY m.id ASC
-    """).fetchall()
+    """, [plus_id]).fetchall()
     return models

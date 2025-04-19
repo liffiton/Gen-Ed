@@ -71,7 +71,9 @@ def config_form() -> str:
 
     extra_sections = [render() for render in _extra_config_renderfuncs]  # rendered HTML for any extra config sections
 
-    return render_template("instructor_class_config.html", class_row=class_row, link_reg_state=link_reg_state, user_is_creator=cur_class.user_is_creator, models=get_models(), extra_sections=extra_sections)
+    models = get_models(plus_id=class_row['model_id'])
+
+    return render_template("instructor_class_config.html", class_row=class_row, link_reg_state=link_reg_state, user_is_creator=cur_class.user_is_creator, models=models, extra_sections=extra_sections)
 
 
 @bp.route("/save/access", methods=["POST"])

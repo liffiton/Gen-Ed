@@ -58,16 +58,17 @@ Set Up an Application
 1. In the root of the repository, create `.env` and populate it with
    environment variables to configure the application.  See `.env.test` for a
    list of all available variables.  The required variables are:
-   - `FLASK_INSTANCE_PATH`: Path to an instance folder for storing the DB,
-     etc.  Commonly set to `instance`.
-   - `SECRET_KEY`: A secure random string used to sign session cookies.
-   - `SYSTEM_MODEL_SHORTNAME`: Name from the application databse of the model
-     to be used outside of a class context.  `GPT-4o` is a good default.
+   - `FLASK_INSTANCE_PATH`: Path to an instance folder for storing the database
+     and other persistent files.  Commonly set to `instance`.
+   - `SECRET_KEY`: Used to sign session cookies.  Generate a secure random
+     string for this.
    - `SYSTEM_API_KEY`: Your LLM API key to be used for queries outside of a
      class context (e.g. for free queries).
+   - `SYSTEM_MODEL_SHORTNAME`: Name from the application databse of the model
+     to be used outside of a class context.  `GPT-4.1 mini` is a good default.
    - `DEFAULT_CLASS_MODEL_SHORTNAME`: Name from the application database for
      the default model to be used in new classes (can be configured after
-     creating the class).  `GPT-4o` is a good default.
+     creating the class).  `GPT-4.1 mini` is a good default.
 
 *Optionally*, if you want to allow logins from 3rd party authentication
 providers, set any of the following pairs with IDs/secrets obtained from

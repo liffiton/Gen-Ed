@@ -204,8 +204,9 @@ INSERT INTO llm_providers(name, endpoint, config_schema) VALUES
 
 -- See also: DEFAULT_CLASS_MODEL_SHORTNAME in base.create_app_base()
 INSERT INTO models(provider_id, shortname, model, active, scope) VALUES
-    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4o', 'gpt-4o', true, 'system'),
-    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4o-mini', 'gpt-4o-mini', true, 'system')
+    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1', 'gpt-4.1', true, 'system'),
+    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1 mini', 'gpt-4.1-mini', true, 'system'),
+    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1 nano', 'gpt-4.1-nano', true, 'system')
 ;
 
 
