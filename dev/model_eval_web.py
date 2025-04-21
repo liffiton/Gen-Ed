@@ -92,88 +92,34 @@ def load_data() -> str | Response:
     return redirect(url_for('home'))
 
 
-@app.route('/responses', methods=['GET', 'POST'])
-def responses() -> str | Response:
+@app.route('/generate_responses', methods=['POST'])
+def generate_responses() -> Response:
     db = get_db()
-    if request.method == 'POST':
-        action = request.form['action']
-        prompt_set_id = int(request.form['prompt_set'])
-        model = request.form['model']
+    prompt_set_id = int(request.form['prompt_set'])
+    model = request.form['model']
 
-        if action == 'generate':
-            gen_responses_func(db, prompt_set_id, model)
-            flash("Responses generated successfully.", "success")
-        elif action == 'evaluate':
-            cur = db.execute("SELECT id FROM response_set WHERE response_set.prompt_set_id=? AND response_set.model=?", [prompt_set_id, model])
-            response_set_id = cur.fetchone()['id']
-            eval_model = "gemini/gemini-2.0-flash"   # TODO: un-hardcode evaluating model
-            gen_evals_func(db, eval_model, response_set_id, "make_sufficient_prompt")  # TODO: un-hardcode prompt type
-            flash("Responses evaluated successfully.", "success")
+    gen_responses_func(db, prompt_set_id, model)
+    flash(f"Responses generated successfully for prompt set {prompt_set_id} using {model}.", "success")
+    return redirect(url_for('dashboard'))
 
-        return redirect(url_for('responses'))
+@app.route('/evaluate_responses', methods=['POST'])
+def evaluate_responses() -> Response:
+    db = get_db()
+    prompt_set_id = int(request.form['prompt_set'])
+    model = request.form['model']
 
-    # Get all prompt sets
-    prompt_sets = db.execute("""
-        SELECT prompt_set.id, prompt_set.created, prompt_set.query_src_file, prompt_set.prompt_func,
-               COUNT(prompt.id) as prompt_count
-        FROM prompt_set
-        LEFT JOIN prompt ON prompt_set.id = prompt.set_id
-        GROUP BY prompt_set.id
-        ORDER BY prompt_set.created
-    """).fetchall()
+    cur = db.execute("SELECT id FROM response_set WHERE response_set.prompt_set_id=? AND response_set.model=?", [prompt_set_id, model])
+    row = cur.fetchone()
+    if not row:
+        flash(f"Could not find response set for prompt set {prompt_set_id} and model {model} to evaluate.", "danger")
+        return redirect(url_for('dashboard'))
 
-    # Get existing response sets
-    existing_responses = db.execute("""
-        SELECT prompt_set_id, model
-        FROM response_set
-    """).fetchall()
+    response_set_id = row['id']
+    eval_model = "gemini/gemini-2.0-flash"   # TODO: un-hardcode evaluating model
+    gen_evals_func(db, eval_model, response_set_id, "make_sufficient_prompt")  # TODO: un-hardcode prompt type
+    flash(f"Responses evaluated successfully for prompt set {prompt_set_id}, model {model}.", "success")
+    return redirect(url_for('dashboard'))
 
-    # Get existing evaluations
-    existing_evaluations = db.execute("""
-        SELECT DISTINCT response_set.prompt_set_id, response_set.model
-        FROM eval_set
-        JOIN response_set ON eval_set.response_set_id = response_set.id
-    """).fetchall()
-
-    # Get response time statistics
-    response_times_rows = db.execute("""
-        SELECT
-            response_set.prompt_set_id,
-            response_set.model,
-            MIN(response.response_time) as min_time,
-            AVG(response.response_time) as avg_time,
-            MAX(response.response_time) as max_time,
-            COUNT(response.response_time) as count_with_time
-        FROM response
-        JOIN response_set ON response.set_id = response_set.id
-        WHERE response.response_time IS NOT NULL
-        GROUP BY response_set.prompt_set_id, response_set.model
-    """).fetchall()
-
-    # Create a dictionary of response times for easy lookup
-    response_times = {
-        (row['prompt_set_id'], row['model']): {
-            'min': row['min_time'],
-            'avg': row['avg_time'],
-            'max': row['max_time'],
-            'count': row['count_with_time']
-        }
-        for row in response_times_rows
-    }
-
-    # Create sets of tuples (prompt_set_id, model) for easy lookup
-    existing_responses_set = {(r['prompt_set_id'], r['model']) for r in existing_responses}
-    existing_evaluations_set = {(e['prompt_set_id'], e['model']) for e in existing_evaluations}
-
-    # Get all models
-    models = sorted({r['model'] for r in existing_responses + existing_evaluations})
-
-    return render_template('responses.html',
-                           prompt_sets=prompt_sets,
-                           models=models,
-                           existing_responses=existing_responses_set,
-                           existing_evaluations=existing_evaluations_set,
-                           response_times=response_times)
 
 def get_response_set_id(db: sqlite3.Connection, prompt_set_id: int, model: str) -> int | None:
     result = db.execute("""
@@ -297,14 +243,14 @@ def compare_responses() -> Response | str:
 
     if not set1_json or not set2_json:
         flash("Please select two response sets to compare.", "danger")
-        return redirect(url_for('responses'))
+        return redirect(url_for('dashboard'))
 
     try:
         set1 = json.loads(set1_json)
         set2 = json.loads(set2_json)
     except (json.JSONDecodeError, KeyError, ValueError) as e:
         flash(f"Error processing comparison request: {e!s}", "danger")
-        return redirect(url_for('responses'))
+        return redirect(url_for('dashboard'))
 
     # Get response set IDs
     set1_id = get_response_set_id(db, int(set1['prompt_set_id']), set1['model'])
@@ -312,7 +258,7 @@ def compare_responses() -> Response | str:
 
     if not set1_id or not set2_id:
         flash("One or both of the selected response sets could not be found.", "danger")
-        return redirect(url_for('responses'))
+        return redirect(url_for('dashboard'))
 
     # Check if both response sets are from the same prompt set
     prompt_set_id1 = db.execute("SELECT prompt_set_id FROM response_set WHERE id = ?", [set1_id]).fetchone()['prompt_set_id']
@@ -320,7 +266,7 @@ def compare_responses() -> Response | str:
 
     if prompt_set_id1 != prompt_set_id2:
         flash("The selected response sets must be from the same prompt set for comparison.", "danger")
-        return redirect(url_for('responses'))
+        return redirect(url_for('dashboard'))
 
     # Get prompt set details
     prompt_set = db.execute("""
@@ -339,7 +285,7 @@ def compare_responses() -> Response | str:
 
     if not prompts:
         flash("No prompts found in the selected prompt set.", "danger")
-        return redirect(url_for('responses'))
+        return redirect(url_for('dashboard'))
 
     # Get responses for both models
     responses1 = db.execute("""

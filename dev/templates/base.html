@@ -25,6 +25,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         .flash-success { background-color: #d4edda; border-color: #c3e6cb; color: #155724; }
         .flash-error { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
     </style>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </head>
 <body>
     <header>
@@ -37,8 +38,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                     <li><a href="{{ url_for('home') }}">Home</a></li>
                     <li><a href="{{ url_for('select_file') }}">Load Data</a></li>
                     <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-                    <li><a href="{{ url_for('responses') }}">Responses</a></li>
-                    <li><a href="{{ url_for('view_results') }}">View Results</a></li>
                 </ul>
             </nav>
         </div>
