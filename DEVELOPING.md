@@ -8,27 +8,36 @@ facilitate development and contributions.
 
 ## Project Structure
 
-The project is organized into several directories:
+The project repository contains several key files and directories at its root level:
 
-- **src:** Contains the primary source code for both the Gen-Ed framework and
+- **pyproject.toml:** Located at the project root, this is the central
+  configuration file for the Python project, defining metadata, dependencies,
+  and settings for tools like Ruff and mypy.
+- **instance/:** Also located at the project root (typically), this directory is
+  configured via the `FLASK_INSTANCE_PATH` environment variable (usually set
+  in `.env`). It holds persistent runtime-generated files not tracked by Git,
+  primarily the application's SQLite database (`[...].db`), but also backups
+  and/or files for domain verification (`.well-known/`).
+- **src/:** Contains the primary source code for both the Gen-Ed framework and
   the applications built on it.
-    - **gened:** The code for the Gen-Ed framework itself, this contains all
-      code *shared* by all Gen-Ed applications.  This includes functionality
+    - **gened/:** The code for the Gen-Ed framework itself, containing all
+      code *shared* by all Gen-Ed applications. This includes functionality
       such as authentication, database management, and LTI integration.
-    - **codehelp:** Code specific to the CodeHelp application, primarily
+    - **codehelp/:** Code specific to the CodeHelp application, primarily
       focused on interfaces and functionality for specific queries made in
       CodeHelp.  This covers both student users, instructors, and admin interfaces.
-    - **starburst:** Code specific to the Starburst application.
+    - **starburst/:** Code specific to the Starburst application.
     - **[dir]/templates:** Jinja2 templates, with templates in an
       application-specific directory often extending base templates in
      `src/gened/templates`.
-    - **[dir]/migrations:** Migration scripts, either for all Gen-Ed
-      applications (in `src/gened/migrations/`) or application-specific.  Run
-      `flask --app [application] migrate` for a simple migration interface to
-      apply them.
-- **dev:** Includes scripts and tools for development tasks, such as testing
+    - **[dir]/migrations:** Database migration scripts. Scripts in
+      `src/gened/migrations/` apply to the common schema, while scripts in an
+      application-specific directory (e.g., `src/codehelp/migrations/`) apply
+      only to that application's schema. These are applied using the custom
+      migration command: `flask --app [application] migrate`.
+- **dev/:** Includes scripts and tools for development tasks, such as testing
   prompts and evaluating models.
-- **tests:** Contains unit and integration tests for the Gen-Ed framework and
+- **tests/:** Contains unit and integration tests for the Gen-Ed framework and
   the CodeHelp applications.  Most tests are executed on instances of CodeHelp,
   even when testing functionality solely contained in `src/gened/`, and
   Starburst is not tested.
@@ -38,8 +47,8 @@ The project is organized into several directories:
 - **base.py:** `create_app_base()` is an application factory that instantiates
   a base Flask app for an application like CodeHelp or Starburst to further
   build on and customize.
-- **schema_common.sql:** The database schema for all tables used in any Gen-Ed
-  application.
+- **schema_common.sql:** The initial database schema for tables common to all
+  Gen-Ed applications. Used when creating a new database with `flask initdb`.
 
 Most other files in the framework provide utility functions and Flask routes
 for functionality common to all Gen-Ed applications.  A few of the more
@@ -57,7 +66,7 @@ important ones:
   (as a student).
 - **db.py:** Database connections and operations, including CLI commands
   (see `flask --app [application] --help` for a list of commands).
-- **openai.py:** Configuring, selecting, and using OpenAI LLMs.
+- **llm.py:** Configuring, selecting, and using LLMs.
 
 ### src/codehelp/
 
@@ -66,9 +75,9 @@ CodeHelp is the more complex and more actively developed application in the repo
 - **__init__.py:** Defines a Flask application factory `create_app()`, called
   by Flask when run as `flask --app codehelp run`.  This is the entry point to
   the entire application.
-- **schema.sql:** The schema for any application-specific tables (that are not
-  common to all Gen-Ed applications and thus cannot be in
-  `src/gened/schema_shared.sql`).
+- **schema.sql:** The initial schema for application-specific tables (e.g.,
+  those unique to CodeHelp). Used alongside `schema_common.sql` when creating
+  a new database with `flask initdb`.
 - **helper.py:** The main help interface for students using CodeHelp.  Routes
   and functions for inputting queries and viewing responses.
 - **prompts.py:** Defines the LLM prompts used by the main help interface.
@@ -92,6 +101,13 @@ same way as CodeHelp, minus just a few files.
 
 See the instructions in `README.md`.
 
+### Running Tests
+
+Ensure test dependencies are installed (`pip install -e .[test]`). Run the test
+suite using `pytest` from the project root. Check code coverage with
+`pytest --cov=src/...` (see `README.md` for the full command). Use `mypy` for
+static type checking (see "Code Style and Standards" below).
+
 ### Updates
 
 #### Dependencies
@@ -106,29 +122,43 @@ pip install -U -e .[test]
 
 #### Database Schema
 
-If any database schema changes, your development database (typically stored in
-`instance/`) will be outdated, and the application may crash.  To update a
-database to the latest schema, use the migration tool built in to Gen-Ed:
+If the database schema changes (e.g., due to pulling new code), your development
+database (typically stored in `instance/`) will be outdated, and the application
+may crash. To update an existing database to the latest schema, use the custom
+migration tool provided by Gen-Ed (via the `gened.migrate` module):
 
 ```sh
 flask --app [application_name] migrate
 ```
 
-Typically, typing `A` to apply all new migrations will get your database into
-working order.
+This command finds and applies any pending migration scripts located in
+`src/gened/migrations/` and `src/[application_name]/migrations/`. Typically,
+typing `A` at the prompt to apply all new migrations will bring your database
+schema up to date. Note that this command modifies an *existing* database; use
+`flask initdb` only when creating a *new* database from scratch.
 
 ### Code Style and Standards
 
-The project is configured to use Ruff and djLint for linting and style checks
-(with exceptions defined in `pyproject.toml`) and mypy for type checking (in
-strict mode).  We recommend installing and managing them using
+The project uses Ruff and djLint for linting and style checks (configured in
+`pyproject.toml`) and mypy for static type checking (in strict mode).
+
+The `mypy` package is installed as part of the project's optional test
+dependencies using the command from `README.md`:
+```sh
+pip install -e .[test]
+```
+
+We recommend installing the other checkers using a tool like
 [pipx](https://pipx.pypa.io/).
 
-Run `ruff check` in the project root or in any subfolder to check for issues in
-Python code.  Run `djlint -` in the project root to look for issues in the
-templates.  And run `mypy` in the project root to perform static type checking.
-All code should be correctly typed with no type errors outside of issues caused
-by 3rd-party libraries without typing information.
+Run the checks from the project root:
+- Python linting: `ruff check`
+- Template linting: `djlint -`
+- Type checking: `mypy`
+
+All new code should pass these checks. Code should be correctly typed with no
+mypy errors (ignoring unavoidable errors from third-party libraries lacking
+type information).
 
 ### Contributing
 
