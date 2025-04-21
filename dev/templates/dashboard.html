@@ -1,0 +1,185 @@
+{#
+SPDX-FileCopyrightText: 2025 Mark Liffiton <liffiton@gmail.com>
+
+SPDX-License-Identifier: AGPL-3.0-only
+#}
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Model Evaluation Tool{% endblock %}
+
+{% block content %}
+<style>
+    table {
+        border-collapse: collapse;
+    }
+    th, td {
+        border: 1px solid #fff;
+        padding: 8px;
+        text-align: left;
+        vertical-align: top; /* Align content to the top */
+        word-wrap: break-word; /* Wrap long model names */
+        min-width: 5em;
+        max-width: 5em;
+    }
+    th {
+        background-color: #ddd;
+        position: sticky; /* Keep headers visible */
+        z-index: 1;
+    }
+    th:first-child, td:first-child {
+        max-width: fit-content;
+        font-size: 0.9em;
+        position: sticky;
+        left: 0;
+        background-color: #eee; /* Match header bg */
+        z-index: 2; /* Above scrolling headers */
+    }
+
+    td {
+        font-size: 0.85em; /* Slightly smaller font for cells */
+    }
+    .status-not-generated {
+        background-color: #f8d7da; /* Light red */
+    }
+    .status-generated {
+        background-color: #fff3cd; /* Light yellow */
+    }
+    .status-evaluated {
+        background-color: #d4edda; /* Light green */
+    }
+    .stats-block {
+        font-size: 0.9em;
+        margin-top: 5px;
+        text-align: left;
+    }
+    .stats-block p {
+        margin: 0;
+    }
+    .eval-bar-container {
+        width: 100%;
+        background-color: #e9ecef;
+        border-radius: 3px;
+        margin-bottom: 2px;
+        height: 8px; /* Smaller bar */
+        display: flex;
+        overflow: hidden; /* Ensure bars stay within container */
+    }
+    .eval-bar-true {
+        background-color: #4CAF50; /* Green */
+        height: 100%;
+    }
+    .eval-bar-false {
+        background-color: #F44336; /* Red */
+        height: 100%;
+    }
+    /* Add back radius if only one type exists */
+    .eval-bar-true.full { border-radius: 3px; }
+    .eval-bar-false.full { border-radius: 3px; }
+
+
+    .action-button {
+        font-size: 0.8em;
+        cursor: pointer;
+        display: block; /* Make buttons take full width */
+        margin: 5px auto; /* Center buttons */
+        max-width: 100%; /* Adjust width as needed */
+    }
+    .center-content {
+        text-align: center;
+    }
+</style>
+
+<h1>Unified Dashboard</h1>
+
+{% if prompt_sets %}
+<div style="overflow-x: auto;"> {# Enable horizontal scrolling for the table #}
+<table>
+    <thead>
+        <tr>
+            <th>Prompt Set</th>
+            {% for model in models %}
+                <th>{{ model.split('/')[-1] }}</th> {# Show only last part of model name #}
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for prompt_set in prompt_sets %}
+        <tr>
+            <td>
+                <b>ID: {{ prompt_set.id }}</b><br>
+                {{ prompt_set.query_src_file }}<br>
+                <i>{{ prompt_set.prompt_func }}</i><br>
+                <small>{{ prompt_set.created.strftime('%Y-%m-%d %H:%M') }}</small><br>
+                <small>{{ prompt_set.prompt_count }} prompts</small>
+            </td>
+            {% for model in models %}
+                {% set cell = cell_data.get(prompt_set.id, {}).get(model) %}
+                {% set status = cell.status if cell else 'not-generated' %}
+                <td class="status-{{ status }}">
+                    {% if status == 'not-generated' %}
+                        <div class="center-content">
+                            <form action="{{ url_for('responses') }}" method="post" style="margin: 0;">
+                                <input type="hidden" name="action" value="generate">
+                                <input type="hidden" name="prompt_set" value="{{ prompt_set.id }}">
+                                <input type="hidden" name="model" value="{{ model }}">
+                                <button type="submit" class="action-button">Generate</button>
+                            </form>
+                        </div>
+                    {% elif status == 'generated' %}
+                        <div class="center-content">
+                            <form action="{{ url_for('responses') }}" method="post" style="margin: 0;">
+                                <input type="hidden" name="action" value="evaluate">
+                                <input type="hidden" name="prompt_set" value="{{ prompt_set.id }}">
+                                <input type="hidden" name="model" value="{{ model }}">
+                                {# TODO: Make eval model selectable #}
+                                <button type="submit" class="action-button">Evaluate</button>
+                            </form>
+                        </div>
+                    {% elif status == 'evaluated' %}
+                        <div class="center-content" {% if cell.eval_model %}title="Evaluated by: {{ cell.eval_model }}"{% endif %}>✅</div>
+                        {% if cell.eval_stats %}
+                        <div class="stats-block">
+                            {% set stats = cell.eval_stats %}
+                            {% if stats.ok_total > 0 %}
+                                <div>OK: {{ stats.ok_true }}/{{ stats.ok_total }}</div>
+                                <div class="eval-bar-container">
+                                    <div class="eval-bar-true {{ 'full' if stats.ok_false == 0 else '' }}" style="width: {{ (stats.ok_true / stats.ok_total) * 100 }}%"></div>
+                                    <div class="eval-bar-false {{ 'full' if stats.ok_true == 0 else '' }}" style="width: {{ (stats.ok_false / stats.ok_total) * 100 }}%"></div>
+                                </div>
+                            {% else %}
+                                <div>OK: N/A</div>
+                            {% endif %}
+                            {% if stats.other_total > 0 %}
+                                <div>Other: {{ stats.other_true }}/{{ stats.other_total }}</div>
+                                <div class="eval-bar-container">
+                                    <div class="eval-bar-true {{ 'full' if stats.other_false == 0 else '' }}" style="width: {{ (stats.other_true / stats.other_total) * 100 }}%"></div>
+                                    <div class="eval-bar-false {{ 'full' if stats.other_true == 0 else '' }}" style="width: {{ (stats.other_false / stats.other_total) * 100 }}%"></div>
+                                </div>
+                            {% else %}
+                                <div>Other: N/A</div>
+                            {% endif %}
+                            <small><a href="{{ url_for('view_false_responses', eval_set_id=cell.eval_set_id) }}">View False</a></small>
+                        </div>
+                        {% else %}
+                         <div class="stats-block"><small>(No eval stats)</small></div>
+                        {% endif %}
+                    {% endif %}
+                    {% if cell.response_times %}
+                    <div class="stats-block">
+                      <p><small>Min: {{ "%.2fs"|format(cell.response_times.min) }}</small></p>
+                      <p>Avg: {{ "%.2fs"|format(cell.response_times.avg) }}</p>
+                      <p><small>Max: {{ "%.2fs"|format(cell.response_times.max) }}</small></p>
+                    </div>
+                    {% endif %}
+                </td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{% else %}
+<p>No prompt sets found. <a href="{{ url_for('select_file') }}">Load data</a> to get started.</p>
+{% endif %}
+
+{% endblock %}

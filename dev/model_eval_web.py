@@ -437,3 +437,147 @@ def compare_responses() -> Response | str:
                             model1=set1['model'],
                             model2=set2['model'],
                             comparison_data=comparison_data)
+
+
+@app.route('/dashboard')
+def dashboard() -> str:
+    db = get_db()
+
+    # 1. Get all prompt sets with counts
+    prompt_sets = db.execute("""
+        SELECT ps.id, ps.created, ps.query_src_file, ps.prompt_func, COUNT(p.id) as prompt_count
+        FROM prompt_set ps
+        LEFT JOIN prompt p ON ps.id = p.set_id
+        GROUP BY ps.id
+        ORDER BY ps.created DESC
+    """).fetchall()
+
+    # 2. Get all unique models used in response sets
+    models_query = db.execute("SELECT DISTINCT model FROM response_set ORDER BY model").fetchall()
+    models = [row['model'] for row in models_query]
+
+    # 3. Fetch all response sets, eval sets, and stats, keyed for lookup
+    response_sets_raw = db.execute("""
+        SELECT
+            rs.id as response_set_id, rs.prompt_set_id, rs.model,
+            MIN(r.response_time) as min_time,
+            AVG(r.response_time) as avg_time,
+            MAX(r.response_time) as max_time,
+            COUNT(r.response_time) as count_with_time
+        FROM response_set rs
+        LEFT JOIN response r ON r.set_id = rs.id AND r.response_time IS NOT NULL
+        GROUP BY rs.id, rs.prompt_set_id, rs.model
+    """).fetchall()
+
+    eval_sets_raw = db.execute("""
+        SELECT
+            es.id as eval_set_id, es.response_set_id, es.model as eval_model,
+            SUM(CASE WHEN json_extract(e.evaluation, '$.\"OK.\"') = 1 THEN 1 ELSE 0 END) as ok_true,
+            SUM(CASE WHEN json_extract(e.evaluation, '$.\"OK.\"') = 0 THEN 1 ELSE 0 END) as ok_false,
+            -- Correctly count the remaining keys after removing "OK."
+            SUM(
+                (
+                    SELECT COUNT(*)
+                    FROM json_each(json_remove(e.evaluation, '$.\"OK.\"'))
+                    -- No WHERE clause needed, just count all remaining keys
+                )
+            ) as other_total,
+            SUM(
+                (
+                    SELECT COUNT(*)
+                    FROM json_each(json_remove(e.evaluation, '$.\"OK.\"'))
+                    WHERE value = 1
+                )
+            ) as other_true
+        FROM eval_set es
+        JOIN eval e ON e.set_id = es.id
+        GROUP BY es.id, es.response_set_id, es.model
+    """).fetchall()
+
+    # 4. Structure data for the template: cell_data[prompt_set_id][model] = { ... }
+    cell_data: dict[int, dict[str, dict]] = {}
+
+    # Populate with response set info and times
+    for rs_row in response_sets_raw:
+        ps_id = rs_row['prompt_set_id']
+        model = rs_row['model']
+        if ps_id not in cell_data:
+            cell_data[ps_id] = {}
+
+        cell_data[ps_id][model] = {
+            'status': 'generated',
+            'response_set_id': rs_row['response_set_id'],
+            'response_times': None,
+            'eval_stats': None,
+            'eval_model': None,
+            'eval_set_id': None
+        }
+        if rs_row['count_with_time'] > 0:
+             cell_data[ps_id][model]['response_times'] = {
+                'min': rs_row['min_time'],
+                'avg': rs_row['avg_time'],
+                'max': rs_row['max_time'],
+                'count': rs_row['count_with_time']
+            }
+
+    # Update with evaluation info
+    for es_row in eval_sets_raw:
+        # Find the corresponding response set to link back to prompt_set_id and model
+        response_set_info = next((rs for rs in response_sets_raw if rs['response_set_id'] == es_row['response_set_id']), None)
+        if not response_set_info:
+            # This might happen if a response set exists but has no responses with response_time,
+            # causing it to be missed by the response_sets_raw query if it also has no evals yet.
+            # Let's try fetching it directly.
+            rs_direct = db.execute("SELECT prompt_set_id, model FROM response_set WHERE id = ?", [es_row['response_set_id']]).fetchone()
+            if rs_direct:
+                response_set_info = {'prompt_set_id': rs_direct['prompt_set_id'], 'model': rs_direct['model'], 'response_set_id': es_row['response_set_id']}
+            else:
+                 # If still not found, skip this eval set (orphan?)
+                print(f"Warning: Could not find response set for eval_set_id {es_row['eval_set_id']}")
+                continue
+
+        ps_id = response_set_info['prompt_set_id']
+        model = response_set_info['model']
+
+        # Ensure the base entry exists if it wasn't created by the response_sets_raw query
+        if ps_id not in cell_data:
+            cell_data[ps_id] = {}
+        if model not in cell_data[ps_id]:
+             cell_data[ps_id][model] = {
+                'status': 'generated', # Assume generated if evaluated
+                'response_set_id': response_set_info['response_set_id'],
+                'response_times': None, # No timing info from this query path
+                'eval_stats': None,
+                'eval_model': None,
+                'eval_set_id': None
+            }
+
+
+        if ps_id in cell_data and model in cell_data[ps_id]:
+            cell_data[ps_id][model]['status'] = 'evaluated'
+            cell_data[ps_id][model]['eval_set_id'] = es_row['eval_set_id']
+            cell_data[ps_id][model]['eval_model'] = es_row['eval_model']
+
+            # Calculate derived stats
+            ok_true = es_row['ok_true'] or 0
+            ok_false = es_row['ok_false'] or 0
+            other_true = es_row['other_true'] or 0
+            # Handle potential NULL from SUM if no 'other' keys exist
+            other_total_raw = es_row['other_total']
+            other_total = other_total_raw if other_total_raw is not None else 0
+            other_false = other_total - other_true
+
+            cell_data[ps_id][model]['eval_stats'] = {
+                'ok_true': ok_true,
+                'ok_false': ok_false,
+                'ok_total': ok_true + ok_false,
+                'other_true': other_true,
+                'other_false': other_false,
+                'other_total': other_total,
+            }
+
+
+    return render_template('dashboard.html',
+                           prompt_sets=prompt_sets,
+                           models=models,
+                           cell_data=cell_data)

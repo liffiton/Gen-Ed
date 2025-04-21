@@ -14,8 +14,10 @@ SPDX-License-Identifier: AGPL-3.0-only
     <p>This tool allows you to load data, generate responses, evaluate them, and view results.</p>
     <ul>
         <li><a href="{{ url_for('select_file') }}">Load Data</a>: Load your query data and prompts.</li>
-        <li><a href="{{ url_for('responses') }}">Responses</a>: Use AI models to generate and evaluate responses for your prompts.</li>
-        <li><a href="{{ url_for('view_results') }}">View Results</a>: Analyze the evaluation results.</li>
+        <li><a href="{{ url_for('dashboard') }}">Dashboard</a>: View status, generate, evaluate, and see results.</li>
+        <li><a href="{{ url_for('responses') }}">Old Responses Page</a>: Use AI models to generate and evaluate responses for your prompts.</li>
+        <li><a href="{{ url_for('view_results') }}">Old View Results</a>: Analyze the evaluation results.</li>
+        <li><a href="{{ url_for('compare_responses') }}">Compare Responses</a>: Side-by-side comparison of two response sets.</li>
     </ul>
 {% else %}
     <p>Please select an application to begin:</p>
