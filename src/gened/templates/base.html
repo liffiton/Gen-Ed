@@ -21,7 +21,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         to   { opacity: 1; transform: translateY(0) scale(100%); }
       }
       .icon-text { align-items: center; }
-      .icon-text svg { height: 100%; }
+      svg { height: 100%; }
       .button .icon:first-child:not(:last-child) { margin-right: 0.5em; }
       a.button-inline { display: inline-block; padding: 0.2em 0.5em; vertical-align: baseline; height: auto; }
       a.hover-show-icon + svg { opacity: 25%; }
@@ -187,7 +187,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       {% if messages %}
         <section class="section p-5">
           {% for category, message in messages %}
-            <div class="flash_message notification container is-max-desktop is-size-4 pl-5 {% if category == "message" %}is-info{% else %}is-{{category}}{% endif %}">
+            <div class="flash_message notification container is-max-desktop is-size-4 py-3 mb-1 {% if category == "message" %}is-info{% else %}is-{{category}}{% endif %}">
               {{ message }}
             </div>
           {% endfor %}
