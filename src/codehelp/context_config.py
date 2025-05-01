@@ -11,6 +11,7 @@ from flask import (
     Blueprint,
     Flask,
     abort,
+    current_app,
     flash,
     redirect,
     render_template,
@@ -20,7 +21,7 @@ from flask import (
 from markupsafe import Markup
 from werkzeug.wrappers.response import Response
 
-from gened.auth import get_auth_class, instructor_required
+from gened.auth import get_auth, get_auth_class, instructor_required
 from gened.class_config import register_extra_section
 from gened.db import get_db
 
@@ -48,8 +49,37 @@ def register(app: Flask) -> None:
     jinja_env_html.filters['markdown'] = app.jinja_env.filters['markdown']
 
 
+def _get_instructor_courses(user_id: int, current_class_id: int) -> list[dict[str, str | list[str]]]:
+    """ Get other courses where the user is an instructor. """
+    db = get_db()
+    course_rows = db.execute("""
+        SELECT c.id, c.name
+        FROM classes c
+        JOIN roles r ON c.id = r.class_id
+        WHERE r.user_id = ?
+          AND r.role = 'instructor'
+          AND c.id != ?
+        ORDER BY c.name
+    """, [user_id, current_class_id]).fetchall()
+
+    # Fetch contexts for each eligible course to display in the copy modal
+    instructor_courses_data = []
+    for course in course_rows:
+        course_contexts = db.execute("""
+            SELECT name FROM contexts WHERE class_id = ? ORDER BY class_order
+        """, [course['id']]).fetchall()
+        instructor_courses_data.append({
+            'id': course['id'],
+            'name': course['name'],
+            'contexts': [ctx['name'] for ctx in course_contexts]
+        })
+
+    return instructor_courses_data
+
+
 def config_section_render() -> Markup:
     db = get_db()
+    auth = get_auth()
     cur_class = get_auth_class()
     class_id = cur_class.class_id
 
@@ -61,8 +91,11 @@ def config_section_render() -> Markup:
     """, [class_id]).fetchall()
     contexts = [dict(c) for c in contexts]  # for conversion to json
 
+    assert auth.user
+    copyable_courses = _get_instructor_courses(auth.user.id, class_id)
+
     # Wrap in Markup because it's already escaped (by Jinja) and safe.
-    return Markup(render_template("context_config.html", contexts=contexts))
+    return Markup(render_template("context_config.html", contexts=contexts, copyable_courses=copyable_courses))
 
 
 # For decorator type hints
@@ -163,6 +196,41 @@ def create_context() -> Response:
 
     context = ContextConfig.from_request_form(request.form)
     _insert_context(cur_class.class_id, context.name, context.to_json(), "9999-12-31")  # defaults to hidden
+    return redirect(url_for("class_config.config_form"))
+
+
+@bp.route("/copy_from_course", methods=["POST"])
+def copy_from_course() -> Response:
+    db = get_db()
+    auth = get_auth()
+    assert auth.user
+    cur_class = get_auth_class()
+    target_class_id = cur_class.class_id
+
+    source_class_id = int(request.form['source_class_id'])
+
+    # --- Security Check ---
+    # Verify the current user is actually an instructor in the source course
+    is_source_instructor = db.execute("""
+        SELECT 1 FROM roles
+        WHERE user_id = ? AND class_id = ? AND role = 'instructor' AND active = 1
+    """, [auth.user.id, source_class_id]).fetchone()
+    if not is_source_instructor:
+        current_app.logger.warning(f"User {auth.user.id} attempted to copy contexts from class {source_class_id} without instructor role.")
+        abort(403) # User is not instructor in source course
+    # --- End Security Check ---
+
+    source_contexts = db.execute("SELECT * FROM contexts WHERE class_id = ? ORDER BY class_order", [source_class_id]).fetchall()
+    source_class_name = db.execute("SELECT name FROM classes WHERE id = ?", [source_class_id]).fetchone()['name']
+
+    if not source_contexts:
+        flash(f"Course '{source_class_name}' has no contexts to copy.", "warning")
+        return redirect(url_for("class_config.config_form"))
+
+    for ctx_row in source_contexts:
+        _insert_context(target_class_id, ctx_row['name'], ctx_row['config'], "9999-12-31")  # default to hidden
+    flash(f"Successfully copied {len(source_contexts)} context(s) from '{source_class_name}'.", "success")
+
     return redirect(url_for("class_config.config_form"))
 
 

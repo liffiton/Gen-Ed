@@ -250,12 +250,80 @@
       <tr x-show="items.length > 0 && items.every(item => !datePassed(item.available))"><td colspan=4 class="has-text-centered"><span class="tag is-warning"><strong>Warning</strong>: No contexts are currently available.</span></td></tr>
     </tbody>
   </table>
-  <div colspan=4 class="has-text-centered">
+  <div class="mt-2 has-text-centered">
     <a class="button is-light is-link is-small" href="{{ url_for('context_config.new_context_form') }}">
       <span class="icon">
         <svg aria-hidden="true"><use href="#svg_plus" /></svg>
       </span>
       <span>Create new context</span>
     </a>
+
+    {# Button and modal for copying contexts from another course #}
+    <span x-data='{
+        showCopyModal: false,
+        courses_data: {{ copyable_courses | tojson }},
+        selected_course_id: "",
+        get selected_course() {
+          return this.courses_data.find(course => course.id == this.selected_course_id) || {"id": null, "name": null, "contexts": []};
+        }
+      }'
+      x-show="courses_data.length > 0">
+      <button class="button is-light is-link is-small ml-2"
+              @click="showCopyModal = true; selected_course_id = '';"
+              title="Copy all contexts from another course you teach into this one">
+        <span class="icon">
+          <svg aria-hidden="true"><use href="#svg_copy" /></svg>
+        </span>
+        <span>Copy from another course...</span>
+      </button>
+
+      <div class="modal has-text-left" x-bind:class="{ 'is-active': showCopyModal }" @keydown.escape.window="showCopyModal = false">
+        <div class="modal-background" @click="showCopyModal = false"></div>
+        <div class="modal-content">
+          <div class="box">
+            <h3 class="title is-4">Copy Contexts</h3>
+            <p>Select a course to see its contexts. All contexts from the selected course will be copied into the current course. Existing contexts will not be affected, and copied contexts will be renamed if necessary to avoid duplicate names.</p>
+            <form method="post" action="{{ url_for('context_config.copy_from_course') }}">
+              <div class="field">
+                <label class="label" for="source_class_id">Copy from course:</label>
+                <div class="control">
+                  <div class="select is-fullwidth">
+                    <select name="source_class_id" id="source_class_id" required x-model="selected_course_id">
+                      <option value="" disabled selected>-- Select a course --</option>
+                      <template x-for="course in courses_data" :key="course.id">
+                        <option :value="course.id" x-text="course.name"></option>
+                      </template>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {# Section to display contexts of the selected course #}
+              <div class="mt-3 mb-3 content" style="min-height: 200px; max-height: 200px; overflow-y: auto; border: 1px solid #dbdbdb; padding: 0.5em;">
+                <div x-show="selected_course.contexts.length > 0" class="m-0">
+                  <p class="has-text-weight-semibold" x-text="`Contexts in '${selected_course.name || ''}':`"></p>
+                  <ol class="mt-0">
+                    <template x-for="context_name in selected_course.contexts" :key="context_name">
+                      <li x-text="context_name"></li>
+                    </template>
+                  </ol>
+                </div>
+                <div x-show="selected_course_id && selected_course.contexts.length == 0"><i>No contexts found in this course.</i></div>
+              </div>
+
+              <div class="field is-grouped is-justify-content-flex-end">
+                <div class="control">
+                  <button type="submit" class="button is-link" x-bind:disabled="!selected_course_id || selected_course.contexts.length == 0">Copy Contexts</button>
+                </div>
+                <div class="control">
+                  <button type="button" class="button" @click="showCopyModal = false">Cancel</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+        <button type="button" class="modal-close is-large" aria-label="close" @click="showCopyModal = false"></button>
+      </div>
+    </span>
   </div>
 </div>
