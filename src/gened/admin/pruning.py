@@ -50,8 +50,7 @@ def get_candidates() -> tuple[list[Row], int]:
 def render_link() -> Markup:
     _, num_candidates = get_candidates()
     if num_candidates:
-        #return Markup("Pruning<span style='font-size: 50%'>🔴</span>")
-        return Markup(f"Pruning <span style='font-size: 50%;' class='tag is-rounded is-danger px-1 py-0 ml-1'>{num_candidates}</span>")
+        return Markup("Pruning <span style='font-size: 50%;' class='tag is-rounded is-danger px-1 py-0 ml-1'>{}</span>").format(num_candidates)
     else:
         return Markup("Pruning")
 

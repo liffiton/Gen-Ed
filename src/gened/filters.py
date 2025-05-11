@@ -11,44 +11,45 @@ from markdown_it import MarkdownIt
 from markupsafe import Markup, escape
 
 
-def make_titled_span(title: str, text: str, max_title_len: int = 500) -> str:
+def _make_titled_span(title: str, text: str, max_title_len: int = 500) -> Markup:
     if len(title) > max_title_len:
         title = title[:max_title_len] + " ..."
     title = title.replace('\n', Markup('&#13;'))
     title = title.replace('\'', Markup('&#39;'))
-    return Markup(f"<span title='{title}'>{text}</span>")
+    return Markup("<span title='{}'>{}</span>").format(title, text)
 
 
-def fmt_user(value: str) -> str:
+def fmt_user(value: str) -> Markup:
     '''Format a user array (JSON) to be displayed in a table cell.'''
     if not value:
-        return ""
+        return Markup()
 
     display_name, auth_provider, display_extra = json.loads(value)
-
     if display_extra:
-        return Markup(f"{display_name} <span class='is-size-7 has-text-grey' title='{display_extra}'>({auth_provider})</span>")
+        title_attr = Markup("title='{}'").format(display_extra)
     else:
-        return Markup(f"{display_name} <span class='is-size-7 has-text-grey'>({auth_provider})</span>")
+        title_attr = Markup("")
+
+    return Markup("{} <span class='is-size-7 has-text-grey' {}>({})</span>").format(display_name, title_attr, auth_provider)
 
 
-def fmt_response_txt(value: str) -> str:
+def fmt_response_txt(value: str) -> Markup:
     '''Format response text to be displayed in a table cell.'''
     if not value:
-        return ""
+        return Markup()
 
     text = json.loads(value)
 
     if isinstance(text, str):
-        return make_titled_span(escape(text), str(len(text)))
+        return _make_titled_span(escape(text), str(len(text)))
 
     else:
         # assume a dictionary
-        html_string = "\n<br>\n".join(
-            make_titled_span(escape(val), f"{key} ({len(val)})")
+        html_string = Markup("\n<br>\n").join(
+            _make_titled_span(escape(val), f"{key} ({len(val)})")
             for key, val in text.items() if val
         )
-        return Markup(html_string)
+        return html_string
 
 
 def init_app(app: Flask) -> None:
@@ -81,4 +82,4 @@ def init_app(app: Flask) -> None:
         '''Convert markdown to HTML.'''
         html = markdown_processor.render(value)
         # relying on MarkdownIt's escaping (w/o HTML parsing, due to "js-default"), so mark this as safe
-        return Markup(html)
+        return Markup(html)  # noqa: S704 (unsafe use of Markup -- but we know we've escaped the input already)

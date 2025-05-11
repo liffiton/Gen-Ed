@@ -50,9 +50,9 @@ def render_link() -> Markup:
             </span>
         """)
     else:
-        return Markup(f"""
+        return Markup("""
             Download DB
-            <span class="ml-2 icon-text px-1 tag is-warning" title="{status.reason}">
+            <span class="ml-2 icon-text px-1 tag is-warning" title="{}">
               <span class="icon">
                 <svg aria-hidden="true" style="height: 80%;">
                   <use href="#svg_admin_alert" />
@@ -60,7 +60,7 @@ def render_link() -> Markup:
               </span>
               <span class="text" style="margin-left: -0.5em;">&nbsp;&nbsp;unencrypted</span>
             </span>
-        """)
+        """).format(status.reason)
 
 
 bp = Blueprint('admin_download', __name__, url_prefix='/get_db', template_folder='templates')
