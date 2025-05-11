@@ -5,6 +5,8 @@
 import asyncio
 import datetime as dt
 from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any
 
 from flask import (
     Blueprint,
@@ -35,12 +37,23 @@ def before_request() -> None:
 # its portion of the configuration screen's UI.  The application is responsible
 # for registering a blueprint with request handlers for any routes needed by
 # that UI.
-# This module global stores the render functions.
-_extra_config_renderfuncs: list[Callable[[], str]] = []
 
-def register_extra_section(render_func: Callable[[], str]) -> None:
-    """ Register a new section for the class configuration UI.  (See above.)"""
-    _extra_config_renderfuncs.append(render_func)
+@dataclass
+class ExtraSectionProvider:
+    """Stores information needed to provide an extra section in the class config UI."""
+    template_name: str
+    context_provider: Callable[[], dict[str, Any]]
+
+# This module global stores registered providers for extra config sections.
+_extra_section_providers: list[ExtraSectionProvider] = []
+
+def register_extra_section_template(template_name: str, context_provider: Callable[[], dict[str, Any]]) -> None:
+    """ Register a new section for the class configuration UI.
+        Args:
+            template_name: The name of the Jinja template file for this section.
+            context_provider: A function that returns a dictionary of context variables for the template.
+    """
+    _extra_section_providers.append(ExtraSectionProvider(template_name=template_name, context_provider=context_provider))
 
 
 @bp.route("/")
@@ -69,11 +82,17 @@ def config_form() -> str:
     else:
         link_reg_state = "date"
 
-    extra_sections = [render() for render in _extra_config_renderfuncs]  # rendered HTML for any extra config sections
+    extra_sections_data = [
+        {
+            'template_name': provider.template_name,
+            'context': provider.context_provider(),
+        }
+        for provider in _extra_section_providers
+    ]
 
     models = get_models(plus_id=class_row['model_id'])
 
-    return render_template("instructor_class_config.html", class_row=class_row, link_reg_state=link_reg_state, user_is_creator=cur_class.user_is_creator, models=models, extra_sections=extra_sections)
+    return render_template("instructor_class_config.html", class_row=class_row, link_reg_state=link_reg_state, user_is_creator=cur_class.user_is_creator, models=models, extra_sections_data=extra_sections_data)
 
 
 @bp.route("/save/access", methods=["POST"])

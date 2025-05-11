@@ -5,7 +5,7 @@
 from collections.abc import Callable
 from functools import wraps
 from sqlite3 import Row
-from typing import ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar
 
 from flask import (
     Blueprint,
@@ -18,11 +18,10 @@ from flask import (
     request,
     url_for,
 )
-from markupsafe import Markup
 from werkzeug.wrappers.response import Response
 
 from gened.auth import get_auth, get_auth_class, instructor_required
-from gened.class_config import register_extra_section
+from gened.class_config import register_extra_section_template
 from gened.db import get_db
 
 from .context import ContextConfig, jinja_env_html
@@ -45,7 +44,7 @@ def register(app: Flask) -> None:
         class_config module, and grab a copy of the app's markdown filter for
         use here.
     """
-    register_extra_section(config_section_render)
+    register_extra_section_template("context_config.html", _get_context_config_data)
     jinja_env_html.filters['markdown'] = app.jinja_env.filters['markdown']
 
 
@@ -77,7 +76,7 @@ def _get_instructor_courses(user_id: int, current_class_id: int) -> list[dict[st
     return instructor_courses_data
 
 
-def config_section_render() -> Markup:
+def _get_context_config_data() -> dict[str, Any]:
     db = get_db()
     auth = get_auth()
     cur_class = get_auth_class()
@@ -94,8 +93,7 @@ def config_section_render() -> Markup:
     assert auth.user
     copyable_courses = _get_instructor_courses(auth.user.id, class_id)
 
-    # Wrap in Markup because it's already escaped (by Jinja) and safe.
-    return Markup(render_template("context_config.html", contexts=contexts, copyable_courses=copyable_courses))
+    return {"contexts": contexts, "copyable_courses": copyable_courses}
 
 
 # For decorator type hints
