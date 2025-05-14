@@ -66,18 +66,35 @@ Otherwise, respond to the student with an educational explanation, helping the s
 How would you respond to the student to guide them and explain concepts without providing example code?
 """)
 
+main_template_sys2_without_guardrails = jinja_env.from_string("""\
+If the student query is off-topic, respond with an error.
 
-def make_main_prompt(code: str, error: str, issue: str, context: str | None = None) -> list[ChatMessage]:
+Otherwise, provide a helpful and complete response that addresses the student's question. Include any explanation or information that may help the student understand and resolve the issue.
+
+- Use Markdown formatting, including ` for inline code.
+- Use TeX syntax for mathematical formulas, wrapping them in \\(...\\) or \\[...\\] as appropriate.
+- Do not write a heading for the response.
+- If the student wrote in a language other than English, always respond in the student's own language.
+""")
+
+
+def make_main_prompt(code: str, error: str, issue: str, context: str | None = None, use_guardrails: bool = True) -> list[ChatMessage]:
     error = error.rstrip()
     issue = issue.rstrip()
     if error and not issue:
         issue = "Please help me understand this error."
 
     sys_job = "to respond to a student's query as a helpful expert teacher"
+    
+    if use_guardrails:
+        main_template_system2 = main_template_sys2
+    else:
+        main_template_system2 = main_template_sys2_without_guardrails
+    
     return [
         {'role': 'system', 'content': common_template_sys1.render(job=sys_job, code=code, error=error, issue=issue, context=context)},
         {'role': 'user',   'content': common_template_user.render(code=code, error=error, issue=issue)},
-        {'role': 'system', 'content': main_template_sys2.render()},
+        {'role': 'system', 'content': main_template_system2.render()},
     ]
 
 

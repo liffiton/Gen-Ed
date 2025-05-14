@@ -16,12 +16,14 @@ from flask import (
     render_template,
     request,
     url_for,
+    jsonify,
 )
 from werkzeug.wrappers.response import Response
 
 from gened.app_data import DataAccessError, get_query, get_user_data
 from gened.auth import (
     admin_required,
+    basic_auth_required,
     class_enabled_required,
     get_auth,
     login_required,
@@ -129,8 +131,39 @@ def help_view(query_id: int) -> str | Response:
 
     return render_template("help_view.html", query=query_row, responses=responses, history=history, topics=topics)
 
+@bp.route("/api/query/<int:query_id>", methods=["GET"])
+@basic_auth_required
+def get_query_json(query_id: int) -> Response:
+    try:
+        # Get the query row from the database
+        query_row = get_query(query_id)
+    except DataAccessError:
+        # Return an error if the query ID is invalid
+        return jsonify({"error": "Invalid query ID."}), 400
 
-async def run_query_prompts(llm: LLM, context: ContextConfig | None, code: str, error: str, issue: str) -> tuple[list[dict[str, str]], dict[str, str]]:
+    # Process the response, if available
+    if query_row['response']:
+        responses = json.loads(query_row['response'])
+    else:
+        responses = {"error": "No response available for this query."}
+
+    # Process the topics, if available
+    if query_row['topics_json']:
+        topics = json.loads(query_row['topics_json'])
+    else:
+        topics = []
+
+    # Return the query data as JSON
+    return jsonify({
+        "query_id": query_row['id'],
+        "issue": query_row['issue'],
+        "error": query_row['error'],
+        "code": query_row['code'],
+        "responses": responses,
+        "topics": topics
+    })
+
+async def run_query_prompts(llm: LLM, context: ContextConfig | None, code: str, error: str, issue: str, use_guardrails: bool = True) -> tuple[list[dict[str, str]], dict[str, str]]:
     ''' Run the given query against the coding help system of prompts.
 
     Returns a tuple containing:
@@ -142,7 +175,7 @@ async def run_query_prompts(llm: LLM, context: ContextConfig | None, code: str, 
     # Launch the "sufficient detail" check concurrently with the main prompt to save time
     task_main = asyncio.create_task(
         llm.get_completion(
-            messages=prompts.make_main_prompt(code, error, issue, context_str),
+            messages=prompts.make_main_prompt(code, error, issue, context_str, use_guardrails=use_guardrails),
         )
     )
     task_sufficient = asyncio.create_task(
@@ -158,7 +191,7 @@ async def run_query_prompts(llm: LLM, context: ContextConfig | None, code: str, 
     response_main, response_txt = await task_main
     responses.append(response_main)
 
-    if "```" in response_txt or "should look like" in response_txt or "should look something like" in response_txt:
+    if use_guardrails and ("```" in response_txt or "should look like" in response_txt or "should look something like" in response_txt):
         # That's probably too much code.  Let's clean it up...
         cleanup_prompt = prompts.make_cleanup_prompt(response_text=response_txt)
         cleanup_response, cleanup_response_txt = await llm.get_completion(prompt=cleanup_prompt)
@@ -180,10 +213,10 @@ async def run_query_prompts(llm: LLM, context: ContextConfig | None, code: str, 
         return responses, {'insufficient': response_sufficient_txt, 'main': response_txt}
 
 
-def run_query(llm: LLM, context: ContextConfig | None, code: str, error: str, issue: str) -> int:
+def run_query(llm: LLM, context: ContextConfig | None, code: str, error: str, issue: str, use_guardrails: bool = True) -> int:
     query_id = record_query(context, code, error, issue)
 
-    responses, texts = asyncio.run(run_query_prompts(llm, context, code, error, issue))
+    responses, texts = asyncio.run(run_query_prompts(llm, context, code, error, issue, use_guardrails=use_guardrails))
 
     record_response(query_id, responses, texts)
 
@@ -246,6 +279,42 @@ def help_request(llm: LLM) -> Response:
     query_id = run_query(llm, context, code, error, issue)
 
     return redirect(url_for(".help_view", query_id=query_id))
+
+
+@bp.route("/api/query/request", methods=["POST"])
+@basic_auth_required
+@class_enabled_required
+@with_llm(spend_token=True)
+def api_help_request(llm: LLM) -> Response:
+    """
+    Endpoint REST to handle help requests from the client.
+    """
+    data = request.json
+    if not data:
+        return jsonify({"error": "Request body must be JSON"}), 400
+
+    context_name = data["context"] if "context" in data else None
+    code = data["code"]	
+    error = data["error"]
+    issue = data["issue"]
+    use_guardrails = data["use_guardrails"] if "use_guardrails" in data else True
+
+    if not issue:
+        return jsonify({"error": "Fields 'issue' are required"}), 400
+
+    if context_name:
+        context = get_context_by_name(context_name)
+        if context is None:
+            return jsonify({"error": f"Context not found: {context_name}"}), 400
+    else:
+        context = None
+
+    try:
+        query_id = run_query(llm, context, code, error, issue, use_guardrails=use_guardrails)
+
+        return jsonify({"query_id": query_id})
+    except Exception as e:
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 
 @bp.route("/load_test", methods=["POST"])

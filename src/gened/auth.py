@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import base64
 import random
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -15,6 +16,7 @@ from flask import (
     current_app,
     flash,
     g,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -391,6 +393,38 @@ def login_required(f: Callable[P, R]) -> Callable[P, Response | R]:
         if not auth.user:
             flash("Login required.", "warning")
             return redirect(url_for('auth.login', next=request.full_path))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def basic_auth_required(f: Callable[P, R]) -> Callable[P, Response | R]:
+    """Decorator to authenticate a user using Basic Authentication."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Get the Authorization header from the request
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Basic "):
+            return jsonify({"error": "Authorization header is missing or invalid"}), 401
+
+        # Decode the Base64-encoded credentials
+        try:
+            auth_decoded = base64.b64decode(auth_header.split(" ")[1]).decode("utf-8")
+            username, password = auth_decoded.split(":", 1)
+        except (ValueError, base64.binascii.Error):
+            return jsonify({"error": "Invalid Authorization header format"}), 401
+
+        # Check the credentials against the database
+        db = get_db()
+        auth_row = db.execute("SELECT * FROM auth_local JOIN users ON auth_local.user_id=users.id WHERE username=?", [username]).fetchone()
+
+        if not auth_row or not check_password_hash(auth_row['password'], password):
+            return jsonify({"error": "Invalid username or password"}), 401
+
+        # Store the user data in the session
+        last_class_id = get_last_class(auth_row['id'])
+        set_session_auth_user(auth_row['id'])
+        set_session_auth_class(last_class_id)
+        
         return f(*args, **kwargs)
     return decorated_function
 
