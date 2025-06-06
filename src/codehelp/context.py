@@ -6,18 +6,12 @@ import json
 from dataclasses import asdict, dataclass
 from sqlite3 import Row
 
-from flask import current_app
 from jinja2 import Environment
 from typing_extensions import Self  # for 3.10
 from werkzeug.datastructures import ImmutableMultiDict
 
 from gened.auth import get_auth
 from gened.db import get_db
-
-
-def _default_langs() -> list[str]:
-    langs: list[str] = current_app.config['DEFAULT_LANGUAGES']  # declaration keeps mypy happy
-    return langs
 
 jinja_env_prompt = Environment(
     trim_blocks=True,

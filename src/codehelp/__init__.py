@@ -27,16 +27,6 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
         DOCS_DIR=module_dir / 'docs',
         # Data retention length (prune user data with no activity for this period of time)
         RETENTION_TIME_DAYS=2*365,  # 2 years
-        DEFAULT_LANGUAGES=[
-            "Conceptual Question",
-            "C",
-            "C++",
-            "Java",
-            "Javascript",
-            "OCaml",
-            "Python",
-            "Rust",
-        ],
     )
 
     # load test config if provided, potentially overriding above config
