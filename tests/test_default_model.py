@@ -41,7 +41,8 @@ def test_invalid_model_shortname(app):
                 'TESTING': True,
                 'DATABASE': instance_path / 'test.db',
                 'DEFAULT_CLASS_MODEL_SHORTNAME': 'NONEXISTENT-MODEL',
-            }
+            },
+            instance_path = instance_path
         )
     assert exc_info.value.code == 1
     with pytest.raises(SystemExit) as exc_info:
@@ -50,7 +51,8 @@ def test_invalid_model_shortname(app):
                 'TESTING': True,
                 'DATABASE': instance_path / 'test.db',
                 'SYSTEM_MODEL_SHORTNAME': 'NONEXISTENT-MODEL',
-            }
+            },
+            instance_path = instance_path
         )
     assert exc_info.value.code == 1
 
