@@ -1,10 +1,6 @@
 Developer Documentation
 =======================
 
-This document provides an overview of the source code for the Gen-Ed project
-and its included applications, outlining its structure and key components to
-facilitate development and contributions.
-
 
 ## Project Structure
 
@@ -54,7 +50,7 @@ Most other files in the framework provide utility functions and Flask routes
 for functionality common to all Gen-Ed applications.  A few of the more
 important ones:
 
-- **admin.py:** Administrator interfaces.
+- **admin/:** Administrator interfaces.
 - **auth.py:** User session management and authorization, including
   login/logout.  Generally, only the admin users are "local," with credentials
   stored in the database.  For most users, authentication is handled via either
@@ -97,16 +93,48 @@ same way as CodeHelp, minus just a few files.
 
 ## Development
 
-### Setting up the Development Environment; Running an Application; Testing
+### Setting up the Development Environment; Running an Application
 
 See the instructions in `README.md`.
 
 ### Running Tests
 
-Ensure test dependencies are installed (`pip install -e .[test]`). Run the test
-suite using `pytest` from the project root. Check code coverage with
-`pytest --cov=src/...` (see `README.md` for the full command). Use `mypy` for
-static type checking (see "Code Style and Standards" below).
+First, install test dependencies:
+
+```sh
+pip install -e .[test]
+```
+
+Run all tests:
+
+```sh
+pytest
+```
+
+For code coverage report:
+
+```sh
+pytest --cov=src/gened --cov=src/codehelp --cov-report=html && xdg-open htmlcov/index.html
+```
+
+### Type Checking, Code Style, and Standards
+
+The project uses mypy for static type checking (in strict mode), and Ruff and
+djLint for linting and style checks.  These are all configured in
+`pyproject.toml`.
+
+We recommend installing the checkers using a tool like
+[pipx](https://pipx.pypa.io/) or
+[uv](https://docs.astral.sh/uv/concepts/tools/).
+
+Run the checks from the project root:
+- Type checking: `mypy`
+- Python linting: `ruff check`
+- Template linting: `djlint -`
+
+All new code should pass these checks. Code should be correctly typed with no
+mypy errors (ignoring unavoidable errors from third-party libraries lacking
+type information).
 
 ### Updates
 
@@ -136,29 +164,6 @@ This command finds and applies any pending migration scripts located in
 typing `A` at the prompt to apply all new migrations will bring your database
 schema up to date. Note that this command modifies an *existing* database; use
 `flask initdb` only when creating a *new* database from scratch.
-
-### Code Style and Standards
-
-The project uses Ruff and djLint for linting and style checks (configured in
-`pyproject.toml`) and mypy for static type checking (in strict mode).
-
-The `mypy` package is installed as part of the project's optional test
-dependencies using the command from `README.md`:
-```sh
-pip install -e .[test]
-```
-
-We recommend installing the other checkers using a tool like
-[pipx](https://pipx.pypa.io/).
-
-Run the checks from the project root:
-- Python linting: `ruff check`
-- Template linting: `djlint -`
-- Type checking: `mypy`
-
-All new code should pass these checks. Code should be correctly typed with no
-mypy errors (ignoring unavoidable errors from third-party libraries lacking
-type information).
 
 ### Contributing
 

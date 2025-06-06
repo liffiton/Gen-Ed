@@ -109,8 +109,7 @@ flask --app codehelp setpassword [username]
    instance folder.
 
 
-Database Encryption
--------------------
+### (Optional) Database Export Encryption
 
 Database backups (from migrations) and downloads (from the admin interface) can
 optionally be encrypted using age encryption. To enable encryption:
@@ -150,33 +149,10 @@ flask --app codehelp run
 flask --app codehelp --debug run
 ```
 
-
-Running Tests
--------------
-
-First, install test dependencies:
-
-```sh
-pip install -e .[test]
-```
-
-Run all tests:
-
-```sh
-pytest
-```
-
-For code coverage report:
-
-```sh
-pytest --cov=src/gened --cov=src/codehelp --cov-report=html && xdg-open htmlcov/index.html
-```
-
-For mypy type checking:
-
-```sh
-mypy
-```
+When deploying an application in production, do not use the development server
+used by `flask ... run`.  See [the Flask
+documentation](https://flask.palletsprojects.com/en/stable/deploying/) for
+production server options.
 
 
 Developing
