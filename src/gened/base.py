@@ -151,8 +151,8 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
 
     # Optional variables:
     #  - AGE_PUBLIC_KEY: used to encrypt database backups and exports
+    varname = "AGE_PUBLIC_KEY"
     try:
-        varname = "AGE_PUBLIC_KEY"
         env_var = os.environ[varname]
         # test the key
         if env_var.startswith('ssh'):

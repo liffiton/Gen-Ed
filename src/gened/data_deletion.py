@@ -16,11 +16,13 @@ from .db import get_db
 
 class DeletionHandler(Protocol):
     """Protocol defining the interface for personal data deletion handlers."""
-    def delete_user_data(self, user_id: int) -> None:
+    @staticmethod
+    def delete_user_data(user_id: int) -> None:
         """Delete/anonymize all personal data for the given user."""
         ...
 
-    def delete_class_data(self, class_id: int) -> None:
+    @staticmethod
+    def delete_class_data(class_id: int) -> None:
         """Delete/anonymize all personal data for the given class."""
         ...
 

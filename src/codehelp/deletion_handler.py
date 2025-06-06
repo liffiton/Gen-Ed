@@ -4,14 +4,15 @@
 
 """Implementation of personal data deletion for CodeHelp."""
 
-from gened.data_deletion import DeletionHandler, register_handler
+from gened.data_deletion import register_handler
 from gened.db import get_db
 
 
-class CodeHelpDeletionHandler(DeletionHandler):
+class CodeHelpDeletionHandler:
     """CodeHelp implementation of personal data deletion."""
 
-    def delete_user_data(self, user_id: int) -> None:
+    @staticmethod
+    def delete_user_data(user_id: int) -> None:
         """Delete/Anonymize personal data for a user while preserving non-personal data for analysis."""
         db = get_db()
 
@@ -46,7 +47,8 @@ class CodeHelpDeletionHandler(DeletionHandler):
 
         db.commit()
 
-    def delete_class_data(self, class_id: int) -> None:
+    @staticmethod
+    def delete_class_data(class_id: int) -> None:
         """Delete/Anonymize personal data for a class while preserving non-personal data for analysis."""
         db = get_db()
         db.execute("PRAGMA foreign_keys=OFF")  # so we can delete context_string entries before NULLing the foreign keys referencing them
@@ -116,4 +118,4 @@ class CodeHelpDeletionHandler(DeletionHandler):
 
 def register_with_gened() -> None:
     """Register CodeHelp deletion handler with the gened framework."""
-    register_handler(CodeHelpDeletionHandler())
+    register_handler(CodeHelpDeletionHandler)

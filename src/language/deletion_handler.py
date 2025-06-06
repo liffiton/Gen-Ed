@@ -2,14 +2,15 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from gened.data_deletion import DeletionHandler, register_handler
+from gened.data_deletion import register_handler
 from gened.db import get_db
 
 
-class LangDeletionHandler(DeletionHandler):
+class LangDeletionHandler:
     """Handler for deleting user data."""
 
-    def delete_user_data(self, user_id: int) -> None:
+    @staticmethod
+    def delete_user_data(user_id: int) -> None:
         """Delete/Anonymize personal data for a user while preserving non-personal data for analysis."""
         db = get_db()
 
@@ -21,7 +22,8 @@ class LangDeletionHandler(DeletionHandler):
 
         db.commit()
 
-    def delete_class_data(self, class_id: int) -> None:
+    @staticmethod
+    def delete_class_data(class_id: int) -> None:
         """Delete/Anonymize personal data for a class while preserving non-personal data for analysis."""
         db = get_db()
 
@@ -38,4 +40,4 @@ class LangDeletionHandler(DeletionHandler):
 
 def register_with_gened() -> None:
     """Register deletion handler with the gened framework."""
-    register_handler(LangDeletionHandler())
+    register_handler(LangDeletionHandler)
