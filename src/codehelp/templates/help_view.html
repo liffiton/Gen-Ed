@@ -166,7 +166,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <div class="card-content content p-2 pl-5">
           <h2 class="is-size-5">Related Topics</h2>
           {% if topics %}
-            {% set query_id=query.id %}
+            {% set context_name=query.context_name %}
             {% include 'topics_fragment.html' %}
           {% else %}
             <div

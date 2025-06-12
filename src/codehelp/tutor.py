@@ -4,6 +4,7 @@
 
 import asyncio
 import json
+from dataclasses import dataclass
 from sqlite3 import Row
 
 from flask import (
@@ -18,7 +19,6 @@ from flask import (
 from werkzeug.wrappers.response import Response
 
 import gened.admin
-from gened.app_data import get_query
 from gened.auth import get_auth, login_required
 from gened.classes import switch_class
 from gened.db import get_db
@@ -41,6 +41,14 @@ class ChatNotFoundError(Exception):
 
 class AccessDeniedError(Exception):
     pass
+
+
+@dataclass(frozen=True)
+class ChatData:
+    chat: list[ChatMessage]
+    topic: str
+    context_name: str | None
+    context_string: str | None
 
 
 bp = Blueprint('tutor', __name__, url_prefix="/tutor", template_folder='templates')
@@ -66,25 +74,20 @@ def tutor_form(class_id: int | None = None, ctx_name: str | None = None) -> str 
             flash("Cannot access class and context.  Make sure you are logged in correctly before using this link.", "danger")
             return make_response(render_template("error.html"), 400)
 
-    # we may select a context from a given ctx_name, from a given query_id, or from the user's most recently-used context
-    selected_context_name = None
-    if ctx_name is not None:
-        # see if the given context is part of the current class (whether available or not)
+    selected_context_name = ctx_name
+    if ctx_name:
         context = get_context_by_name(ctx_name)
-        if context is None:
+        if not context:
             flash(f"Context not found: {ctx_name}", "danger")
             return make_response(render_template("error.html"), 404)
-        contexts_list = [context]  # this will be the only context in this page -- no other options
-        selected_context_name = ctx_name
+        contexts_list = [context]
     else:
         contexts_list = get_available_contexts()
+        if len(contexts_list) == 1:
+            selected_context_name = contexts_list[0].name
 
     # turn into format we can pass to js via JSON
     contexts = {ctx.name: ctx.desc_html() for ctx in contexts_list}
-
-    # regardless, if there is only one context, select it
-    if len(contexts) == 1:
-        selected_context_name = next(iter(contexts.keys()))
 
     chat_history = get_chat_history()
     return render_template("tutor_new_form.html", contexts=contexts, selected_context_name=selected_context_name, chat_history=chat_history)
@@ -94,32 +97,13 @@ def tutor_form(class_id: int | None = None, ctx_name: str | None = None) -> str 
 @with_llm()
 def start_chat(llm: LLM) -> Response:
     topic = request.form['topic']
+    context: ContextConfig | None = None
 
-    if 'context' in request.form:
-        context = get_context_by_name(request.form['context'])
+    if context_name := request.form.get('context'):
+        context = get_context_by_name(context_name)
         if context is None:
-            flash(f"Context not found: {request.form['context']}")
+            flash(f"Context not found: {context_name}", "danger")
             return make_response(render_template("error.html"), 400)
-    else:
-        context = None
-
-    chat_id = create_chat(topic, context)
-
-    run_chat_round(llm, chat_id)
-
-    return redirect(url_for("tutor.chat_interface", chat_id=chat_id))
-
-
-@bp.route("/chat/create_from_query", methods=["POST"])
-@with_llm()
-def start_chat_from_query(llm: LLM) -> Response:
-    topic = request.form['topic']
-
-    # build context from the specified query
-    query_id = int(request.form['query_id'])
-    query_row, response = get_query(query_id)
-    assert query_row
-    context = get_context_by_name(query_row['context_name'])
 
     chat_id = create_chat(topic, context)
 
@@ -131,14 +115,14 @@ def start_chat_from_query(llm: LLM) -> Response:
 @bp.route("/chat/<int:chat_id>")
 def chat_interface(chat_id: int) -> str | Response:
     try:
-        chat, topic, context_name, context_string = get_chat(chat_id)
+        chat_data = get_chat(chat_id)
     except (ChatNotFoundError, AccessDeniedError):
         flash("Invalid id.", "warning")
         return make_response(render_template("error.html"), 400)
 
     chat_history = get_chat_history()
 
-    return render_template("tutor_view.html", chat_id=chat_id, topic=topic, context_name=context_name, chat=chat, chat_history=chat_history)
+    return render_template("tutor_view.html", chat_id=chat_id, topic=chat_data.topic, context_name=chat_data.context_name, chat=chat_data.chat, chat_history=chat_history)
 
 
 def create_chat(topic: str, context: ContextConfig | None) -> int:
@@ -147,12 +131,8 @@ def create_chat(topic: str, context: ContextConfig | None) -> int:
     user_id = auth.user_id
     role_id = auth.cur_class.role_id if auth.cur_class else None
 
-    if context is not None:
-        context_name = context.name
-        context_string_id = record_context_string(context.prompt_str())
-    else:
-        context_name = None
-        context_string_id = None
+    context_name = context.name if context else None
+    context_string_id = record_context_string(context.prompt_str()) if context else None
 
     cur = db.execute(
         "INSERT INTO chats (user_id, role_id, topic, context_name, context_string_id, chat_json) VALUES (?, ?, ?, ?, ?, ?)",
@@ -175,7 +155,7 @@ def get_chat_history(limit: int = 10) -> list[Row]:
     return history
 
 
-def get_chat(chat_id: int) -> tuple[list[ChatMessage], str, str, str]:
+def get_chat(chat_id: int) -> ChatData:
     db = get_db()
     auth = get_auth()
 
@@ -192,10 +172,13 @@ def get_chat(chat_id: int) -> tuple[list[ChatMessage], str, str, str]:
     if not chat_row:
         raise ChatNotFoundError
 
-    access_allowed = \
-        (auth.user_id == chat_row['user_id']) \
-        or auth.is_admin \
-        or (auth.cur_class and auth.cur_class.role == 'instructor' and auth.cur_class.class_id == chat_row['class_id'])
+    is_owner = auth.user_id == chat_row['user_id']
+    is_instructor_in_class = (
+        auth.cur_class
+        and auth.cur_class.role == 'instructor'
+        and auth.cur_class.class_id == chat_row['class_id']
+    )
+    access_allowed = is_owner or is_instructor_in_class or auth.is_admin
 
     if not access_allowed:
         raise AccessDeniedError
@@ -206,7 +189,7 @@ def get_chat(chat_id: int) -> tuple[list[ChatMessage], str, str, str]:
     context_name = chat_row['context_name']
     context_string = chat_row['context_string']
 
-    return chat, topic, context_name, context_string
+    return ChatData(chat, topic, context_name, context_string)
 
 
 def get_response(llm: LLM, chat: list[ChatMessage]) -> tuple[dict[str, str], str]:
@@ -237,9 +220,11 @@ def save_chat(chat_id: int, chat: list[ChatMessage]) -> None:
 def run_chat_round(llm: LLM, chat_id: int, message: str|None = None) -> None:
     # Get the specified chat
     try:
-        chat, topic, context_name, context_string = get_chat(chat_id)
+        chat_data = get_chat(chat_id)
     except (ChatNotFoundError, AccessDeniedError):
         return
+
+    chat = chat_data.chat
 
     # Add the new message to the chat
     if message is not None:
@@ -253,7 +238,7 @@ def run_chat_round(llm: LLM, chat_id: int, message: str|None = None) -> None:
     # Get a response (completion) from the API using an expanded version of the chat messages
     # Insert a system prompt beforehand and an internal monologue after to guide the assistant
     expanded_chat : list[ChatMessage] = [
-        {'role': 'system', 'content': prompts.make_chat_sys_prompt(topic, context_string)},
+        {'role': 'system', 'content': prompts.make_chat_sys_prompt(chat_data.topic, chat_data.context_string)},
         *chat,  # chat is a list; expand it here with *
         {'role': 'assistant', 'content': prompts.tutor_monologue},
     ]

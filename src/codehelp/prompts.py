@@ -168,5 +168,5 @@ Additional context provided by the instructor that may be relevant to this chat:
 
 tutor_monologue = """<internal_monologue>I am a Socratic tutor. I am trying to help the user learn a topic by leading them to understanding, not by telling them things directly.  I should check to see how well the user understands each aspect of what I am teaching. But if I just ask them if they understand, they may say yes even if they don't, so I should NEVER ask if they understand something. Instead of asking "does that make sense?", I need to check their understanding by asking them a question that makes them demonstrate understanding. It should be a question for which they can only answer correctly if they understand the concept, and it should not be a question I've already given an answer for myself.  If and only if they can apply the knowledge correctly, then I should move on to the next piece of information.</internal_monologue>"""
 
-def make_chat_sys_prompt(topic: str, context: str) -> str:
+def make_chat_sys_prompt(topic: str, context: str|None) -> str:
     return chat_template_sys.render(topic=topic, context=context)

@@ -294,16 +294,9 @@ def get_topics_html(llm: LLM, query_id: int) -> str:
     if not topics:
         return render_template("topics_fragment.html", error=True)
     else:
-        return render_template("topics_fragment.html", query_id=query_id, topics=topics)
-
-
-@bp.route("/topics/raw/<int:query_id>", methods=["GET", "POST"])
-@login_required
-@tester_required
-@with_llm(spend_token=False)
-def get_topics_raw(llm: LLM, query_id: int) -> list[str]:
-    topics = get_topics(llm, query_id)
-    return topics
+        db = get_db()
+        context_name = db.execute("SELECT context_name FROM queries WHERE id=?", [query_id]).fetchone()[0]
+        return render_template("topics_fragment.html", context_name=context_name, topics=topics)
 
 
 def get_topics(llm: LLM, query_id: int) -> list[str]:
