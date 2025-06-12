@@ -87,7 +87,8 @@ def get_queries(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
             queries.error AS error,
             queries.issue AS issue,
             queries.response_text AS response,
-            queries.helpful_emoji AS helpful,
+            queries.helpful AS helpful,
+            queries.helpful_emoji AS helpful_emoji,
             queries.user_id AS user_id,
             queries.context_string_id AS context_string_id,
             classes.id AS class_id,
@@ -110,7 +111,7 @@ def get_queries(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
 
 queries_table = DataTable(
     name='queries',
-    columns=[NumCol('id'), UserCol('user'), TimeCol('time'), Col('context'), Col('code'), Col('error'), Col('issue'), ResponseCol('response'), Col('helpful', align='center')],
+    columns=[NumCol('id'), UserCol('user'), TimeCol('time'), Col('context'), Col('code'), Col('error'), Col('issue'), ResponseCol('response'), Col('helpful_emoji', align='center')],
     link_col=0,
     link_template="/help/view/${value}",
 )
