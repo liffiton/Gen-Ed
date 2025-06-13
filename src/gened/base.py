@@ -34,6 +34,7 @@ from . import (
     oauth,
     profile,
     tz,
+    models,
 )
 
 
@@ -204,6 +205,7 @@ def create_app_base(import_name: str, app_config: dict[str, Any], instance_path:
     app.register_blueprint(lti.bp, url_prefix='/lti')
     app.register_blueprint(oauth.bp, url_prefix='/oauth')
     app.register_blueprint(profile.bp, url_prefix='/profile')
+    app.register_blueprint(models.bp, url_prefix="/models")
 
     # Initialize modules with other setup needs
     db.init_app(app)
