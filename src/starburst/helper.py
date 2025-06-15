@@ -8,8 +8,7 @@ from contextlib import suppress
 
 from flask import (
     Blueprint,
-    flash,
-    make_response,
+    abort,
     redirect,
     render_template,
     request,
@@ -50,8 +49,7 @@ def help_view(query_id: int) -> Response | str:
     try:
         query_row = get_query(query_id)
     except DataAccessError:
-        flash("Invalid id.", "warning")
-        return make_response(render_template("error.html"), 400)
+        abort(400, "Invalid id.")
 
     if query_row['response']:
         responses = json.loads(query_row['response'])

@@ -116,7 +116,7 @@ def main() -> str | Response:
 @bp.route("/csv/<string:kind>")
 def get_csv(kind: str) -> str | Response:
     if kind not in ('queries', 'users'):
-        return abort(404)
+        abort(404)
 
     cur_class = get_auth_class()
     class_name = cur_class.class_name

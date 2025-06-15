@@ -106,7 +106,7 @@ def view_data() -> str:
 @bp.route("/data/csv/<string:kind>")
 def get_csv(kind: str) -> str | Response:
     if kind not in ('queries'):
-        return abort(404)
+        abort(404)
 
     auth = get_auth()
     assert auth.user

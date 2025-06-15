@@ -242,7 +242,7 @@ def access_class(class_ident: str) -> str | Response:
     """, [class_ident]).fetchone()
 
     if not class_row:
-        return abort(404)
+        abort(404)
 
     if not auth.user:
         flash(f"Please log in to access class '{class_row['name']}'")
@@ -257,7 +257,7 @@ def access_class(class_ident: str) -> str | Response:
         # user already has a role, but it may not be active
         success = switch_class(class_id)
         if not success:
-            return abort(403)
+            abort(403)
         else:
             return redirect(url_for("landing"))
 

@@ -133,7 +133,7 @@ def save_llm_config() -> Response:
 
     # only class creators can edit LLM config
     if not cur_class.user_is_creator:
-        return abort(403)
+        abort(403)
 
     if 'clear_llm_api_key' in request.form:
         db.execute("UPDATE classes_user SET llm_api_key='' WHERE class_id=?", [class_id])

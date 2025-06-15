@@ -67,18 +67,17 @@ def lti_login(lti: LTI) -> Response | tuple[str, int]:  # noqa: ARG001 (unused a
     if not authenticated:
         current_app.logger.warning("LTI login not authenticated.")
         session.clear()
-        return abort(403)
+        abort(403)
 
     if not lti_user_id or not lti_consumer or not lti_context_id or not class_name:
         current_app.logger.warning(f"LTI login missing one of: {lti_user_id=} {lti_consumer=} {lti_context_id=} {class_name=}")
         session.clear()
-        return abort(400)
+        abort(400)
 
     if not full_name and (not email or '@' not in email):
         current_app.logger.warning(f"LTI login missing name or email: {lti_consumer=} {full_name=} {email=}")
         session.clear()
-        flash("LTI login missing name and email (at least one required).", "danger")
-        return render_template("error.html"), 400
+        abort(400, "LTI login missing name and email (at least one required).")
 
     # check for instructors
     instructor_role_substrs = ["instructor", "teachingassistant"]
@@ -119,7 +118,7 @@ def lti_login(lti: LTI) -> Response | tuple[str, int]:  # noqa: ARG001 (unused a
         db.commit()
     elif not role_row['active']:
         session.clear()
-        return abort(403)
+        abort(403)
 
     # Record them as logged in in the session
     set_session_auth_user(user_id)

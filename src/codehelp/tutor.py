@@ -9,6 +9,7 @@ from sqlite3 import Row
 
 from flask import (
     Blueprint,
+    abort,
     flash,
     make_response,
     redirect,
@@ -117,8 +118,7 @@ def chat_interface(chat_id: int) -> str | Response:
     try:
         chat_data = get_chat(chat_id)
     except (ChatNotFoundError, AccessDeniedError):
-        flash("Invalid id.", "warning")
-        return make_response(render_template("error.html"), 400)
+        abort(400, "Invalid id.")
 
     chat_history = get_chat_history()
 

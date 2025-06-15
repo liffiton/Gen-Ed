@@ -10,9 +10,8 @@ from typing import TypedDict
 
 from flask import (
     Blueprint,
+    abort,
     current_app,
-    flash,
-    make_response,
     redirect,
     render_template,
     request,
@@ -104,8 +103,7 @@ def help_view(query_id: int) -> Response | str:
     try:
         query_row = get_query(query_id)
     except DataAccessError:
-        flash("Invalid id.", "warning")
-        return make_response(render_template("error.html"), 400)
+        abort(400, "Invalid id.")
 
     if query_row['response']:
         responses = json.loads(query_row['response'])

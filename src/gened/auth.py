@@ -446,6 +446,6 @@ def tester_required(f: Callable[P, R]) -> Callable[P, Response | R]:
     def decorated_function(*args: P.args, **kwargs: P.kwargs) -> Response | R:
         auth = get_auth()
         if not auth.is_tester:
-            return abort(404)
+            abort(404)
         return f(*args, **kwargs)
     return decorated_function

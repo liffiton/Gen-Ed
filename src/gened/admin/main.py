@@ -180,7 +180,7 @@ def get_data_sources(filters: Filters) -> dict[str, DataSource]:
 @bp.route("/api/<string:name>/<string:kind>")
 def get_data(name: str, kind: str='json') -> str | Response:
     if kind not in ['json', 'csv']:
-        return abort(404)
+        abort(404)
 
     filters = Filters.from_args()
     limit = int(request.args.get('limit', -1))
@@ -189,7 +189,7 @@ def get_data(name: str, kind: str='json') -> str | Response:
     all_data_sources = get_data_sources(filters)
 
     if name not in all_data_sources:
-        return abort(404)
+        abort(404)
 
     source = all_data_sources[name]
     table = source.table

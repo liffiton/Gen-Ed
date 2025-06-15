@@ -119,7 +119,7 @@ def check_valid_context(f: Callable[P, R]) -> Callable[P, Response | R]:
         ctx_id = kwargs['ctx_id']
         context_row = db.execute("SELECT * FROM contexts WHERE id=?", [ctx_id]).fetchone()
         if context_row['class_id'] != class_id:
-            return abort(403)
+            abort(403)
 
         kwargs['ctx_row'] = context_row
         return f(*args, **kwargs)

@@ -112,8 +112,7 @@ def help_view(query_id: int) -> str | Response:
     try:
         query_row = get_query(query_id)
     except DataAccessError:
-        flash("Invalid id.", "warning")
-        return make_response(render_template("error.html"), 400)
+        abort(400, "Invalid id.")
 
     if query_row['response']:
         responses = json.loads(query_row['response'])
@@ -233,7 +232,7 @@ def help_request(llm: LLM) -> Response:
     if 'context' in request.form:
         context = get_context_by_name(request.form['context'])
         if context is None:
-            flash(f"Context not found: {request.form['context']}")
+            flash(f"Context not found: {request.form['context']}", "danger")
             return make_response(render_template("error.html"), 400)
     else:
         context = None
@@ -255,7 +254,7 @@ def load_test(llm: LLM) -> Response:
     # Require that we're logged in as the load_test admin user
     auth = get_auth()
     if auth.user is None or auth.user.display_name != 'load_test':
-        return abort(403)
+        abort(403)
 
     context = ContextConfig(name="__LOADTEST_Context")
     code = "__LOADTEST_Code"
