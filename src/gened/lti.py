@@ -8,7 +8,6 @@ from flask import (
     Blueprint,
     abort,
     current_app,
-    flash,
     redirect,
     render_template,
     session,
