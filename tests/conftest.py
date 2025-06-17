@@ -95,6 +95,18 @@ def auth(client):
     return AuthActions(client)
 
 
+@pytest.fixture
+def instructor(app):
+    client = app.test_client()
+    auth = AuthActions(client)
+    auth.login('testuser', 'testpassword')  # log in as a user that has an instructor role in a class
+    response = client.get('/classes/switch/2')  # switch to a class in which this user is an instructor
+    assert response.status_code == 302
+    assert response.location == "/profile/"
+
+    return client, auth
+
+
 TEST_OAUTH_USER = {
     'email': 'test@example.com',
     'name': 'Test OAuth User',

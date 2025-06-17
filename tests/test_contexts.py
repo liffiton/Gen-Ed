@@ -3,9 +3,8 @@ import pytest
 from gened.db import get_db
 
 
-def test_create_context(app, client, auth):
-    auth.login()
-    response = client.get('/classes/switch/2')  # switch to class 2 (where this user is an instructor)
+def test_create_context(app, instructor):
+    client, auth = instructor
 
     response = client.post('/instructor/context/create', data={
         'name': 'Test Context',
@@ -22,9 +21,8 @@ def test_create_context(app, client, auth):
         assert context['config'] == '{"tools": "ABC", "details": "XYZ", "avoid": "123"}'
 
 
-def test_update_context(app, client, auth):
-    auth.login()
-    response = client.get('/classes/switch/2')  # switch to class 2 (where this user is an instructor)
+def test_update_context(app, instructor):
+    client, auth = instructor
 
     # First, create a context
     client.post('/instructor/context/create', data={
@@ -54,9 +52,8 @@ def test_update_context(app, client, auth):
         assert updated_context['config'] == '{"tools": "ABC", "details": "XYZ", "avoid": "123"}'
 
 
-def test_delete_context(app, client, auth):
-    auth.login()
-    response = client.get('/classes/switch/2')  # switch to class 2 (where this user is an instructor)
+def test_delete_context(app, instructor):
+    client, auth = instructor
 
     # First, create a context
     client.post('/instructor/context/create', data={
@@ -97,9 +94,8 @@ def test_instructor_required(client, auth):
     assert response.headers['Location'].startswith('/auth/login')
 
 
-def test_context_list_display(client, auth):
-    auth.login()
-    response = client.get('/classes/switch/2')  # switch to class 2 (where this user is an instructor)
+def test_context_list_display(instructor):
+    client, auth = instructor
 
     # Check if existing contexts are displayed on the config page
     response = client.get('/instructor/config/')

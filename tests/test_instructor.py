@@ -5,14 +5,10 @@
 from gened.db import get_db
 
 
-def test_set_role_active(app, client, auth):
-    auth.login()  # as testuser, who created and is instructor in class id 2
+def test_set_role_active(app, instructor):
+    client, auth = instructor
 
-    response = client.get('/classes/switch/2')  # switch to class 2
-    assert response.status_code == 302
-    assert response.location == "/profile/"
-
-    # Test successful deactivation (deactivating testadmint in the course)
+    # Test successful deactivation (deactivating testadmin in the course)
     response = client.post('/instructor/role/set_active/5/0')
     assert response.status_code == 200
     assert response.data == b'okay'
@@ -57,12 +53,8 @@ def test_set_role_active(app, client, auth):
     assert response.location.startswith('/auth/login?')
 
 
-def test_set_role_instructor(app, client, auth):
-    auth.login()  # as testuser, who created and is instructor in class id 2
-
-    response = client.get('/classes/switch/2')  # switch to class 2
-    assert response.status_code == 302
-    assert response.location == "/profile/"
+def test_set_role_instructor(app, instructor):
+    client, auth = instructor
 
     # Test successful change to instructor for testadmin (starts as student)
     response = client.post('/instructor/role/set_instructor/5/1')
