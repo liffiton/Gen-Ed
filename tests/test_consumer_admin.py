@@ -2,8 +2,12 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+from flask.testing import FlaskClient
 
-def test_create_consumer(client, auth):
+from tests.conftest import AuthActions
+
+
+def test_create_consumer(client: FlaskClient, auth: AuthActions) -> None:
     auth.login('testadmin', 'testadminpassword')
     response = client.post(
         '/admin/consumer/update',
@@ -22,7 +26,7 @@ def test_create_consumer(client, auth):
     assert b"test_secret" in response.data
 
 
-def test_edit_consumer(client, auth):
+def test_edit_consumer(client: FlaskClient, auth: AuthActions) -> None:
     auth.login('testadmin', 'testadminpassword')
     response = client.post(
         '/admin/consumer/update',
@@ -40,7 +44,7 @@ def test_edit_consumer(client, auth):
     assert b"Consumer updated." in response.data
 
 
-def test_delete_consumer_with_dependencies(client, auth):
+def test_delete_consumer_with_dependencies(client: FlaskClient, auth: AuthActions) -> None:
     auth.login('testadmin', 'testadminpassword')
     response = client.post(
         '/admin/consumer/delete/1',
@@ -52,7 +56,7 @@ def test_delete_consumer_with_dependencies(client, auth):
     assert b"Cannot delete consumer: there are related classes." in response.data
 
 
-def test_delete_consumer_with_no_classes(client, auth):
+def test_delete_consumer_with_no_classes(client: FlaskClient, auth: AuthActions) -> None:
     auth.login('testadmin', 'testadminpassword')
     response = client.post(
         '/admin/consumer/delete/2',
@@ -64,7 +68,7 @@ def test_delete_consumer_with_no_classes(client, auth):
     assert b"Consumer &#39;consumer.otherdomain&#39; deleted." in response.data
 
 
-def test_delete_consumer_invalid(client, auth):
+def test_delete_consumer_invalid(client: FlaskClient, auth: AuthActions) -> None:
     auth.login('testadmin', 'testadminpassword')
     response = client.post(
         '/admin/consumer/delete/3',

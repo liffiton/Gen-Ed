@@ -2,12 +2,14 @@ from pathlib import Path
 
 import pytest
 from flask import Flask
+from flask.testing import FlaskClient
 
 import codehelp
 from gened.db import get_db
+from tests.conftest import AuthActions
 
 
-def test_valid_default_model(app):
+def test_valid_default_model(app: Flask) -> None:
     """Test that a valid default model shortname works.
 
     Uses app fixture to be able to use its config and initialized database
@@ -28,7 +30,7 @@ def test_valid_default_model(app):
     assert isinstance(test_app, Flask)
 
 
-def test_invalid_model_shortname(app):
+def test_invalid_model_shortname(app: Flask) -> None:
     """Test that an invalid model shortname raises an error.
 
     Uses app fixture to be able to use its initialized database
@@ -57,7 +59,7 @@ def test_invalid_model_shortname(app):
     assert exc_info.value.code == 1
 
 
-def test_model_used_in_class_creation(app, client, auth):
+def test_model_used_in_class_creation(app: Flask, client: FlaskClient, auth: AuthActions) -> None:
     """Test that the default model is actually used when creating a new class."""
     # Login and create a class
     auth.login()

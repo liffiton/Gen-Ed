@@ -7,8 +7,11 @@ import subprocess
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 
+import pytest
+from flask import Flask
 
-def test_db_download_status(app, monkeypatch):
+
+def test_db_download_status(app: Flask, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that db_download_status correctly reflects encryption availability"""
     with app.app_context():
         from gened.admin.download import get_encryption_status
@@ -36,7 +39,7 @@ def test_db_download_status(app, monkeypatch):
         assert status.reason is None
 
 
-def test_backup_db_encryption(app):
+def test_backup_db_encryption(app: Flask) -> None:
     """Test that backup_db handles encryption configuration correctly"""
     # test does not run on Windows, where gened does not support db backups
     if platform.system() == "Windows":

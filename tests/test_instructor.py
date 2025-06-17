@@ -2,10 +2,14 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+from flask import Flask
+from flask.testing import FlaskClient
+
 from gened.db import get_db
+from tests.conftest import AuthActions
 
 
-def test_set_role_active(app, instructor):
+def test_set_role_active(app: Flask, instructor: tuple[FlaskClient, AuthActions]) -> None:
     client, auth = instructor
 
     # Test successful deactivation (deactivating testadmin in the course)
@@ -53,7 +57,7 @@ def test_set_role_active(app, instructor):
     assert response.location.startswith('/auth/login?')
 
 
-def test_set_role_instructor(app, instructor):
+def test_set_role_instructor(app: Flask, instructor: tuple[FlaskClient, AuthActions]) -> None:
     client, auth = instructor
 
     # Test successful change to instructor for testadmin (starts as student)

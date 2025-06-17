@@ -5,24 +5,27 @@
 import re
 
 import pytest
+from flask import Flask
+from flask.testing import FlaskClient
 
 from tests.conftest import AuthActions
 
 
-def test_not_logged_in(client):
+def test_not_logged_in(client: FlaskClient) -> None:
     # reg/access links should not work if not logged in.
     response = client.get("/classes/access/reg_enabled")
     assert response.status_code == 302
     assert response.location == "/auth/login?next=/classes/access/reg_enabled?"
 
 
-def _test_user_class_link(client, link_name, status, result):
+def _test_user_class_link(client: FlaskClient, link_name: str, status: int, result: str | None) -> None:
     response = client.get(f"/classes/access/{link_name}")
     assert response.status_code == status
 
     if status == 302:
         assert response.location == result
     elif status == 200:
+        assert result is not None
         assert result in response.text
 
 
@@ -32,12 +35,18 @@ def _test_user_class_link(client, link_name, status, result):
     ('reg_expired', 200, 'Registration is not active for this class.'),
     ('reg_enabled', 302, '/'),
 ])
-def test_user_class_link(auth, client, link_name, status, result):
+def test_user_class_link(
+    auth: AuthActions,
+    client: FlaskClient,
+    link_name: str,
+    status: int,
+    result: str | None
+) -> None:
     auth.login('testuser2', 'testuser2password')  # log in a testuser2, not connected to any existing classes
     _test_user_class_link(client, link_name, status, result)
 
 
-def _create_user_class(client, class_name):
+def _create_user_class(client: FlaskClient, class_name: str) -> str:
     response = client.post(
         "/classes/create/",
         data={'class_name': class_name, 'llm_api_key': "none"}
@@ -55,13 +64,13 @@ def _create_user_class(client, class_name):
     return class_access_link_name
 
 
-def test_user_class_creation(auth, client):
+def test_user_class_creation(auth: AuthActions, client: FlaskClient) -> None:
     auth.login()  # only works if logged in
     class_access_link_name = _create_user_class(client, "Test Class")
     _test_user_class_link(client, class_access_link_name, 302, '/')
 
 
-def test_user_class_usage(app):
+def test_user_class_usage(app: Flask) -> None:
     instructor_client = app.test_client()
     instructor_auth = AuthActions(instructor_client)
 

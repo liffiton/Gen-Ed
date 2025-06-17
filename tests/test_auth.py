@@ -6,11 +6,14 @@ import re
 from dataclasses import dataclass
 
 import pytest
+from flask import Flask
+from flask.testing import FlaskClient, FlaskCliRunner
 
 from gened.auth import get_auth
+from tests.conftest import AuthActions
 
 
-def test_login_page(client):
+def test_login_page(client: FlaskClient) -> None:
     response = client.get('/auth/login')
     assert response.status_code == 200
     assert "Username:" in response.text
@@ -31,14 +34,14 @@ invalid_login_result = LoginResult(target="/auth/login", content="Invalid userna
 
 
 def check_login(
-        client,    # fixture
-        auth,      # fixture
-        username,  # login username
-        password,  # login password
-        next_url=None,   # value to send for 'next' form parameter
-        *,
-        expect: LoginResult,  # see type above
-    ):
+        client: FlaskClient,
+        auth: AuthActions,
+        username: str,
+        password: str,
+        next_url: str | None = None,
+        *,  # keyword-only beyond here
+        expect: LoginResult,
+    ) -> None:
     with client:  # so we can use session in get_auth()
         response = auth.login(username, password, next_url)
 
@@ -70,15 +73,16 @@ def check_login(
         assert expect.content in response.text
 
 
-def test_newuser_command(app, runner, client, auth):
-
+def test_newuser_command(app: Flask, runner: FlaskCliRunner, client: FlaskClient, auth: AuthActions) -> None:
     username = "_newuser_"
     check_login(client, auth, username, 'x', expect=invalid_login_result)
     auth.logout()
 
     with app.app_context():
         cmd_result = runner.invoke(args=['newuser', username])
-        password = re.search(r'password: (\w+)\b', cmd_result.output).group(1)
+        password_match = re.search(r'password: (\w+)\b', cmd_result.output)
+        assert password_match
+        password = password_match.group(1)
 
     check_login(client, auth, username, password, expect=LoginResult(target="/help/", content="_newuser_", is_authed=True))
     auth.logout()
@@ -95,7 +99,7 @@ def test_newuser_command(app, runner, client, auth):
     ('testuser', 'y'),
     ('testadmin', 'y'),
 ])
-def test_invalid_login(client, auth, username, password):
+def test_invalid_login(client: FlaskClient, auth: AuthActions, username: str, password: str) -> None:
     check_login(client, auth, username, password, expect=invalid_login_result)
 
 
@@ -103,7 +107,14 @@ def test_invalid_login(client, auth, username, password):
     ('testuser', 'testpassword', '/profile/', False),
     ('testadmin', 'testadminpassword', '/admin/', True),
 ])
-def test_valid_login(client, auth, username, password, next_url, is_admin):
+def test_valid_login(
+        client: FlaskClient,
+        auth: AuthActions,
+        username: str,
+        password: str,
+        next_url: str,
+        is_admin: bool,  # noqa: FBT001 - bool positional argument
+    ) -> None:
     # Test with the next URL specified
     check_login(
         client, auth, username, password, next_url=next_url,
@@ -124,7 +135,7 @@ def test_valid_login(client, auth, username, password, next_url, is_admin):
     auth.logout()
 
 
-def test_logout(client, auth):
+def test_logout(client: FlaskClient, auth: AuthActions) -> None:
     with client:
         auth.login()  # defaults to testuser (id 11)
         sessauth = get_auth()
@@ -159,7 +170,14 @@ def test_logout(client, auth):
     ('/admin/', 302, 302, 200),         # admin_required redirects to login
     ('/admin/get_db/', 302, 302, 200),   # admin_required redirects to login
 ])
-def test_auth_required(client, auth, path, nologin, withlogin, withadmin):
+def test_auth_required(
+        client: FlaskClient,
+        auth: AuthActions,
+        path: str,
+        nologin: int,
+        withlogin: int | tuple[int, str],
+        withadmin: int | tuple[int, str],
+    ) -> None:
     response = client.get(path)
     assert response.status_code == nologin
 

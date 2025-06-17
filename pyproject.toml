@@ -62,7 +62,7 @@ markers = [
 
 
 [tool.ruff]
-include = ["pyproject.toml", "src/**/*.py"]
+include = ["pyproject.toml", "src/**/*.py", "tests/**/*.py"]
 output-format = "concise"
 
 [tool.ruff.lint]
@@ -87,12 +87,22 @@ ignore = [
     "C408",   # dict() vs dict literal
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [  # Ignore warnings in the tests directory
+    "E712",     # equality comparisons to False (make assertions clearer)
+    "PLR0913",  # too many arguments (fixtures push us in that direction)
+    "PLR2004",  # magic numbers
+    "S106",     # hardcoded passwords
+    "S107",     # hardcoded passwords
+    "S608",     # possible sql injection
+]
+
 [tool.djlint]
 profile = "jinja"
 files = ["src/"]
 ignore = "T001,H021,H023,H029"
 
 [tool.mypy]
-files = [ "src/" ]
+files = [ "src/", "tests/" ]
 strict = "True"
 pretty = "True"

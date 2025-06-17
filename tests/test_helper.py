@@ -3,10 +3,13 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import pytest
+from flask.testing import FlaskClient
+
+from tests.conftest import AuthActions
 
 
 @pytest.mark.use_real_openai
-def test_openai_exception(client, auth):
+def test_openai_exception(client: FlaskClient, auth: AuthActions) -> None:
     """ Check that we raise the correct OpenAI exception if we have an invalid API key.
     NOTE that this is using base_app, and so openai is *not* monkey-patched.
     Requests go to the actual OpenAI endpoint.
@@ -27,7 +30,7 @@ def test_openai_exception(client, auth):
 
 
 @pytest.mark.parametrize(('context_name'), ['default', 'default2', 'default3'])
-def test_saved_context(app, client, auth, context_name):
+def test_saved_context(client: FlaskClient, auth: AuthActions, context_name: str) -> None:
     """ Check that previously-used context is auto-selected in help interface. """
     auth.login()
 
@@ -47,7 +50,7 @@ def test_saved_context(app, client, auth, context_name):
     ('testuser', 'testpassword'),
     ('testadmin', 'testadminpassword'),
 ])
-def test_query(client, auth, username, password):
+def test_query(client: FlaskClient, auth: AuthActions, username: str, password: str) -> None:
     auth.login(username, password)
 
     results = []

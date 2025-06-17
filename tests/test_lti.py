@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import pytest
+from flask.testing import FlaskClient
 from oauthlib import oauth1
 
 CLASS = {
@@ -19,12 +20,12 @@ USER = {
 
 
 class LTIConsumer:
-    def __init__(self, consumer_key='', consumer_secret=''):
+    def __init__(self, consumer_key: str='', consumer_secret: str='') -> None:
         self.url = "http://localhost/lti/"
         self.consumer_key = consumer_key
         self.consumer_secret = consumer_secret
 
-    def generate_launch_request(self, user_and_role, class_config=CLASS):
+    def generate_launch_request(self, user_and_role: str, class_config: dict[str, str]=CLASS) -> tuple[str, dict[str, str], str]:
         params = {
             "user_id": user_and_role,
             "roles": user_and_role,
@@ -63,7 +64,7 @@ class LTIConsumer:
     ('invalid_consumer.domain', 'secret'),   # consumer not registered in app
     ('consumer.domain', 'wrong_secret'),   # consumer registered (see test_data.sql), but wrong secret provided
 ])
-def test_lti_auth_failure(client, consumer_key, consumer_secret):
+def test_lti_auth_failure(client: FlaskClient, consumer_key: str, consumer_secret: str) -> None:
     lti = LTIConsumer(consumer_key, consumer_secret)
     uri, headers, body = lti.generate_launch_request("Instructor")
     result = client.post(uri, headers=headers, data=body)
@@ -75,7 +76,7 @@ def test_lti_auth_failure(client, consumer_key, consumer_secret):
     ('urn:lti:role:ims/lis/TeachingAssistant', 'instructor'),  # canvas TA
     ('Student', 'student'),
 ])
-def test_lti_auth_success(client, role, internal_role):
+def test_lti_auth_success(client: FlaskClient, role: str, internal_role: str) -> None:
     # key and secret match 'consumer.domain' consumer in test_data.sql
     lti = LTIConsumer('consumer.domain', 'seecrits1')
 
@@ -108,7 +109,7 @@ def test_lti_auth_success(client, role, internal_role):
     assert f"{CLASS['label']} ({internal_role})" in result.text
 
 
-def test_lti_class_name_change(client):
+def test_lti_class_name_change(client: FlaskClient) -> None:
     # key and secret match 'consumer.domain' consumer in test_data.sql
     lti = LTIConsumer('consumer.domain', 'seecrits1')
 
@@ -155,7 +156,7 @@ def test_lti_class_name_change(client):
     assert prev_label not in result.text
 
 
-def test_lti_instructor_and_students(client):
+def test_lti_instructor_and_students(client: FlaskClient) -> None:
     # key and secret match 'consumer.domain' consumer in test_data.sql
     lti = LTIConsumer('consumer.domain', 'seecrits1')
 

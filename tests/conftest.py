@@ -84,7 +84,7 @@ class AuthActions:
     def __init__(self, client: FlaskClient):
         self._client = client
 
-    def login(self, username: str='testuser', password: str='testpassword', next_url: str='') -> TestResponse:
+    def login(self, username: str='testuser', password: str='testpassword', next_url: str | None = None) -> TestResponse:
         return self._client.post(
             '/auth/local_login',
             data={'username': username, 'password': password, 'next': next_url}

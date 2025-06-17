@@ -3,13 +3,16 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import sqlite3
+from unittest.mock import Mock
 
 import pytest
+from flask import Flask
+from flask.testing import FlaskCliRunner
 
 from gened.db import get_db
 
 
-def test_get_close_db(app):
+def test_get_close_db(app: Flask) -> None:
     with app.app_context():
         db = get_db()
         assert db is get_db()
@@ -20,14 +23,9 @@ def test_get_close_db(app):
     assert 'closed' in str(e.value)
 
 
-def test_init_db_command(runner, monkeypatch):
-    class Recorder:
-        called = False
-
-    def fake_init_db():
-        Recorder.called = True
-
-    monkeypatch.setattr('gened.db.init_db', fake_init_db)
+def test_init_db_command(runner: FlaskCliRunner, monkeypatch: pytest.MonkeyPatch) -> None:
+    mock_init_db = Mock()
+    monkeypatch.setattr('gened.db.init_db', mock_init_db)
     result = runner.invoke(args=['initdb'])
     assert 'Initialized' in result.output
-    assert Recorder.called
+    mock_init_db.assert_called_once()

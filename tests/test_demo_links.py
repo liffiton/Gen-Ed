@@ -3,6 +3,9 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import pytest
+from flask.testing import FlaskClient
+
+from tests.conftest import AuthActions
 
 
 @pytest.mark.parametrize(('link_name', 'message'), [
@@ -10,7 +13,7 @@ import pytest
     ('test_disabled', 'Demo link disabled.'),
     ('test_expired', 'Demo link expired.'),
 ])
-def test_invalid_demo_link(client, link_name, message):
+def test_invalid_demo_link(client: FlaskClient, link_name: str, message: str) -> None:
     """ Accessing an invalid demo link should return an error. """
     response = client.get(f"/demo/{link_name}")
     assert message in response.text
@@ -19,7 +22,7 @@ def test_invalid_demo_link(client, link_name, message):
     assert response.status_code == 302   # /help/ redirects to login in all of these cases
 
 
-def test_valid_demo_link(client):
+def test_valid_demo_link(client: FlaskClient) -> None:
     """ Accessing a valid demo link should log the user in and allow posting a request. """
     response = client.get("/demo/test_valid")
     assert "Invalid demo link." not in response.text
@@ -55,7 +58,7 @@ def test_valid_demo_link(client):
             assert '_test_issue_' not in response2.text
 
 
-def test_logged_in(auth, client):
+def test_logged_in(auth: AuthActions, client: FlaskClient) -> None:
     auth.login()
     response = client.get("/demo/test_valid")
     assert "Invalid demo link." not in response.text
