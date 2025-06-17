@@ -1,15 +1,14 @@
-# SPDX-FileCopyrightText: 2024 Mark Liffiton <liffiton@gmail.com>
+# SPDX-FileCopyrightText: 2025 Mark Liffiton <liffiton@gmail.com>
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from collections.abc import Callable
 from functools import wraps
 from sqlite3 import Row
-from typing import Any, ParamSpec, TypeVar
+from typing import ParamSpec, TypeVar
 
 from flask import (
     Blueprint,
-    Flask,
     abort,
     current_app,
     flash,
@@ -21,80 +20,9 @@ from flask import (
 from werkzeug.wrappers.response import Response
 
 from gened.auth import get_auth, get_auth_class, instructor_required
-from gened.class_config import register_extra_section_template
 from gened.db import get_db
 
-from .context import ContextConfig, jinja_env_html
-
-# This module manages application-specific context configuration.
-#
-# It is kept relatively generic, and much of the specific implementation of
-# a context can be controlled by the ContextConfig dataclass and related
-# templates.
-#
-# App-specific context configuration data are stored in dataclasses.  The
-# dataclass must specify the template filename, contain the context's name,
-# define the config's fields and their types, and implement
-# `from_request_form()` and `from_row()` class methods that generate a config
-# object based on inputs in request.form (as submitted from the form in the
-# specified template) or an SQLite row from the database.
-
-def register(app: Flask) -> None:
-    """ Register the configuration UI (render function) inside gened's
-        class_config module, and grab a copy of the app's markdown filter for
-        use here.
-    """
-    register_extra_section_template("context_config.html", _get_context_config_data)
-    jinja_env_html.filters['markdown'] = app.jinja_env.filters['markdown']
-
-
-def _get_instructor_courses(user_id: int, current_class_id: int) -> list[dict[str, str | list[str]]]:
-    """ Get other courses where the user is an instructor. """
-    db = get_db()
-    course_rows = db.execute("""
-        SELECT c.id, c.name
-        FROM classes c
-        JOIN roles r ON c.id = r.class_id
-        WHERE r.user_id = ?
-          AND r.role = 'instructor'
-          AND c.id != ?
-        ORDER BY c.name
-    """, [user_id, current_class_id]).fetchall()
-
-    # Fetch contexts for each eligible course to display in the copy modal
-    instructor_courses_data = []
-    for course in course_rows:
-        course_contexts = db.execute("""
-            SELECT name FROM contexts WHERE class_id = ? ORDER BY class_order
-        """, [course['id']]).fetchall()
-        instructor_courses_data.append({
-            'id': course['id'],
-            'name': course['name'],
-            'contexts': [ctx['name'] for ctx in course_contexts]
-        })
-
-    return instructor_courses_data
-
-
-def _get_context_config_data() -> dict[str, Any]:
-    db = get_db()
-    auth = get_auth()
-    cur_class = get_auth_class()
-    class_id = cur_class.class_id
-
-    contexts = db.execute("""
-        SELECT id, name, CAST(available AS TEXT) AS available
-        FROM contexts
-        WHERE contexts.class_id=?
-        ORDER BY contexts.class_order
-    """, [class_id]).fetchall()
-    contexts = [dict(c) for c in contexts]  # for conversion to json
-
-    assert auth.user
-    copyable_courses = _get_instructor_courses(auth.user.id, class_id)
-
-    return {"contexts": contexts, "copyable_courses": copyable_courses}
-
+from .model import ContextConfig
 
 # For decorator type hints
 P = ParamSpec('P')
@@ -126,7 +54,6 @@ def check_valid_context(f: Callable[P, R]) -> Callable[P, Response | R]:
     return decorated_function
 
 
-### Blueprint + routes
 bp = Blueprint('context_config', __name__, url_prefix="/instructor/context", template_folder='templates')
 
 @bp.before_request

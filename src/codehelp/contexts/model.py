@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2023 Mark Liffiton <liffiton@gmail.com>
+# SPDX-FileCopyrightText: 2025 Mark Liffiton <liffiton@gmail.com>
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
@@ -6,24 +6,34 @@ import json
 from dataclasses import asdict, dataclass
 from sqlite3 import Row
 
+from flask import Flask
 from jinja2 import Environment
 from typing_extensions import Self  # for 3.10
 from werkzeug.datastructures import ImmutableMultiDict
 
-from gened.auth import get_auth
-from gened.db import get_db
+# This module manages application-specific context configuration.
+#
+# It is kept relatively generic, and much of the specific implementation of
+# a context can be controlled by the ContextConfig dataclass and related
+# templates.
+#
+# App-specific context configuration data are stored in dataclasses.  The
+# dataclass must specify the template filename, contain the context's name,
+# define the config's fields and their types, and implement
+# `from_request_form()` and `from_row()` class methods that generate a config
+# object based on inputs in request.form (as submitted from the form in the
+# specified template) or an SQLite row from the database.
 
-jinja_env_prompt = Environment(
+_jinja_env_prompt = Environment(
     trim_blocks=True,
     lstrip_blocks=True,
     autoescape=False,  # noqa: S701 - no need to escape for the LLM
 )
-jinja_env_html = Environment(
+_jinja_env_html = Environment(
     trim_blocks=True,
     lstrip_blocks=True,
     autoescape=True,
 )
-
 
 @dataclass(frozen=True)
 class ContextConfig:
@@ -72,7 +82,7 @@ class ContextConfig:
         if not self.tools and not self.details and not self.avoid:
             return self.name
 
-        template = jinja_env_prompt.from_string("""\
+        template = _jinja_env_prompt.from_string("""\
 Context name: <name>{{ name }}</name>
 {% if tools %}
 Environment and tools: <tools>{{ tools }}</tools>
@@ -91,7 +101,7 @@ Keywords and concepts to avoid (do not mention these in your response at all): <
 
         Does not include the avoid set (not necessary to show students).
         """
-        template = jinja_env_html.from_string("""\
+        template = _jinja_env_html.from_string("""\
 {% if tools %}
 <p><b>Environment & tools:</b> {{ tools }}</p>
 {% endif %}
@@ -103,66 +113,6 @@ Keywords and concepts to avoid (do not mention these in your response at all): <
         return template.render(tools=self._list_fmt(self.tools), details=self.details, avoid=self._list_fmt(self.avoid))
 
 
-### Helper functions for using contexts
-
-def get_available_contexts() -> list[ContextConfig]:
-    db = get_db()
-    auth = get_auth()
-
-    class_id = auth.cur_class.class_id if auth.cur_class else None
-    # Only return contexts that are available:
-    #   current date anywhere on earth (using UTC+12) is at or after the saved date
-    context_rows = db.execute("SELECT * FROM contexts WHERE class_id=? AND available <= date('now', '+12 hours') ORDER BY class_order ASC", [class_id]).fetchall()
-
-    return [ContextConfig.from_row(row) for row in context_rows]
-
-
-def get_context_string_by_id(ctx_id: int) -> str | None:
-    """ Return a context string based on the specified id
-        or return None if no context string exists with that id.
-    """
-    db = get_db()
-    auth = get_auth()
-
-    if auth.is_admin:
-        # admin can grab any context
-        context_row = db.execute("SELECT * FROM context_strings WHERE id=?", [ctx_id]).fetchone()
-    else:
-        # for non-admin users, double-check that the context is in the current class
-        class_id = auth.cur_class.class_id if auth.cur_class else None
-        context_row = db.execute("SELECT * FROM context_strings WHERE class_id=? AND id=?", [class_id, ctx_id]).fetchone()
-
-    if not context_row:
-        return None
-
-    return str(context_row['ctx_str'])
-
-
-def get_context_by_name(ctx_name: str) -> ContextConfig | None:
-    """ Return a context object of the given class based on the specified name
-        or return None if no context exists with that name.
-    """
-    db = get_db()
-    auth = get_auth()
-
-    class_id = auth.cur_class.class_id if auth.cur_class else None
-
-    context_row = db.execute("SELECT * FROM contexts WHERE class_id=? AND name=?", [class_id, ctx_name]).fetchone()
-
-    if not context_row:
-        return None
-
-    return ContextConfig.from_row(context_row)
-
-
-def record_context_string(context_str: str) -> int:
-    """ Ensure a context string is recorded in the context_strings
-        table, and return its row ID.
-    """
-    db = get_db()
-    # Add the context string to the context_strings table, but if it's a duplicate, just get the row ID of the existing one.
-    # The "UPDATE SET id=id" is a no-op, but it allows the "RETURNING" to work in case of a conflict as well.
-    cur = db.execute("INSERT INTO context_strings (ctx_str) VALUES (?) ON CONFLICT DO UPDATE SET id=id RETURNING id", [context_str])
-    context_string_id = cur.fetchone()['id']
-    assert isinstance(context_string_id, int)
-    return context_string_id
+def register(app: Flask) -> None:
+    """ Grab a copy of the app's markdown filter for use here. """
+    _jinja_env_html.filters['markdown'] = app.jinja_env.filters['markdown']

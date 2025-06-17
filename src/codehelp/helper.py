@@ -33,7 +33,7 @@ from gened.llm import LLM, with_llm
 from gened.testing.mocks import mock_async_completion
 
 from . import prompts
-from .context import (
+from .contexts import (
     ContextConfig,
     get_available_contexts,
     get_context_by_name,

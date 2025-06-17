@@ -9,7 +9,7 @@ from flask.app import Flask
 
 from gened import base
 
-from . import context_config, deletion_handler, helper, queries, tutor
+from . import contexts, deletion_handler, helper, queries, tutor
 
 
 def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | None = None) -> Flask:
@@ -41,13 +41,13 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
     app = base.create_app_base(__name__, app_config, instance_path)
 
     # register blueprints specific to this application variant
-    app.register_blueprint(context_config.bp)
+    app.register_blueprint(contexts.bp)
     app.register_blueprint(helper.bp)
     app.register_blueprint(tutor.bp)
 
     # register our custom context configuration with Gen-Ed
     # and grab a reference to the app's markdown filter
-    context_config.register(app)
+    contexts.register(app)
 
     # add navbar items
     app.config['NAVBAR_ITEM_TEMPLATES'].append("tutor_nav_item.html")

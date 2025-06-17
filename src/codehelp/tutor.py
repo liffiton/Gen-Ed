@@ -28,7 +28,7 @@ from gened.llm import LLM, ChatMessage, with_llm
 from gened.tables import Col, DataTable, NumCol
 
 from . import prompts
-from .context import (
+from .contexts import (
     ContextConfig,
     get_available_contexts,
     get_context_by_name,
