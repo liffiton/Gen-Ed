@@ -3,12 +3,16 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import tempfile
+from collections.abc import Generator
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import openai
 import pytest
 from dotenv import find_dotenv, load_dotenv
+from flask import Flask
+from flask.testing import FlaskClient, FlaskCliRunner
+from werkzeug.test import TestResponse
 
 import codehelp
 from gened.db import get_db, init_db
@@ -22,13 +26,13 @@ with test_sql.open('rb') as f:
 
 
 @pytest.fixture(scope='session', autouse=True)
-def _load_env():
+def _load_env() -> None:
     env_file = find_dotenv('.env.test')
     load_dotenv(env_file)
 
 
 @pytest.fixture
-def app(monkeypatch, request):
+def app(monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest) -> Generator[Flask]:
     """ Provides an application object and by default monkey patches openai to
     *not* send requests: the most common case for testing.
 
@@ -67,36 +71,36 @@ def app(monkeypatch, request):
 
 
 @pytest.fixture
-def client(app):
+def client(app: Flask) -> FlaskClient:
     return app.test_client()
 
 
 @pytest.fixture
-def runner(app):
+def runner(app: Flask) -> FlaskCliRunner:
     return app.test_cli_runner()
 
 
 class AuthActions:
-    def __init__(self, client):
+    def __init__(self, client: FlaskClient):
         self._client = client
 
-    def login(self, username='testuser', password='testpassword', next_url=''):
+    def login(self, username: str='testuser', password: str='testpassword', next_url: str='') -> TestResponse:
         return self._client.post(
             '/auth/local_login',
             data={'username': username, 'password': password, 'next': next_url}
         )
 
-    def logout(self):
+    def logout(self) -> TestResponse:
         return self._client.post('/auth/logout')
 
 
 @pytest.fixture
-def auth(client):
+def auth(client: FlaskClient) -> AuthActions:
     return AuthActions(client)
 
 
 @pytest.fixture
-def instructor(app):
+def instructor(app: Flask) -> tuple[FlaskClient, AuthActions]:
     client = app.test_client()
     auth = AuthActions(client)
     auth.login('testuser', 'testpassword')  # log in as a user that has an instructor role in a class
@@ -115,7 +119,7 @@ TEST_OAUTH_USER = {
 }
 
 @pytest.fixture
-def mock_oauth_client(app):
+def mock_oauth_client() -> MagicMock:
     """Create a mock OAuth client that can be configured per-test"""
     mock_oauth_client = MagicMock()
     mock_oauth_client.test_user = TEST_OAUTH_USER
@@ -125,7 +129,7 @@ def mock_oauth_client(app):
     return mock_oauth_client
 
 @pytest.fixture
-def mock_oauth_patch(mock_oauth_client):
+def mock_oauth_patch(mock_oauth_client: MagicMock) -> Generator[MagicMock]:
     # Patch OAuth client creation to return our mock
     with patch('gened.oauth._oauth.create_client', return_value=mock_oauth_client):
         yield mock_oauth_client

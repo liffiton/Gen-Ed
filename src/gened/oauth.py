@@ -4,7 +4,7 @@
 
 from typing import get_args
 
-from authlib.integrations.flask_client import (  # type: ignore [import-untyped]
+from authlib.integrations.flask_client import (  # type: ignore[import-untyped]
     OAuth,
     OAuthError,
 )

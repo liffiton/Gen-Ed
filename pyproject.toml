@@ -40,9 +40,10 @@ dependencies = [
 test = [
     "oauthlib~=3.2.2",
     "pytest~=8.0",
-    "pytest-cov~=6.1.0",
-    "pytest-xdist~=3.6.1",
+    "pytest-cov~=6.2.0",
+    "pytest-xdist~=3.7.0",
     "mypy",
+    "types-oauthlib~=3.2.0",
     "types-requests",
     "pyrage-stubs~=1.2.0",
 ]

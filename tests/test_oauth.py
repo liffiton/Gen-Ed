@@ -158,7 +158,9 @@ def test_callback_with_next_url(app, client, mock_oauth_client):
 
 def test_callback_failure(app, client, mock_oauth_patch):
     """Test OAuth callback when authentication fails"""
-    from authlib.integrations.flask_client import OAuthError
+    from authlib.integrations.flask_client import (  # type: ignore[import-untyped]
+        OAuthError,
+    )
     mock_oauth_patch.authorize_access_token.side_effect = OAuthError("Auth failed")
 
     with app.test_request_context():

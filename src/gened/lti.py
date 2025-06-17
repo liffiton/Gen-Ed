@@ -13,7 +13,7 @@ from flask import (
     session,
     url_for,
 )
-from pylti.flask import LTI  # type: ignore [import-untyped]
+from pylti.flask import LTI  # type: ignore[import-untyped]
 from pylti.flask import lti as lti_flask
 from werkzeug.wrappers.response import Response
 
@@ -49,7 +49,7 @@ def lti_error(exception: dict[str, Any]) -> tuple[str, int]:
 # https://github.com/mitodl/pylti/blob/master/pylti/flask.py
 # https://github.com/mitodl/mit_lti_flask_sample
 @bp.route("/", methods=['GET', 'POST'])
-@lti_flask(request='initial', error=lti_error)  # type: ignore [misc]
+@lti_flask(request='initial', error=lti_error)  # type: ignore[misc]
 def lti_login(lti: LTI) -> Response | tuple[str, int]:  # noqa: ARG001 (unused argument required by lti_flask decorator)
     authenticated = session.get("lti_authenticated", False)
     role = session.get("roles", "").lower()
