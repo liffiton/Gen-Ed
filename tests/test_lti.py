@@ -3,8 +3,9 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import pytest
-from flask.testing import FlaskClient
 from oauthlib import oauth1
+
+from tests.conftest import AppClient
 
 CLASS = {
     'label': "CS799-S23",
@@ -64,7 +65,7 @@ class LTIConsumer:
     ('invalid_consumer.domain', 'secret'),   # consumer not registered in app
     ('consumer.domain', 'wrong_secret'),   # consumer registered (see test_data.sql), but wrong secret provided
 ])
-def test_lti_auth_failure(client: FlaskClient, consumer_key: str, consumer_secret: str) -> None:
+def test_lti_auth_failure(client: AppClient, consumer_key: str, consumer_secret: str) -> None:
     lti = LTIConsumer(consumer_key, consumer_secret)
     uri, headers, body = lti.generate_launch_request("Instructor")
     result = client.post(uri, headers=headers, data=body)
@@ -76,7 +77,7 @@ def test_lti_auth_failure(client: FlaskClient, consumer_key: str, consumer_secre
     ('urn:lti:role:ims/lis/TeachingAssistant', 'instructor'),  # canvas TA
     ('Student', 'student'),
 ])
-def test_lti_auth_success(client: FlaskClient, role: str, internal_role: str) -> None:
+def test_lti_auth_success(client: AppClient, role: str, internal_role: str) -> None:
     # key and secret match 'consumer.domain' consumer in test_data.sql
     lti = LTIConsumer('consumer.domain', 'seecrits1')
 
@@ -109,7 +110,7 @@ def test_lti_auth_success(client: FlaskClient, role: str, internal_role: str) ->
     assert f"{CLASS['label']} ({internal_role})" in result.text
 
 
-def test_lti_class_name_change(client: FlaskClient) -> None:
+def test_lti_class_name_change(client: AppClient) -> None:
     # key and secret match 'consumer.domain' consumer in test_data.sql
     lti = LTIConsumer('consumer.domain', 'seecrits1')
 
@@ -156,7 +157,7 @@ def test_lti_class_name_change(client: FlaskClient) -> None:
     assert prev_label not in result.text
 
 
-def test_lti_instructor_and_students(client: FlaskClient) -> None:
+def test_lti_instructor_and_students(client: AppClient) -> None:
     # key and secret match 'consumer.domain' consumer in test_data.sql
     lti = LTIConsumer('consumer.domain', 'seecrits1')
 

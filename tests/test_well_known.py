@@ -1,10 +1,11 @@
 from pathlib import Path
 
 from flask import Flask
-from flask.testing import FlaskClient
+
+from tests.conftest import AppClient
 
 
-def test_well_known_file(client: FlaskClient, app: Flask) -> None:
+def test_well_known_file(client: AppClient, app: Flask) -> None:
     """Test serving an existing file from .well-known"""
     # Create a test file in the instance/.well-known directory
     well_known_dir = Path(app.instance_path) / '.well-known'
@@ -19,13 +20,13 @@ def test_well_known_file(client: FlaskClient, app: Flask) -> None:
     assert response.data == b'test content'
 
 
-def test_well_known_missing(client: FlaskClient) -> None:
+def test_well_known_missing(client: AppClient) -> None:
     """Test requesting a non-existent file from .well-known"""
     response = client.get('/.well-known/nonexistent.txt')
     assert response.status_code == 404
 
 
-def test_well_known_subdir(client: FlaskClient, app: Flask) -> None:
+def test_well_known_subdir(client: AppClient, app: Flask) -> None:
     """Test serving a file from a subdirectory in .well-known"""
     # Create a test file in a subdirectory
     well_known_dir = Path(app.instance_path) / '.well-known'
@@ -41,7 +42,7 @@ def test_well_known_subdir(client: FlaskClient, app: Flask) -> None:
     assert response.data == b'subdir test content'
 
 
-def test_well_known_traversal(client: FlaskClient, app: Flask) -> None:
+def test_well_known_traversal(client: AppClient, app: Flask) -> None:
     """Test that path traversal attempts are blocked"""
     # Create a file in the instance directory (parent of .well-known)
     secret_file = Path(app.instance_path) / 'secret.txt'

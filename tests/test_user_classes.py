@@ -6,19 +6,18 @@ import re
 
 import pytest
 from flask import Flask
-from flask.testing import FlaskClient
 
-from tests.conftest import AuthActions
+from tests.conftest import AppClient
 
 
-def test_not_logged_in(client: FlaskClient) -> None:
+def test_not_logged_in(client: AppClient) -> None:
     # reg/access links should not work if not logged in.
     response = client.get("/classes/access/reg_enabled")
     assert response.status_code == 302
     assert response.location == "/auth/login?next=/classes/access/reg_enabled?"
 
 
-def _test_user_class_link(client: FlaskClient, link_name: str, status: int, result: str | None) -> None:
+def _test_user_class_link(client: AppClient, link_name: str, status: int, result: str | None) -> None:
     response = client.get(f"/classes/access/{link_name}")
     assert response.status_code == status
 
@@ -36,17 +35,16 @@ def _test_user_class_link(client: FlaskClient, link_name: str, status: int, resu
     ('reg_enabled', 302, '/'),
 ])
 def test_user_class_link(
-    auth: AuthActions,
-    client: FlaskClient,
+    client: AppClient,
     link_name: str,
     status: int,
     result: str | None
 ) -> None:
-    auth.login('testuser2', 'testuser2password')  # log in a testuser2, not connected to any existing classes
+    client.login('testuser2', 'testuser2password')  # log in as testuser2, not connected to any existing classes
     _test_user_class_link(client, link_name, status, result)
 
 
-def _create_user_class(client: FlaskClient, class_name: str) -> str:
+def _create_user_class(client: AppClient, class_name: str) -> str:
     response = client.post(
         "/classes/create/",
         data={'class_name': class_name, 'llm_api_key': "none"}
@@ -64,26 +62,23 @@ def _create_user_class(client: FlaskClient, class_name: str) -> str:
     return class_access_link_name
 
 
-def test_user_class_creation(auth: AuthActions, client: FlaskClient) -> None:
-    auth.login()  # only works if logged in
+def test_user_class_creation(client: AppClient) -> None:
+    client.login()  # only works if logged in
     class_access_link_name = _create_user_class(client, "Test Class")
     _test_user_class_link(client, class_access_link_name, 302, '/')
 
 
 def test_user_class_usage(app: Flask) -> None:
-    instructor_client = app.test_client()
-    instructor_auth = AuthActions(instructor_client)
-
-    user_client = app.test_client()
-    user_auth = AuthActions(user_client)
+    instructor_client = AppClient(app.test_client())
+    user_client = AppClient(app.test_client())
 
     # 1) instructor logs in, creates the course
-    instructor_auth.login('testinstructor', 'testinstructorpassword')
+    instructor_client.login('testinstructor', 'testinstructorpassword')
     access_link_name = _create_user_class(instructor_client, "Instructor's Test Class")
     assert access_link_name
 
     # 2) user logs in, cannot access the course yet
-    user_auth.login('testuser', 'testpassword')
+    user_client.login('testuser', 'testpassword')
     _test_user_class_link(user_client, access_link_name, 200, 'Registration is not active for this class.')
 
     # 3) instructor enables/activates the course
@@ -148,13 +143,13 @@ def test_user_class_usage(app: Flask) -> None:
     assert "Class access configuration updated." in result.text
 
     # 10) another user now cannot access the course
-    user_auth.logout()
-    user_auth.login('testuser2', 'testuser2password')
+    user_client.logout()
+    user_client.login('testuser2', 'testuser2password')
     _test_user_class_link(user_client, access_link_name, 200, 'Registration is not active for this class.')
 
     # 11) but the first user still can
-    user_auth.logout()
-    user_auth.login('testuser', 'testpassword')
+    user_client.logout()
+    user_client.login('testuser', 'testpassword')
     _test_user_class_link(user_client, access_link_name, 302, '/')
     result = user_client.get('/help/')
     assert result.status_code == 200

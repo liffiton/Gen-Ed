@@ -3,18 +3,17 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import pytest
-from flask.testing import FlaskClient
 
-from tests.conftest import AuthActions
+from tests.conftest import AppClient
 
 
 @pytest.mark.use_real_openai
-def test_openai_exception(client: FlaskClient, auth: AuthActions) -> None:
+def test_openai_exception(client: AppClient) -> None:
     """ Check that we raise the correct OpenAI exception if we have an invalid API key.
     NOTE that this is using base_app, and so openai is *not* monkey-patched.
     Requests go to the actual OpenAI endpoint.
     """
-    auth.login()
+    client.login()
 
     response = client.post('/help/request', data={'code': 'code', 'error': 'error', 'issue': 'issue'})
 
@@ -30,9 +29,9 @@ def test_openai_exception(client: FlaskClient, auth: AuthActions) -> None:
 
 
 @pytest.mark.parametrize(('context_name'), ['default', 'default2', 'default3'])
-def test_saved_context(client: FlaskClient, auth: AuthActions, context_name: str) -> None:
+def test_saved_context(client: AppClient, context_name: str) -> None:
     """ Check that previously-used context is auto-selected in help interface. """
-    auth.login()
+    client.login()
 
     response = client.get('/classes/switch/2')  # switch to class 2 (where contexts are configured and this user has a role)
     assert response.status_code == 302
@@ -50,8 +49,8 @@ def test_saved_context(client: FlaskClient, auth: AuthActions, context_name: str
     ('testuser', 'testpassword'),
     ('testadmin', 'testadminpassword'),
 ])
-def test_query(client: FlaskClient, auth: AuthActions, username: str, password: str) -> None:
-    auth.login(username, password)
+def test_query(client: AppClient, username: str, password: str) -> None:
+    client.login(username, password)
 
     results = []
 

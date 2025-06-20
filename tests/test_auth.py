@@ -7,13 +7,13 @@ from dataclasses import dataclass
 
 import pytest
 from flask import Flask
-from flask.testing import FlaskClient, FlaskCliRunner
+from flask.testing import FlaskCliRunner
 
 from gened.auth import get_auth
-from tests.conftest import AuthActions
+from tests.conftest import AppClient
 
 
-def test_login_page(client: FlaskClient) -> None:
+def test_login_page(client: AppClient) -> None:
     response = client.get('/auth/login')
     assert response.status_code == 200
     assert "Username:" in response.text
@@ -34,8 +34,7 @@ invalid_login_result = LoginResult(target="/auth/login", content="Invalid userna
 
 
 def check_login(
-        client: FlaskClient,
-        auth: AuthActions,
+        client: AppClient,
         username: str,
         password: str,
         next_url: str | None = None,
@@ -43,7 +42,7 @@ def check_login(
         expect: LoginResult,
     ) -> None:
     with client:  # so we can use session in get_auth()
-        response = auth.login(username, password, next_url)
+        response = client.login(username, password, next_url)
 
         # We expect a redirect
         assert response.status_code == 302
@@ -73,10 +72,10 @@ def check_login(
         assert expect.content in response.text
 
 
-def test_newuser_command(app: Flask, runner: FlaskCliRunner, client: FlaskClient, auth: AuthActions) -> None:
+def test_newuser_command(app: Flask, runner: FlaskCliRunner, client: AppClient) -> None:
     username = "_newuser_"
-    check_login(client, auth, username, 'x', expect=invalid_login_result)
-    auth.logout()
+    check_login(client, username, 'x', expect=invalid_login_result)
+    client.logout()
 
     with app.app_context():
         cmd_result = runner.invoke(args=['newuser', username])
@@ -84,11 +83,11 @@ def test_newuser_command(app: Flask, runner: FlaskCliRunner, client: FlaskClient
         assert password_match
         password = password_match.group(1)
 
-    check_login(client, auth, username, password, expect=LoginResult(target="/help/", content="_newuser_", is_authed=True))
-    auth.logout()
-    check_login(client, auth, 'x', password, expect=invalid_login_result)
-    auth.logout()
-    check_login(client, auth, username, 'x', expect=invalid_login_result)
+    check_login(client, username, password, expect=LoginResult(target="/help/", content="_newuser_", is_authed=True))
+    client.logout()
+    check_login(client, 'x', password, expect=invalid_login_result)
+    client.logout()
+    check_login(client, username, 'x', expect=invalid_login_result)
 
 
 @pytest.mark.parametrize(('username', 'password'), [
@@ -99,8 +98,8 @@ def test_newuser_command(app: Flask, runner: FlaskCliRunner, client: FlaskClient
     ('testuser', 'y'),
     ('testadmin', 'y'),
 ])
-def test_invalid_login(client: FlaskClient, auth: AuthActions, username: str, password: str) -> None:
-    check_login(client, auth, username, password, expect=invalid_login_result)
+def test_invalid_login(client: AppClient, username: str, password: str) -> None:
+    check_login(client, username, password, expect=invalid_login_result)
 
 
 @pytest.mark.parametrize(('username', 'password', 'next_url', 'is_admin'), [
@@ -108,8 +107,7 @@ def test_invalid_login(client: FlaskClient, auth: AuthActions, username: str, pa
     ('testadmin', 'testadminpassword', '/admin/', True),
 ])
 def test_valid_login(
-        client: FlaskClient,
-        auth: AuthActions,
+        client: AppClient,
         username: str,
         password: str,
         next_url: str,
@@ -117,32 +115,32 @@ def test_valid_login(
     ) -> None:
     # Test with the next URL specified
     check_login(
-        client, auth, username, password, next_url=next_url,
+        client, username, password, next_url=next_url,
         expect=LoginResult(target=next_url, content=username, is_authed=True, is_admin=is_admin)
     )
-    auth.logout()
+    client.logout()
     # Test with no next URL specified: should redirect to /help
     check_login(
-        client, auth, username, password, next_url=None,
+        client, username, password, next_url=None,
         expect=LoginResult(target="/help/", content=username, is_authed=True, is_admin=is_admin)
     )
-    auth.logout()
+    client.logout()
     # Test with an unsafe next URL specified: should redirect to /help
     check_login(
-        client, auth, username, password, next_url="https://malicious.site/",
+        client, username, password, next_url="https://malicious.site/",
         expect=LoginResult(target="/help/", content=username, is_authed=True, is_admin=is_admin)
     )
-    auth.logout()
+    client.logout()
 
 
-def test_logout(client: FlaskClient, auth: AuthActions) -> None:
+def test_logout(client: AppClient) -> None:
     with client:
-        auth.login()  # defaults to testuser (id 11)
+        client.login()  # defaults to testuser (id 11)
         sessauth = get_auth()
         assert sessauth.user
         assert sessauth.user.display_name == 'testuser'
 
-        response = auth.logout()
+        response = client.logout()
         assert response.status_code == 302
         assert response.location == "/auth/login"
 
@@ -171,8 +169,7 @@ def test_logout(client: FlaskClient, auth: AuthActions) -> None:
     ('/admin/get_db/', 302, 302, 200),   # admin_required redirects to login
 ])
 def test_auth_required(
-        client: FlaskClient,
-        auth: AuthActions,
+        client: AppClient,
         path: str,
         nologin: int,
         withlogin: int | tuple[int, str],
@@ -181,7 +178,7 @@ def test_auth_required(
     response = client.get(path)
     assert response.status_code == nologin
 
-    auth.login()  # defaults to testuser (id 11)
+    client.login()  # defaults to testuser (id 11)
     client.get('/classes/switch/2')  # switch to class 2 (where the chats are registered)
 
     response = client.get(path)
@@ -193,11 +190,11 @@ def test_auth_required(
         if withlogin == 302:
             assert response.location.startswith('/auth/login')
 
-    auth.logout()
+    client.logout()
     response = client.get(path)
     assert response.status_code == nologin
 
-    auth.login('testadmin', 'testadminpassword')
+    client.login('testadmin', 'testadminpassword')
     response = client.get(path)
     if isinstance(withadmin, tuple):
         assert response.status_code == withadmin[0]
@@ -205,6 +202,6 @@ def test_auth_required(
     else:
         assert response.status_code == withadmin
 
-    auth.logout()
+    client.logout()
     response = client.get(path)
     assert response.status_code == nologin

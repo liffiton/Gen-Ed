@@ -5,6 +5,7 @@
 import tempfile
 from collections.abc import Generator
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import openai
@@ -71,44 +72,42 @@ def app(monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest) -> Gene
 
 
 @pytest.fixture
-def client(app: Flask) -> FlaskClient:
-    return app.test_client()
-
-
-@pytest.fixture
 def runner(app: Flask) -> FlaskCliRunner:
     return app.test_cli_runner()
 
 
-class AuthActions:
-    def __init__(self, client: FlaskClient):
-        self._client = client
+class AppClient(FlaskClient):
+    """ A wrapper around FlaskClient to add some app-specific helper functions. """
+    def __init__(self, base_client: FlaskClient):
+        # store the underlying FlaskClient
+        self._base = base_client
+
+    def __getattr__(self, name: str) -> Any:
+        """ Pass properties and methods through to the base FlaskClient. """
+        return getattr(self._base, name)
 
     def login(self, username: str='testuser', password: str='testpassword', next_url: str | None = None) -> TestResponse:
-        return self._client.post(
+        return self.post(
             '/auth/local_login',
             data={'username': username, 'password': password, 'next': next_url}
         )
 
     def logout(self) -> TestResponse:
-        return self._client.post('/auth/logout')
+        return self.post('/auth/logout')
 
 
 @pytest.fixture
-def auth(client: FlaskClient) -> AuthActions:
-    return AuthActions(client)
+def client(app: Flask) -> AppClient:
+    return AppClient(app.test_client())
 
 
 @pytest.fixture
-def instructor(app: Flask) -> tuple[FlaskClient, AuthActions]:
-    client = app.test_client()
-    auth = AuthActions(client)
-    auth.login('testuser', 'testpassword')  # log in as a user that has an instructor role in a class
+def instructor(client: AppClient) -> AppClient:
+    client.login('testuser', 'testpassword')    # log in as a user that has an instructor role in a class
     response = client.get('/classes/switch/2')  # switch to a class in which this user is an instructor
     assert response.status_code == 302
     assert response.location == "/profile/"
-
-    return client, auth
+    return client
 
 
 TEST_OAUTH_USER = {

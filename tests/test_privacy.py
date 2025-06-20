@@ -6,18 +6,9 @@ import re
 from unittest.mock import MagicMock
 
 from flask import Flask, url_for
-from flask.testing import FlaskClient
 
 from gened.db import get_db
-from tests.conftest import AuthActions
-
-
-def login_instructor_in_class(client: FlaskClient, auth: AuthActions) -> int:
-    """Setup test data and login as instructor"""
-    auth.login()  # as testuser, who is instructor in class id 2
-    response = client.get('/classes/switch/2')
-    assert response.status_code == 302
-    return 2  # return the class_id we're working with
+from tests.conftest import AppClient
 
 
 def verify_row_count(table: str, where_clause: str, params: list[str | int], expected_count: int, msg: str) -> None:
@@ -27,19 +18,18 @@ def verify_row_count(table: str, where_clause: str, params: list[str | int], exp
     assert count == expected_count, f"{msg}: expected {expected_count}, got {count}"
 
 
-def test_delete_user_data_requires_confirmation(app: Flask, client: FlaskClient, auth: AuthActions) -> None:
+def test_delete_user_data_requires_confirmation(app: Flask, instructor: AppClient) -> None:
     """Test that user data deletion requires proper confirmation"""
-    login_instructor_in_class(client, auth)
     with app.app_context():
         user_id = get_db().execute("SELECT id FROM users WHERE auth_name='testuser'").fetchone()['id']
 
     # Test without confirmation
-    response = client.post('/profile/delete_data', follow_redirects=True)
+    response = instructor.post('/profile/delete_data', follow_redirects=True)
     assert response.status_code == 200
     assert b"Data deletion requires confirmation" in response.data
 
     # Test with wrong confirmation
-    response = client.post('/profile/delete_data', data={'confirm_delete': 'WRONG'}, follow_redirects=True)
+    response = instructor.post('/profile/delete_data', data={'confirm_delete': 'WRONG'}, follow_redirects=True)
     assert response.status_code == 200
     assert b"Data deletion requires confirmation" in response.data
 
@@ -50,9 +40,8 @@ def test_delete_user_data_requires_confirmation(app: Flask, client: FlaskClient,
         assert user['auth_name'] == 'testuser'
 
 
-def test_delete_user_data_full_process(app: Flask, client: FlaskClient, auth: AuthActions) -> None:
+def test_delete_user_data_full_process(app: Flask, instructor: AppClient) -> None:
     """Test complete user data deletion process"""
-    login_instructor_in_class(client, auth)
     with app.app_context():
         user_id = get_db().execute("SELECT id FROM users WHERE auth_name='testuser'").fetchone()['id']
 
@@ -67,21 +56,21 @@ def test_delete_user_data_full_process(app: Flask, client: FlaskClient, auth: Au
         initial_chat_ids = [row['id'] for row in initial_chats]
 
     # Perform deletion with proper confirmation
-    response = client.post('/profile/delete_data', data={'confirm_delete': 'DELETE'})
+    response = instructor.post('/profile/delete_data', data={'confirm_delete': 'DELETE'})
     assert response.status_code == 302
     assert response.location == "/profile/"  # redirect to profile because we have a user-created class
-    response = client.get('/profile/')
+    response = instructor.get('/profile/')
     assert b"You must delete all classes you created before deleting your data." in response.data
 
     # Delete the classes so user deletion can proceed
-    client.post('/instructor/class/delete', data={'class_id': 2, 'confirm_delete': 'DELETE'})
-    client.get('/classes/switch/3')
-    client.post('/instructor/class/delete', data={'class_id': 3, 'confirm_delete': 'DELETE'})
-    client.get('/classes/switch/4')
-    client.post('/instructor/class/delete', data={'class_id': 4, 'confirm_delete': 'DELETE'})
+    instructor.post('/instructor/class/delete', data={'class_id': 2, 'confirm_delete': 'DELETE'})
+    instructor.get('/classes/switch/3')
+    instructor.post('/instructor/class/delete', data={'class_id': 3, 'confirm_delete': 'DELETE'})
+    instructor.get('/classes/switch/4')
+    instructor.post('/instructor/class/delete', data={'class_id': 4, 'confirm_delete': 'DELETE'})
 
     # Perform deletion with proper confirmation
-    response = client.post('/profile/delete_data', data={'confirm_delete': 'DELETE'})
+    response = instructor.post('/profile/delete_data', data={'confirm_delete': 'DELETE'})
     assert response.status_code == 302
     assert response.location == "/auth/login"  # redirect to login because user was successfully deleted
 
@@ -142,7 +131,7 @@ def test_delete_user_data_full_process(app: Flask, client: FlaskClient, auth: Au
             assert chat['context_string_id'] is None, "Chat context_string_id should be nulled"
 
 
-def test_delete_user_data_unauthorized(app: Flask, client: FlaskClient) -> None:
+def test_delete_user_data_unauthorized(app: Flask, client: AppClient) -> None:
     """Test unauthorized access to user data deletion"""
     # Test without login
     response = client.post('/profile/delete_data', data={'confirm_delete': 'DELETE'})
@@ -156,16 +145,16 @@ def test_delete_user_data_unauthorized(app: Flask, client: FlaskClient) -> None:
         assert user['full_name'] != '[deleted]'
 
 
-def test_delete_class_requires_confirmation(app: Flask, client: FlaskClient, auth: AuthActions) -> None:
-    class_id = login_instructor_in_class(client, auth)
+def test_delete_class_requires_confirmation(app: Flask, instructor: AppClient) -> None:
+    class_id = 2  # instructor client switches to class id 2, where it has instructor role
 
     # Test without confirmation
-    response = client.post('/instructor/class/delete', data={'class_id': class_id}, follow_redirects=True)
+    response = instructor.post('/instructor/class/delete', data={'class_id': class_id}, follow_redirects=True)
     assert response.status_code == 200
     assert b"Class deletion requires confirmation" in response.data
 
     # Test with wrong confirmation
-    response = client.post('/instructor/class/delete', data={'class_id': class_id, 'confirm_delete': 'WRONG'}, follow_redirects=True)
+    response = instructor.post('/instructor/class/delete', data={'class_id': class_id, 'confirm_delete': 'WRONG'}, follow_redirects=True)
     assert response.status_code == 200
     assert b"Class deletion requires confirmation" in response.data
 
@@ -180,8 +169,8 @@ def test_delete_class_requires_confirmation(app: Flask, client: FlaskClient, aut
         assert class_row['enabled'] == 1
 
 
-def test_delete_class_full_process(app: Flask, client: FlaskClient, auth: AuthActions) -> None:
-    class_id = login_instructor_in_class(client, auth)
+def test_delete_class_full_process(app: Flask, instructor: AppClient) -> None:
+    class_id = 2  # instructor client switches to class id 2, where it has instructor role
 
     # Capture initial state
     with app.app_context():
@@ -193,7 +182,7 @@ def test_delete_class_full_process(app: Flask, client: FlaskClient, auth: AuthAc
         assert initial_contexts > 0, "Test data should include contexts"
 
     # Perform deletion with proper confirmation
-    response = client.post('/instructor/class/delete', data={'class_id': class_id, 'confirm_delete': 'DELETE'})
+    response = instructor.post('/instructor/class/delete', data={'class_id': class_id, 'confirm_delete': 'DELETE'})
     assert response.status_code == 302
     assert response.location == "/profile/"
 
@@ -253,12 +242,11 @@ def test_delete_class_full_process(app: Flask, client: FlaskClient, auth: AuthAc
         )
 
 
-def test_delete_class_unauthorized(app: Flask, client: FlaskClient, auth: AuthActions) -> None:
-    class_id = login_instructor_in_class(client, auth)
+def test_delete_class_unauthorized(app: Flask, client: AppClient) -> None:
+    class_id = 2  # class id 2 does not have testuser2 as instructor role
 
     # Test as non-instructor
-    auth.logout()
-    auth.login('testuser2', 'testuser2password')
+    client.login('testuser2', 'testuser2password')
 
     response = client.post('/instructor/class/delete', data={'class_id': class_id, 'confirm_delete': 'DELETE'})
     assert response.status_code == 302
@@ -269,7 +257,7 @@ def test_delete_class_unauthorized(app: Flask, client: FlaskClient, auth: AuthAc
         verify_row_count("classes", "WHERE id = ? AND name != '[deleted]'", [class_id], 1, "Class should still exist")
 
 
-def test_anonymize_user_unauthorized(client: FlaskClient) -> None:
+def test_anonymize_user_unauthorized(client: AppClient) -> None:
     """Test unauthorized access to user anonymization"""
     # Test without login
     response = client.post('/profile/anonymize')
@@ -277,9 +265,9 @@ def test_anonymize_user_unauthorized(client: FlaskClient) -> None:
     assert response.location.startswith('/auth/login?')
 
 
-def test_anonymize_user_provider_restrictions(app: Flask, client: FlaskClient, auth: AuthActions) -> None:
+def test_anonymize_user_provider_restrictions(app: Flask, client: AppClient) -> None:
     """Test provider restrictions for anonymization"""
-    auth.login('testuser', 'testpassword')
+    client.login('testuser', 'testpassword')
 
     with app.app_context():
         db = get_db()
@@ -304,7 +292,7 @@ def test_anonymize_user_provider_restrictions(app: Flask, client: FlaskClient, a
         assert user['email'] == init_user['email']
 
 
-def test_anonymize_user_full_process(app: Flask, client: FlaskClient, mock_oauth_patch: MagicMock) -> None:
+def test_anonymize_user_full_process(app: Flask, client: AppClient, mock_oauth_patch: MagicMock) -> None:
     """Test complete user anonymization process"""
     # Set up mock OAuth login
     with app.test_request_context():

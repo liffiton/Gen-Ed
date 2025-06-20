@@ -2,11 +2,10 @@ from pathlib import Path
 
 import pytest
 from flask import Flask
-from flask.testing import FlaskClient
 
 import codehelp
 from gened.db import get_db
-from tests.conftest import AuthActions
+from tests.conftest import AppClient
 
 
 def test_valid_default_model(app: Flask) -> None:
@@ -59,10 +58,10 @@ def test_invalid_model_shortname(app: Flask) -> None:
     assert exc_info.value.code == 1
 
 
-def test_model_used_in_class_creation(app: Flask, client: FlaskClient, auth: AuthActions) -> None:
+def test_model_used_in_class_creation(app: Flask, client: AppClient) -> None:
     """Test that the default model is actually used when creating a new class."""
     # Login and create a class
-    auth.login()
+    client.login()
     response = client.post(
         "/classes/create/",
         data={'class_name': 'Test Class', 'llm_api_key': 'test_key'}

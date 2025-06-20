@@ -2,13 +2,11 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from flask.testing import FlaskClient
-
-from tests.conftest import AuthActions
+from tests.conftest import AppClient
 
 
-def test_create_consumer(client: FlaskClient, auth: AuthActions) -> None:
-    auth.login('testadmin', 'testadminpassword')
+def test_create_consumer(client: AppClient) -> None:
+    client.login('testadmin', 'testadminpassword')
     response = client.post(
         '/admin/consumer/update',
         data={
@@ -26,8 +24,8 @@ def test_create_consumer(client: FlaskClient, auth: AuthActions) -> None:
     assert b"test_secret" in response.data
 
 
-def test_edit_consumer(client: FlaskClient, auth: AuthActions) -> None:
-    auth.login('testadmin', 'testadminpassword')
+def test_edit_consumer(client: AppClient) -> None:
+    client.login('testadmin', 'testadminpassword')
     response = client.post(
         '/admin/consumer/update',
         data={
@@ -44,8 +42,8 @@ def test_edit_consumer(client: FlaskClient, auth: AuthActions) -> None:
     assert b"Consumer updated." in response.data
 
 
-def test_delete_consumer_with_dependencies(client: FlaskClient, auth: AuthActions) -> None:
-    auth.login('testadmin', 'testadminpassword')
+def test_delete_consumer_with_dependencies(client: AppClient) -> None:
+    client.login('testadmin', 'testadminpassword')
     response = client.post(
         '/admin/consumer/delete/1',
         follow_redirects=True
@@ -56,8 +54,8 @@ def test_delete_consumer_with_dependencies(client: FlaskClient, auth: AuthAction
     assert b"Cannot delete consumer: there are related classes." in response.data
 
 
-def test_delete_consumer_with_no_classes(client: FlaskClient, auth: AuthActions) -> None:
-    auth.login('testadmin', 'testadminpassword')
+def test_delete_consumer_with_no_classes(client: AppClient) -> None:
+    client.login('testadmin', 'testadminpassword')
     response = client.post(
         '/admin/consumer/delete/2',
         follow_redirects=True
@@ -68,8 +66,8 @@ def test_delete_consumer_with_no_classes(client: FlaskClient, auth: AuthActions)
     assert b"Consumer &#39;consumer.otherdomain&#39; deleted." in response.data
 
 
-def test_delete_consumer_invalid(client: FlaskClient, auth: AuthActions) -> None:
-    auth.login('testadmin', 'testadminpassword')
+def test_delete_consumer_invalid(client: AppClient) -> None:
+    client.login('testadmin', 'testadminpassword')
     response = client.post(
         '/admin/consumer/delete/3',
         follow_redirects=True
