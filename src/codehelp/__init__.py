@@ -9,7 +9,7 @@ from flask.app import Flask
 
 from gened import base
 
-from . import contexts, deletion_handler, helper, queries, tutor
+from . import contexts, deletion_handler, helper, queries, tutor, tutor_setup
 
 
 def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | None = None) -> Flask:
@@ -44,6 +44,7 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
     app.register_blueprint(contexts.bp)
     app.register_blueprint(helper.bp)
     app.register_blueprint(tutor.bp)
+    app.register_blueprint(tutor_setup.bp)
 
     # register our custom context configuration with Gen-Ed
     # and grab a reference to the app's markdown filter

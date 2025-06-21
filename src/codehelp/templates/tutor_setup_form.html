@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block body %}
+<section class="section">
+  <div class="container">
+    <h1 class="title">Tutor Setup</h1>
+    <form class="wide-labels" method="post">
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="topic">Topic</label>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <input class="input" name="topic" id="topic" required value="{{ topic }}">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal"><!-- spacing --></div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <button
+                class="button {% if not objectives %}is-link{% else %}is-light{% endif %}"
+                type="submit"
+                formaction="{{ url_for('tutor_setup.generate_objectives') }}"
+              >
+                {% if objectives %}Regenerate{% else %}Generate{% endif %} Learning Objectives
+              </button>
+              {% if objectives %}
+              <p class="help-text is-size-7">Re-submitting will clear objectives and questions.</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% if objectives %}
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="objectives">Learning Objectives</label>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <textarea class="textarea" required name="objectives" id="objectives" rows="5">{{ objectives }}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal"><!-- spacing --></div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <button
+                class="button {% if not questions %}is-link{% else %}is-light{% endif %}"
+                type="submit"
+                formaction="{{ url_for('tutor_setup.generate_questions') }}"
+              >
+                {% if questions %}Regenerate{% else %}Generate{% endif %} Questions
+              </button>
+              {% if questions %}
+              <p class="help-text is-size-7">Re-submitting will clear questions.</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if questions %}
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="questions">Questions</label>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <textarea class="textarea" required name="questions" id="questions" rows="5">{{ questions }}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal"><!-- spacing --></div>
+        <div class="field-body">
+          <div class="field is-grouped">
+      {% if questions %}
+            <div class="control">
+              <button class="button is-link" type="submit" formaction="{{ url_for('tutor_setup.create_tutor') }}">
+                Save Tutor
+              </button>
+            </div>
+      {% endif %}
+            <div class="control">
+              <button class="button is-light" type="submit" formaction="{{ url_for('tutor_setup.reset_setup') }}">
+                Start Over
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal"><!-- spacing --></div>
+        <div class="field-body">
+          <div class="notification is-warning">
+            <strong>Note:</strong> Your work is not saved until all steps are complete and the tutor is created.
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock body %}
