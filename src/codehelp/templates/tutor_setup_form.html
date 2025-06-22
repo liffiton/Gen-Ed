@@ -12,7 +12,7 @@
         <div class="field-body">
           <div class="field">
             <div class="control">
-              <input class="input" name="topic" id="topic" required value="{{ topic }}">
+              <input class="input" name="topic" id="topic" required value="{{ tutorconf.topic }}">
             </div>
           </div>
         </div>
@@ -24,21 +24,21 @@
           <div class="field">
             <div class="control">
               <button
-                class="button {% if not objectives %}is-link{% else %}is-light{% endif %}"
+                class="button {% if not tutorconf.objectives %}is-link{% else %}is-light{% endif %}"
                 type="submit"
                 formaction="{{ url_for('tutor_setup.generate_objectives') }}"
               >
-                {% if objectives %}Regenerate{% else %}Generate{% endif %} Learning Objectives
+                {% if tutorconf.objectives %}Regenerate{% else %}Generate{% endif %} Learning Objectives
               </button>
-              {% if objectives %}
-              <p class="help-text is-size-7">Re-submitting will clear objectives and questions.</p>
+              {% if tutorconf.objectives %}
+              <p class="help-text is-size-7">This will overwrite existing objectives and questions.</p>
               {% endif %}
             </div>
           </div>
         </div>
       </div>
 
-      {% if objectives %}
+      {% if tutorconf.objectives %}
       <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label" for="objectives">Learning Objectives</label>
@@ -46,7 +46,11 @@
         <div class="field-body">
           <div class="field">
             <div class="control">
-              <textarea class="textarea" required name="objectives" id="objectives" rows="5">{{ objectives }}</textarea>
+              <textarea class="textarea" required name="objectives" id="objectives" rows="5">
+                {%- for obj in tutorconf.objectives %}
+                  {{- obj.name }}
+                {% endfor -%}
+              </textarea>
             </div>
           </div>
         </div>
@@ -58,14 +62,14 @@
           <div class="field">
             <div class="control">
               <button
-                class="button {% if not questions %}is-link{% else %}is-light{% endif %}"
+                class="button {% if not has_questions %}is-link{% else %}is-light{% endif %}"
                 type="submit"
                 formaction="{{ url_for('tutor_setup.generate_questions') }}"
               >
-                {% if questions %}Regenerate{% else %}Generate{% endif %} Questions
+                {% if has_questions %}Regenerate{% else %}Generate{% endif %} Questions
               </button>
-              {% if questions %}
-              <p class="help-text is-size-7">Re-submitting will clear questions.</p>
+              {% if has_questions %}
+              <p class="help-text is-size-7">This will overwrite existing questions.</p>
               {% endif %}
             </div>
           </div>
@@ -73,16 +77,23 @@
       </div>
       {% endif %}
 
-      {% if questions %}
+      {% if has_questions %}
       <div class="field is-horizontal">
-        <div class="field-label is-normal">
-          <label class="label" for="questions">Questions</label>
-        </div>
+        <div class="field-label is-normal"><!-- spacing --></div>
         <div class="field-body">
-          <div class="field">
-            <div class="control">
-              <textarea class="textarea" required name="questions" id="questions" rows="5">{{ questions }}</textarea>
-            </div>
+          <div class="content">
+            <h2 class="is-size-5">Questions</h2>
+            {% for obj in tutorconf.objectives %}
+              <h3 class="is-size-6">{{ obj.name }}</h3>
+              <ul>
+                {% for question in obj.questions %}
+                  <li>{{ question }}</li>
+                {% endfor %}
+              </ul>
+              <button class="button" type="button" onclick="document.getElementById('dia_{{ loop.index }}').showModal()">
+                Edit
+              </button>
+            {% endfor %}
           </div>
         </div>
       </div>
@@ -92,13 +103,13 @@
         <div class="field-label is-normal"><!-- spacing --></div>
         <div class="field-body">
           <div class="field is-grouped">
-      {% if questions %}
-            <div class="control">
-              <button class="button is-link" type="submit" formaction="{{ url_for('tutor_setup.create_tutor') }}">
-                Save Tutor
-              </button>
-            </div>
-      {% endif %}
+            {% if has_questions %}
+              <div class="control">
+                <button class="button is-link" type="submit" formaction="{{ url_for('tutor_setup.create_tutor') }}">
+                  Save Tutor
+                </button>
+              </div>
+            {% endif %}
             <div class="control">
               <button class="button is-light" type="submit" formaction="{{ url_for('tutor_setup.reset_setup') }}">
                 Start Over
@@ -117,6 +128,38 @@
         </div>
       </div>
     </form>
+
+    {% if has_questions %}
+      {% for obj in tutorconf.objectives %}
+        <dialog id="dia_{{ loop.index }}" style="width: 50%; mind-width: min(32em, 100vw);">
+          <div class="content box">
+            <h3>{{ obj.name }}</h3>
+            <form action="{{ url_for('tutor_setup.update_questions') }}" method="post">
+              <input type="hidden" name="obj_index" value="{{ loop.index0 }}">
+              <div class="field">
+                <div class="label">Questions (put each on a separate line)</div>
+                <div class="control">
+                  <textarea class="textarea" name="questions">
+                    {%- for question in obj.questions %}
+                      {{- question }}
+                    {% endfor -%}
+                  </textarea>
+                </div>
+              </div>
+              <div class="field is-grouped">
+                <div class="control">
+                  <button class="button is-link" type="submit">Update</button>
+                </div>
+                <div class="control">
+                  <button class="button" type="submit" formnovalidate formmethod="dialog">Cancel</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </dialog>
+      {% endfor %}
+    {% endif %}
+
   </div>
 </section>
 {% endblock body %}
