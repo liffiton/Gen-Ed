@@ -42,6 +42,21 @@ class LLM:
             self._client = OpenAIClient(self.model, self.api_key, base_url=self.endpoint)
         return await self._client.get_completion(prompt, messages, extra_args)
 
+    async def get_multi_completion(self, sys_prompt: str, user_prompts: list[str], extra_args: dict[str, Any] | None = None) -> tuple[dict[str, str], str]:
+        """Get a completion from the language model
+        following a series of prompts from the user.
+        """
+        messages: list[ChatMessage] = [
+            {'role': 'system', 'content': sys_prompt},
+        ]
+
+        for user_prompt in user_prompts:
+            messages.append({'role': 'user', 'content': user_prompt})
+            response, response_txt = await self.get_completion(messages=messages, extra_args=extra_args)
+            messages.append({'role': 'assistant', 'content': response_txt})
+
+        return response, response_txt
+
 
 class ClassDisabledError(Exception):
     pass
