@@ -4,7 +4,7 @@
 <section class="section">
   <div class="container">
     <h1 class="title">Tutor Setup</h1>
-    <form class="wide-labels" method="post">
+    <form class="wide-labels" method="post" x-data="{loading: false}" x-on:pageshow.window="loading = false" x-on:submit.debounce.10ms="loading = true">
       <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label" for="topic">Topic</label>
@@ -12,7 +12,7 @@
         <div class="field-body">
           <div class="field">
             <div class="control">
-              <input class="input" name="topic" id="topic" required value="{{ tutorconf.topic }}">
+              <input class="input" name="topic" id="topic" x-bind:disabled="loading" required value="{{ tutorconf.topic }}">
             </div>
           </div>
         </div>
@@ -24,8 +24,9 @@
           <div class="field">
             <div class="control">
               <button
-                class="button {% if not tutorconf.objectives %}is-link{% else %}is-light{% endif %}"
+                class="button {% if not tutorconf.objectives %}is-link{% else %}is-warning{% endif %}"
                 type="submit"
+                x-bind:class="loading ? 'is-loading' : ''"
                 formaction="{{ url_for('tutor_setup.generate_objectives') }}"
               >
                 {% if tutorconf.objectives %}Regenerate{% else %}Generate{% endif %} Learning Objectives
@@ -46,7 +47,7 @@
         <div class="field-body">
           <div class="field">
             <div class="control">
-              <textarea class="textarea" required name="objectives" id="objectives" rows="5">
+              <textarea class="textarea" x-bind:disabled="loading" required name="objectives" id="objectives" rows="5">
                 {%- for obj in tutorconf.objectives %}
                   {{- obj.name }}
                 {% endfor -%}
@@ -62,8 +63,9 @@
           <div class="field">
             <div class="control">
               <button
-                class="button {% if not has_questions %}is-link{% else %}is-light{% endif %}"
+                class="button {% if not has_questions %}is-link{% else %}is-warning{% endif %}"
                 type="submit"
+                x-bind:class="loading ? 'is-loading' : ''"
                 formaction="{{ url_for('tutor_setup.generate_questions') }}"
               >
                 {% if has_questions %}Regenerate{% else %}Generate{% endif %} Questions
@@ -84,10 +86,10 @@
           <div class="content">
             <h2 class="is-size-5">Questions</h2>
             {% for obj in tutorconf.objectives %}
-              <h3 class="is-size-6">{{ obj.name }}</h3>
+              <h3 class="is-size-6">{{ loop.index }}. {{ obj.name }}</h3>
               <ul>
                 {% for question in obj.questions %}
-                  <li>{{ question }}</li>
+                  <li>{{ question | markdown }}</li>
                 {% endfor %}
               </ul>
               <button class="button" type="button" onclick="document.getElementById('dia_{{ loop.index }}').showModal()">

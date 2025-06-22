@@ -170,3 +170,42 @@ tutor_monologue = """<internal_monologue>I am a Socratic tutor. I am trying to h
 
 def make_chat_sys_prompt(topic: str, context: str|None) -> str:
     return chat_template_sys.render(topic=topic, context=context)
+
+
+tutor_setup_objectives_sys_prompt = """\
+You are an automated tutoring system.  Your goal here is to generate a set of learning objectives for the topic given by the user.  The learning context is a first course in computer science and Python programming.
+
+Always respond in the form of a JSON object containing a single key "objectives" holding an array of strings, with one learning objective per string.
+"""
+
+tutor_setup_objectives_prompt1 = jinja_env.from_string("Topic: {{ topic }}.  Generate {{ num_items }} items.")
+
+tutor_setup_objectives_prompt2 = jinja_env.from_string("Narrow that down to {{ num_items }} fundamental learning objectives to create a list of the most critical and earliest objectives a student would have when first studying the topic.  Order them in the most sensible order for a student encountering and mastering each sequentially, taking into account potential dependencies and otherwise ordering them in order of increasing complexity.")
+
+tutor_setup_questions_sys_prompt = """\
+You are an automated tutoring system.  Your goal here is to generate a set of questions, based on a learning objective, that can be used by the tutoring chatbot to assess a student's understanding and mastery of that learning objective.  The learning context is a first course in computer science and Python programming.
+
+Think carefully about how you can assess understanding effectively in each question without implying or even hinting at the correct answer.  Students can respond correctly based on what they think is implied even if they haven't understood something.
+  - Avoid yes/no questions.
+  - Avoid questions in which the answer is obviously part of the question.
+
+In addition to asking conceptual questions, you can ask questions about example code or ask the student to write code.  It's often better to involve concrete code than to ask or discuss things more abstractly.
+  - Use questions that require a longer answer that allows you to properly assess understanding.
+  - Use questions that ask the student to write code to demonstrate understanding.
+  - Use questions with example code that is non-obvious or maybe even a little "tricky."
+
+Always respond in the form of a JSON object containing a single key "questions" holding an array of strings, with one question per string.  Use markdown formatting inside each string, including ``` for multi-line code blocks.  Do not number the questions.
+"""
+
+tutor_setup_questions_prompt = jinja_env.from_string("""\
+Learning objective: {{ objective }}.
+{% if previous -%}
+The student has already demonstrated understanding and mastery of previous objectives:
+{% for prev in previous %} - {{ prev }}\n{% endfor %}
+{% endif %}
+{% if following -%}
+The student will later encounter these following objectives, which should not be covered in these questions:
+{% for follow in following %} - {{ follow }}\n{% endfor %}
+{% endif %}
+Generate {{ num_items }} questions.")
+""")

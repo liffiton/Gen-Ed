@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import asyncio
 import json
 from dataclasses import dataclass, field
 from typing import Any, Self
@@ -20,6 +21,9 @@ from werkzeug.wrappers.response import Response
 
 from gened.auth import get_auth_class, instructor_required
 from gened.db import get_db
+from gened.llm import LLM, ChatMessage, with_llm
+
+from . import prompts
 
 bp = Blueprint('tutor_setup', __name__, url_prefix='/tutor-setup', template_folder='templates')
 
@@ -32,7 +36,6 @@ def before_request() -> None:
 @dataclass
 class LearningObjective:
     name: str
-    desc: str
     questions: list[str]
 
 @dataclass
@@ -42,9 +45,12 @@ class TutorConfig:
 
     @classmethod
     def from_dict(cls, dictionary: dict[str, Any]) -> Self:
-        obj = cls(**dictionary)
-        obj.objectives = [LearningObjective(**obj) for obj in dictionary.get('objectives', [])]
-        return obj
+        try:
+            obj = cls(**dictionary)
+            obj.objectives = [LearningObjective(**obj) for obj in dictionary.get('objectives', [])]
+            return obj
+        except TypeError:
+            return cls()
 
 
 @bp.route('/', methods=['GET'])
@@ -59,27 +65,73 @@ def setup_form() -> str:
 
 
 @bp.route('/objectives/generate', methods=['POST'])
-def generate_objectives() -> Response:
+@with_llm(spend_token=False)
+def generate_objectives(llm: LLM) -> Response:
     """Stub: generate learning objectives for the given topic."""
     topic = request.form.get('topic', '').strip()
-    objectives = [
-        LearningObjective(f"Objective {i} for {topic}", "", [])
-        for i in range(1, 4)
+    num_items_initial = 30
+    num_items_final = 5
+
+    sys_prompt = prompts.tutor_setup_objectives_sys_prompt
+    user_prompts = [
+        prompts.tutor_setup_objectives_prompt1.render(topic=topic, num_items=num_items_initial),
+        prompts.tutor_setup_objectives_prompt2.render(num_items=num_items_final),
     ]
-    config = TutorConfig(topic, objectives)
+
+    response, response_txt = asyncio.run(
+        llm.get_multi_completion(
+            sys_prompt=sys_prompt,
+            user_prompts=user_prompts,
+            extra_args={'response_format': {'type': 'json_object'}},
+        )
+    )
+
+    objectives = json.loads(response_txt)['objectives']
+    assert isinstance(objectives, list)
+    assert all(isinstance(val, str) for val in objectives)
+    config = TutorConfig(topic, [LearningObjective(obj, []) for obj in objectives])
 
     session['tutor_setup'] = config
     return redirect(url_for('tutor_setup.setup_form'))
 
 
+async def generate_questions_from_objective(llm: LLM, objectives: list[str], index: int) -> list[str]:
+    objective = objectives[index]
+    previous = objectives[:index]
+    following = objectives[index+1:]
+
+    messages: list[ChatMessage] = [
+        {'role': 'system', 'content': prompts.tutor_setup_questions_sys_prompt},
+        {'role': 'user', 'content': prompts.tutor_setup_questions_prompt.render(objective=objective, previous=previous, following=following, num_items=5)},
+    ]
+    response, response_txt = await llm.get_completion(messages=messages, extra_args={})
+
+    data = json.loads(response_txt)['questions']
+    assert isinstance(data, list)
+    assert all(isinstance(val, str) for val in data)
+    return data
+
+
+async def populate_questions(llm: LLM, objectives: list[str]) -> list[LearningObjective]:
+    async with asyncio.TaskGroup() as tg:
+        tasks = [
+            tg.create_task(generate_questions_from_objective(llm, objectives, i))
+            for i in range(len(objectives))
+        ]
+
+    return [LearningObjective(obj, task.result()) for obj, task in zip(objectives, tasks, strict=True)]
+
+
 @bp.route('/questions/generate', methods=['POST'])
-def generate_questions() -> Response:
+@with_llm(spend_token=False)
+def generate_questions(llm: LLM) -> Response:
     """Stub: generate questions based on topic and objectives."""
     topic = request.form.get('topic', '').strip()
     objectives = request.form.get('objectives', '').strip().split('\n')
-    config = TutorConfig(topic, [LearningObjective(obj, "", []) for obj in objectives])
-    for obj in config.objectives:
-        obj.questions = [f"Question {i} about {obj.name}" for i in range(1, 5)]
+
+    objectives_with_questions = asyncio.run(populate_questions(llm, objectives))
+
+    config = TutorConfig(topic, objectives_with_questions)
 
     session['tutor_setup'] = config
     return redirect(url_for('tutor_setup.setup_form'))
