@@ -18,15 +18,29 @@ from .db import get_db
 
 bp = Blueprint('models', __name__, url_prefix="/models", template_folder='templates')
 
-@login_required
 @bp.route("/new")
+@login_required
 def new_model() -> str:
     return render_template("custom_model.html", model=None)
 
+def _make_unique_model_shortname(shortname: str, owner_id: int, id: int = -1) -> str:
+    """
+    Given a shortname, current owner of the model, id of the model. Return a shortname that is 
+    unique within that class.
+    """
 
+    db = get_db()
 
-@login_required
+    new_shortname = shortname
+    i = 0
+
+    while db.execute(" SELECT id FROM models WHERE shortname = ? AND owner_id = ? AND id != ? ", [new_shortname, owner_id, id]).fetchone():
+        i += 1
+        new_shortname = f"{shortname} ({i})"
+    return new_shortname
+
 @bp.route("/create", methods=["POST"])
+@login_required
 def create_new_model() -> Response:
     db = get_db()
     auth = get_auth()
@@ -36,17 +50,19 @@ def create_new_model() -> Response:
     model = request.form.get('model')
     custom_endpoint = request.form.get('custom_endpoint')
 
+    new_shortname = _make_unique_model_shortname(shortname, user_id)
+
     db.execute("""
         INSERT INTO models (provider_id, shortname, model, custom_endpoint, active, scope, owner_id)
         VALUES ((SELECT id FROM llm_providers WHERE name='Custom'), ?, ?, ?, ?, ?, ?)
-    """, (shortname, model, custom_endpoint, 1, 'user', user_id))
+    """, (new_shortname, model, custom_endpoint, 1, 'user', user_id))
     db.commit()
     flash("Model added successfully!")
 
     return redirect(url_for("profile.main"))
 
-@login_required
 @bp.route("/edit/<int:model_id>")
+@login_required
 def models_edit(model_id: int) -> str | Response:
     db = get_db()
     auth = get_auth()
@@ -62,8 +78,8 @@ def models_edit(model_id: int) -> str | Response:
 
     return render_template("custom_model.html", model=current_model)
 
-@login_required
 @bp.route("/update/<int:model_id>", methods=["POST"])
+@login_required
 def models_update(model_id: int) -> Response:
     db = get_db()
     auth = get_auth()
@@ -73,18 +89,20 @@ def models_update(model_id: int) -> Response:
     model = request.form.get('model')
     custom_endpoint = request.form.get('custom_endpoint')   
 
+    new_shortname = _make_unique_model_shortname(shortname, user_id, model_id)
+
     db.execute("""
     UPDATE models SET shortname = ?, model = ?, custom_endpoint = ?
     WHERE id = ? and owner_id = ?
-    """, (shortname, model, custom_endpoint, model_id, user_id))
+    """, (new_shortname, model, custom_endpoint, model_id, user_id))
     db.commit()
 
     flash("Model updated successfully!")
 
     return redirect(url_for("profile.main"))
 
-@login_required
 @bp.route("/delete/<int:model_id>", methods=["POST"])
+@login_required
 def models_delete(model_id: int) -> Response:
     db = get_db()
     auth = get_auth()
