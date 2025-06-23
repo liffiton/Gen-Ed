@@ -27,7 +27,7 @@
                 class="button {% if not tutorconf.objectives %}is-link{% else %}is-warning{% endif %}"
                 type="submit"
                 x-bind:class="loading ? 'is-loading' : ''"
-                formaction="{{ url_for('tutor_setup.generate_objectives') }}"
+                formaction="{{ url_for('tutors.config.generate_objectives') }}"
               >
                 {% if tutorconf.objectives %}Regenerate{% else %}Generate{% endif %} Learning Objectives
               </button>
@@ -66,7 +66,7 @@
                 class="button {% if not has_questions %}is-link{% else %}is-warning{% endif %}"
                 type="submit"
                 x-bind:class="loading ? 'is-loading' : ''"
-                formaction="{{ url_for('tutor_setup.generate_questions') }}"
+                formaction="{{ url_for('tutors.config.generate_questions') }}"
               >
                 {% if has_questions %}Regenerate{% else %}Generate{% endif %} Questions
               </button>
@@ -107,13 +107,13 @@
           <div class="field is-grouped">
             {% if has_questions %}
               <div class="control">
-                <button class="button is-link" type="submit" formaction="{{ url_for('tutor_setup.create_tutor') }}">
+                <button class="button is-link" type="submit" formaction="{{ url_for('tutors.config.create_tutor') }}">
                   Save Tutor
                 </button>
               </div>
             {% endif %}
             <div class="control">
-              <button class="button is-light" type="submit" formaction="{{ url_for('tutor_setup.reset_setup') }}">
+              <button class="button is-light" type="submit" formaction="{{ url_for('tutors.config.reset_setup') }}">
                 Start Over
               </button>
             </div>
@@ -136,7 +136,7 @@
         <dialog id="dia_{{ loop.index }}" style="width: 50%; mind-width: min(32em, 100vw);">
           <div class="content box">
             <h3>{{ obj.name }}</h3>
-            <form action="{{ url_for('tutor_setup.update_questions') }}" method="post">
+            <form action="{{ url_for('tutors.config.update_questions') }}" method="post">
               <input type="hidden" name="obj_index" value="{{ loop.index0 }}">
               <div class="field">
                 <div class="label">Questions (put each on a separate line)</div>

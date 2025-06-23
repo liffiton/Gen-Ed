@@ -21,16 +21,20 @@ from werkzeug.wrappers.response import Response
 
 from gened.auth import get_auth_class, instructor_required
 from gened.db import get_db
+from gened.experiments import experiment_required
 from gened.llm import LLM, ChatMessage, with_llm
 
 from . import prompts
 
-bp = Blueprint('tutor_setup', __name__, url_prefix='/tutor-setup', template_folder='templates')
+bp = Blueprint('config', __name__, url_prefix='/config', template_folder='templates')
 
 @bp.before_request
+@experiment_required("chats_experiment")
 @instructor_required
 def before_request() -> None:
-    """ Apply decorator to protect all blueprint endpoints. """
+    """ Apply decorators to protect all blueprint endpoints.
+    Use @experiment_required first so that non-logged-in users get a 404 as well.
+    """
 
 
 @dataclass
@@ -56,7 +60,7 @@ class TutorConfig:
 @bp.route('/', methods=['GET'])
 def setup_form() -> str:
     """Display the tutor setup form."""
-    config = TutorConfig.from_dict(session.get('tutor_setup', {}))
+    config = TutorConfig.from_dict(session.get('tutor_config', {}))
     return render_template(
         'tutor_setup_form.html',
         tutorconf=config,
@@ -91,8 +95,8 @@ def generate_objectives(llm: LLM) -> Response:
     assert all(isinstance(val, str) for val in objectives)
     config = TutorConfig(topic, [LearningObjective(obj, []) for obj in objectives])
 
-    session['tutor_setup'] = config
-    return redirect(url_for('tutor_setup.setup_form'))
+    session['tutor_config'] = config
+    return redirect(url_for('.setup_form'))
 
 
 async def generate_questions_from_objective(llm: LLM, objectives: list[str], index: int) -> list[str]:
@@ -133,27 +137,27 @@ def generate_questions(llm: LLM) -> Response:
 
     config = TutorConfig(topic, objectives_with_questions)
 
-    session['tutor_setup'] = config
-    return redirect(url_for('tutor_setup.setup_form'))
+    session['tutor_config'] = config
+    return redirect(url_for('.setup_form'))
 
 
 @bp.route('/questions/update', methods=['POST'])
 def update_questions() -> Response:
     """ Update the questions for one learning objective. """
-    config = TutorConfig.from_dict(session.get('tutor_setup', {}))
+    config = TutorConfig.from_dict(session.get('tutor_config', {}))
     obj_index = request.form.get('obj_index')
     if obj_index is None or not obj_index.isnumeric():
         abort(400)
     questions = request.form.get('questions', '').strip().split('\n')
     config.objectives[int(obj_index)].questions = questions
-    session['tutor_setup'] = config
-    return redirect(url_for('tutor_setup.setup_form'))
+    session['tutor_config'] = config
+    return redirect(url_for('.setup_form'))
 
 
 @bp.route('/create', methods=['POST'])
 def create_tutor() -> Response:
     """Persist the new tutor to the database."""
-    config = TutorConfig.from_dict(session.get('tutor_setup', {}))
+    config = TutorConfig.from_dict(session.get('tutor_config', {}))
     name = config.topic
     cur_class = get_auth_class()
     class_id = cur_class.class_id
@@ -163,13 +167,13 @@ def create_tutor() -> Response:
         [name, class_id, json.dumps(config)]
     )
     db.commit()
-    session.pop('tutor_setup', None)
+    session.pop('tutor_config', None)
     flash(f"Tutor '{name}' created.", 'success')
-    return redirect(url_for('tutor_setup.setup_form'))
+    return redirect(url_for('.setup_form'))
 
 
 @bp.route('/reset', methods=['POST'])
 def reset_setup() -> Response:
     """Clear the in-progress tutor setup and start over."""
-    session.pop('tutor_setup', None)
-    return redirect(url_for('tutor_setup.setup_form'))
+    session.pop('tutor_config', None)
+    return redirect(url_for('.setup_form'))

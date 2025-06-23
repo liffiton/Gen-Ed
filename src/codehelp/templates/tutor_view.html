@@ -27,7 +27,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         {% endif %}
 
         {# debounce on the submit handler so that the form's actual submit fires *before* the form elements are disabled #}
-        <form action="{{url_for('tutor.new_message')}}" method="post" x-data="{loading: false}" x-on:pageshow.window="loading = false" x-on:submit.debounce.10ms="loading = true">
+        <form action="{{url_for('tutors.chat.new_message')}}" method="post" x-data="{loading: false}" x-on:pageshow.window="loading = false" x-on:submit.debounce.10ms="loading = true">
           <input type="hidden" name="id" value="{{chat_id}}">
 
           {{ chat_component(chat, msg_input=True) }}

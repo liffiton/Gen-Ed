@@ -20,6 +20,12 @@ from flask import (
 from werkzeug.wrappers.response import Response
 
 import gened.admin
+from codehelp.contexts import (
+    ContextConfig,
+    get_available_contexts,
+    get_context_by_name,
+    record_context_string,
+)
 from gened.auth import get_auth, login_required
 from gened.classes import switch_class
 from gened.db import get_db
@@ -28,12 +34,6 @@ from gened.llm import LLM, ChatMessage, with_llm
 from gened.tables import Col, DataTable, NumCol
 
 from . import prompts
-from .contexts import (
-    ContextConfig,
-    get_available_contexts,
-    get_context_by_name,
-    record_context_string,
-)
 
 
 class ChatNotFoundError(Exception):
@@ -52,7 +52,7 @@ class ChatData:
     context_string: str | None
 
 
-bp = Blueprint('tutor', __name__, url_prefix="/tutor", template_folder='templates')
+bp = Blueprint('chat', __name__, url_prefix="/chat", template_folder='templates')
 
 
 @bp.before_request
@@ -64,9 +64,9 @@ def before_request() -> None:
     """
 
 
-@bp.route("/")
-@bp.route("/ctx/<int:class_id>/<string:ctx_name>")
-def tutor_form(class_id: int | None = None, ctx_name: str | None = None) -> str | Response:
+@bp.route("/new")
+@bp.route("/new/ctx/<int:class_id>/<string:ctx_name>")
+def new_chat(class_id: int | None = None, ctx_name: str | None = None) -> str | Response:
 
     if class_id is not None:
         success = switch_class(class_id)
@@ -94,7 +94,7 @@ def tutor_form(class_id: int | None = None, ctx_name: str | None = None) -> str 
     return render_template("tutor_new_form.html", contexts=contexts, selected_context_name=selected_context_name, chat_history=chat_history)
 
 
-@bp.route("/chat/create", methods=["POST"])
+@bp.route("/create", methods=["POST"])
 @with_llm()
 def start_chat(llm: LLM) -> Response:
     topic = request.form['topic']
@@ -110,10 +110,10 @@ def start_chat(llm: LLM) -> Response:
 
     run_chat_round(llm, chat_id)
 
-    return redirect(url_for("tutor.chat_interface", chat_id=chat_id))
+    return redirect(url_for("tutors.chat.chat_interface", chat_id=chat_id))
 
 
-@bp.route("/chat/<int:chat_id>")
+@bp.route("/<int:chat_id>")
 def chat_interface(chat_id: int) -> str | Response:
     try:
         chat_data = get_chat(chat_id)
@@ -238,7 +238,7 @@ def run_chat_round(llm: LLM, chat_id: int, message: str|None = None) -> None:
     # Get a response (completion) from the API using an expanded version of the chat messages
     # Insert a system prompt beforehand and an internal monologue after to guide the assistant
     expanded_chat : list[ChatMessage] = [
-        {'role': 'system', 'content': prompts.make_chat_sys_prompt(chat_data.topic, chat_data.context_string)},
+        {'role': 'system', 'content': prompts.chat_template_sys.render(topic=chat_data.topic, context=chat_data.context_string)},
         *chat,  # chat is a list; expand it here with *
         {'role': 'assistant', 'content': prompts.tutor_monologue},
     ]
@@ -253,7 +253,7 @@ def run_chat_round(llm: LLM, chat_id: int, message: str|None = None) -> None:
     save_chat(chat_id, chat)
 
 
-@bp.route("/message", methods=["POST"])
+@bp.route("/post_message", methods=["POST"])
 @with_llm()
 def new_message(llm: LLM) -> Response:
     chat_id = int(request.form["id"])
@@ -265,7 +265,7 @@ def new_message(llm: LLM) -> Response:
     run_chat_round(llm, chat_id, new_msg)
 
     # Send the user back to the now-updated chat view
-    return redirect(url_for("tutor.chat_interface", chat_id=chat_id))
+    return redirect(url_for("tutors.chat.chat_interface", chat_id=chat_id))
 
 
 # ### Admin routes ###

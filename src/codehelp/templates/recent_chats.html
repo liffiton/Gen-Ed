@@ -10,7 +10,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   {% for prev in chat_history %}
     <div class="box p-3">
       <div class="buttons has-addons are-small is-pulled-right">
-        <a href="{{url_for('tutor.chat_interface', chat_id=prev.id)}}" class="button is-link is-outlined is-rounded p-2">View</a>
+        <a href="{{url_for('tutors.chat.chat_interface', chat_id=prev.id)}}" class="button is-link is-outlined is-rounded p-2">View</a>
       </div>
       {{prev.topic}}
     </div>
