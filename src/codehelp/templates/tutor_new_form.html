@@ -12,10 +12,20 @@ SPDX-License-Identifier: AGPL-3.0-only
 
   <div class="column is-three-quarters-desktop">
     <section class="section">
-      <div class="container">
-        <h1 class="title">Start a new Tutor chat</h1>
+      <div class="container content">
+        <h1 class="title">Start a New Chat</h1>
 
-        <form action="{{url_for('tutors.chat.start_chat')}}" method="post">
+        <h2 class="is-size-4">Inquiry Chat</h2>
+        <form action="{{url_for('tutors.chat.create_inquiry_chat')}}" method="post">
+
+          {% if contexts %}
+          <div class="field is-horizontal">
+            <div class="field-label is-normal">
+              <label class="label" for="context">Context:</label>
+            </div>
+            {% include "context_chooser.html" %}
+          </div>
+          {% endif %}
 
           <div class="field is-horizontal">
             <div class="field-label is-normal">
@@ -30,22 +40,13 @@ SPDX-License-Identifier: AGPL-3.0-only
             </div>
           </div>
 
-          {% if contexts %}
-          <div class="field is-horizontal">
-            <div class="field-label {% if contexts | length > 1 %}is-normal{% endif %}">
-              <label class="label" for="context">Context:</label>
-            </div>
-            {% include "context_chooser.html" %}
-          </div>
-          {% endif %}
-
           <div class="field is-horizontal">
             <div class="field-label is-normal"><!-- spacing --></div>
             <div class="field-body">
               <div class="field">
                 <div class="control">
                   <button class="button is-link" type="submit">
-                    Submit
+                    Start
                   </button>
                 </div>
               </div>
@@ -53,6 +54,47 @@ SPDX-License-Identifier: AGPL-3.0-only
           </div>
 
         </form>
+
+        {% if tutors %}
+        <h2 class="is-size-4">Guided Chat</h2>
+        <form action="{{url_for('tutors.chat.create_guided_chat')}}" method="post">
+
+          <div class="field is-horizontal">
+            <div class="field-label is-normal">
+              <label class="label" for="topic">Topic:</label>
+            </div>
+            <div class="field-body">
+              <div class="field">
+                <div class="control">
+                  <div class="select">
+                    <select name="tutor_id">
+                      <option disabled selected value="">Please select</option>
+                      {% for tutor in tutors %}
+                        <option value="{{ tutor.id }}">{{ tutor.topic }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="field is-horizontal">
+            <div class="field-label is-normal"><!-- spacing --></div>
+            <div class="field-body">
+              <div class="field">
+                <div class="control">
+                  <button class="button is-link" type="submit">
+                    Start
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </form>
+        {% endif %}
+
       </div>
 
     </section>

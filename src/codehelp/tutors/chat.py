@@ -24,13 +24,14 @@ from codehelp.contexts import (
     get_available_contexts,
     get_context_by_name,
 )
-from gened.auth import get_auth, login_required
+from gened.auth import class_enabled_required, get_auth, login_required
 from gened.classes import switch_class
 from gened.db import get_db
 from gened.experiments import experiment_required
 from gened.llm import LLM, ChatMessage, with_llm
 
 from . import prompts
+from .guided import TutorConfig
 
 
 class ChatNotFoundError(Exception):
@@ -61,38 +62,47 @@ def before_request() -> None:
 
 
 @bp.route("/new")
+def new_chat_form() -> str:
+    contexts_list = get_available_contexts()
+    # turn into format we can pass to js via JSON
+    contexts = {ctx.name: ctx.desc_html() for ctx in contexts_list}
+
+    # get pre-defined guided chat tutors
+    tutors = []
+    db = get_db()
+    auth = get_auth()
+    if auth.cur_class:
+        tutor_rows = db.execute("SELECT * FROM tutors WHERE class_id=?", [auth.cur_class.class_id]).fetchall()
+        tutors = [json.loads(row['config']) | {'id': row['id']} for row in tutor_rows]
+
+    chat_history = get_chat_history()
+    return render_template("tutor_new_form.html", contexts=contexts, tutors=tutors, chat_history=chat_history)
+
 @bp.route("/new/ctx/<int:class_id>/<string:ctx_name>")
-def new_chat(class_id: int | None = None, ctx_name: str | None = None) -> str | Response:
+def new_inquiry_chat_form(class_id: int, ctx_name: str) -> str | Response:
+    success = switch_class(class_id)
+    if not success:
+        # Can't access the specified context
+        flash("Cannot access class and context.  Make sure you are logged in correctly before using this link.", "danger")
+        return make_response(render_template("error.html"), 400)
 
-    if class_id is not None:
-        success = switch_class(class_id)
-        if not success:
-            # Can't access the specified context
-            flash("Cannot access class and context.  Make sure you are logged in correctly before using this link.", "danger")
-            return make_response(render_template("error.html"), 400)
-
-    selected_context_name = ctx_name
-    if ctx_name:
-        context = get_context_by_name(ctx_name)
-        if not context:
-            flash(f"Context not found: {ctx_name}", "danger")
-            return make_response(render_template("error.html"), 404)
-        contexts_list = [context]
-    else:
-        contexts_list = get_available_contexts()
-        if len(contexts_list) == 1:
-            selected_context_name = contexts_list[0].name
+    context = get_context_by_name(ctx_name)
+    if not context:
+        flash(f"Context not found: {ctx_name}", "danger")
+        return make_response(render_template("error.html"), 404)
+    contexts_list = [context]
 
     # turn into format we can pass to js via JSON
     contexts = {ctx.name: ctx.desc_html() for ctx in contexts_list}
 
     chat_history = get_chat_history()
-    return render_template("tutor_new_form.html", contexts=contexts, selected_context_name=selected_context_name, chat_history=chat_history)
+    return render_template("tutor_new_form.html", contexts=contexts, chat_history=chat_history)
 
 
-@bp.route("/create", methods=["POST"])
+@bp.route("/create_inquiry", methods=["POST"])
+@class_enabled_required
 @with_llm()
-def start_chat(llm: LLM) -> Response:
+def create_inquiry_chat(llm: LLM) -> Response:
     topic = request.form['topic']
     context: ContextConfig | None = None
 
@@ -102,35 +112,46 @@ def start_chat(llm: LLM) -> Response:
             flash(f"Context not found: {context_name}", "danger")
             return make_response(render_template("error.html"), 400)
 
-    chat_id = create_chat(topic, context)
+    context_name = context.name if context else None
+    context_string = context.prompt_str() if context else None
+    sys_prompt = prompts.inquiry_sys_msg_tpl.render(topic=topic, context=context_string)
+
+    chat_id = _create_chat(topic, context_name, sys_prompt)
 
     run_chat_round(llm, chat_id)
 
     return redirect(url_for("tutors.chat.chat_interface", chat_id=chat_id))
 
 
-@bp.route("/<int:chat_id>")
-def chat_interface(chat_id: int) -> str | Response:
-    try:
-        chat_data = get_chat(chat_id)
-    except (ChatNotFoundError, AccessDeniedError):
-        abort(400, "Invalid id.")
+@bp.route("/create_guided", methods=["POST"])
+@class_enabled_required
+@with_llm()
+def create_guided_chat(llm: LLM) -> Response:
+    db = get_db()
+    auth = get_auth()
+    assert auth.cur_class is not None
+    tutor_id = request.form['tutor_id']
+    row = db.execute("SELECT * FROM tutors WHERE class_id=? AND id=?", [auth.cur_class.class_id, tutor_id]).fetchone()
 
-    chat_history = get_chat_history()
+    tutor_config = TutorConfig.from_dict(json.loads(row['config']))
 
-    return render_template("tutor_view.html", chat_id=chat_id, topic=chat_data.topic, context_name=chat_data.context_name, chat=chat_data.chat, chat_history=chat_history)
+    sys_prompt = prompts.guided_sys_msg_tpl.render(tutor_config=tutor_config)
+
+    chat_id = _create_chat(tutor_config.topic, context_name=None, sys_prompt=sys_prompt)
+
+    run_chat_round(llm, chat_id)
+
+    return redirect(url_for("tutors.chat.chat_interface", chat_id=chat_id))
 
 
-def create_chat(topic: str, context: ContextConfig | None) -> int:
+def _create_chat(topic: str, context_name: str | None, sys_prompt: str) -> int:
     db = get_db()
     auth = get_auth()
     user_id = auth.user_id
     role_id = auth.cur_class.role_id if auth.cur_class else None
 
-    context_name = context.name if context else None
-    context_string = context.prompt_str() if context else None
     chat : list[ChatMessage] = [
-        {'role': 'system', 'content': prompts.inquiry_sys_msg_tpl.render(topic=topic, context=context_string)},
+        {'role': 'system', 'content': sys_prompt},
     ]
 
     cur = db.execute(
@@ -143,6 +164,18 @@ def create_chat(topic: str, context: ContextConfig | None) -> int:
 
     assert new_row_id is not None
     return new_row_id
+
+
+@bp.route("/<int:chat_id>")
+def chat_interface(chat_id: int) -> str | Response:
+    try:
+        chat_data = get_chat(chat_id)
+    except (ChatNotFoundError, AccessDeniedError):
+        abort(400, "Invalid id.")
+
+    chat_history = get_chat_history()
+
+    return render_template("tutor_view.html", chat_id=chat_id, topic=chat_data.topic, context_name=chat_data.context_name, chat=chat_data.chat, chat_history=chat_history)
 
 
 def get_chat_history(limit: int = 10) -> list[Row]:
@@ -237,7 +270,7 @@ def run_chat_round(llm: LLM, chat_id: int, message: str|None = None) -> None:
     # (but don't save it in the database as part of the chat).
     augmented_chat: list[ChatMessage] = [
         *chat,  # copy chat into this list
-        {'role': 'assistant', 'content': prompts.inquiry_monologue},  # append an internal monologue
+        #{'role': 'assistant', 'content': prompts.inquiry_monologue},  # append an internal monologue
     ]
 
     response_obj, response_txt = get_response(llm, augmented_chat)

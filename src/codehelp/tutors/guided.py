@@ -26,7 +26,7 @@ from gened.llm import LLM, ChatMessage, with_llm
 
 from . import prompts
 
-bp = Blueprint('config', __name__, url_prefix='/config', template_folder='templates')
+bp = Blueprint('config', __name__, url_prefix='/guided', template_folder='templates')
 
 @bp.before_request
 @experiment_required("chats_experiment")
@@ -57,7 +57,7 @@ class TutorConfig:
             return cls()
 
 
-@bp.route('/', methods=['GET'])
+@bp.route('/new', methods=['GET'])
 def setup_form() -> str:
     """Display the tutor setup form."""
     config = TutorConfig.from_dict(session.get('tutor_config', {}))
