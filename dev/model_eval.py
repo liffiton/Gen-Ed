@@ -22,7 +22,7 @@ from loaders import (
 )
 from tqdm.auto import tqdm
 
-MAX_TOKENS = 2000
+MAX_TOKENS = 5000
 
 
 def get_db(db_path: Path) -> sqlite3.Connection:
@@ -120,6 +120,7 @@ def gen_responses(db: sqlite3.Connection, prompt_set_id: int, model: str) -> Non
             response_time = time.time() - start_time
             response_json = json.dumps(response.model_dump())
             text = response.choices[0].message.content
+            assert text
         except Exception as e:  # noqa
             text = f"[An error occurred in the completion.]\n{e}"
             tqdm.write(f"\x1B[31m{text}\x1B[m")
