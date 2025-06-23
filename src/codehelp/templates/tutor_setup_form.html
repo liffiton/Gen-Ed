@@ -88,7 +88,9 @@
             {% for obj in tutorconf.objectives %}
               <h3 class="is-size-6">{{ loop.index }}. {{ obj.name }}</h3>
               <ul>
+                {% set obj_index = loop.index0 %}
                 {% for question in obj.questions %}
+                  <input type="hidden" name="questions[{{ obj_index }}]" value="{{ question }}">
                   <li>{{ question | markdown }}</li>
                 {% endfor %}
               </ul>

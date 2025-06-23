@@ -4,7 +4,7 @@
 
 import asyncio
 import json
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Any, Self
 
 from flask import (
@@ -71,7 +71,7 @@ def setup_form() -> str:
 @bp.route('/objectives/generate', methods=['POST'])
 @with_llm(spend_token=False)
 def generate_objectives(llm: LLM) -> Response:
-    """Stub: generate learning objectives for the given topic."""
+    """Generate learning objectives for the given topic."""
     topic = request.form.get('topic', '').strip()
     num_items_initial = 30
     num_items_final = 5
@@ -138,9 +138,10 @@ async def populate_questions(llm: LLM, objectives: list[str]) -> list[LearningOb
 @bp.route('/questions/generate', methods=['POST'])
 @with_llm(spend_token=False)
 def generate_questions(llm: LLM) -> Response:
-    """Stub: generate questions based on topic and objectives."""
+    """Generate questions based on topic and objectives."""
     topic = request.form.get('topic', '').strip()
-    objectives = request.form.get('objectives', '').strip().split('\n')
+    objectives_str = request.form.get('objectives', '').strip()
+    objectives = [obj.strip() for obj in objectives_str.split('\n')]
 
     objectives_with_questions = asyncio.run(populate_questions(llm, objectives))
 
@@ -166,18 +167,26 @@ def update_questions() -> Response:
 @bp.route('/create', methods=['POST'])
 def create_tutor() -> Response:
     """Persist the new tutor to the database."""
-    config = TutorConfig.from_dict(session.get('tutor_config', {}))
-    name = config.topic
+    topic = request.form.get('topic', '').strip()
+    objectives_str = request.form.get('objectives', '').strip()
+    objectives = [obj.strip() for obj in objectives_str.split('\n')]
+
+    config = TutorConfig(
+        topic,
+        [LearningObjective(obj, request.form.getlist(f'questions[{i}]')) for i, obj in enumerate(objectives)]
+    )
+
     cur_class = get_auth_class()
     class_id = cur_class.class_id
+
     db = get_db()
     db.execute(
-        "INSERT INTO tutors (name, class_id, config) VALUES (?, ?, ?)",
-        [name, class_id, json.dumps(config)]
+        "INSERT INTO tutors (class_id, config) VALUES (?, ?)",
+        [class_id, json.dumps(asdict(config))]
     )
     db.commit()
     session.pop('tutor_config', None)
-    flash(f"Tutor '{name}' created.", 'success')
+    flash(f"Tutor created for topic: {topic}", 'success')
     return redirect(url_for('.setup_form'))
 
 
