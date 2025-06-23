@@ -19,19 +19,16 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-import gened.admin
 from codehelp.contexts import (
     ContextConfig,
     get_available_contexts,
     get_context_by_name,
-    record_context_string,
 )
 from gened.auth import get_auth, login_required
 from gened.classes import switch_class
 from gened.db import get_db
 from gened.experiments import experiment_required
 from gened.llm import LLM, ChatMessage, with_llm
-from gened.tables import Col, DataTable, NumCol
 
 from . import prompts
 
@@ -49,7 +46,6 @@ class ChatData:
     chat: list[ChatMessage]
     topic: str
     context_name: str | None
-    context_string: str | None
 
 
 bp = Blueprint('chat', __name__, url_prefix="/chat", template_folder='templates')
@@ -132,11 +128,14 @@ def create_chat(topic: str, context: ContextConfig | None) -> int:
     role_id = auth.cur_class.role_id if auth.cur_class else None
 
     context_name = context.name if context else None
-    context_string_id = record_context_string(context.prompt_str()) if context else None
+    context_string = context.prompt_str() if context else None
+    chat : list[ChatMessage] = [
+        {'role': 'system', 'content': prompts.inquiry_sys_msg_tpl.render(topic=topic, context=context_string)},
+    ]
 
     cur = db.execute(
-        "INSERT INTO chats (user_id, role_id, topic, context_name, context_string_id, chat_json) VALUES (?, ?, ?, ?, ?, ?)",
-        [user_id, role_id, topic, context_name, context_string_id, json.dumps([])]
+        "INSERT INTO chats (user_id, role_id, topic, context_name, chat_json) VALUES (?, ?, ?, ?, ?)",
+        [user_id, role_id, topic, context_name, json.dumps(chat)]
     )
     new_row_id = cur.lastrowid
 
@@ -160,11 +159,10 @@ def get_chat(chat_id: int) -> ChatData:
     auth = get_auth()
 
     chat_row = db.execute(
-        "SELECT chat_json, topic, context_name, context_strings.ctx_str AS context_string, chats.user_id, roles.class_id "
+        "SELECT chat_json, topic, context_name, chats.user_id, roles.class_id "
         "FROM chats "
         "JOIN users ON chats.user_id=users.id "
         "LEFT JOIN roles ON chats.role_id=roles.id "
-        "LEFT JOIN context_strings ON chats.context_string_id=context_strings.id "
         "WHERE chats.id=?",
         [chat_id]
     ).fetchone()
@@ -187,9 +185,8 @@ def get_chat(chat_id: int) -> ChatData:
     chat = json.loads(chat_json)
     topic = chat_row['topic']
     context_name = chat_row['context_name']
-    context_string = chat_row['context_string']
 
-    return ChatData(chat, topic, context_name, context_string)
+    return ChatData(chat, topic, context_name)
 
 
 def get_response(llm: LLM, chat: list[ChatMessage]) -> tuple[dict[str, str], str]:
@@ -235,15 +232,15 @@ def run_chat_round(llm: LLM, chat_id: int, message: str|None = None) -> None:
 
     save_chat(chat_id, chat)
 
-    # Get a response (completion) from the API using an expanded version of the chat messages
-    # Insert a system prompt beforehand and an internal monologue after to guide the assistant
-    expanded_chat : list[ChatMessage] = [
-        {'role': 'system', 'content': prompts.chat_template_sys.render(topic=chat_data.topic, context=chat_data.context_string)},
-        *chat,  # chat is a list; expand it here with *
-        {'role': 'assistant', 'content': prompts.tutor_monologue},
+    # Get a response (completion) from the API using an augmented version of
+    # the chat messages: append an internal monologue to guide the assistant
+    # (but don't save it in the database as part of the chat).
+    augmented_chat: list[ChatMessage] = [
+        *chat,  # copy chat into this list
+        {'role': 'assistant', 'content': prompts.inquiry_monologue},  # append an internal monologue
     ]
 
-    response_obj, response_txt = get_response(llm, expanded_chat)
+    response_obj, response_txt = get_response(llm, augmented_chat)
 
     # Update the chat w/ the response
     chat.append({
@@ -266,48 +263,3 @@ def new_message(llm: LLM) -> Response:
 
     # Send the user back to the now-updated chat view
     return redirect(url_for("tutors.chat.chat_interface", chat_id=chat_id))
-
-
-# ### Admin routes ###
-bp_admin = Blueprint('admin_tutor', __name__, url_prefix='/tutor', template_folder='templates')
-
-# Register the tutors admin component.
-gened.admin.register_blueprint(bp_admin)
-gened.admin.register_navbar_item("admin_tutor.tutor_admin", "Tutor Chats")
-
-
-@bp_admin.route("/")
-@bp_admin.route("/<int:chat_id>")
-def tutor_admin(chat_id : int|None = None) -> str:
-    db = get_db()
-    chats = db.execute("""
-        SELECT
-            chats.id AS id,
-            users.display_name AS user,
-            chats.topic AS topic,
-            (
-                SELECT COUNT(*)
-                FROM json_each(chats.chat_json)
-                WHERE json_extract(json_each.value, '$.role')='user'
-            ) as "user messages"
-        FROM chats
-        JOIN users ON chats.user_id=users.id
-        ORDER BY chats.id DESC
-    """).fetchall()
-
-    table = DataTable(
-        name='chats',
-        columns=[NumCol('id'), Col('user'), Col('topic'), NumCol('user messages')],
-        link_col=0,
-        link_template='${value}',
-        data=chats,
-    )
-
-    if chat_id is not None:
-        chat_row = db.execute("SELECT users.display_name, topic, chat_json FROM chats JOIN users ON chats.user_id=users.id WHERE chats.id=?", [chat_id]).fetchone()
-        chat = json.loads(chat_row['chat_json'])
-    else:
-        chat_row = None
-        chat = None
-
-    return render_template("tutor_admin.html", chats=table, chat_row=chat_row, chat=chat)

@@ -33,13 +33,11 @@ CREATE TABLE chats (
     chat_started DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
     topic TEXT NOT NULL,
     context_name TEXT,
-    context_string_id INTEGER,
     chat_json TEXT NOT NULL,
     user_id INTEGER NOT NULL,
     role_id INTEGER,
     FOREIGN KEY(user_id) REFERENCES users(id),
     FOREIGN KEY(role_id) REFERENCES roles(id),
-    FOREIGN KEY(context_string_id) REFERENCES context_strings(id)
 );
 DROP INDEX IF EXISTS chats_by_user;
 CREATE INDEX chats_by_user ON chats(user_id);

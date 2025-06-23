@@ -1,5 +1,6 @@
 from flask import Blueprint
 
+from . import admin  # noqa: F401 -- imported for its side effects
 from .chat import bp as chat_bp
 from .config import bp as config_bp
 
