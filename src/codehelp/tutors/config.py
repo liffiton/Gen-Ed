@@ -86,7 +86,10 @@ def generate_objectives(llm: LLM) -> Response:
         llm.get_multi_completion(
             sys_prompt=sys_prompt,
             user_prompts=user_prompts,
-            extra_args={'response_format': {'type': 'json_object'}},
+            extra_args={
+                #'reasoning_effort': 'none',  # for thinking models: o3/o4/gemini-2.5
+                'response_format': {'type': 'json_object'},
+            },
         )
     )
 
@@ -108,7 +111,13 @@ async def generate_questions_from_objective(llm: LLM, objectives: list[str], ind
         {'role': 'system', 'content': prompts.tutor_setup_questions_sys_prompt},
         {'role': 'user', 'content': prompts.tutor_setup_questions_prompt.render(objective=objective, previous=previous, following=following, num_items=5)},
     ]
-    response, response_txt = await llm.get_completion(messages=messages, extra_args={})
+    response, response_txt = await llm.get_completion(
+        messages=messages,
+        extra_args={
+            #'reasoning_effort': 'none',  # for thinking models: o3/o4/gemini-2.5
+            'response_format': {'type': 'json_object'},
+        },
+    )
 
     data = json.loads(response_txt)['questions']
     assert isinstance(data, list)
