@@ -17,7 +17,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       {% if chat_row %}
         <h1 class="is-size-4">User: {{chat_row['display_name']}}</h1>
         <h1 class="is-size-4">Topic: {{chat_row['topic']}}</h1>
-        {{ chat_component(chat) }}
+        {{ chat_component(auth, chat) }}
       {% endif %}
     </div>
   </div>

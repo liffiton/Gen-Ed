@@ -23,14 +23,14 @@ SPDX-License-Identifier: AGPL-3.0-only
         <h1 class="title">{{topic}}</h1>
 
         {% if context_name %}
-          <p><b>Context:</b> {{ context_name }}</p>
+          <p class="is-size-5"><b>Context:</b> {{ context_name }}</p>
         {% endif %}
 
         {# debounce on the submit handler so that the form's actual submit fires *before* the form elements are disabled #}
         <form action="{{url_for('tutors.chat.new_message')}}" method="post" x-data="{loading: false}" x-on:pageshow.window="loading = false" x-on:submit.debounce.10ms="loading = true">
           <input type="hidden" name="id" value="{{chat_id}}">
 
-          {{ chat_component(chat, msg_input=True) }}
+          {{ chat_component(auth, chat, msg_input=True) }}
 
         </form>
       </div>
