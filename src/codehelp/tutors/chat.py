@@ -222,22 +222,6 @@ def get_chat(chat_id: int) -> ChatData:
     return ChatData(chat, topic, context_name)
 
 
-def get_response(llm: LLM, chat: list[ChatMessage]) -> tuple[dict[str, str], str]:
-    ''' Get a new 'assistant' completion for the specified chat.
-
-    Parameters:
-      - chat: A list of dicts, each containing a message with 'role' and 'content' keys,
-              following the OpenAI chat completion API spec.
-
-    Returns a tuple containing:
-      1) A response object from the LLM completion (to be stored in the database).
-      2) The response text.
-    '''
-    response, text = asyncio.run(llm.get_completion(messages=chat))
-
-    return response, text
-
-
 def save_chat(chat_id: int, chat: list[ChatMessage]) -> None:
     db = get_db()
     db.execute(
@@ -256,26 +240,18 @@ def run_chat_round(llm: LLM, chat_id: int, message: str|None = None) -> None:
 
     chat = chat_data.chat
 
-    # Add the new message to the chat
+    # Add the new message to the chat (persisting to the DB)
     if message is not None:
         chat.append({
             'role': 'user',
             'content': message,
         })
-
     save_chat(chat_id, chat)
 
-    # Get a response (completion) from the API using an augmented version of
-    # the chat messages: append an internal monologue to guide the assistant
-    # (but don't save it in the database as part of the chat).
-    augmented_chat: list[ChatMessage] = [
-        *chat,  # copy chat into this list
-        #{'role': 'assistant', 'content': prompts.inquiry_monologue},  # append an internal monologue
-    ]
+    # Generate a response
+    response, response_txt = asyncio.run(llm.get_completion(messages=chat))
 
-    response_obj, response_txt = get_response(llm, augmented_chat)
-
-    # Update the chat w/ the response
+    # Update the chat w/ the response (and persist to the DB)
     chat.append({
         'role': 'assistant',
         'content': response_txt,

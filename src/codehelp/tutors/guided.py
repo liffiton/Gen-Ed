@@ -26,6 +26,9 @@ from gened.llm import LLM, ChatMessage, with_llm
 
 from . import prompts
 
+DEFAULT_OBJECTIVES = 5
+DEFAULT_QUESTIONS_PER_OBJECTIVE = 4
+
 bp = Blueprint('config', __name__, url_prefix='/guided', template_folder='templates')
 
 @bp.before_request
@@ -74,7 +77,7 @@ def generate_objectives(llm: LLM) -> Response:
     """Generate learning objectives for the given topic."""
     topic = request.form.get('topic', '').strip()
     num_items_initial = 30
-    num_items_final = 5
+    num_items_final = DEFAULT_OBJECTIVES
 
     sys_prompt = prompts.tutor_setup_objectives_sys_prompt
     user_prompts = [
@@ -109,7 +112,7 @@ async def generate_questions_from_objective(llm: LLM, objectives: list[str], ind
 
     messages: list[ChatMessage] = [
         {'role': 'system', 'content': prompts.tutor_setup_questions_sys_prompt},
-        {'role': 'user', 'content': prompts.tutor_setup_questions_prompt.render(objective=objective, previous=previous, following=following, num_items=5)},
+        {'role': 'user', 'content': prompts.tutor_setup_questions_prompt.render(objective=objective, previous=previous, following=following, num_items=DEFAULT_QUESTIONS_PER_OBJECTIVE)},
     ]
     response, response_txt = await llm.get_completion(
         messages=messages,
