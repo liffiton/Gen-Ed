@@ -40,7 +40,6 @@ class CodeHelpDeletionHandler:
             SET topic = '[deleted]',
                 chat_json = '[]',
                 context_name = '[deleted]',
-                context_string_id = NULL,
                 user_id = -1
             WHERE user_id = ?
         """, [user_id])
@@ -70,14 +69,8 @@ class CodeHelpDeletionHandler:
                 WHERE role_id IN (
                     SELECT id FROM roles WHERE class_id = ?
                 )
-                UNION
-                SELECT context_string_id
-                FROM chats
-                WHERE role_id IN (
-                    SELECT id FROM roles WHERE class_id = ?
-                )
             )
-        """, [class_id, class_id])
+        """, [class_id])
 
         # Anonymize personal data in queries
         db.execute("""
@@ -105,7 +98,6 @@ class CodeHelpDeletionHandler:
             SET topic = '[deleted]',
                 chat_json = '[]',
                 context_name = '[deleted]',
-                context_string_id = NULL,
                 user_id = -1
             WHERE role_id IN (
                 SELECT id FROM roles WHERE class_id = ?

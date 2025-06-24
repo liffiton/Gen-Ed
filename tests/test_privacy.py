@@ -128,7 +128,6 @@ def test_delete_user_data_full_process(app: Flask, instructor: AppClient) -> Non
             assert chat['topic'] == '[deleted]', "Chat topic should be deleted"
             assert chat['chat_json'] == '[]', "Chat JSON should be empty"
             assert chat['context_name'] == '[deleted]', "Chat context_name should be deleted"
-            assert chat['context_string_id'] is None, "Chat context_string_id should be nulled"
 
 
 def test_delete_user_data_unauthorized(app: Flask, client: AppClient) -> None:

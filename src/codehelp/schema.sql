@@ -37,7 +37,7 @@ CREATE TABLE chats (
     user_id INTEGER NOT NULL,
     role_id INTEGER,
     FOREIGN KEY(user_id) REFERENCES users(id),
-    FOREIGN KEY(role_id) REFERENCES roles(id),
+    FOREIGN KEY(role_id) REFERENCES roles(id)
 );
 DROP INDEX IF EXISTS chats_by_user;
 CREATE INDEX chats_by_user ON chats(user_id);
