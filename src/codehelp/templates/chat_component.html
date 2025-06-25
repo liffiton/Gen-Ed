@@ -17,6 +17,9 @@ SPDX-License-Identifier: AGPL-3.0-only
       font-style: italic;
       text-align: right;
     }
+    .chat_role_system {
+      color: #83a;
+    }
     .chat_role_assistant {
       color: #358;
     }
@@ -27,6 +30,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       overflow-x: auto;
       max-width: 50em;
       padding: 0.5em 0.5em 0.5em 1em;
+      border-radius: 2px 10px 10px 2px;
     }
     .chat_message_system {
       border-left: solid 5px #92b;
@@ -36,19 +40,59 @@ SPDX-License-Identifier: AGPL-3.0-only
       border-left: solid 3px #a35;
       background: #a351;
     }
+    .chat_message_user .content {
+      white-space: pre-wrap;
+    }
     .chat_message_assistant {
       border-left: solid 3px #47a;
     }
+    .progress_widget {
+      max-width: fit-content;
+    }
+    .progress_widget .status {
+      font-variant: small-caps;
+    }
+    .progress_widget .in_progress {
+      font-weight: bold;
+    }
+    .progress_widget .in_progress .status {
+      background: #0001;
+    }
+    .progress_widget .completed {
+      color: #080;
+    }
+    .progress_widget .completed .status {
+      background: #0801;
+    }
+    .progress_widget .moved_on {
+      color: #a64;
+    }
+    .progress_widget .moved_on .status {
+      background: #a641;
+    }
+    .progress_widget .not_started {
+      color: #844;
+    }
+    .progress_widget .not_started .status {
+      background: #8441;
+    }
   </style>
 
-  <div class="m-3 chat_grid content">
+  <div class="chat_grid">
     {% for message in chat_data.messages %}
       {% if message.role != 'system' or auth.is_admin %}
-        <div class="chat_role chat_role_{{message['role']}}">
-          {{ 'You' if message['role'] == 'user' else 'Tutor' }}
+        <div class="chat_role chat_role_{{message.role}}">
+          {{ 'You' if message.role == 'user' else 'System' if message.role == 'system' else 'Tutor' }}
         </div>
-        <div class="chat_message chat_message_{{message['role']}}">
-          {{message['content'] | markdown}}
+        <div class="chat_message chat_message_{{message.role}}">
+          {% if message.role == 'system' %}
+            <details>
+              <summary>System prompt</summary>
+          {% endif %}
+          <div class="content">{{ message.content if message.role == 'user' else message.content | markdown }}</div>
+          {% if message.role == 'system' %}
+            </details>
+          {% endif %}
         </div>
       {% endif %}
     {% endfor %}
@@ -59,7 +103,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div class="chat_message chat_message_user" style="padding-right: 0.5em">
         <div class="field has-addons">
           <div class="control is-expanded">
-            <textarea class="textarea is-link" rows=2 name="message" placeholder="Send a message.  Press enter to send, shift-enter for a new line." autofocus x-bind:disabled="loading" @keydown.enter="if (!$event.shiftKey) {$event.target.form.submit(); loading=true; $event.preventDefault();}"></textarea>
+            <textarea class="textarea is-link" rows=2 name="message" placeholder="Press ctrl+enter to send." autofocus x-bind:disabled="loading" @keydown.enter="if ($event.ctrlKey) {$event.target.form.submit(); loading=true; $event.preventDefault();}"></textarea>
           </div>
           <div class="control">
             <button
@@ -71,6 +115,22 @@ SPDX-License-Identifier: AGPL-3.0-only
             </button>
           </div>
         </div>
+      </div>
+    {% endif %}
+    {% if chat_data.analysis %}
+      <div><!-- spacing --></div>
+      <div>
+        <table class="progress_widget table is-narrow" style="width: fit-content">
+          <thead><th colspan=2>Learning Objectives</th></thead>
+          <tbody>
+          {% for prog in chat_data.analysis.progress %}
+            <tr class="{{ prog.status | replace(' ', '_') }}">
+              <td class="status">{{ prog.status.capitalize() }}</td>
+              <td class="objective">{{ prog.objective }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
       </div>
     {% endif %}
   </div>

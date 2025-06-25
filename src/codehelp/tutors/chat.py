@@ -6,7 +6,7 @@ import asyncio
 import json
 from dataclasses import asdict, dataclass
 from sqlite3 import Row
-from typing import Literal, TypeAlias
+from typing import Any, Literal, TypeAlias
 
 from flask import (
     Blueprint,
@@ -45,12 +45,13 @@ class AccessDeniedError(Exception):
 
 ChatMode: TypeAlias = Literal["inquiry", "guided"]
 
-@dataclass(frozen=True)
+@dataclass
 class ChatData:
     topic: str
     context_name: str | None
     messages: list[ChatMessage]
     mode: ChatMode
+    analysis: dict[str, Any] | None = None
 
 
 bp = Blueprint('chat', __name__, url_prefix="/chat", template_folder='templates')
@@ -243,11 +244,11 @@ def save_chat(chat_id: int, chat_data: ChatData) -> None:
 def run_chat_round(llm: LLM, chat_id: int, user_message: str|None = None) -> None:
     # Get the specified chat
     try:
-        chat_data = get_chat(chat_id)
+        chat = get_chat(chat_id)
     except (ChatNotFoundError, AccessDeniedError):
         return
 
-    messages = chat_data.messages
+    messages = chat.messages
 
     # Add the new message to the chat (persisting to the DB)
     if user_message is not None:
@@ -255,7 +256,23 @@ def run_chat_round(llm: LLM, chat_id: int, user_message: str|None = None) -> Non
             'role': 'user',
             'content': user_message,
         })
-        save_chat(chat_id, chat_data)
+        save_chat(chat_id, chat)
+
+    if chat.mode == "guided":
+        # Summarize/analyze the chat so far
+        analyze_messages: list[ChatMessage] = [
+            *messages,
+            {'role': 'system', 'content': prompts.guided_analyze_tpl.render(chat=chat)},
+        ]
+        analyze_response, analyze_response_txt = asyncio.run(llm.get_completion(
+            messages=analyze_messages,
+            extra_args={
+                #'reasoning_effort': 'none',  # for thinking models: o3/o4/gemini-2.5
+                'response_format': {'type': 'json_object'},
+            },
+        ))
+        analysis = json.loads(analyze_response_txt)
+        chat.analysis = analysis
 
     # Generate a response
     response, response_txt = asyncio.run(llm.get_completion(messages=messages))
@@ -265,7 +282,7 @@ def run_chat_round(llm: LLM, chat_id: int, user_message: str|None = None) -> Non
         'role': 'assistant',
         'content': response_txt,
     })
-    save_chat(chat_id, chat_data)
+    save_chat(chat_id, chat)
 
 
 @bp.route("/post_message", methods=["POST"])

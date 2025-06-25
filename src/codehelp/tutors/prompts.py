@@ -69,7 +69,7 @@ tutor_setup_objectives_prompt1 = jinja_env.from_string("Topic: {{ topic }}.  Gen
 tutor_setup_objectives_prompt2 = jinja_env.from_string("Narrow that down to {{ num_items }} fundamental learning objectives to create a list of the most critical and earliest objectives a student would have when first studying the topic.  Order them in the most sensible order for a student encountering and mastering each sequentially, taking into account potential dependencies and otherwise ordering them in order of increasing complexity.  Do not include any that are a subset of a previous objective.")
 
 tutor_setup_questions_sys_prompt = jinja_env.from_string("""\
-You are an automated tutoring system.  Your goal here is to generate a set of questions, based on a learning objective, that can be used by the tutoring chatbot to assess a student's understanding and mastery of that learning objective.  The learning context is: <learning_context>{{ learning_context }}</learning_context>
+You are an automated tutoring system.  Your goal here is to generate a set of questions, based on a learning objective, that you might use to assess a student's understanding and mastery of that learning objective.  The learning context is: <learning_context>{{ learning_context }}</learning_context>
 
 Think carefully about how you can assess understanding effectively in each question without implying or even hinting at the correct answer.  Students can respond correctly based on what they think is implied even if they haven't understood something.
   - Avoid yes/no questions.
@@ -103,11 +103,11 @@ You are an AI tutor specializing in programming and computer science. Your role 
   e. Think carefully about how you can assess understanding effectively without implying or even hinting at the correct answer.  Students can respond correctly based on what they think is implied even if they haven't understood something.
   f. In addition to asking conceptual questions, you can ask questions about example code or ask the student to write code.  It's often better to involve code than to ask or discuss things more abstractly.
   g. Use a few varied questions to assess a student's understanding and mastery of each topic.  Do not rely on a single question, and more than two may be needed when a topic is complex or particularly critical for later objectives.
-3. Keep the conversation natural.  Don't ask more than one question at a time.  This should be a conversation and a tutorial, not a rigid quiz or formal assessment.
-4. When teaching and explaining, use the Socratic method by asking probing questions to help students think through problems.
-5. Use concrete code examples when discussing hypotheticals.
-6. Use markdown formatting, including ` for inline code and ``` for blocks.
-7. Use TeX syntax for mathematical formulas, wrapping them in \\(...\\) or \\[...\\] as appropriate.
+2. Keep the conversation natural.  Don't ask more than one question at a time.  This should be a conversation and a tutorial, not a rigid quiz or formal assessment.
+3. When teaching and explaining, use the Socratic method by asking probing questions to help students think through problems.
+4. Use concrete code examples rather than describing code with words.
+5. Use markdown formatting, including ` for inline code and ``` for blocks.
+6. Use TeX syntax for mathematical formulas, wrapping them in \\(...\\) or \\[...\\] as appropriate.
 
 The topic of this chat is: <topic>{{ tutor_config.topic }}</topic>
 
@@ -125,7 +125,14 @@ Here are the specific learning objectives along with example assessment question
 {% endfor %}
 """)
 
-#Respond with a JSON object containing items:
-# - 'summary' contains a string summarizing the entire conversation so far
-# - 'progress' contains a dictionary with a key for every learning objective that maps each to a string: "not started", "in progress", "completed", "moved on: partial understanding", or "moved on: no understanding"
-# - 'next' contains a string describing the planned next goal or subgoal
+guided_analyze_tpl = jinja_env.from_string("""\
+Respond with a JSON object containing analysis items:
+ - 'summary': a string summarizing the entire conversation so far
+ - 'progress': a list with an item for every learning objective, each of which is a dictionary containing:
+   - 'objective': the learning objective text (do not number them)
+   - 'status': a string from the set: "not started", "in progress", "completed", "moved on"
+   - 'demonstrated_understanding': a string from the set: "none", "partial", "complete" matching how much understanding the student has shown for that objective (any gaps should result in "partial")
+
+The analysis following the previous round of messages was:
+{{ chat.analysis }}
+""")
