@@ -53,7 +53,7 @@ class LTIConsumer:
         uri, headers, body = client.sign(
             self.url,
             http_method='POST',
-            body=params,
+            body=params,  # type: ignore[arg-type]  # waiting on typeshed fix
             headers=headers
         )
 
