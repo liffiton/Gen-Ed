@@ -4,8 +4,9 @@
 
 import asyncio
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from sqlite3 import Row
+from typing import Literal, TypeAlias
 
 from flask import (
     Blueprint,
@@ -42,11 +43,14 @@ class AccessDeniedError(Exception):
     pass
 
 
+ChatMode: TypeAlias = Literal["inquiry", "guided"]
+
 @dataclass(frozen=True)
 class ChatData:
-    chat: list[ChatMessage]
     topic: str
     context_name: str | None
+    messages: list[ChatMessage]
+    mode: ChatMode
 
 
 bp = Blueprint('chat', __name__, url_prefix="/chat", template_folder='templates')
@@ -116,7 +120,7 @@ def create_inquiry_chat(llm: LLM) -> Response:
     context_string = context.prompt_str() if context else None
     sys_prompt = prompts.inquiry_sys_msg_tpl.render(topic=topic, context=context_string)
 
-    chat_id = _create_chat(topic, context_name, sys_prompt)
+    chat_id = _create_chat(topic, context_name, sys_prompt, "inquiry")
 
     run_chat_round(llm, chat_id)
 
@@ -137,26 +141,32 @@ def create_guided_chat(llm: LLM) -> Response:
 
     sys_prompt = prompts.guided_sys_msg_tpl.render(tutor_config=tutor_config)
 
-    chat_id = _create_chat(tutor_config.topic, context_name=None, sys_prompt=sys_prompt)
+    chat_id = _create_chat(tutor_config.topic, context_name=None, sys_prompt=sys_prompt, mode="guided")
 
     run_chat_round(llm, chat_id)
 
     return redirect(url_for("tutors.chat.chat_interface", chat_id=chat_id))
 
 
-def _create_chat(topic: str, context_name: str | None, sys_prompt: str) -> int:
+def _create_chat(topic: str, context_name: str | None, sys_prompt: str, mode: ChatMode) -> int:
     db = get_db()
     auth = get_auth()
     user_id = auth.user_id
     role_id = auth.cur_class.role_id if auth.cur_class else None
 
-    chat : list[ChatMessage] = [
+    messages : list[ChatMessage] = [
         {'role': 'system', 'content': sys_prompt},
     ]
+    chat_data = ChatData(
+        topic=topic,
+        context_name=context_name,
+        messages=messages,
+        mode=mode,
+    )
 
     cur = db.execute(
-        "INSERT INTO chats (user_id, role_id, topic, context_name, chat_json) VALUES (?, ?, ?, ?, ?)",
-        [user_id, role_id, topic, context_name, json.dumps(chat)]
+        "INSERT INTO chats (user_id, role_id, chat_json) VALUES (?, ?, ?)",
+        [user_id, role_id, json.dumps(asdict(chat_data))]
     )
     new_row_id = cur.lastrowid
 
@@ -175,7 +185,7 @@ def chat_interface(chat_id: int) -> str | Response:
 
     chat_history = get_chat_history()
 
-    return render_template("tutor_view.html", chat_id=chat_id, topic=chat_data.topic, context_name=chat_data.context_name, chat=chat_data.chat, chat_history=chat_history)
+    return render_template("tutor_view.html", chat_id=chat_id, topic=chat_data.topic, context_name=chat_data.context_name, chat=chat_data.messages, chat_history=chat_history)
 
 
 def get_chat_history(limit: int = 10) -> list[Row]:
@@ -192,7 +202,7 @@ def get_chat(chat_id: int) -> ChatData:
     auth = get_auth()
 
     chat_row = db.execute(
-        "SELECT chat_json, topic, context_name, chats.user_id, roles.class_id "
+        "SELECT chat_json, chats.user_id, roles.class_id "
         "FROM chats "
         "JOIN users ON chats.user_id=users.id "
         "LEFT JOIN roles ON chats.role_id=roles.id "
@@ -215,48 +225,46 @@ def get_chat(chat_id: int) -> ChatData:
         raise AccessDeniedError
 
     chat_json = chat_row['chat_json']
-    chat = json.loads(chat_json)
-    topic = chat_row['topic']
-    context_name = chat_row['context_name']
+    chat_data = json.loads(chat_json)
 
-    return ChatData(chat, topic, context_name)
+    return ChatData(**chat_data)
 
 
-def save_chat(chat_id: int, chat: list[ChatMessage]) -> None:
+def save_chat(chat_id: int, chat_data: ChatData) -> None:
     db = get_db()
     db.execute(
         "UPDATE chats SET chat_json=? WHERE id=?",
-        [json.dumps(chat), chat_id]
+        [json.dumps(asdict(chat_data)), chat_id]
     )
     db.commit()
 
 
-def run_chat_round(llm: LLM, chat_id: int, message: str|None = None) -> None:
+def run_chat_round(llm: LLM, chat_id: int, user_message: str|None = None) -> None:
     # Get the specified chat
     try:
         chat_data = get_chat(chat_id)
     except (ChatNotFoundError, AccessDeniedError):
         return
 
-    chat = chat_data.chat
+    messages = chat_data.messages
 
     # Add the new message to the chat (persisting to the DB)
-    if message is not None:
-        chat.append({
+    if user_message is not None:
+        messages.append({
             'role': 'user',
-            'content': message,
+            'content': user_message,
         })
-    save_chat(chat_id, chat)
+        save_chat(chat_id, chat_data)
 
     # Generate a response
-    response, response_txt = asyncio.run(llm.get_completion(messages=chat))
+    response, response_txt = asyncio.run(llm.get_completion(messages=messages))
 
     # Update the chat w/ the response (and persist to the DB)
-    chat.append({
+    messages.append({
         'role': 'assistant',
         'content': response_txt,
     })
-    save_chat(chat_id, chat)
+    save_chat(chat_id, chat_data)
 
 
 @bp.route("/post_message", methods=["POST"])

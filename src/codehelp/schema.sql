@@ -31,8 +31,6 @@ DROP TABLE IF EXISTS chats;
 CREATE TABLE chats (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     chat_started DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    topic TEXT NOT NULL,
-    context_name TEXT,
     chat_json TEXT NOT NULL,
     user_id INTEGER NOT NULL,
     role_id INTEGER,

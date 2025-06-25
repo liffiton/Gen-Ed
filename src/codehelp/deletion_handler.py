@@ -37,9 +37,7 @@ class CodeHelpDeletionHandler:
         # Anonymize personal data in chats
         db.execute("""
             UPDATE chats
-            SET topic = '[deleted]',
-                chat_json = '[]',
-                context_name = '[deleted]',
+            SET chat_json = '{}',
                 user_id = -1
             WHERE user_id = ?
         """, [user_id])
@@ -95,9 +93,7 @@ class CodeHelpDeletionHandler:
         # Anonymize personal data in chats
         db.execute("""
             UPDATE chats
-            SET topic = '[deleted]',
-                chat_json = '[]',
-                context_name = '[deleted]',
+            SET chat_json = '{}',
                 user_id = -1
             WHERE role_id IN (
                 SELECT id FROM roles WHERE class_id = ?

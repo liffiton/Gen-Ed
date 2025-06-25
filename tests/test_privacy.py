@@ -125,9 +125,7 @@ def test_delete_user_data_full_process(app: Flask, instructor: AppClient) -> Non
         # Verify each chat has been properly anonymized
         assert len(chats) == len(initial_chat_ids), "All original chats should still exist"
         for chat in chats:
-            assert chat['topic'] == '[deleted]', "Chat topic should be deleted"
-            assert chat['chat_json'] == '[]', "Chat JSON should be empty"
-            assert chat['context_name'] == '[deleted]', "Chat context_name should be deleted"
+            assert chat['chat_json'] == '{}', "Chat JSON should be empty"
 
 
 def test_delete_user_data_unauthorized(app: Flask, client: AppClient) -> None:
