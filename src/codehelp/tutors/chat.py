@@ -79,8 +79,9 @@ def new_chat_form() -> str:
         tutor_rows = db.execute("SELECT * FROM tutors WHERE class_id=?", [auth.cur_class.class_id]).fetchall()
         tutors = [json.loads(row['config']) | {'id': row['id']} for row in tutor_rows]
 
-    chat_history = get_chat_history()
-    return render_template("tutor_new_form.html", contexts=contexts, tutors=tutors, chat_history=chat_history)
+    recent_chats = get_chat_history()
+    return render_template("tutor_new_form.html", contexts=contexts, tutors=tutors, recent_chats=recent_chats)
+
 
 @bp.route("/new/ctx/<int:class_id>/<string:ctx_name>")
 def new_inquiry_chat_form(class_id: int, ctx_name: str) -> str | Response:
@@ -99,8 +100,8 @@ def new_inquiry_chat_form(class_id: int, ctx_name: str) -> str | Response:
     # turn into format we can pass to js via JSON
     contexts = {ctx.name: ctx.desc_html() for ctx in contexts_list}
 
-    chat_history = get_chat_history()
-    return render_template("tutor_new_form.html", contexts=contexts, chat_history=chat_history)
+    recent_chats = get_chat_history()
+    return render_template("tutor_new_form.html", contexts=contexts, recent_chats=recent_chats)
 
 
 @bp.route("/create_inquiry", methods=["POST"])
@@ -183,9 +184,9 @@ def chat_interface(chat_id: int) -> str | Response:
     except (ChatNotFoundError, AccessDeniedError):
         abort(400, "Invalid id.")
 
-    chat_history = get_chat_history()
+    recent_chats = get_chat_history()
 
-    return render_template("tutor_view.html", chat_id=chat_id, topic=chat_data.topic, context_name=chat_data.context_name, chat=chat_data.messages, chat_history=chat_history)
+    return render_template("tutor_view.html", chat_id=chat_id, chat=chat_data, recent_chats=recent_chats)
 
 
 def get_chat_history(limit: int = 10) -> list[Row]:
@@ -193,7 +194,7 @@ def get_chat_history(limit: int = 10) -> list[Row]:
     db = get_db()
     auth = get_auth()
 
-    history = db.execute("SELECT * FROM chats WHERE user_id=? ORDER BY id DESC LIMIT ?", [auth.user_id, limit]).fetchall()
+    history = db.execute("SELECT id, json_extract(chat_json, '$.topic') AS topic FROM chats WHERE user_id=? ORDER BY id DESC LIMIT ?", [auth.user_id, limit]).fetchall()
     return history
 
 

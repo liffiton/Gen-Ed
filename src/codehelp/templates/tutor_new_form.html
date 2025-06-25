@@ -5,7 +5,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 #}
 
 {% extends "base.html" %}
-{% from "recent_chats.html" import recent_chats %}
+{% from "chat_history.html" import chat_history %}
 
 {% block body %}
 <div class="columns is-desktop is-gapless">
@@ -101,7 +101,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   </div>
 
   <div class="column has-background-light">
-    {{ recent_chats(chat_history) }}
+    {{ chat_history(recent_chats) }}
   </div>
 
 </div>

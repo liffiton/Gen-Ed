@@ -4,10 +4,10 @@ SPDX-FileCopyrightText: 2023 Mark Liffiton <liffiton@gmail.com>
 SPDX-License-Identifier: AGPL-3.0-only
 #}
 
-{% macro recent_chats(chat_history) -%}
+{% macro chat_history(recent_chats) -%}
 <div class="p-4">
   <h2 class="is-size-5">Your recent chats:</h2>
-  {% for prev in chat_history %}
+  {% for prev in recent_chats %}
     <div class="box p-3">
       <div class="buttons has-addons are-small is-pulled-right">
         <a href="{{url_for('tutors.chat.chat_interface', chat_id=prev.id)}}" class="button is-link is-outlined is-rounded p-2">View</a>

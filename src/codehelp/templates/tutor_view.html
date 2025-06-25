@@ -6,7 +6,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 {% extends "base.html" %}
 {% from "chat_component.html" import chat_component %}
-{% from "recent_chats.html" import recent_chats %}
+{% from "chat_history.html" import chat_history %}
 
 {% block extrahead %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.19/dist/katex.min.css" integrity="sha384-7lU0muIg/i1plk7MgygDUp3/bNRA65orrBub4/OSWHECgwEsY83HaS1x3bljA/XV" crossorigin="anonymous">
@@ -20,10 +20,10 @@ SPDX-License-Identifier: AGPL-3.0-only
   <div class="column is-three-quarters-desktop">
     <section class="section">
       <div class="container content" id="chat_view">
-        <h1 class="title">{{topic}}</h1>
+        <h1 class="title">{{ chat.topic }}</h1>
 
-        {% if context_name %}
-          <p class="is-size-5"><b>Context:</b> {{ context_name }}</p>
+        {% if chat.context_name %}
+          <p class="is-size-5"><b>Context:</b> {{ chat.context_name }}</p>
         {% endif %}
 
         {# debounce on the submit handler so that the form's actual submit fires *before* the form elements are disabled #}
@@ -39,7 +39,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   </div>
 
   <div class="column has-background-light">
-    {{ recent_chats(chat_history) }}
+    {{ chat_history(recent_chats) }}
   </div>
 
 </div>

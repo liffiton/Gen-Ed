@@ -4,7 +4,7 @@ SPDX-FileCopyrightText: 2023 Mark Liffiton <liffiton@gmail.com>
 SPDX-License-Identifier: AGPL-3.0-only
 #}
 
-{% macro chat_component(auth, chat_messages, msg_input=False) -%}
+{% macro chat_component(auth, chat_data, msg_input=False) -%}
   <style type="text/css">
     .chat_grid {
       display: grid;
@@ -42,7 +42,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   </style>
 
   <div class="m-3 chat_grid content">
-    {% for message in chat_messages %}
+    {% for message in chat_data.messages %}
       {% if message.role != 'system' or auth.is_admin %}
         <div class="chat_role chat_role_{{message['role']}}">
           {{ 'You' if message['role'] == 'user' else 'Tutor' }}
