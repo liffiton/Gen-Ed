@@ -7,6 +7,20 @@
     <form class="wide-labels" method="post" x-data="{loading: false}" x-on:pageshow.window="loading = false" x-on:submit.debounce.10ms="loading = true">
       <div class="field is-horizontal">
         <div class="field-label is-normal">
+          <label class="label" for="context">Learning context</label>
+          <p class="help-text">Briefly describe the class or other context.<br>E.g.: "A college CS 1 course using Python"</p>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <input class="input" name="context" id="context" x-bind:disabled="loading" required value="{{ tutorconf.context }}">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
           <label class="label" for="topic">Topic</label>
         </div>
         <div class="field-body">
@@ -115,7 +129,7 @@
               </div>
             {% endif %}
             <div class="control">
-              <button class="button is-light" type="submit" formaction="{{ url_for('tutors.config.reset_setup') }}">
+              <button class="button is-light" type="submit" formnovalidate formaction="{{ url_for('tutors.config.reset_setup') }}">
                 Start Over
               </button>
             </div>
@@ -123,6 +137,7 @@
         </div>
       </div>
 
+      {% if tutorconf.objectives %}
       <div class="field is-horizontal">
         <div class="field-label is-normal"><!-- spacing --></div>
         <div class="field-body">
@@ -131,6 +146,7 @@
           </div>
         </div>
       </div>
+      {% endif %}
     </form>
 
     {% if has_questions %}

@@ -47,6 +47,7 @@ class LearningObjective:
 
 @dataclass
 class TutorConfig:
+    context: str = ""
     topic: str = ""
     objectives: list[LearningObjective] = field(default_factory=list)
 
@@ -75,11 +76,12 @@ def setup_form() -> str:
 @with_llm(spend_token=False)
 def generate_objectives(llm: LLM) -> Response:
     """Generate learning objectives for the given topic."""
+    context = request.form.get('context', '').strip()
     topic = request.form.get('topic', '').strip()
     num_items_initial = 30
     num_items_final = DEFAULT_OBJECTIVES
 
-    sys_prompt = prompts.tutor_setup_objectives_sys_prompt
+    sys_prompt = prompts.tutor_setup_objectives_sys_prompt.render(learning_context=context)
     user_prompts = [
         prompts.tutor_setup_objectives_prompt1.render(topic=topic, num_items=num_items_initial),
         prompts.tutor_setup_objectives_prompt2.render(num_items=num_items_final),
@@ -99,19 +101,19 @@ def generate_objectives(llm: LLM) -> Response:
     objectives = json.loads(response_txt)['objectives']
     assert isinstance(objectives, list)
     assert all(isinstance(val, str) for val in objectives)
-    config = TutorConfig(topic, [LearningObjective(obj, []) for obj in objectives])
+    config = TutorConfig(context, topic, [LearningObjective(obj, []) for obj in objectives])
 
     session['tutor_config'] = config
     return redirect(url_for('.setup_form'))
 
 
-async def generate_questions_from_objective(llm: LLM, objectives: list[str], index: int) -> list[str]:
+async def generate_questions_from_objective(llm: LLM, context: str, objectives: list[str], index: int) -> list[str]:
     objective = objectives[index]
     previous = objectives[:index]
     following = objectives[index+1:]
 
     messages: list[ChatMessage] = [
-        {'role': 'system', 'content': prompts.tutor_setup_questions_sys_prompt},
+        {'role': 'system', 'content': prompts.tutor_setup_questions_sys_prompt.render(learning_context=context)},
         {'role': 'user', 'content': prompts.tutor_setup_questions_prompt.render(objective=objective, previous=previous, following=following, num_items=DEFAULT_QUESTIONS_PER_OBJECTIVE)},
     ]
     response, response_txt = await llm.get_completion(
@@ -128,10 +130,10 @@ async def generate_questions_from_objective(llm: LLM, objectives: list[str], ind
     return data
 
 
-async def populate_questions(llm: LLM, objectives: list[str]) -> list[LearningObjective]:
+async def populate_questions(llm: LLM, context: str, objectives: list[str]) -> list[LearningObjective]:
     async with asyncio.TaskGroup() as tg:
         tasks = [
-            tg.create_task(generate_questions_from_objective(llm, objectives, i))
+            tg.create_task(generate_questions_from_objective(llm, context, objectives, i))
             for i in range(len(objectives))
         ]
 
@@ -142,13 +144,14 @@ async def populate_questions(llm: LLM, objectives: list[str]) -> list[LearningOb
 @with_llm(spend_token=False)
 def generate_questions(llm: LLM) -> Response:
     """Generate questions based on topic and objectives."""
+    context = request.form.get('context', '').strip()
     topic = request.form.get('topic', '').strip()
     objectives_str = request.form.get('objectives', '').strip()
     objectives = [obj.strip() for obj in objectives_str.split('\n')]
 
-    objectives_with_questions = asyncio.run(populate_questions(llm, objectives))
+    objectives_with_questions = asyncio.run(populate_questions(llm, context, objectives))
 
-    config = TutorConfig(topic, objectives_with_questions)
+    config = TutorConfig(context, topic, objectives_with_questions)
 
     session['tutor_config'] = config
     return redirect(url_for('.setup_form'))
@@ -170,11 +173,13 @@ def update_questions() -> Response:
 @bp.route('/create', methods=['POST'])
 def create_tutor() -> Response:
     """Persist the new tutor to the database."""
+    context = request.form.get('context', '').strip()
     topic = request.form.get('topic', '').strip()
     objectives_str = request.form.get('objectives', '').strip()
     objectives = [obj.strip() for obj in objectives_str.split('\n')]
 
     config = TutorConfig(
+        context,
         topic,
         [LearningObjective(obj, request.form.getlist(f'questions[{i}]')) for i, obj in enumerate(objectives)]
     )
