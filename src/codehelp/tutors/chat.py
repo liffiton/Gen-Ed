@@ -258,6 +258,16 @@ def run_chat_round(llm: LLM, chat_id: int, user_message: str|None = None) -> Non
         })
         save_chat(chat_id, chat)
 
+    # Generate a response
+    response, response_txt = asyncio.run(llm.get_completion(messages=messages))
+
+    # Update the chat w/ the response (and persist to the DB)
+    messages.append({
+        'role': 'assistant',
+        'content': response_txt,
+    })
+    save_chat(chat_id, chat)
+
     if chat.mode == "guided":
         # Summarize/analyze the chat so far
         analyze_messages: list[ChatMessage] = [
@@ -273,16 +283,7 @@ def run_chat_round(llm: LLM, chat_id: int, user_message: str|None = None) -> Non
         ))
         analysis = json.loads(analyze_response_txt)
         chat.analysis = analysis
-
-    # Generate a response
-    response, response_txt = asyncio.run(llm.get_completion(messages=messages))
-
-    # Update the chat w/ the response (and persist to the DB)
-    messages.append({
-        'role': 'assistant',
-        'content': response_txt,
-    })
-    save_chat(chat_id, chat)
+        save_chat(chat_id, chat)
 
 
 @bp.route("/post_message", methods=["POST"])
