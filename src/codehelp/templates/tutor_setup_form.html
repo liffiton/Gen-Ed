@@ -98,19 +98,21 @@
         <div class="field-label is-normal"><!-- spacing --></div>
         <div class="field-body">
           <div class="content">
-            <h2 class="is-size-5">Questions</h2>
+            <h2 class="is-size-5">Objectives &amp; Questions</h2>
             {% for obj in tutorconf.objectives %}
+              <div class="box">
               <h3 class="is-size-6">{{ loop.index }}. {{ obj.name }}</h3>
-              <ul>
+              <ol>
                 {% set obj_index = loop.index0 %}
                 {% for question in obj.questions %}
                   <input type="hidden" name="questions[{{ obj_index }}]" value="{{ question }}">
-                  <li>{{ question | markdown }}</li>
+                  <li class="mt-3">{{ question | markdown }}</li>
                 {% endfor %}
-              </ul>
-              <button class="button" type="button" onclick="document.getElementById('dia_{{ loop.index }}').showModal()">
-                Edit
+              </ol>
+              <button class="button is-link is-light ml-4" type="button" onclick="document.getElementById('dia_{{ loop.index }}').showModal()">
+                Edit questions
               </button>
+              </div>
             {% endfor %}
           </div>
         </div>
@@ -157,21 +159,19 @@
             <form action="{{ url_for('tutors.config.update_questions') }}" method="post">
               <input type="hidden" name="obj_index" value="{{ loop.index0 }}">
               <div class="field">
-                <div class="label">Questions (put each on a separate line)</div>
-                <div class="control">
-                  <textarea class="textarea" name="questions">
-                    {%- for question in obj.questions %}
-                      {{- question }}
-                    {% endfor -%}
-                  </textarea>
+                <div class="label">Questions</div>
+                {% for question in obj.questions %}
+                <div class="control mt-2">
+                  <textarea class="textarea" style="height: fit-content;" name="questions[]">{{ question }}</textarea>
                 </div>
+                {% endfor %}
               </div>
               <div class="field is-grouped">
                 <div class="control">
                   <button class="button is-link" type="submit">Update</button>
                 </div>
                 <div class="control">
-                  <button class="button" type="submit" formnovalidate formmethod="dialog">Cancel</button>
+                  <button class="button" type="reset" onclick="this.closest('dialog').close()">Cancel</button>
                 </div>
               </div>
             </form>

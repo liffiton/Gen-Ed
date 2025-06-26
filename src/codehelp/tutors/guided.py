@@ -164,7 +164,8 @@ def update_questions() -> Response:
     obj_index = request.form.get('obj_index')
     if obj_index is None or not obj_index.isnumeric():
         abort(400)
-    questions = request.form.get('questions', '').strip().split('\n')
+    questions = request.form.getlist('questions[]')
+    questions = [q.strip() for q in questions]
     config.objectives[int(obj_index)].questions = questions
     session['tutor_config'] = config
     return redirect(url_for('.setup_form'))
