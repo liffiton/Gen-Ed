@@ -4,7 +4,7 @@
 <section class="section">
   <div class="container">
     <h1 class="title">Tutor Setup</h1>
-    <form class="wide-labels" method="post" x-data="{loading: false}" x-on:pageshow.window="loading = false" x-on:submit.debounce.10ms="loading = true">
+    <form class="wide-labels" method="post" x-data="{loading1: false, loading2: false}" x-on:pageshow.window="loading1 = loading2 = false" x-on:submit.debounce.10ms="if ($event.submitter.id === 'gen_objectives') {loading1 = true} else {loading2 = true}">
       <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label" for="context">Learning context</label>
@@ -13,7 +13,7 @@
         <div class="field-body">
           <div class="field">
             <div class="control">
-              <input class="input" name="context" id="context" x-bind:disabled="loading" required value="{{ tutorconf.context }}">
+              <input class="input" name="context" id="context" x-bind:disabled="loading1 || loading2" required value="{{ tutorconf.context }}">
             </div>
           </div>
         </div>
@@ -26,7 +26,7 @@
         <div class="field-body">
           <div class="field">
             <div class="control">
-              <input class="input" name="topic" id="topic" x-bind:disabled="loading" required value="{{ tutorconf.topic }}">
+              <input class="input" name="topic" id="topic" x-bind:disabled="loading1 || loading2" required value="{{ tutorconf.topic }}">
             </div>
           </div>
         </div>
@@ -35,18 +35,26 @@
       <div class="field is-horizontal">
         <div class="field-label is-normal"><!-- spacing --></div>
         <div class="field-body">
-          <div class="field">
+          <div class="field is-grouped">
             <div class="control">
               <button
                 class="button {% if not tutorconf.objectives %}is-link{% else %}is-warning{% endif %}"
                 type="submit"
-                x-bind:class="loading ? 'is-loading' : ''"
+                id="gen_objectives"
+                x-bind:class="loading1 ? 'is-loading' : ''"
+                x-bind:disabled="loading2"
                 formaction="{{ url_for('tutors.config.generate_objectives') }}"
               >
-                {% if tutorconf.objectives %}Regenerate{% else %}Generate{% endif %} Learning Objectives
+                {% if tutorconf.objectives %}Regenerate{% else %}Generate{% endif %}
               </button>
+            </div>
+            <div class="control">
+              <input name="num_objectives" class="input" type="number" size="1" value="5">
+            </div>
+            <div class="control pt-2">
+              draft learning objectives.
               {% if tutorconf.objectives %}
-              <p class="help-text is-size-7">This will overwrite existing objectives and questions.</p>
+                <span class="help-text ml-4 is-size-7 is-italic">This will overwrite existing objectives and questions.</span>
               {% endif %}
             </div>
           </div>
@@ -61,7 +69,7 @@
         <div class="field-body">
           <div class="field">
             <div class="control">
-              <textarea class="textarea" x-bind:disabled="loading" required name="objectives" id="objectives" rows="5">
+              <textarea class="textarea" x-bind:disabled="loading1 || loading2" required name="objectives" id="objectives" rows="5">
                 {%- for obj in tutorconf.objectives %}
                   {{- obj.name }}
                 {% endfor -%}
@@ -74,18 +82,26 @@
       <div class="field is-horizontal">
         <div class="field-label is-normal"><!-- spacing --></div>
         <div class="field-body">
-          <div class="field">
+          <div class="field is-grouped">
             <div class="control">
               <button
                 class="button {% if not has_questions %}is-link{% else %}is-warning{% endif %}"
                 type="submit"
-                x-bind:class="loading ? 'is-loading' : ''"
+                id="gen_questions"
+                x-bind:class="loading2 ? 'is-loading' : ''"
+                x-bind:disabled="loading1"
                 formaction="{{ url_for('tutors.config.generate_questions') }}"
               >
-                {% if has_questions %}Regenerate{% else %}Generate{% endif %} Questions
+                {% if has_questions %}Regenerate{% else %}Generate{% endif %}
               </button>
+            </div>
+            <div class="control">
+              <input name="num_questions" class="input" type="number" size="1" value="4">
+            </div>
+            <div class="control pt-2">
+              draft questions per objective.
               {% if has_questions %}
-              <p class="help-text is-size-7">This will overwrite existing questions.</p>
+                <span class="help-text ml-4 is-size-7 is-italic">This will overwrite existing questions.</span>
               {% endif %}
             </div>
           </div>
@@ -119,17 +135,15 @@
       </div>
       {% endif %}
 
-      <div class="field is-horizontal">
+      <div class="field is-horizontal mt-5">
         <div class="field-label is-normal"><!-- spacing --></div>
         <div class="field-body">
           <div class="field is-grouped">
-            {% if has_questions %}
-              <div class="control">
-                <button class="button is-link" type="submit" formaction="{{ url_for('tutors.config.create_tutor') }}">
-                  Save Tutor
-                </button>
-              </div>
-            {% endif %}
+            <div class="control">
+              <button class="button is-link" type="submit" {% if not has_questions %}disabled{% endif %} formaction="{{ url_for('tutors.config.create_tutor') }}">
+                Save Tutor
+              </button>
+            </div>
             <div class="control">
               <button class="button is-light" type="submit" formnovalidate formaction="{{ url_for('tutors.config.reset_setup') }}">
                 Start Over

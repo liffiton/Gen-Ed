@@ -79,7 +79,7 @@ def generate_objectives(llm: LLM) -> Response:
     context = request.form.get('context', '').strip()
     topic = request.form.get('topic', '').strip()
     num_items_initial = 30
-    num_items_final = DEFAULT_OBJECTIVES
+    num_items_final = int(request.form.get('num_objectives', DEFAULT_OBJECTIVES))
 
     sys_prompt = prompts.tutor_setup_objectives_sys_prompt.render(learning_context=context)
     user_prompts = [
@@ -107,14 +107,14 @@ def generate_objectives(llm: LLM) -> Response:
     return redirect(url_for('.setup_form'))
 
 
-async def generate_questions_from_objective(llm: LLM, context: str, objectives: list[str], index: int) -> list[str]:
+async def generate_questions_from_objective(llm: LLM, context: str, objectives: list[str], index: int, num_questions: int) -> list[str]:
     objective = objectives[index]
     previous = objectives[:index]
     following = objectives[index+1:]
 
     messages: list[ChatMessage] = [
         {'role': 'system', 'content': prompts.tutor_setup_questions_sys_prompt.render(learning_context=context)},
-        {'role': 'user', 'content': prompts.tutor_setup_questions_prompt.render(objective=objective, previous=previous, following=following, num_items=DEFAULT_QUESTIONS_PER_OBJECTIVE)},
+        {'role': 'user', 'content': prompts.tutor_setup_questions_prompt.render(objective=objective, previous=previous, following=following, num_items=num_questions)},
     ]
     response, response_txt = await llm.get_completion(
         messages=messages,
@@ -130,10 +130,10 @@ async def generate_questions_from_objective(llm: LLM, context: str, objectives: 
     return data
 
 
-async def populate_questions(llm: LLM, context: str, objectives: list[str]) -> list[LearningObjective]:
+async def populate_questions(llm: LLM, context: str, objectives: list[str], num_questions: int) -> list[LearningObjective]:
     async with asyncio.TaskGroup() as tg:
         tasks = [
-            tg.create_task(generate_questions_from_objective(llm, context, objectives, i))
+            tg.create_task(generate_questions_from_objective(llm, context, objectives, i, num_questions))
             for i in range(len(objectives))
         ]
 
@@ -148,8 +148,10 @@ def generate_questions(llm: LLM) -> Response:
     topic = request.form.get('topic', '').strip()
     objectives_str = request.form.get('objectives', '').strip()
     objectives = [obj.strip() for obj in objectives_str.split('\n')]
+    num_questions = int(request.form.get('num_questions', DEFAULT_QUESTIONS_PER_OBJECTIVE))
 
-    objectives_with_questions = asyncio.run(populate_questions(llm, context, objectives))
+    task = populate_questions(llm, context, objectives, num_questions)
+    objectives_with_questions = asyncio.run(task)
 
     config = TutorConfig(context, topic, objectives_with_questions)
 
