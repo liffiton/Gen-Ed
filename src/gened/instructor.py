@@ -43,7 +43,7 @@ def before_request() -> None:
     """ Apply decorator to protect all instructor blueprint endpoints. """
 
 
-def _get_class_queries(user_id: int | None = None) -> list[Row]:
+def _make_class_filters(user_id: int | None = None) -> Filters:
     cur_class = get_auth_class()
     class_id = cur_class.class_id
 
@@ -53,10 +53,7 @@ def _get_class_queries(user_id: int | None = None) -> list[Row]:
     if user_id is not None:
         filters.add('user', user_id)
 
-    get_queries = get_registered_data_source('queries').function
-    queries = get_queries(filters).fetchall()
-
-    return queries
+    return filters
 
 
 def _get_class_users(*, for_export: bool = False) -> list[Row]:
@@ -106,8 +103,9 @@ def main() -> str | Response:
         if sel_user_row:
             sel_user_name = sel_user_row['display_name']
 
-    queries_table = get_registered_data_source('queries').table
-    queries_table.data = _get_class_queries(sel_user_id)
+    query_data = get_registered_data_source('queries')
+    filters = _make_class_filters(sel_user_id)
+    queries_table = query_data.get_populated_table(filters)
     queries_table.csv_link = url_for('instructor.get_csv', kind='queries')
 
     return render_template("instructor_view.html", users=users_table, queries=queries_table, user=sel_user_name)
@@ -122,11 +120,13 @@ def get_csv(kind: str) -> str | Response:
     class_name = cur_class.class_name
 
     if kind == "queries":
-        table = _get_class_queries()
+        query_data = get_registered_data_source('queries')
+        filters = _make_class_filters()
+        table_data = query_data.get_data(filters)
     elif kind == "users":
-        table = _get_class_users(for_export=True)
+        table_data = _get_class_users(for_export=True)
 
-    return csv_response(class_name, kind, table)
+    return csv_response(class_name, kind, table_data)
 
 
 @bp.route("/role/set_active", methods=["POST"])  # just for url_for in the Javascript code

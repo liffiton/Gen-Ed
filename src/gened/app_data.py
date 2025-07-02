@@ -141,9 +141,18 @@ class DataSource:
     function: DataFunction
     table: DataTable
 
+    def get_data(self, filters: Filters, /, limit: int=-1, offset: int=0) -> list[Row]:
+        return self.function(filters, limit, offset).fetchall()
+
+    def get_populated_table(self, filters: Filters, / , limit: int=-1, offset: int=0) -> DataTable:
+        table = deepcopy(self.table)
+        table.data = self.get_data(filters, limit, offset)
+        return table
+
+
 @dataclass
 class AppDataConfig:
-    """ Configuratin of app-specific data types/sources.
+    """ Configuration of app-specific data types/sources.
     Application-specific charts and data sources can be registered with
     register_admin_chart(), register_data().
     """

@@ -74,7 +74,7 @@ def gen_query_charts(filters: Filters) -> list[ChartData]:
     return charts
 
 
-def get_queries(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
+def get_queries(filters: Filters, /, limit: int=-1, offset: int=0) -> Cursor:
     db = get_db()
     where_clause, where_params = filters.make_where(['consumer', 'class', 'user', 'role', 'query'])
     sql = f"""
