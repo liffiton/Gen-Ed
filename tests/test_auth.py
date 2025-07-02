@@ -159,7 +159,7 @@ def test_logout(client: AppClient) -> None:
     ('/', 200, 200, 200),
     ('/profile/', 302, (200, "2 in the past week"), (200, "0 in the past week")),
     ('/help/', 302, 200, 200),
-    ('/help/view/1', 302, (400, "Invalid id."), (200, "response1")),
+    ('/help/view/1', 302, (400, "Invalid id."), (200, "response01")),
     ('/tutor/chat/new', 404, 200, 404),
     ('/tutor/chat/1', 404, (200, "user_msg_1"), 404),
     ('/tutor/chat/2', 404, (200, "user_msg_2"), 404),

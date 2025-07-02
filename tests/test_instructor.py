@@ -8,6 +8,39 @@ from gened.db import get_db
 from tests.conftest import AppClient
 
 
+def test_instructor_view(instructor: AppClient) -> None:
+    response = instructor.get('/instructor/')
+    assert response.status_code == 200
+
+    # users in the Users table
+    assert "testuser" in response.text    # the instructor's name
+    assert "testadmin" in response.text   # registered as a student in this class
+    assert "testinstructor" not in response.text  # also registered as a student, but not displayed by that name
+    assert "instructor@example.com" in response.text  # 'testinstructor's displayed name
+
+    # queries in the Queries table
+    for prefix in 'code', 'error', 'issue':
+        assert f"{prefix}01" not in response.text
+        assert f"{prefix}02" not in response.text
+        assert f"{prefix}11" in response.text
+        assert f"{prefix}12" in response.text
+        assert f"{prefix}13" in response.text
+        assert f"{prefix}21" in response.text
+        assert f"{prefix}22" in response.text
+
+    # now filter to one user (testinstructor)
+    response = instructor.get('/instructor/?user=13')
+    assert response.status_code == 200
+    for prefix in 'code', 'error', 'issue':
+        assert f"{prefix}01" not in response.text
+        assert f"{prefix}02" not in response.text
+        assert f"{prefix}11" in response.text
+        assert f"{prefix}12" in response.text
+        assert f"{prefix}13" in response.text
+        assert f"{prefix}21" not in response.text
+        assert f"{prefix}22" not in response.text
+
+
 def test_set_role_active(app: Flask, instructor: AppClient) -> None:
     # Test successful deactivation (deactivating testadmin in the course)
     response = instructor.post('/instructor/role/set_active/5/0')

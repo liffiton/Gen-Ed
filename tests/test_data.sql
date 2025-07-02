@@ -83,17 +83,17 @@ VALUES (1, 'context 1'), (2, 'context 2');
 
 INSERT INTO queries (id, context_name, context_string_id, code, error, issue, response_json, response_text, helpful, user_id, role_id)
 VALUES
-    (1, 'ctx1', 1, 'code1', '', '', '{}', '{"main": "response1"}', 0, 21, 1),
-    (2, 'ctx2', 2, 'code2', '', '', '{}', '{"main": "response2"}', 0, 22, 2),
-    (3, 'ctx1', 1, 'code3', '', '', '{}', '{"main": "response3"}', 0, 21, 1),
-    (4, 'ctx2', 2, 'code4', '', '', '{}', '{"main": "response4"}', 0, 23, 3),
-    (5, 'ctx1', 1, 'code1', 'error1', 'issue1', '{}', '{"main": "response1"}', 0, 13, 6),
-    (6, 'ctx1', 1, 'code2', 'error2', '', '{}', '{"main": "response2"}', 0, 13, 6),
-    (7, 'ctx1', 1, 'code3', '', 'issue3', '{}', '{"main": "response3"}', 0, 13, 6),
-    (8, 'ctx1', 1, 'code10', 'error10', 'issue10', '{}', '{"main": "response10"}', 0, 11, 4),  -- testuser
-    (9, 'ctx1', 1, 'code11', 'error11', 'issue11', '{}', '{"main": "response11"}', 0, 11, 4),  -- testuser
+    (1, 'ctx1', 1, 'code01', 'error01', 'issue01', '{}', '{"main": "response01"}', 0, 21, 1),
+    (2, 'ctx2', 2, 'code02', 'error02', 'issue02', '{}', '{"main": "response02"}', 0, 22, 2),
+    (3, 'ctx1', 1, 'code03', 'error03', 'issue03', '{}', '{"main": "response03"}', 0, 21, 1),
+    (4, 'ctx2', 2, 'code04', 'error04', 'issue04', '{}', '{"main": "response04"}', 0, 23, 3),
+    (5, 'ctx1', 1, 'code11', 'error11', 'issue11', '{}', '{"main": "response11"}', 0, 13, 6),
+    (6, 'ctx1', 1, 'code12', 'error12', 'issue12', '{}', '{"main": "response12"}', 0, 13, 6),
+    (7, 'ctx1', 1, 'code13', 'error13', 'issue13', '{}', '{"main": "response13"}', 0, 13, 6),
+    (8, 'ctx1', 1, 'code21', 'error21', 'issue21', '{}', '{"main": "response21"}', 0, 11, 4),  -- testuser
+    (9, 'ctx1', 1, 'code22', 'error22', 'issue22', '{}', '{"main": "response22"}', 0, 11, 4),  -- testuser
     -- high ID so new query IDs are known (regardless of number of rows made for testing above
-    (100, 'ctx1', 1, 'code', '', '', '{}', '{"main": "response"}', 0, 21, 1);
+    (100, 'ctx1', 1, 'code101', 'error101', 'issue101', '{}', '{"main": "response101"}', 0, 21, 1);
 
 INSERT INTO demo_links (id, name, enabled, expiration, tokens, uses)
 VALUES
