@@ -108,7 +108,12 @@ def main() -> str | Response:
     queries_table = query_data.get_populated_table(filters)
     queries_table.csv_link = url_for('instructor.get_csv', kind='queries')
 
-    return render_template("instructor_view.html", users=users_table, queries=queries_table, user=sel_user_name)
+    chat_data = get_registered_data_source('chats')
+    filters = _make_class_filters(sel_user_id)
+    chats_table = chat_data.get_populated_table(filters)
+    chats_table.csv_link = url_for('instructor.get_csv', kind='chats')
+
+    return render_template("instructor_view.html", users=users_table, queries=queries_table, chats=chats_table, user=sel_user_name)
 
 
 @bp.route("/csv/<string:kind>")

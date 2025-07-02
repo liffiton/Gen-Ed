@@ -32,6 +32,20 @@ SPDX-License-Identifier: AGPL-3.0-only
       </h2>
       {{ datatable(queries) }}
     </div>
+    {% if chats and chats.data %}
+    <div class="tbl_col" style="width: 25em; flex-grow: 1;">
+      <h2 class="is-size-3">
+        Chats
+        {% if user %}
+        <a class="button is-info is-rounded p-3 mt-2" style="height: 2em;" href="?" title="Remove filter">
+          user = {{user}}
+          <span class="delete is-small is-link ml-2"></span>
+        </a>
+        {% endif %}
+      </h2>
+      {{ datatable(chats) }}
+    </div>
+    {% endif %}
   </div>
 </section>
 {% endblock body %}

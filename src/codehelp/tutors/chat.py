@@ -4,9 +4,8 @@
 
 import asyncio
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from sqlite3 import Row
-from typing import Any, Literal, TypeAlias
 
 from flask import (
     Blueprint,
@@ -32,6 +31,7 @@ from gened.experiments import experiment_required
 from gened.llm import LLM, ChatMessage, with_llm
 
 from . import prompts
+from .data import ChatData, ChatMode
 from .guided import TutorConfig
 
 
@@ -41,17 +41,6 @@ class ChatNotFoundError(Exception):
 
 class AccessDeniedError(Exception):
     pass
-
-
-ChatMode: TypeAlias = Literal["inquiry", "guided"]
-
-@dataclass
-class ChatData:
-    topic: str
-    context_name: str | None
-    messages: list[ChatMessage]
-    mode: ChatMode
-    analysis: dict[str, Any] | None = None
 
 
 bp = Blueprint('chat', __name__, url_prefix="/chat", template_folder='templates')

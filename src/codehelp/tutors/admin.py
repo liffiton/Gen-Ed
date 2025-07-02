@@ -16,9 +16,11 @@ from gened.tables import Col, DataTable, NumCol
 # ### Admin routes ###
 bp_admin = Blueprint('admin_tutor', __name__, url_prefix='/tutor', template_folder='templates')
 
-# Register the tutors admin component.
-gened.admin.register_blueprint(bp_admin)
-gened.admin.register_navbar_item("admin_tutor.tutor_admin", "Tutor Chats")
+
+def register_with_gened() -> None:
+    """ Register the tutors admin components. """
+    gened.admin.register_blueprint(bp_admin)
+    gened.admin.register_navbar_item("admin_tutor.tutor_admin", "Tutor Chats")
 
 
 @bp_admin.route("/")

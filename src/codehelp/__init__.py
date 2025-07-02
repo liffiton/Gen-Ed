@@ -36,6 +36,7 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
     # register app-specific functionality with gened
     deletion_handler.register_with_gened()
     queries.register_with_gened()
+    tutors.register_with_gened()
 
     # create the base application
     app = base.create_app_base(__name__, app_config, instance_path)
