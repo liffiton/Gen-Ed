@@ -109,15 +109,15 @@ def get_queries(filters: Filters, /, limit: int=-1, offset: int=0) -> Cursor:
     return cur
 
 
-queries_table = DataTable(
-    name='queries',
-    columns=[NumCol('id'), UserCol('user'), TimeCol('time'), Col('context'), Col('code'), Col('error'), Col('issue'), ResponseCol('response'), Col('helpful_emoji', align='center')],
-    link_col=0,
-    link_template="/help/view/${value}",
-)
-
 
 def register_with_gened() -> None:
-    """ Register admin functionality with the main gened admin module."""
+    """ Register admin functionality and data source with gened. """
+    queries_table = DataTable(
+        name='queries',
+        columns=[NumCol('id'), UserCol('user'), TimeCol('time'), Col('context'), Col('code'), Col('error'), Col('issue'), ResponseCol('response'), Col('helpful_emoji', align='center')],
+        link_col=0,
+        link_template="/help/view/${value}",
+    )
+
     register_admin_chart(gen_query_charts)
     register_data('queries', get_queries, queries_table)
