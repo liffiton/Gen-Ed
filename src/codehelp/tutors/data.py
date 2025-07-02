@@ -54,6 +54,6 @@ def register_with_gened() -> None:
         name='chats',
         columns=[NumCol('id'), UserCol('user'), TimeCol('chat_started')],
         link_col=0,
-        link_template='/tutor/chat/$value',
+        link_template='/tutor/chat/${value}',
     )
     register_data('chats', get_chats, chats_table)

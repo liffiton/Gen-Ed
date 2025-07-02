@@ -8,8 +8,9 @@ bp = Blueprint('tutors', __name__, url_prefix='/tutor', template_folder='templat
 bp.register_blueprint(chat_bp)
 bp.register_blueprint(guided_bp)
 
+admin.register_with_gened()
+
 def register_with_gened() -> None:
-    admin.register_with_gened()
     data.register_with_gened()
 
 __all__ = [
