@@ -43,7 +43,7 @@ class OpenAIClient:
         common_error_text = "Error ({error_type}).  Something went wrong with this query.  The error has been logged, and we'll work on it.  For now, please try again."
         completion_args: dict[str, Any] = {
             'temperature': 0.25,
-            'max_tokens': 1000,
+            'max_tokens': 2000,
         }
         if extra_args:
             completion_args |= extra_args

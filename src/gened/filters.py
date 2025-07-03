@@ -76,10 +76,16 @@ def init_app(app: Flask) -> None:
     # Jinja filter for converting Markdown to HTML
     markdown_processor = MarkdownIt("js-default")  # js-default: https://markdown-it-py.readthedocs.io/en/latest/security.html
     markdown_processor.inline.ruler.disable(['escape'])  # disable escaping so that \(, \[, etc. come through for TeX math
+    markdown_processor.options['highlight'] = lambda code, name, _: code if name == 'tikz' else ''  # don't escape tikz code, so it goes straight to tikzjax
 
     @app.template_filter('markdown')
     def markdown_filter(value: str) -> str:
         '''Convert markdown to HTML.'''
         html = markdown_processor.render(value)
+
+        # parse tikz_diagram tags (sometimes produced by the LLM given our prompts)
+        html = html.replace('<pre><code class="language-tikz">', '<script type="text/tikz">\\begin{document}')
+        html = html.replace('\\end{tikzpicture}\n</code></pre>', '\\end{tikzpicture}\\end{document}</script>')
+
         # relying on MarkdownIt's escaping (w/o HTML parsing, due to "js-default"), so mark this as safe
         return Markup(html)  # noqa: S704 (unsafe use of Markup -- but we know we've escaped the input already)
