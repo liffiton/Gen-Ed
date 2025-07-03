@@ -239,16 +239,26 @@ def run_chat_round(llm: LLM, chat_id: int, user_message: str|None = None) -> Non
 
     messages = chat.messages
 
-    # Add the new message to the chat (persisting to the DB)
     if user_message is not None:
+        # Add the new message to the chat (persisting to the DB) and generate a response
         messages.append({
             'role': 'user',
             'content': user_message,
         })
         save_chat(chat_id, chat)
-
-    # Generate a response
-    response, response_txt = asyncio.run(llm.get_completion(messages=messages))
+        # Generate a response
+        response, response_txt = asyncio.run(llm.get_completion(messages=messages))
+    else:
+        # Gemini, at least, requires a user message to start, but we don't need
+        # to save or display it, so make a copy of the messages rather than
+        # updating the messages in the `chat` object.
+        msgs_copy = messages[:]
+        msgs_copy.append({
+            'role': 'user',
+            'content': '',
+        })
+        # Generate a response
+        response, response_txt = asyncio.run(llm.get_completion(messages=msgs_copy))
 
     # Update the chat w/ the response (and persist to the DB)
     messages.append({
