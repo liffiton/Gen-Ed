@@ -109,7 +109,9 @@ def create_inquiry_chat(llm: LLM) -> Response:
 
     context_name = context.name if context else None
     context_string = context.prompt_str() if context else None
-    sys_prompt = prompts.inquiry_sys_msg_tpl.render(topic=topic, context=context_string)
+    auth = get_auth()
+    tikz_enabled = 'tikz_experiment' in auth.class_experiments
+    sys_prompt = prompts.inquiry_sys_msg_tpl.render(topic=topic, context=context_string, tikz_enabled=tikz_enabled)
 
     chat_id = _create_chat(topic, context_name, sys_prompt, "inquiry")
 
@@ -130,7 +132,9 @@ def create_guided_chat(llm: LLM) -> Response:
 
     tutor_config = TutorConfig.from_dict(json.loads(row['config']))
 
-    sys_prompt = prompts.guided_sys_msg_tpl.render(tutor_config=tutor_config)
+    auth = get_auth()
+    tikz_enabled = 'tikz_experiment' in auth.class_experiments
+    sys_prompt = prompts.guided_sys_msg_tpl.render(tutor_config=tutor_config, tikz_enabled=tikz_enabled)
 
     chat_id = _create_chat(tutor_config.topic, context_name=None, sys_prompt=sys_prompt, mode="guided")
 

@@ -32,7 +32,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       </h2>
       {{ datatable(queries) }}
     </div>
-    {% if chats and chats.data %}
+    {% if 'chats_experiment' in auth.class_experiments %}
     <div class="tbl_col" style="width: 25em; flex-grow: 1;">
       <h2 class="is-size-3">
         Chats
