@@ -183,7 +183,10 @@ CREATE TABLE models (
     FOREIGN KEY(provider_id) REFERENCES llm_providers(id),
     FOREIGN KEY(owner_id) REFERENCES users(id) ON DELETE CASCADE
 );
+DROP INDEX IF EXISTS models_by_shortname_owner;
+CREATE UNIQUE INDEX models_by_shortname_owner ON models(shortname, owner_id);
 
+INSERT INTO llm_providers(name) VALUES ("Custom");
 INSERT INTO llm_providers(name, endpoint, config_schema) VALUES
     ('OpenAI', 'https://api.openai.com/v1', '{
         "type": "object",
