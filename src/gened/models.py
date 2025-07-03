@@ -4,12 +4,13 @@
 
 from flask import (
     Blueprint,
+    abort,
     flash,
     redirect,
     render_template,
     request,
     url_for,
-    make_response
+    make_response,
 )
 from werkzeug.wrappers.response import Response
 
@@ -45,10 +46,19 @@ def create_new_model() -> Response:
     db = get_db()
     auth = get_auth()
     user_id = auth.user_id
+    assert user_id is not None
 
     shortname = request.form.get('shortname')
+    if not shortname:
+        abort(400, "shortname required")
+
     model = request.form.get('model')
+    if not model:
+        abort(400, "model required")
+
     custom_endpoint = request.form.get('custom_endpoint')
+    if not custom_endpoint:
+        abort(400, "custom_endpoint required")
 
     new_shortname = _make_unique_model_shortname(shortname, user_id)
 
@@ -84,10 +94,19 @@ def models_update(model_id: int) -> Response:
     db = get_db()
     auth = get_auth()
     user_id = auth.user_id
+    assert user_id is not None
 
     shortname = request.form.get('shortname')
+    if not shortname:
+        abort(400, "shortname required")
+
     model = request.form.get('model')
-    custom_endpoint = request.form.get('custom_endpoint')   
+    if not model:
+        abort(400, "model required")
+
+    custom_endpoint = request.form.get('custom_endpoint')
+    if not custom_endpoint:
+        abort(400, "custom_endpoint required") 
 
     new_shortname = _make_unique_model_shortname(shortname, user_id, model_id)
 
