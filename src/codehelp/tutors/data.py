@@ -2,15 +2,13 @@ from dataclasses import dataclass
 from sqlite3 import Cursor
 from typing import Any, Literal, TypeAlias
 
-from flask import Flask, url_for
-
 from gened.app_data import (
     Filters,
     register_data,
 )
 from gened.db import get_db
 from gened.llm import ChatMessage
-from gened.tables import Col, DataTable, NumCol, ResponseCol, TimeCol, UserCol
+from gened.tables import DataTable, NumCol, TimeCol, UserCol
 
 ChatMode: TypeAlias = Literal["inquiry", "guided"]
 
