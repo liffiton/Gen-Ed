@@ -49,7 +49,7 @@
               </button>
             </div>
             <div class="control">
-              <input name="num_objectives" class="input" type="number" size="1" value="5">
+              <input name="num_objectives" class="input" type="number" size="1" x-data="{num_objectives: $persist(5)}" x-model="num_objectives">
             </div>
             <div class="control pt-2">
               draft learning objectives.
@@ -96,7 +96,7 @@
               </button>
             </div>
             <div class="control">
-              <input name="num_questions" class="input" type="number" size="1" value="4">
+              <input name="num_questions" class="input" type="number" size="1" x-data="{num_questions: $persist(4)}" x-model="num_questions">
             </div>
             <div class="control pt-2">
               draft questions per objective.
