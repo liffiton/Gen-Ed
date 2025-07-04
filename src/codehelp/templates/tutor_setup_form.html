@@ -35,7 +35,7 @@
       <div class="field is-horizontal">
         <div class="field-label is-normal"><!-- spacing --></div>
         <div class="field-body">
-          <div class="field is-grouped">
+          <div class="field is-grouped is-flex-wrap-wrap">
             <div class="control">
               <button
                 class="button {% if not tutorconf.objectives %}is-link{% else %}is-warning{% endif %}"
@@ -49,14 +49,14 @@
               </button>
             </div>
             <div class="control">
-              <input name="num_objectives" class="input" type="number" size="1" x-data="{num_objectives: $persist(5)}" x-model="num_objectives">
+              <input name="num_objectives" required class="input" type="number" size="1" style="width: 4em;" x-data="{num_objectives: $persist(5)}" x-model="num_objectives">
             </div>
             <div class="control pt-2">
               draft learning objectives.
-              {% if tutorconf.objectives %}
-                <span class="help-text ml-4 is-size-7 is-italic">This will overwrite existing objectives and questions.</span>
-              {% endif %}
             </div>
+            {% if tutorconf.objectives %}
+              <div class="help-text ml-2 pt-3 is-size-7 is-italic">This will overwrite existing objectives and questions.</div>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -82,7 +82,7 @@
       <div class="field is-horizontal">
         <div class="field-label is-normal"><!-- spacing --></div>
         <div class="field-body">
-          <div class="field is-grouped">
+          <div class="field is-grouped is-flex-wrap-wrap">
             <div class="control">
               <button
                 class="button {% if not has_questions %}is-link{% else %}is-warning{% endif %}"
@@ -96,14 +96,14 @@
               </button>
             </div>
             <div class="control">
-              <input name="num_questions" class="input" type="number" size="1" x-data="{num_questions: $persist(4)}" x-model="num_questions">
+              <input name="num_questions" required class="input" type="number" size="1" style="width: 4em;" x-data="{num_questions: $persist(5)}" x-model="num_questions">
             </div>
             <div class="control pt-2">
               draft questions per objective.
-              {% if has_questions %}
-                <span class="help-text ml-4 is-size-7 is-italic">This will overwrite existing questions.</span>
-              {% endif %}
             </div>
+            {% if has_questions %}
+              <div class="help-text ml-2 pt-3 is-size-7 is-italic">This will overwrite existing questions.</div>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -165,35 +165,48 @@
       {% endif %}
     </form>
 
-    {% if has_questions %}
-      {% for obj in tutorconf.objectives %}
-        <dialog id="dia_{{ loop.index }}" style="width: 50%; mind-width: min(32em, 100vw);">
-          <div class="content box">
-            <h3>{{ obj.name }}</h3>
-            <form action="{{ url_for('tutors.config.update_questions') }}" method="post">
+  </div>
+</section>
+
+{% if has_questions %}
+  {% for obj in tutorconf.objectives %}
+    <dialog id="dia_{{ loop.index }}" style="width: 60%; max-width: 80em; min-width: min(50em, 100vw);">
+      <div class="content box">
+        <h3>{{ obj.name }}</h3>
+        <form action="{{ url_for('tutors.config.update_questions') }}"
+              method="post"
+              x-data='{orig_questions: null, questions: {{ obj.questions | tojson }}}'
+              x-init='orig_questions = questions.slice()'
+              >
               <input type="hidden" name="obj_index" value="{{ loop.index0 }}">
               <div class="field">
                 <div class="label">Questions</div>
-                {% for question in obj.questions %}
+                <template x-for="(question, index) in questions">
+                  <div class="mt-2" style="display: flex; gap: 0.5em; align-items: center;">
+                    <button type="button" class="delete" title="delete question" @click="questions.splice(index, 1)"></button>
+                    <div class="control is-flex-grow-1">
+                      <textarea class="textarea" name="questions[]" x-model="questions[index]" rows=3 ></textarea>
+                    </div>
+                  </div>
+                </template>
                 <div class="control mt-2">
-                  <textarea class="textarea" style="height: fit-content;" name="questions[]">{{ question }}</textarea>
+                  <button type="button" class="button" @click="questions.push('')">
+                    + add a question
+                  </button>
                 </div>
-                {% endfor %}
               </div>
               <div class="field is-grouped">
                 <div class="control">
                   <button class="button is-link" type="submit">Update</button>
                 </div>
                 <div class="control">
-                  <button class="button" type="reset" onclick="this.closest('dialog').close()">Cancel</button>
+                  <button class="button" type="button" @click="questions = orig_questions.slice(); $event.target.closest('dialog').close()">Cancel</button>
                 </div>
               </div>
-            </form>
-          </div>
-        </dialog>
-      {% endfor %}
-    {% endif %}
+        </form>
+      </div>
+    </dialog>
+  {% endfor %}
+{% endif %}
 
-  </div>
-</section>
 {% endblock body %}
