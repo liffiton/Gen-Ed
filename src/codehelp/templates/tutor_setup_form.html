@@ -45,7 +45,10 @@
                 x-bind:disabled="loading2"
                 formaction="{{ url_for('tutors.config.generate_objectives') }}"
               >
-                {% if tutorconf.objectives %}Regenerate{% else %}Generate{% endif %}
+                <span>{% if tutorconf.objectives %}Regenerate{% else %}Generate{% endif %}</span>
+                <span class="icon">
+                  <svg aria-hidden="true"><use href="#svg_corner_right_down" /></svg>
+                </span>
               </button>
             </div>
             <div class="control">
@@ -92,7 +95,10 @@
                 x-bind:disabled="loading1"
                 formaction="{{ url_for('tutors.config.generate_questions') }}"
               >
-                {% if has_questions %}Regenerate{% else %}Generate{% endif %}
+                <span>{% if has_questions %}Regenerate{% else %}Generate{% endif %}</span>
+                <span class="icon">
+                  <svg aria-hidden="true"><use href="#svg_corner_right_down" /></svg>
+                </span>
               </button>
             </div>
             <div class="control">
