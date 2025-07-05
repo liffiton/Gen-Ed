@@ -5,8 +5,9 @@
 import asyncio
 import json
 from dataclasses import asdict, dataclass, field
-from typing import Any, Self
+from typing import Self
 
+from cachelib.simple import SimpleCache
 from flask import (
     Blueprint,
     abort,
@@ -14,22 +15,22 @@ from flask import (
     redirect,
     render_template,
     request,
-    session,
     url_for,
 )
 from pypdf import PdfReader
 from werkzeug.wrappers.response import Response
 
-from gened.auth import get_auth_class, instructor_required
+from gened.auth import get_auth, get_auth_class, instructor_required
 from gened.db import get_db
 from gened.experiments import experiment_required
 from gened.llm import LLM, ChatMessage, with_llm
 
 from . import prompts
 
-TUTOR_CONF_SESSION_KEY = "guided_tutor_config"
 DEFAULT_OBJECTIVES = 5
 DEFAULT_QUESTIONS_PER_OBJECTIVE = 4
+
+_tutor_config_cache = SimpleCache(default_timeout=60*60*24*5)  # 5 days
 
 bp = Blueprint('config', __name__, url_prefix='/guided', template_folder='templates')
 
@@ -56,25 +57,32 @@ class TutorConfig:
     objectives: list[LearningObjective] = field(default_factory=list)
 
     @classmethod
-    def from_session(cls) -> Self:
-        return cls.from_dict(session.get(TUTOR_CONF_SESSION_KEY, {}))
+    def from_cache(cls) -> Self:
+        obj: Self | None = _tutor_config_cache.get(_cache_key())
+        if obj is None:
+            obj = cls()
+        return obj
 
-    @classmethod
-    def from_dict(cls, dictionary: dict[str, Any]) -> Self:
-        try:
-            init_data = dictionary.copy()
-            objectives_data = init_data.pop('objectives', [])
-            obj = cls(**init_data)
-            obj.objectives = [LearningObjective(**obj_data) for obj_data in objectives_data]
-            return obj
-        except TypeError:
-            return cls()
+
+def _cache_key() -> str:
+    auth = get_auth()
+    assert auth.user_id is not None
+    cur_class = get_auth_class()
+    return f"guided_tutor_config_{auth.user_id}_{cur_class.class_id}"
+
+
+def _save_to_cache(config: TutorConfig) -> None:
+    _tutor_config_cache.set(_cache_key(), config)
+
+
+def _delete_cached_config() -> None:
+    _tutor_config_cache.delete(_cache_key())
 
 
 @bp.route('/new', methods=['GET'])
 def setup_form() -> str:
     """Display the tutor setup form."""
-    config = TutorConfig.from_session()
+    config = TutorConfig.from_cache()
     return render_template(
         'tutor_setup_form.html',
         tutorconf=config,
@@ -86,7 +94,7 @@ def setup_form() -> str:
 @with_llm(spend_token=False)
 def generate_objectives(llm: LLM) -> Response:
     """Generate learning objectives for the given topic."""
-    config = TutorConfig.from_session()
+    config = TutorConfig.from_cache()
     config.context = request.form.get('context', '').strip()
     config.topic = request.form.get('topic', '').strip()
     num_items_initial = 30
@@ -114,7 +122,7 @@ def generate_objectives(llm: LLM) -> Response:
     assert all(isinstance(val, str) for val in objectives)
     config.objectives = [LearningObjective(obj, []) for obj in objectives]
 
-    session[TUTOR_CONF_SESSION_KEY] = config
+    _save_to_cache(config)
     return redirect(url_for('.setup_form'))
 
 
@@ -139,10 +147,10 @@ def upload_document() -> Response:
         except Exception as e:
             flash(f"Error reading PDF: {e}", "danger")
         else:
-            config = TutorConfig.from_session()
+            config = TutorConfig.from_cache()
             config.document_text = text
             config.document_filename = pdf_file.filename
-            session[TUTOR_CONF_SESSION_KEY] = config
+            _save_to_cache(config)
 
     return redirect(url_for('.setup_form'))
 
@@ -150,10 +158,10 @@ def upload_document() -> Response:
 @bp.route('/document/remove', methods=['POST'])
 def remove_document() -> Response:
     """Remove an uploaded document."""
-    config = TutorConfig.from_session()
+    config = TutorConfig.from_cache()
     config.document_filename = ""
     config.document_text = ""
-    session[TUTOR_CONF_SESSION_KEY] = config
+    _save_to_cache(config)
     return redirect(url_for('.setup_form'))
 
 
@@ -194,7 +202,7 @@ async def populate_questions(config: TutorConfig, llm: LLM, num_questions: int) 
 @with_llm(spend_token=False)
 def generate_questions(llm: LLM) -> Response:
     """Generate questions based on topic and objectives."""
-    config = TutorConfig.from_session()
+    config = TutorConfig.from_cache()
     config.context = request.form.get('context', '').strip()
     config.topic = request.form.get('topic', '').strip()
     objectives_str = request.form.get('objectives', '').strip()
@@ -206,28 +214,28 @@ def generate_questions(llm: LLM) -> Response:
     task = populate_questions(config, llm, num_questions)
     asyncio.run(task)
 
-    session[TUTOR_CONF_SESSION_KEY] = config
+    _save_to_cache(config)
     return redirect(url_for('.setup_form'))
 
 
 @bp.route('/questions/update', methods=['POST'])
 def update_questions() -> Response:
     """ Update the questions for one learning objective. """
-    config = TutorConfig.from_session()
+    config = TutorConfig.from_cache()
     obj_index = request.form.get('obj_index')
     if obj_index is None or not obj_index.isnumeric():
         abort(400)
     questions = request.form.getlist('questions[]')
     questions = [q.strip() for q in questions]
     config.objectives[int(obj_index)].questions = questions
-    session[TUTOR_CONF_SESSION_KEY] = config
+    _save_to_cache(config)
     return redirect(url_for('.setup_form'))
 
 
 @bp.route('/create', methods=['POST'])
 def create_tutor() -> Response:
     """Persist the new tutor to the database."""
-    config = TutorConfig.from_session()
+    config = TutorConfig.from_cache()
     config.context = request.form.get('context', '').strip()
     config.topic = request.form.get('topic', '').strip()
     objectives_str = request.form.get('objectives', '').strip()
@@ -244,7 +252,8 @@ def create_tutor() -> Response:
         [class_id, json.dumps(asdict(config))]
     )
     db.commit()
-    session.pop(TUTOR_CONF_SESSION_KEY, None)
+    _delete_cached_config()
+
     flash(f"Tutor created for topic: {config.topic}", 'success')
     return redirect(url_for('.setup_form'))
 
@@ -252,5 +261,5 @@ def create_tutor() -> Response:
 @bp.route('/reset', methods=['POST'])
 def reset_setup() -> Response:
     """Clear the in-progress tutor setup and start over."""
-    session.pop(TUTOR_CONF_SESSION_KEY, None)
+    _delete_cached_config()
     return redirect(url_for('.setup_form'))

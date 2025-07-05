@@ -214,7 +214,7 @@
           <div class="field is-grouped">
             <div class="control">
               <button class="button is-link" type="submit" {% if not has_questions %}disabled{% endif %} formaction="{{ url_for('tutors.config.create_tutor') }}">
-                Save Tutor
+                Create Tutor
               </button>
             </div>
             <div class="control">
@@ -226,16 +226,6 @@
         </div>
       </div>
 
-      {% if tutorconf.objectives %}
-      <div class="field is-horizontal">
-        <div class="field-label is-normal"><!-- spacing --></div>
-        <div class="field-body">
-          <div class="notification is-warning">
-            <strong>Note:</strong> Your work is not saved until all steps are complete and the tutor is created.
-          </div>
-        </div>
-      </div>
-      {% endif %}
     </form>
 
   </div>
