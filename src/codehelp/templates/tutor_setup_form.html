@@ -36,7 +36,7 @@
 
       <div class="field is-horizontal">
         <div class="field-label is-normal">
-          <label class="label">Optional Document</label>
+          <label class="label">Document (optional)</label>
           <p class="help-text">You may upload a PDF with additional context for generating objectives and questions (e.g., lecture notes, a book chapter, or an assignment).<br>Max file size: 1MB.</p>
         </div>
         <div class="field-body">
@@ -131,11 +131,11 @@
         </div>
       </div>
 
-      {% if tutorconf.objectives %}
       <div class="field is-horizontal">
         <div class="field-label is-normal">
-          <label class="label" for="objectives">Learning Objectives</label>
+          <label class="label" for="objectives"><h2 class="title is-size-5">Learning Objectives</h2></label>
         </div>
+        {% if tutorconf.objectives %}
         <div class="field-body">
           <div class="field">
             <div class="control">
@@ -147,8 +147,14 @@
             </div>
           </div>
         </div>
+        {% else %}
+        <div class="field-body pt-1">
+          <p><i>None yet.</i></p>
+        </div>
+        {% endif %}
       </div>
 
+      {% if tutorconf.objectives %}
       <div class="field is-horizontal">
         <div class="field-label is-normal"><!-- spacing --></div>
         <div class="field-body">
@@ -182,12 +188,12 @@
       </div>
       {% endif %}
 
-      {% if has_questions %}
       <div class="field is-horizontal">
-        <div class="field-label is-normal"><!-- spacing --></div>
+        <div class="field-label is-normal">
+          <h2 class="title is-size-5">Questions</h2>
+        </div>
         <div class="field-body">
           <div class="content">
-            <h2 class="is-size-5">Objectives &amp; Questions</h2>
             {% for obj in tutorconf.objectives %}
               <div class="box">
               <h3 class="is-size-6">{{ loop.index }}. {{ obj.name }}</h3>
@@ -202,18 +208,19 @@
                 Edit questions
               </button>
               </div>
+            {% else %}
+              <p class="pt-2"><i>None yet.</i></p>
             {% endfor %}
           </div>
         </div>
       </div>
-      {% endif %}
 
       <div class="field is-horizontal mt-5">
         <div class="field-label is-normal"><!-- spacing --></div>
         <div class="field-body">
           <div class="field is-grouped">
             <div class="control">
-              <button class="button is-link" type="submit" {% if not has_questions %}disabled{% endif %} formaction="{{ url_for('tutors.config.create_tutor') }}">
+              <button class="button is-link" type="submit" {% if missing_questions %}disabled{% endif %} formaction="{{ url_for('tutors.config.create_tutor') }}">
                 Create Tutor
               </button>
             </div>
@@ -231,46 +238,44 @@
   </div>
 </section>
 
-{% if has_questions %}
-  {% for obj in tutorconf.objectives %}
-    <dialog id="dia_{{ loop.index }}" style="width: 60%; max-width: 80em; min-width: min(50em, 100vw);">
-      <div class="content box">
-        <h3>{{ obj.name }}</h3>
-        <form action="{{ url_for('tutors.config.update_questions') }}"
-              method="post"
-              x-data='{orig_questions: null, questions: {{ obj.questions | tojson }}}'
-              x-init='orig_questions = questions.slice()'
-              >
-              <input type="hidden" name="obj_index" value="{{ loop.index0 }}">
-              <div class="field">
-                <div class="label">Questions</div>
-                <template x-for="(question, index) in questions">
-                  <div class="mt-2" style="display: flex; gap: 0.5em; align-items: center;">
-                    <button type="button" class="delete" title="delete question" @click="questions.splice(index, 1)"></button>
-                    <div class="control is-flex-grow-1">
-                      <textarea class="textarea" name="questions[]" x-model="questions[index]" rows=3 ></textarea>
-                    </div>
+{% for obj in tutorconf.objectives %}
+  <dialog id="dia_{{ loop.index }}" style="min-height: 75vh; width: 60%; max-width: 80em; min-width: min(50em, 100vw);">
+    <div class="content box">
+      <h3>{{ obj.name }}</h3>
+      <form action="{{ url_for('tutors.config.update_questions') }}"
+            method="post"
+            x-data='{orig_questions: null, questions: {{ obj.questions | tojson }}}'
+            x-init='orig_questions = questions.slice()'
+            >
+            <input type="hidden" name="obj_index" value="{{ loop.index0 }}">
+            <div class="field">
+              <div class="label">Questions</div>
+              <template x-for="(question, index) in questions">
+                <div class="mt-2" style="display: flex; gap: 0.5em; align-items: center;">
+                  <button type="button" class="delete" title="delete question" @click="questions.splice(index, 1)"></button>
+                  <div class="control is-flex-grow-1">
+                    <textarea class="textarea" name="questions[]" x-model="questions[index]" rows=3 ></textarea>
                   </div>
-                </template>
-                <div class="control mt-2">
-                  <button type="button" class="button" @click="questions.push('')">
-                    + add a question
-                  </button>
                 </div>
+              </template>
+              <div class="control mt-2">
+                <button type="button" class="button" @click="questions.push('')">
+                  + add a question
+                </button>
               </div>
-              <div class="field is-grouped">
-                <div class="control">
-                  <button class="button is-link" type="submit">Update</button>
-                </div>
-                <div class="control">
-                  <button class="button" type="button" @click="questions = orig_questions.slice(); $event.target.closest('dialog').close()">Cancel</button>
-                </div>
+            </div>
+            <div class="field is-grouped">
+              <div class="control">
+                <button class="button is-link" type="submit">Update</button>
               </div>
-        </form>
-      </div>
-    </dialog>
-  {% endfor %}
-{% endif %}
+              <div class="control">
+                <button class="button" type="button" @click="questions = orig_questions.slice(); $event.target.closest('dialog').close()">Cancel</button>
+              </div>
+            </div>
+      </form>
+    </div>
+  </dialog>
+{% endfor %}
 
 {% if tutorconf.document_filename %}
 <dialog id="doc_text_modal" style="width: 60%; max-width: 80em; min-width: min(50em, 100vw);">

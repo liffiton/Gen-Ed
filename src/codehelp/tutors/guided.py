@@ -30,7 +30,11 @@ from . import prompts
 DEFAULT_OBJECTIVES = 5
 DEFAULT_QUESTIONS_PER_OBJECTIVE = 4
 
+
+# Use a simple memory-based cache for storing draft tutor configurations.
+# NOTE that this will be cleared if the server restarts.
 _tutor_config_cache = SimpleCache(default_timeout=60*60*24*5)  # 5 days
+
 
 bp = Blueprint('config', __name__, url_prefix='/guided', template_folder='templates')
 
@@ -86,7 +90,8 @@ def setup_form() -> str:
     return render_template(
         'tutor_setup_form.html',
         tutorconf=config,
-        has_questions=any(obj.questions for obj in config.objectives)
+        has_questions=any(obj.questions for obj in config.objectives),
+        missing_questions=not config.objectives or any(not obj.questions for obj in config.objectives),
     )
 
 
