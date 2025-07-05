@@ -3,7 +3,7 @@
 {% block body %}
 <section class="section">
   <div class="container">
-    <h1 class="title">Tutor Setup</h1>
+    <h1 class="title">Create a Focused Tutor for Guided Chats</h1>
     <form method="post" enctype="multipart/form-data" id="file_upload_form"></form>
     <form class="wide-labels" method="post" x-data="{loading1: false, loading2: false}" x-on:pageshow.window="loading1 = loading2 = false" x-on:submit.debounce.10ms="if ($event.submitter.id === 'gen_objectives') {loading1 = true} else {loading2 = true}">
 
@@ -37,7 +37,7 @@
       <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label">Optional Document</label>
-          <p class="help-text">You may upload a PDF to provide additional context for the generated objectives and questions.<br>Max file size: 1MB.</p>
+          <p class="help-text">You may upload a PDF with additional context for generating objectives and questions (e.g., lecture notes, a book chapter, or an assignment).<br>Max file size: 1MB.</p>
         </div>
         <div class="field-body">
           <div class="field is-grouped" x-data="{filename: ''}">

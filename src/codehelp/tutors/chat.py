@@ -259,7 +259,7 @@ def run_chat_round(llm: LLM, chat_id: int, user_message: str|None = None) -> Non
         msgs_copy = messages[:]
         msgs_copy.append({
             'role': 'user',
-            'content': '',
+            'content': 'Please generate an initial message for the user.',
         })
         # Generate a response
         response, response_txt = asyncio.run(llm.get_completion(messages=msgs_copy))
