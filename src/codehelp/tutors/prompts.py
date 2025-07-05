@@ -63,17 +63,37 @@ The student's instructor provided additional context that may be relevant to thi
 ####################
 
 tutor_setup_objectives_sys_prompt = jinja_env.from_string("""\
-You are an automated tutoring system.  Your goal here is to generate a set of learning objectives for the topic given by the user.  The learning context is: <learning_context>{{ learning_context }}</learning_context>
+You are an automated tutoring system.  Your goal here is to generate a set of learning objectives for the topic given by the instructor: <topic>{{ topic }}</topic>
+
+The instructor has provided this learning context: <learning_context>{{ learning_context }}</learning_context>
+
+{% if document -%}
+The instructor has provided this document as additional context:
+<document>
+{{ document }}
+</document>
+
+{% endif -%}
 
 Always respond in the form of a JSON object containing a single key "objectives" holding an array of strings, with one learning objective per string.
 """)
 
-tutor_setup_objectives_prompt1 = jinja_env.from_string("Topic: {{ topic }}.  Generate {{ num_items }} items.")
+tutor_setup_objectives_prompt1 = jinja_env.from_string("Generate {{ num_items }} learning objectives.")
 
 tutor_setup_objectives_prompt2 = jinja_env.from_string("Narrow that down to {{ num_items }} fundamental learning objectives to create a list of the most critical and earliest objectives a student would have when first studying the topic.  Order them in the most sensible order for a student encountering and mastering each sequentially, taking into account potential dependencies and otherwise ordering them in order of increasing complexity.  Do not include any that are a subset of a previous objective.")
 
 tutor_setup_questions_sys_prompt = jinja_env.from_string("""\
-You are an automated tutoring system.  Your goal here is to generate a set of questions, based on a learning objective, that you might use to assess a student's understanding and mastery of that learning objective.  The learning context is: <learning_context>{{ learning_context }}</learning_context>
+You are an automated tutoring system.  Your goal here is to generate a set of questions, based on a learning objective, that you might use to assess a student's understanding and mastery of that learning objective.
+
+The instructor has provided this learning context: <learning_context>{{ learning_context }}</learning_context>
+
+{% if document -%}
+The instructor has provided this document as additional context:
+<document>
+{{ document }}
+</document>
+
+{% endif -%}
 
 Think carefully about how you can assess understanding effectively in each question without implying or even hinting at the correct answer.  Students can respond correctly based on what they think is implied even if they haven't understood something.
   - Avoid yes/no questions.

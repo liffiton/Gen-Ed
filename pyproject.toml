@@ -30,6 +30,7 @@ dependencies = [
     "markdown-it-py~=3.0.0",
     "openai~=1.0, >=1.26, != 1.78",
     "pylti@git+https://github.com/liffiton/pylti",
+    "pypdf~=5.7.0",
     "pyrage~=1.2.0",
     "python-dotenv~=1.1.0",
     "python-frontmatter~=1.1.0",

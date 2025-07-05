@@ -4,7 +4,22 @@
 <section class="section">
   <div class="container">
     <h1 class="title">Tutor Setup</h1>
+    <form method="post" enctype="multipart/form-data" id="file_upload_form"></form>
     <form class="wide-labels" method="post" x-data="{loading1: false, loading2: false}" x-on:pageshow.window="loading1 = loading2 = false" x-on:submit.debounce.10ms="if ($event.submitter.id === 'gen_objectives') {loading1 = true} else {loading2 = true}">
+
+      <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="topic">Topic</label>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <input class="input" name="topic" id="topic" x-bind:disabled="loading1 || loading2" required value="{{ tutorconf.topic }}">
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label" for="context">Learning context</label>
@@ -21,13 +36,65 @@
 
       <div class="field is-horizontal">
         <div class="field-label is-normal">
-          <label class="label" for="topic">Topic</label>
+          <label class="label">Optional Document</label>
+          <p class="help-text">You may upload a PDF to provide additional context for the generated objectives and questions.</p>
         </div>
         <div class="field-body">
-          <div class="field">
-            <div class="control">
-              <input class="input" name="topic" id="topic" x-bind:disabled="loading1 || loading2" required value="{{ tutorconf.topic }}">
-            </div>
+          <div class="field is-grouped" x-data="{filename: ''}">
+            {% if tutorconf.document_filename %}
+              <div class="control">
+                <p class="mt-2">
+                  Using: <strong>{{ tutorconf.document_filename }}</strong>
+                </p>
+              </div>
+              <div class="control">
+                <button class="button is-rounded is-outlined is-small mt-1" type="button" onclick="document.getElementById('doc_text_modal').showModal()">
+                  View text
+                </button>
+              </div>
+              <div class="control">
+                <button
+                  class="button is-rounded is-dnger is-outlined is-small mt-1"
+                  type="submit"
+                  id="remove_document"
+                  x-bind:disabled="loading1 || loading2"
+                  form="file_upload_form"
+                  formaction="{{ url_for('tutors.config.remove_document') }}"
+                >
+                  <span class="delete mr-2"></span>
+                  Remove document
+                </button>
+              </div>
+            {% else %}
+              <div class="control file has-name">
+                <label class="file-label">
+                  <input class="file-input" form="file_upload_form" type="file" name="document" accept=".pdf" required x-bind:disabled="loading1 || loading2" @change="filename = $event.target.files.length ? $event.target.files[0].name : ''">
+                  <span class="file-cta">
+                    Choose a PDF…
+                  </span>
+                  <span class="file-name" x-text="filename || 'No file chosen'">
+                    No file chosen
+                  </span>
+                </label>
+              </div>
+              <div class="control">
+                <button
+                  class="button is-link"
+                  type="submit"
+                  id="upload_document"
+                  x-bind:disabled="!filename || loading1 || loading2"
+                  form="file_upload_form"
+                  formaction="{{ url_for('tutors.config.upload_document') }}"
+                >
+                  <span class="icon">
+                    <svg aria-hidden="true"><use href="#svg_upload"></use></svg>
+                  </span>
+                  <span>
+                    Upload this document
+                  </span>
+                </button>
+              </div>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -213,6 +280,20 @@
       </div>
     </dialog>
   {% endfor %}
+{% endif %}
+
+{% if tutorconf.document_filename %}
+<dialog id="doc_text_modal" style="width: 60%; max-width: 80em; min-width: min(50em, 100vw);">
+  <div class="content box">
+    <h3>{{ tutorconf.document_filename }}</h3>
+    <pre style="white-space: pre-wrap; max-height: 60vh; overflow-y: auto;">{{ tutorconf.document_text }}</pre>
+    <div class="field is-grouped">
+      <div class="control">
+        <button class="button" type="button" onclick="this.closest('dialog').close()">Close</button>
+      </div>
+    </div>
+  </div>
+</dialog>
 {% endif %}
 
 {% endblock body %}
