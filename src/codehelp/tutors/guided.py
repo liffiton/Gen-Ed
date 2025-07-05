@@ -5,7 +5,7 @@
 import asyncio
 import json
 from dataclasses import asdict, dataclass, field
-from typing import Self
+from typing import Any, Self
 
 from cachelib.simple import SimpleCache
 from flask import (
@@ -66,6 +66,17 @@ class TutorConfig:
         if obj is None:
             obj = cls()
         return obj
+
+    @classmethod
+    def from_dict(cls, dictionary: dict[str, Any]) -> Self:
+        try:
+            init_data = dictionary.copy()
+            objectives_data = init_data.pop('objectives', [])
+            obj = cls(**init_data)
+            obj.objectives = [LearningObjective(**obj_data) for obj_data in objectives_data]
+            return obj
+        except TypeError:
+            return cls()
 
 
 def _cache_key() -> str:
