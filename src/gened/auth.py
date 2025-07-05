@@ -170,7 +170,6 @@ def _get_auth_from_session() -> AuthData:
     """, [user_id]).fetchall()
 
     cur_class = None
-    class_experiments: set[str] = set()
     other_classes = []
 
     sess_class_id = sess_auth.get('class_id', None)
@@ -187,9 +186,6 @@ def _get_auth_from_session() -> AuthData:
             assert cur_class is None  # sanity check: should only ever match one role/class
             # capture class/role info
             cur_class = class_data
-            # check for any registered experiments in the current class
-            experiment_class_rows = db.execute("SELECT experiments.name FROM experiments JOIN experiment_class ON experiment_class.experiment_id=experiments.id WHERE experiment_class.class_id=?", [sess_class_id]).fetchall()
-            class_experiments = {row['name'] for row in experiment_class_rows}
         elif row['enabled']:
             # store a list of any other classes that are enabled (for navbar switching UI)
             other_classes.append(class_data)
@@ -204,6 +200,19 @@ def _get_auth_from_session() -> AuthData:
             role='instructor',
             user_is_creator=True,
         )
+
+    # check for any registered experiments in the current class
+    if cur_class:
+        experiment_class_rows = db.execute("""
+            SELECT experiments.name
+            FROM experiments
+            JOIN experiment_class
+            ON experiment_class.experiment_id=experiments.id
+            WHERE experiment_class.class_id=?
+        """, [cur_class.class_id]).fetchall()
+        class_experiments = {row['name'] for row in experiment_class_rows}
+    else:
+        class_experiments = set()
 
     # return an AuthData with all collected values
     return AuthData(
