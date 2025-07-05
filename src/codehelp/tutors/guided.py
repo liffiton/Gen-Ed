@@ -126,15 +126,23 @@ def upload_document() -> Response:
 
     pdf_file = request.files['document']
     if pdf_file.filename:
+        pdf_file.seek(0, 2)  # 2 = SEEK_END
+        file_size = pdf_file.tell()
+        pdf_file.seek(0)
+        if file_size > 1 * 1024 * 1024:
+            flash("Uploaded file is too large (max 1MB).", "danger")
+            return redirect(url_for('.setup_form'))
+
         try:
             reader = PdfReader(pdf_file)
-            text = "\n".join(page.extract_text() for page in reader.pages)
+            text = "\n\n".join(page.extract_text() for page in reader.pages)
+        except Exception as e:
+            flash(f"Error reading PDF: {e}", "danger")
+        else:
             config = TutorConfig.from_session()
             config.document_text = text
             config.document_filename = pdf_file.filename
             session[TUTOR_CONF_SESSION_KEY] = config
-        except Exception as e:
-            flash(f"Error reading PDF: {e}", "danger")
 
     return redirect(url_for('.setup_form'))
 
