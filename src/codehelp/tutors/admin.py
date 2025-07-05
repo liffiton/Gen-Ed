@@ -11,7 +11,7 @@ from flask import (
 
 import gened.admin
 from gened.db import get_db
-from gened.tables import Col, DataTable, NumCol
+from gened.tables import Col, DataTable, TimeCol, NumCol
 
 # ### Admin routes ###
 bp_admin = Blueprint('admin_tutor', __name__, url_prefix='/tutor', template_folder='templates')
@@ -31,10 +31,10 @@ def tutor_admin(chat_id : int|None = None) -> str:
         SELECT
             chats.id AS id,
             users.display_name AS user,
-            chats.topic AS topic,
+            chats.chat_started AS "time",
             (
                 SELECT COUNT(*)
-                FROM json_each(chats.chat_json)
+                FROM json_each(json_extract(chats.chat_json, '$.messages'))
                 WHERE json_extract(json_each.value, '$.role')='user'
             ) as "user messages"
         FROM chats
@@ -44,14 +44,14 @@ def tutor_admin(chat_id : int|None = None) -> str:
 
     table = DataTable(
         name='chats',
-        columns=[NumCol('id'), Col('user'), Col('topic'), NumCol('user messages')],
+        columns=[NumCol('id'), Col('user'), TimeCol('time'), NumCol('user messages')],
         link_col=0,
         link_template='${value}',
         data=chats,
     )
 
     if chat_id is not None:
-        chat_row = db.execute("SELECT users.display_name, topic, chat_json FROM chats JOIN users ON chats.user_id=users.id WHERE chats.id=?", [chat_id]).fetchone()
+        chat_row = db.execute("SELECT users.display_name, chat_json FROM chats JOIN users ON chats.user_id=users.id WHERE chats.id=?", [chat_id]).fetchone()
         chat = json.loads(chat_row['chat_json'])
     else:
         chat_row = None
