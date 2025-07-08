@@ -1,4 +1,4 @@
-from gened.class_config import register_extra_section_template
+from gened.class_config import register_extra_section
 
 from .blueprint import bp
 from .data import (
@@ -11,7 +11,7 @@ from .data import (
 from .model import ContextConfig, register
 
 # Register the configuration UI (render function) inside gened's class_config module
-register_extra_section_template("context_config.html", get_context_config_data)
+register_extra_section("context_config.html", get_context_config_data)
 
 __all__ = [
     "ContextConfig",

@@ -4,9 +4,6 @@
 
 import asyncio
 import datetime as dt
-from collections.abc import Callable
-from dataclasses import dataclass
-from typing import Any
 
 from flask import (
     Blueprint,
@@ -18,11 +15,13 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from .auth import get_auth_class, instructor_required
-from .db import get_db
-from .llm import LLM, get_models, with_llm
-from .redir import safe_redirect
-from .tz import date_is_past
+from gened.auth import get_auth_class, instructor_required
+from gened.db import get_db
+from gened.llm import LLM, get_models, with_llm
+from gened.redir import safe_redirect
+from gened.tz import date_is_past
+
+from .extra_sections import get_extra_sections_data
 
 bp = Blueprint('class_config', __name__, template_folder='templates')
 
@@ -30,30 +29,6 @@ bp = Blueprint('class_config', __name__, template_folder='templates')
 @instructor_required
 def before_request() -> None:
     """ Apply decorator to protect all class_config blueprint endpoints. """
-
-
-# Applications can also register additional forms/UI for including in the class
-# configuration page.  Each must be provided as a function that renders *only*
-# its portion of the configuration screen's UI.  The application is responsible
-# for registering a blueprint with request handlers for any routes needed by
-# that UI.
-
-@dataclass
-class ExtraSectionProvider:
-    """Stores information needed to provide an extra section in the class config UI."""
-    template_name: str
-    context_provider: Callable[[], dict[str, Any]]
-
-# This module global stores registered providers for extra config sections.
-_extra_section_providers: list[ExtraSectionProvider] = []
-
-def register_extra_section_template(template_name: str, context_provider: Callable[[], dict[str, Any]]) -> None:
-    """ Register a new section for the class configuration UI.
-        Args:
-            template_name: The name of the Jinja template file for this section.
-            context_provider: A function that returns a dictionary of context variables for the template.
-    """
-    _extra_section_providers.append(ExtraSectionProvider(template_name=template_name, context_provider=context_provider))
 
 
 @bp.route("/")
@@ -82,13 +57,7 @@ def config_form() -> str:
     else:
         link_reg_state = "date"
 
-    extra_sections_data = [
-        {
-            'template_name': provider.template_name,
-            'context': provider.context_provider(),
-        }
-        for provider in _extra_section_providers
-    ]
+    extra_sections_data = get_extra_sections_data()
 
     models = get_models(plus_id=class_row['model_id'])
 
