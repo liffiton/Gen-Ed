@@ -158,7 +158,7 @@ def upload_document() -> Response:
             return redirect(url_for('.setup_form'))
 
         try:
-            reader = PdfReader(pdf_file)
+            reader = PdfReader(pdf_file)  # type: ignore[arg-type]
             text = "\n\n".join(page.extract_text() for page in reader.pages)
         except Exception as e:
             flash(f"Error reading PDF: {e}", "danger")
