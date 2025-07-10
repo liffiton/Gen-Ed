@@ -1,0 +1,329 @@
+
+<div class="content">
+  <h2 class="title is-size-4">Contexts</h2>
+  <p>Contexts provide additional information to the LLM for each query a student makes.  You can have a single default context that is always used, or you can create separate contexts for individual assignments or modules.  If multiple contexts are available, students will be able to select from them when making queries.</p>
+  {% if context.item_data | length == 0 %}
+    <p class="has-text-danger">While not strictly required, we recommend defining at least one context to specify the language(s), frameworks, and/or libraries in use in this class.</p>
+  {% endif %}
+  {# Link to the 'contexts.md' docs page if it exists #}
+  {% if 'contexts' in docs_pages %}
+    <p>See the <a href="{{ url_for('docs.page', name='contexts') }}">contexts documentation</a> for more information and suggestions.</p>
+  {% endif %}
+  <script type="text/javascript">
+    function datePassed(date) {
+      const now_datetime = new Date();  // automatically UTC
+      const target_date = new Date(date);  // automatically UTC
+      target_date.setHours(target_date.getHours() - 12);  // UTC-12 for anywhere on Earth
+      return now_datetime >= target_date;
+    }
+    function formatDate(date) {
+      // Add 'T00:00' to force parsing as local time so UTC-local shift doesn't change date
+      return new Date(date + 'T00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('reorderable', () => ({
+        items: {{ context.item_data | tojson }},
+        drag_index: null,
+
+        dragenter(index) {
+          if (this.drag_index === null) { return }
+          if (index === this.drag_index) { return }
+          // reorder the list, placing the dragged item at this index and shifting others
+          let new_items = [];
+          const drag_item = this.items[this.drag_index];
+          this.items.forEach((el, i) => {
+            if (i === this.drag_index) { return }
+            else if (i === index && i < this.drag_index) {
+              new_items.push(drag_item);
+              new_items.push(el);
+            }
+            else if (i === index && i > this.drag_index) {
+              new_items.push(el);
+              new_items.push(drag_item);
+            }
+            else {
+              new_items.push(el);
+            }
+          });
+          this.items = new_items;  // update w/ newly ordered list
+          this.drag_index = index;  // this new index is now the one we're dragging
+        },
+        stop_drag() {
+          this.drag_index = null;
+          // post updated ordering to save in DB
+          fetch("{{ url_for('.class_config_table.update_order', table_name=context.table_name) }}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(this.items.map(item => item.id)),
+          });
+        },
+      }));
+      Alpine.data('available_dropdown', () => ({
+        showDropdown: false,
+        showModal: false,
+        newDate: null,
+
+        // throughout, 'this.item' refers to an item object from the for loop in the parent Alpine scope ('reorderable')
+        init() {
+          this.$watch('item.available', newval => {
+            // post updated date to save in DB
+            fetch("{{ url_for('.class_config_table.update_available', table_name=context.table_name) }}", {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({'item_id': this.item.id, 'available': this.item.available}),
+            });
+          });
+        },
+        get status() { return this.item.available === '9999-12-31' ? 'Hidden' : datePassed(this.item.available) ? 'Now' : 'Scheduled'; },
+        get min_date_str() { const min_date = new Date(); min_date.setDate(min_date.getDate() + 1); return min_date.toISOString().split('T')[0]; },
+        chooseScheduled() {
+          if (this.status === 'Scheduled') {
+            this.newDate = this.item.available;
+          }
+          else {
+            // get today in YYYY-MM-DD format as starting point for date picker
+            this.newDate = this.min_date_str;
+          }
+          this.showModal = true;
+        },
+      }));
+    });
+  </script>
+  <table class="table is-hoverable is-narrow" style="width: auto; min-width: min(40em, 80%); margin: auto;" x-data="reorderable">
+    <thead>
+      <tr>
+        <th class="p-0 has-text-centered has-text-grey" title="Reorder">
+          <svg aria-hidden="true" class="icon is-small" style="vertical-align: bottom;"><use href="#svg_arrow_up_down" /></svg>
+        </th>
+        <th>Name</th>
+        <th class="has-text-centered">Available</th>
+        <th class="has-text-centered has-text-grey"><small>actions</small></th>
+      </tr>
+    </thead>
+    <tbody>
+      <template x-for="(item, index) in items" x-bind:key="item.name">
+        <tr x-bind:draggable="(drag_index == index)" @dragenter="dragenter(index)" @dragover.prevent @dragend="stop_drag" x-bind:style="(drag_index == index) && {background: '#fc9'}">
+          <td style="cursor: move; vertical-align: middle; text-align: center;" @mousedown="drag_index=index" @mouseup="stop_drag" title="drag to reorder">
+            <svg aria-hidden="true" class="icon is-small mt-1"><use href="#svg_grip" /></svg>
+          </td>
+          <td style="vertical-align: middle;">
+            <a class="is-underlined hover-show-icon has-text-link-dark" x-bind:title="`edit '${item.name}'`" x-bind:href="'{{ url_for('.class_config_table.edit_item_form', table_name=context.table_name) }}/' + item.id" x-text="item.name"></a>
+            <svg aria-hidden="true" class="icon is-small has-text-link-dark"><use href="#svg_pencil" /></svg>
+          </td>
+          <td style="text-align: center; vertical-align: middle;">
+            <div x-data="available_dropdown">
+              <div class="dropdown" x-bind:class="{'is-active': showDropdown}">
+                <div class="dropdown-trigger">
+                  <button class="button is-small is-rounded" style="white-space: normal;"
+                    x-bind:class="{
+                      'is-success': status === 'Now',
+                      'is-warning': status === 'Scheduled',
+                      'is-danger': status === 'Hidden',
+                    }"
+                    @click="showDropdown = !showDropdown"
+                    @click.outside="showDropdown = false"
+                    aria-haspopup="true" x-bind:aria-controls="`dropdown-menu${index}`">
+                    <span x-text="status === 'Scheduled' ? `Scheduled: ${formatDate(item.available)}` : status"></span>
+                    <svg aria-hidden="true" class="icon is-small"><use href="#svg_chevron_down" /></svg>
+                  </button>
+                </div>
+                <div class="dropdown-menu" x-bind:id="`dropdown-menu${index}`" role="menu">
+                  <div class="dropdown-content has-text-left">
+                    <a href="#" class="dropdown-item" @click.prevent="item.available = '0001-01-01'">Now</a>
+                    <a href="#" class="dropdown-item" @click.prevent="chooseScheduled">Scheduled</a>
+                    <a href="#" class="dropdown-item" @click.prevent="item.available = '9999-12-31'">Hidden</a>
+                  </div>
+                </div>
+              </div>
+              <div class="modal" x-bind:class="{ 'is-active': showModal }" @keydown.escape.window="showModal = false">
+                <div class="modal-background" @click="showModal = false"></div>
+                <div class="modal-content">
+                  <div class="box has-text-left">
+                    <h3 class="title is-4">Schedule '<span x-text="item.name"></span>'</h3>
+                    <p>When scheduled for a certain date, a context becomes available when that date is reached anywhere on Earth (UTC+12).</p>
+                    <form @submit.prevent="item.available = newDate; showModal = false">
+                      <div class="field is-grouped" style="justify-content: center;">
+                        <p class="control">
+                          <input type="date" class="input is-large" x-model="newDate" x-bind:min="min_date_str">
+                        </p>
+                        <p class="control">
+                          <button type="submit" class="button is-large is-link">OK</button>
+                        </p>
+                        <p class="control">
+                          <button type="submit" @click.prevent="showModal = false" class="button is-large">Cancel</button>
+                        </p>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+                <button type="button" class="modal-close is-large" aria-label="close" @click="showModal = false"></button>
+              </div>
+            </div>
+          </td>
+          <td class="has-text-centered">
+            <form method="post">
+              <span x-data="{
+                showLinkModal: false,
+                showModal() {
+                  this.copied = false;
+                  this.showLinkModal = true;
+                },
+              }">
+                {% macro link_display_alpinejs(route) -%}
+                  {# unholy combination of Jinja templating (route available in python) and Javascript string replacement (context available in JS)... #}
+                  {
+                    link_URL: '{{ url_for(route, class_id=auth.cur_class.class_id, ctx_name='__replace__', _external=True) }}'.replace('__replace__', encodeURIComponent(item.name)),
+                    copied: false,
+                    copy_url() {
+                      navigator.clipboard.writeText(this.link_URL);
+                      this.copied = true;
+                      setTimeout(() => {this.copied = false;}, 2000);
+                    },
+                  }
+                {%- endmacro %}
+                <button x-bind:title="`link to '${item.name}'`" class="button is-white is-small has-text-grey" type="button" @click="showModal">
+                  <svg aria-hidden="true" class="icon is-small"><use href="#svg_link" /></svg>
+                </button>
+                <div class="modal" x-bind:class="{'is-active': showLinkModal}" @keydown.escape.window="showLinkModal = false;">
+                  <div class="modal-background" @click="showLinkModal = false;"></div>
+                  <div class="modal-content">
+                    <div class="box has-text-left">
+                      <h3 class="title is-4">
+                        <svg aria-hidden="true" class="icon"><use href="#svg_link" /></svg>
+                        Link to '<span x-text="item.name"></span>'
+                      </h3>
+                      <p>Take your students directly to CodeHelp with the '<span x-text="item.name"></span>' context pre-selected:</p>
+                      <div class="field has-addons is-horizontal" x-data="{{ link_display_alpinejs('helper.help_form') }}">
+                        <div class="field-label label is-normal">Help Form:</div>
+                        <div class="field-body" style="flex-grow: 5;">
+                          <div class="control">
+                            <span class="input" x-text="link_URL"></span>
+                          </div>
+                          <div class="control">
+                            <button type="button" class="button icon-text" x-bind:class="copied ? 'is-success' : 'is-link'" @click="copy_url">
+                              <svg aria-hidden="true" class="icon is-right"><use href="#svg_copy" /></svg>
+                              <span x-text="copied ? 'copied' : 'copy'"></span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      {% if "chats_experiment" in auth.class_experiments %}
+                      <div class="field has-addons is-horizontal" x-data="{{ link_display_alpinejs('tutors.chat.new_inquiry_chat_form') }}">
+                        <div class="field-label label is-normal">Tutor Chat:</div>
+                        <div class="field-body" style="flex-grow: 5;">
+                          <div class="control">
+                            <span class="input" x-text="link_URL"></span>
+                          </div>
+                          <div class="control">
+                            <button type="button" class="button icon-text" x-bind:class="copied ? 'is-success' : 'is-link'" @click="copy_url">
+                              <svg aria-hidden="true" class="icon is-right"><use href="#svg_copy" /></svg>
+                              <span x-text="copied ? 'copied' : 'copy'"></span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      {% endif %}
+                      <div class="notification content is-warning is-light" style="font-size: 85%;">
+                        <p>Context links will let students access the context even if it is currently hidden.</p>
+                        <p>Context links will <b>not</b> register a student in the class:</p>
+                        <ul>
+                          <li>Students must have already joined this class before they use a context link.</li>
+                          <li>If the class connects using LTI, students must log in via LTI from your LMS before they use a context link.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  <button type="button" class="modal-close is-large" aria-label="close" @click="showLinkModal = false;"></button>
+                </div>
+              </span>
+              <button x-bind:title="`copy '${item.name}'`" class="button is-white is-small has-text-grey" type="submit" x-bind:formaction="'{{ url_for('.class_config_table.copy_item', table_name=context.table_name) }}/' + item.id">
+                <svg aria-hidden="true" class="icon is-small"><use href="#svg_copy" /></svg>
+              </button>
+              <button x-bind:title="`delete '${item.name}'`" class="button is-white is-small has-text-danger" type="submit" x-bind:formaction="'{{ url_for('.class_config_table.delete_item', table_name=context.table_name) }}/' + item.id" @click="$event => confirm('Are you sure you want to delete \'' + item.name + '\'?') || $event.preventDefault()">
+                <svg aria-hidden="true" class="icon is-small"><use href="#svg_trash" /></svg>
+              </button>
+            </form>
+          </td>
+        </tr>
+      </template>
+      <tr x-show="items.length == 0"><td colspan=4 class="has-text-centered"><i>No contexts defined.</i></td></tr>
+      <tr x-show="items.length > 0 && items.every(item => !datePassed(item.available))"><td colspan=4 class="has-text-centered"><span class="tag is-warning"><strong>Warning</strong>: No contexts are currently available.</span></td></tr>
+    </tbody>
+  </table>
+  <div class="mt-2 has-text-centered">
+    <a class="button is-light is-link is-small" href="{{ url_for('.class_config_table.new_item_form', table_name=context.table_name) }}">
+      <span class="icon">
+        <svg aria-hidden="true"><use href="#svg_plus" /></svg>
+      </span>
+      <span>Create new context</span>
+    </a>
+
+    {# Button and modal for copying contexts from another course #}
+    <span x-data='{
+        showCopyModal: false,
+        courses_data: {{ context.copyable_courses | tojson }},
+        selected_course_id: "",
+        get selected_course() {
+          return this.courses_data.find(course => course.id == this.selected_course_id) || {"id": null, "name": null, "contexts": []};
+        }
+      }'
+      x-show="courses_data.length > 0">
+      <button class="button is-light is-link is-small ml-2"
+              @click="showCopyModal = true; selected_course_id = '';"
+              title="Copy all contexts from another course you teach into this one">
+        <span class="icon">
+          <svg aria-hidden="true"><use href="#svg_copy" /></svg>
+        </span>
+        <span>Copy from another course...</span>
+      </button>
+
+      <div class="modal has-text-left" x-bind:class="{ 'is-active': showCopyModal }" @keydown.escape.window="showCopyModal = false">
+        <div class="modal-background" @click="showCopyModal = false"></div>
+        <div class="modal-content">
+          <div class="box">
+            <h3 class="title is-4">Copy Contexts</h3>
+            <p>Select a course to see its contexts. All contexts from the selected course will be copied into the current course. Existing contexts will not be affected, and copied contexts will be renamed if necessary to avoid duplicate names.</p>
+            <form method="post" action="{{ url_for('.class_config_table.copy_from_course', table_name=context.table_name) }}">
+              <div class="field">
+                <label class="label" for="source_class_id">Copy from course:</label>
+                <div class="control">
+                  <div class="select is-fullwidth">
+                    <select name="source_class_id" id="source_class_id" required x-model="selected_course_id">
+                      <option value="" disabled selected>-- Select a course --</option>
+                      <template x-for="course in courses_data" :key="course.id">
+                        <option :value="course.id" x-text="course.name"></option>
+                      </template>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {# Section to display contexts of the selected course #}
+              <div class="mt-3 mb-3 content" style="min-height: 200px; max-height: 200px; overflow-y: auto; border: 1px solid #dbdbdb; padding: 0.5em;">
+                <div x-show="selected_course.contexts.length > 0" class="m-0">
+                  <p class="has-text-weight-semibold" x-text="`Contexts in '${selected_course.name || ''}':`"></p>
+                  <ol class="mt-0">
+                    <template x-for="context_name in selected_course.contexts" :key="context_name">
+                      <li x-text="context_name"></li>
+                    </template>
+                  </ol>
+                </div>
+                <div x-show="selected_course_id && selected_course.contexts.length == 0"><i>No contexts found in this course.</i></div>
+              </div>
+
+              <div class="field is-grouped is-justify-content-flex-end">
+                <div class="control">
+                  <button type="submit" class="button is-link" x-bind:disabled="!selected_course_id || selected_course.contexts.length == 0">Copy Contexts</button>
+                </div>
+                <div class="control">
+                  <button type="button" class="button" @click="showCopyModal = false">Cancel</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+        <button type="button" class="modal-close is-large" aria-label="close" @click="showCopyModal = false"></button>
+      </div>
+    </span>
+  </div>
+</div>

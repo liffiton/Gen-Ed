@@ -2,14 +2,14 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import json
-from dataclasses import asdict, dataclass
-from sqlite3 import Row
+from dataclasses import dataclass
+from typing import Self
 
 from flask import Flask
 from jinja2 import Environment
-from typing_extensions import Self  # for 3.10
 from werkzeug.datastructures import ImmutableMultiDict
+
+from gened.class_config import ConfigItem
 
 # This module manages application-specific context configuration.
 #
@@ -36,38 +36,21 @@ _jinja_env_html = Environment(
 )
 
 @dataclass(frozen=True)
-class ContextConfig:
+class ContextConfig(ConfigItem):
     name: str
     tools: str = ''
     details: str = ''
     avoid: str = ''
-    template: str = "context_edit_form.html"
 
     @classmethod
     def from_request_form(cls, form: ImmutableMultiDict[str, str]) -> Self:
-        """ Instantiate a context object from a request form. """
+        """ Instantiate a context object from a request form to get its config as json. """
         return cls(
             name=form['name'],
             tools=form.get('tools', ''),
             details=form.get('details', ''),
             avoid=form.get('avoid', ''),
         )
-
-    # Instantiate from an SQLite row (implemented here) (requires correct field
-    # names in the row and in its 'config' entry JSON)
-    @classmethod
-    def from_row(cls, row: Row) -> Self:
-        """ Instantiate a context object from an SQLite row.
-            (Requires correct field names in the row and in its 'config' JSON column.)
-        """
-        attrs = json.loads(row['config'])
-        attrs['name'] = row['name']
-        return cls(**attrs)
-
-    # Dump config data (all but name and template) to JSON (implemented here)
-    def to_json(self) -> str:
-        filtered_attrs = {k: v for k, v in asdict(self).items() if k not in ('name', 'template')}
-        return json.dumps(filtered_attrs)
 
     @staticmethod
     def _list_fmt(s: str) -> str:
@@ -113,6 +96,6 @@ Keywords and concepts to avoid (do not mention these in your response at all): <
         return template.render(tools=self._list_fmt(self.tools), details=self.details, avoid=self._list_fmt(self.avoid))
 
 
-def register(app: Flask) -> None:
+def get_markdown_filter(app: Flask) -> None:
     """ Grab a copy of the app's markdown filter for use here. """
     _jinja_env_html.filters['markdown'] = app.jinja_env.filters['markdown']

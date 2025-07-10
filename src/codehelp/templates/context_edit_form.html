@@ -9,13 +9,13 @@ SPDX-License-Identifier: AGPL-3.0-only
 {% block body %}
 <section class="section">
   <div class="container">
-    {% if context %}
+    {% if item %}
       {# We're editing an existing context. #}
-      <h1 class="title">Editing context '{{ context.name }}' in class {{ auth.cur_class.class_name }}</h1>
-      <form class="wide-labels" action="{{ url_for(".update_context", ctx_id=context.id) }}" method="post">
+      <h1 class="title">Editing context '{{ item.name }}' in class '{{ auth.cur_class.class_name }}'</h1>
+      <form class="wide-labels" action="{{ url_for(".update_item", table_name="context", item_id=item.row_id) }}" method="post">
     {% else %}
-      <h1 class="title">Create context in class {{ auth.cur_class.class_name }}</h1>
-      <form class="wide-labels" action="{{ url_for(".create_context") }}" method="post">
+      <h1 class="title">Create context in class '{{ auth.cur_class.class_name }}'</h1>
+      <form class="wide-labels" action="{{ url_for(".create_item", table_name="context") }}" method="post">
     {% endif %}
 
         <div class="field is-horizontal">
@@ -25,7 +25,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           <div class="field-body">
             <div class="field">
               <div class="control">
-                <input class="input" required autofocus name="name" id="name" {% if context %}value="{{ context.name }}"{% endif %}>
+                <input class="input" required autofocus name="name" id="name" {% if item %}value="{{ item.name }}"{% endif %}>
               </div>
             </div>
           </div>
@@ -40,7 +40,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           <div class="field-body">
             <div class="field">
               <div class="control">
-                <textarea class="textarea" name="tools" id="tools" rows=5>{{ context_config['tools'] }}</textarea>
+                <textarea class="textarea" name="tools" id="tools" rows=5>{{ item.tools }}</textarea>
               </div>
             </div>
           </div>
@@ -56,7 +56,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           <div class="field-body">
             <div class="field">
               <div class="control">
-                <textarea class="textarea" name="details" id="details" rows=10>{{ context_config['details'] }}</textarea>
+                <textarea class="textarea" name="details" id="details" rows=10>{{ item.details }}</textarea>
               </div>
             </div>
           </div>
@@ -73,7 +73,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           <div class="field-body">
             <div class="field">
               <div class="control">
-                <textarea class="textarea is-family-monospace" name="avoid" id="avoid" rows=5>{{ context_config['avoid'] }}</textarea>
+                <textarea class="textarea is-family-monospace" name="avoid" id="avoid" rows=5>{{ item.avoid }}</textarea>
               </div>
             </div>
           </div>

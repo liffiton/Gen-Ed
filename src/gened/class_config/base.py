@@ -21,9 +21,12 @@ from gened.llm import LLM, get_models, with_llm
 from gened.redir import safe_redirect
 from gened.tz import date_is_past
 
+from .config_table import bp as config_table_bp
 from .extra_sections import get_extra_sections_data
 
 bp = Blueprint('class_config', __name__, template_folder='templates')
+
+bp.register_blueprint(config_table_bp)
 
 @bp.before_request
 @instructor_required
@@ -58,6 +61,7 @@ def config_form() -> str:
         link_reg_state = "date"
 
     extra_sections_data = get_extra_sections_data()
+    print(extra_sections_data)
 
     models = get_models(plus_id=class_row['model_id'])
 

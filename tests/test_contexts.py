@@ -17,7 +17,7 @@ def _get_context_by_name(app: Flask, name: str) -> Row:
 
 def test_create_context_saves_to_db(app: Flask, instructor: AppClient) -> None:
     """Tests that creating a context saves its name and config to the database."""
-    response = instructor.post('/instructor/context/create', data={
+    response = instructor.post('/instructor/config/table/context/create', data={
         'name': 'Test Context',
         'tools': 'ABC',
         'details': 'XYZ',
@@ -32,13 +32,13 @@ def test_create_context_saves_to_db(app: Flask, instructor: AppClient) -> None:
 def test_update_context_saves_changes_to_db(app: Flask, instructor: AppClient) -> None:
     """Tests that updating a context correctly changes its data in the database."""
     # First, create a context to be updated
-    instructor.post('/instructor/context/create', data={
+    instructor.post('/instructor/config/table/context/create', data={
         'name': 'Update Test Context',
     })
     context = _get_context_by_name(app, 'Update Test Context')
     context_id = context['id']
 
-    response = instructor.post(f'/instructor/context/update/{context_id}', data={
+    response = instructor.post(f'/instructor/config/table/context/update/{context_id}', data={
         'name': 'Updated Context',
         'tools': 'ABC',
         'details': 'XYZ',
@@ -57,13 +57,13 @@ def test_update_context_saves_changes_to_db(app: Flask, instructor: AppClient) -
 def test_delete_context_removes_from_db(app: Flask, instructor: AppClient) -> None:
     """Tests that deleting a context removes it from the database."""
     # First, create a context to be deleted
-    instructor.post('/instructor/context/create', data={
+    instructor.post('/instructor/config/table/context/create', data={
         'name': 'Delete Test Context',
     })
     context = _get_context_by_name(app, 'Delete Test Context')
     context_id = context['id']
 
-    response = instructor.post(f'/instructor/context/delete/{context_id}')
+    response = instructor.post(f'/instructor/config/table/context/delete/{context_id}')
     assert response.status_code == 302  # Redirect after successful deletion
 
     with app.app_context():
@@ -73,8 +73,8 @@ def test_delete_context_removes_from_db(app: Flask, instructor: AppClient) -> No
 
 
 @pytest.mark.parametrize('path', [
-    '/instructor/context/new',
-    '/instructor/context/edit/1',
+    '/instructor/config/table/context/new',
+    '/instructor/config/table/context/edit/1',
 ])
 def test_context_pages_require_login(client: AppClient, path: str) -> None:
     """Tests that context management pages redirect to login if the user is not authenticated."""
@@ -89,7 +89,7 @@ def test_context_pages_require_instructor_role(client: AppClient) -> None:
     # Log in as a regular user (not an instructor)
     client.login(username='testuser2', password='testuser2password')
 
-    response = client.get('/instructor/context/new')
+    response = client.get('/instructor/config/table/context/new')
 
     assert response.status_code == 302
     assert response.headers['Location'].startswith('/auth/login')
@@ -110,9 +110,9 @@ def test_newly_created_contexts_appear_on_config_page(instructor: AppClient) -> 
     assert b'Context 3' not in response.data
 
     # Create a few new contexts
-    instructor.post('/instructor/context/create', data={'name': 'Context 1'})
-    instructor.post('/instructor/context/create', data={'name': 'Context 2'})
-    instructor.post('/instructor/context/create', data={'name': 'Context 3'})
+    instructor.post('/instructor/config/table/context/create', data={'name': 'Context 1'})
+    instructor.post('/instructor/config/table/context/create', data={'name': 'Context 2'})
+    instructor.post('/instructor/config/table/context/create', data={'name': 'Context 3'})
 
     # Reload the config page
     response = instructor.get('/instructor/config/')

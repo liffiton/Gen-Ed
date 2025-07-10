@@ -42,13 +42,11 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
     app = base.create_app_base(__name__, app_config, instance_path)
 
     # register blueprints specific to this application variant
-    app.register_blueprint(contexts.bp)
     app.register_blueprint(helper.bp)
     app.register_blueprint(tutors.bp)
 
-    # register our custom context configuration with Gen-Ed
-    # and grab a reference to the app's markdown filter
-    contexts.register(app)
+    # give the contexts package a reference to the app's markdown filter
+    contexts.get_markdown_filter(app)
 
     # add navbar items
     app.config['NAVBAR_ITEM_TEMPLATES'].append("tutor_nav_item.html")

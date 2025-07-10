@@ -100,23 +100,3 @@ def _get_instructor_courses(user_id: int, current_class_id: int) -> list[dict[st
         })
 
     return instructor_courses_data
-
-
-def get_context_config_data() -> dict[str, Any]:
-    db = get_db()
-    auth = get_auth()
-    cur_class = get_auth_class()
-    class_id = cur_class.class_id
-
-    contexts = db.execute("""
-        SELECT id, name, CAST(available AS TEXT) AS available
-        FROM contexts
-        WHERE contexts.class_id=?
-        ORDER BY contexts.class_order
-    """, [class_id]).fetchall()
-    contexts = [dict(c) for c in contexts]  # for conversion to json
-
-    assert auth.user
-    copyable_courses = _get_instructor_courses(auth.user.id, class_id)
-
-    return {"contexts": contexts, "copyable_courses": copyable_courses}
