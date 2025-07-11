@@ -11,7 +11,7 @@ from flask import (
 
 import gened.admin
 from gened.db import get_db
-from gened.tables import Col, DataTable, TimeCol, NumCol
+from gened.tables import Col, DataTable, NumCol, TimeCol
 
 # ### Admin routes ###
 bp_admin = Blueprint('admin_tutor', __name__, url_prefix='/tutor', template_folder='templates')

@@ -2,9 +2,8 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from typing import Any
 
-from gened.auth import get_auth, get_auth_class
+from gened.auth import get_auth
 from gened.db import get_db
 
 from .model import ContextConfig
