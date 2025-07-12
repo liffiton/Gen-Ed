@@ -21,7 +21,7 @@
       return new Date(date + 'T00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
     }
     document.addEventListener('alpine:init', () => {
-      Alpine.data('config_table_{{ context.table_name }}', () => ({
+      Alpine.data('config_table_{{ context.table.name }}', () => ({
         items: {{ context.item_data | tojson }},
         drag_index: null,
 
@@ -51,7 +51,7 @@
         stop_drag() {
           this.drag_index = null;
           // post updated ordering to save in DB
-          fetch("{{ url_for('.class_config_table.update_order', table_name=context.table_name) }}", {
+          fetch("{{ url_for('.class_config_table.update_order', table_name=context.table.name) }}", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(this.items.map(item => item.id)),
@@ -67,7 +67,7 @@
         init() {
           this.$watch('item.available', newval => {
             // post updated date to save in DB
-            fetch("{{ url_for('.class_config_table.update_available', table_name=context.table_name) }}", {
+            fetch("{{ url_for('.class_config_table.update_available', table_name=context.table.name) }}", {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({'item_id': this.item.id, 'available': this.item.available}),
@@ -89,7 +89,7 @@
       }));
     });
   </script>
-  <table class="table is-hoverable is-narrow" style="width: auto; min-width: min(40em, 80%); margin: auto;" x-data="config_table_{{ context.table_name }}">
+  <table class="table is-hoverable is-narrow" style="width: auto; min-width: min(40em, 80%); margin: auto;" x-data="config_table_{{ context.table.name }}">
     <thead>
       <tr>
         <th class="p-0 has-text-centered has-text-grey" title="Reorder">
@@ -107,7 +107,7 @@
             <svg aria-hidden="true" class="icon is-small mt-1"><use href="#svg_grip" /></svg>
           </td>
           <td style="vertical-align: middle;">
-            <a class="is-underlined hover-show-icon has-text-link-dark" x-bind:title="`edit '${item.name}'`" x-bind:href="'{{ url_for('.class_config_table.edit_item_form', table_name=context.table_name) }}/' + item.id" x-text="item.name"></a>
+            <a class="is-underlined hover-show-icon has-text-link-dark" x-bind:title="`edit '${item.name}'`" x-bind:href="'{{ context.table.edit_url }}/' + item.id" x-text="item.name"></a>
             <svg aria-hidden="true" class="icon is-small has-text-link-dark"><use href="#svg_pencil" /></svg>
           </td>
           <td style="text-align: center; vertical-align: middle;">
@@ -236,10 +236,10 @@
                   <button type="button" class="modal-close is-large" aria-label="close" @click="showLinkModal = false;"></button>
                 </div>
               </span>
-              <button x-bind:title="`copy '${item.name}'`" class="button is-white is-small has-text-grey" type="submit" x-bind:formaction="'{{ url_for('.class_config_table.copy_item', table_name=context.table_name) }}/' + item.id">
+              <button x-bind:title="`copy '${item.name}'`" class="button is-white is-small has-text-grey" type="submit" x-bind:formaction="'{{ url_for('.class_config_table.copy_item', table_name=context.table.name) }}/' + item.id">
                 <svg aria-hidden="true" class="icon is-small"><use href="#svg_copy" /></svg>
               </button>
-              <button x-bind:title="`delete '${item.name}'`" class="button is-white is-small has-text-danger" type="submit" x-bind:formaction="'{{ url_for('.class_config_table.delete_item', table_name=context.table_name) }}/' + item.id" @click="$event => confirm('Are you sure you want to delete \'' + item.name + '\'?') || $event.preventDefault()">
+              <button x-bind:title="`delete '${item.name}'`" class="button is-white is-small has-text-danger" type="submit" x-bind:formaction="'{{ url_for('.class_config_table.delete_item', table_name=context.table.name) }}/' + item.id" @click="$event => confirm('Are you sure you want to delete \'' + item.name + '\'?') || $event.preventDefault()">
                 <svg aria-hidden="true" class="icon is-small"><use href="#svg_trash" /></svg>
               </button>
             </form>
@@ -251,7 +251,7 @@
     </tbody>
   </table>
   <div class="mt-2 has-text-centered">
-    <a class="button is-light is-link is-small" href="{{ url_for('.class_config_table.new_item_form', table_name=context.table_name) }}">
+    <a class="button is-light is-link is-small" href="{{ context.table.new_url }}">
       <span class="icon">
         <svg aria-hidden="true"><use href="#svg_plus" /></svg>
       </span>
@@ -283,7 +283,7 @@
           <div class="box">
             <h3 class="title is-4">Copy Contexts</h3>
             <p>Select a course to see its contexts. All contexts from the selected course will be copied into the current course. Existing contexts will not be affected, and copied contexts will be renamed if necessary to avoid duplicate names.</p>
-            <form method="post" action="{{ url_for('.class_config_table.copy_from_course', table_name=context.table_name) }}">
+            <form method="post" action="{{ url_for('.class_config_table.copy_from_course', table_name=context.table.name) }}">
               <div class="field">
                 <label class="label" for="source_class_id">Copy from course:</label>
                 <div class="control">

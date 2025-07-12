@@ -70,7 +70,14 @@ CREATE TABLE context_strings (
 DROP TABLE IF EXISTS tutors;
 CREATE TABLE tutors (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL,
     class_id    INTEGER NOT NULL,
+    class_order INTEGER NOT NULL,  -- position within manual ordering of tutors within a class
+    available   DATE NOT NULL,  -- date on which this tutor will be available to students (& mindate=available, maxdate=disabled)
     config      TEXT NOT NULL DEFAULT "{}",  -- JSON containing tutor configuration
+    created     DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(class_id) REFERENCES classes(id)
 );
+-- names must be unique within a class
+DROP INDEX IF EXISTS tutors_by_class_name;
+CREATE UNIQUE INDEX  tutors_by_class_name ON tutors(class_id, name);

@@ -8,12 +8,12 @@ from .data import (
 )
 from .model import ContextConfig, get_markdown_filter
 
-# Register the configuration UI (render function) inside gened's class_config module
+# Register the configuration UI inside gened's class_config module
 contexts_config_table = ConfigTable(
     config_item_class=ContextConfig,
     name='context',
     db_table_name='contexts',
-    edit_template='context_edit_form.html',
+    edit_form_template='context_edit_form.html',
 )
 register_config_table(contexts_config_table)
 

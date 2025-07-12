@@ -35,7 +35,7 @@ _jinja_env_html = Environment(
     autoescape=True,
 )
 
-@dataclass(frozen=True)
+@dataclass
 class ContextConfig(ConfigItem):
     name: str
     tools: str = ''

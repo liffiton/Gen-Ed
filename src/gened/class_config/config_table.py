@@ -41,13 +41,20 @@ from .extra_sections import register_extra_section
 # template).
 
 
-@dataclass(frozen=True)
+@dataclass
 class ConfigItem(ABC):
     """ Abstract base class for defining types of configuration items to be
     managed in a ConfigTable.
     """
     name: str
     row_id: int | None = None
+
+    @classmethod
+    def initial(cls) -> Self | None:
+        """ Return an "initial" object for this class.
+        Can be overridden, e.g., if using a cache.
+        """
+        return None
 
     @classmethod
     @abstractmethod
@@ -74,7 +81,16 @@ class ConfigTable:
     config_item_class: type[ConfigItem]
     name: str
     db_table_name: str
-    edit_template: str
+    edit_form_template: str | None = None
+    routes: Blueprint | None = None
+
+    @property
+    def edit_url(self) -> str:
+        return url_for('class_config.class_config_table.edit_item_form', table_name=self.name)
+
+    @property
+    def new_url(self) -> str:
+        return url_for('class_config.class_config_table.new_item_form', table_name=self.name)
 
 
 _registered_tables: dict[str, ConfigTable] = {}
@@ -90,14 +106,13 @@ def register_config_table(table: ConfigTable) -> None:
 
     _registered_tables[table.name] = table
 
-    # add routes
-    #  - use MethodView subclass to create RESTish API for the item
-    #  - pass in table name, config_item_class or whatever else is needed for routes...
-    #  - ensure routes are connected to the create/edit form
     def get_data() -> dict[str, Any]:
         return _get_item_config_data(db_table = table.db_table_name)
 
-    register_extra_section("config_table_fragment.html", get_data, {'table_name': table.name})
+    if table.routes is not None:
+        bp.register_blueprint(table.routes)
+
+    register_extra_section("config_table_fragment.html", get_data, {'table': table})
 
 
 def _get_instructor_courses(user_id: int, current_class_id: int, db_table: str) -> list[dict[str, str | list[str]]]:
@@ -199,8 +214,8 @@ def check_valid_item(_endpoint: str | None, values: dict[str, Any] | None) -> No
 @bp.url_defaults
 def add_table_name(_endpoint: str, values: dict[str, Any]) -> None:
     """ Make any url_for into this blueprint use the current request context's table_name by default. """
-    if 'table_name' in g:
-        values.setdefault('table_name', g.table_name)
+    if 'config_table' in g:
+        values.setdefault('table_name', g.config_table.name)
 
 @bp.before_request
 @instructor_required
@@ -211,12 +226,12 @@ def before_request() -> None:
 @bp.route("/edit/", methods=[])  # just for url_for() in js code
 @bp.route("/edit/<int:item_id>")
 def edit_item_form(item: ConfigItem) -> str | Response:
-    return render_template(g.config_table.edit_template, item=item)
+    return render_template(g.config_table.edit_form_template, item=item)
 
 
 @bp.route("/new")
 def new_item_form() -> str | Response:
-    return render_template(g.config_table.edit_template, item=None)
+    return render_template(g.config_table.edit_form_template, item=g.config_table.config_item_class.initial())
 
 
 @bp.route("/create", methods=["POST"])

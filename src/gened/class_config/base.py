@@ -61,7 +61,6 @@ def config_form() -> str:
         link_reg_state = "date"
 
     extra_sections_data = get_extra_sections_data()
-    print(extra_sections_data)
 
     models = get_models(plus_id=class_row['model_id'])
 
