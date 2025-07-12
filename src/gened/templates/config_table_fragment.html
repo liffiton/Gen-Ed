@@ -92,7 +92,10 @@
         <th class="p-0 has-text-centered has-text-grey" title="Reorder">
           <svg aria-hidden="true" class="icon is-small" style="vertical-align: bottom;"><use href="#svg_arrow_up_down" /></svg>
         </th>
-        <th>Name</th>
+        <th>
+          Name
+          <span class="has-text-weight-light has-text-grey ml-1"><small>click to edit</small></span>
+        </th>
         <th class="has-text-centered">Available</th>
         <th class="has-text-centered has-text-grey"><small>actions</small></th>
       </tr>
@@ -104,8 +107,10 @@
             <svg aria-hidden="true" class="icon is-small mt-1"><use href="#svg_grip" /></svg>
           </td>
           <td style="vertical-align: middle;">
-            <a class="is-underlined hover-show-icon has-text-link-dark" x-bind:title="`edit '${item.name}'`" x-bind:href="'{{ table.edit_url }}/' + item.id" x-text="item.name"></a>
-            <svg aria-hidden="true" class="icon is-small has-text-link-dark"><use href="#svg_pencil" /></svg>
+            <a class="hover-show-icon has-text-link-dark" style="text-decoration: none;" x-bind:title="`edit '${item.name}'`" x-bind:href="'{{ table.edit_url }}/' + item.id">
+              <span class="is-underlined" x-text="item.name"></span>
+              <svg aria-hidden="true" class="icon is-small has-text-link-dark"><use href="#svg_pencil" /></svg>
+            </a>
           </td>
           <td style="text-align: center; vertical-align: middle;">
             <div x-data="available_dropdown">
