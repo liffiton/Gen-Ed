@@ -3,7 +3,14 @@
 {% block body %}
 <section class="section">
   <div class="container">
-    <h1 class="title">Create a Focused Tutor for Guided Chats</h1>
+    {% if item.row_id %}
+      {# We're editing an existing tutor. #}
+      <h1 class="title">Editing focused tutor '{{ item.name }}' in class '{{ auth.cur_class.class_name }}'</h1>
+      {% set form_save_action = url_for(".update_item", item_id=item.row_id) %}
+    {% else %}
+      <h1 class="title">Create a focused tutor for guided chats in class '{{ auth.cur_class.class_name }}'</h1>
+      {% set form_save_action = url_for(".create_item") %}
+    {% endif %}
     <form class="wide-labels" method="post" enctype="multipart/form-data" x-data="{loading1: false, loading2: false}" x-on:pageshow.window="loading1 = loading2 = false" x-on:submit.debounce.10ms="if ($event.submitter.id === 'gen_objectives') {loading1 = true} else {loading2 = true}">
 
       <div class="field is-horizontal">
@@ -234,8 +241,8 @@
           <div class="field is-grouped">
             <div class="control">
               {% set missing_questions = not item.objectives or (item.objectives | selectattr("questions") | list | length != item.objectives | length) %}
-              <button class="button is-link" type="submit" {% if missing_questions %}disabled{% endif %} formaction="{{ url_for('.create_item') }}">
-                Create Tutor
+              <button class="button is-link" type="submit" {% if missing_questions %}disabled{% endif %} formaction="{{ form_save_action }}">
+                Save Tutor
               </button>
             </div>
             <div class="control">

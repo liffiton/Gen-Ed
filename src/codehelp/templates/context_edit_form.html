@@ -9,13 +9,13 @@ SPDX-License-Identifier: AGPL-3.0-only
 {% block body %}
 <section class="section">
   <div class="container">
-    {% if item %}
+    {% if item.row_id %}
       {# We're editing an existing context. #}
       <h1 class="title">Editing context '{{ item.name }}' in class '{{ auth.cur_class.class_name }}'</h1>
-      <form class="wide-labels" action="{{ url_for(".update_item", table_name="context", item_id=item.row_id) }}" method="post">
+      <form class="wide-labels" action="{{ url_for(".update_item", item_id=item.row_id) }}" method="post">
     {% else %}
       <h1 class="title">Create context in class '{{ auth.cur_class.class_name }}'</h1>
-      <form class="wide-labels" action="{{ url_for(".create_item", table_name="context") }}" method="post">
+      <form class="wide-labels" action="{{ url_for(".create_item") }}" method="post">
     {% endif %}
 
         <div class="field is-horizontal">

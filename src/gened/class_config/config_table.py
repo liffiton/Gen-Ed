@@ -19,6 +19,7 @@ from flask import (
     request,
     url_for,
 )
+from jinja2 import Template
 from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.wrappers.response import Response
 
@@ -78,10 +79,14 @@ class ConfigItem(ABC):
 
 @dataclass(frozen=True, kw_only=True)
 class ConfigTable:
-    config_item_class: type[ConfigItem]
     name: str
+    requires_experiment: str | None = None
+    config_item_class: type[ConfigItem]
     db_table_name: str
-    edit_form_template: str | None = None
+    display_name: str
+    display_name_plural: str
+    help_text: Template | str | None = None
+    edit_form_template: str
     routes: Blueprint | None = None
 
     @property
@@ -112,7 +117,12 @@ def register_config_table(table: ConfigTable) -> None:
     if table.routes is not None:
         bp.register_blueprint(table.routes)
 
-    register_extra_section("config_table_fragment.html", get_data, {'table': table})
+    register_extra_section(
+        "config_table_fragment.html",
+        get_data,
+        extra_args={'table': table},
+        requires_experiment=table.requires_experiment,
+    )
 
 
 def _get_instructor_courses(user_id: int, current_class_id: int, db_table: str) -> list[dict[str, str | list[str]]]:
@@ -366,7 +376,7 @@ def delete_item(item: ConfigItem) -> Response:
     db.execute(f"DELETE FROM {g.config_table.db_table_name} WHERE id=?", [item.row_id])
     db.commit()
 
-    flash(f"Context '{item.name}' deleted.", "success")
+    flash(f"Item '{item.name}' deleted.", "success")
     return redirect(url_for("class_config.config_form"))
 
 
@@ -381,7 +391,7 @@ def update_order() -> str:
     assert isinstance(ordered_ids, list)
     sql_tuples = [(i, item_id, class_id) for i, item_id in enumerate(ordered_ids)]
 
-    # Check class_id in the WHERE to prevent changing contexts in another class
+    # Check class_id in the WHERE to prevent changing items in another class
     db.executemany(f"UPDATE {g.config_table.db_table_name} SET class_order=? WHERE id=? AND class_id=?", sql_tuples)
     db.commit()
 
@@ -398,7 +408,7 @@ def update_available() -> str:
     data = request.json
     assert isinstance(data, dict)
 
-    # Check class_id in the WHERE to prevent changing contexts in another class
+    # Check class_id in the WHERE to prevent changing items in another class
     db.execute(f"UPDATE {g.config_table.db_table_name} SET available=? WHERE id=? AND class_id=?", [data['available'], data['item_id'], class_id])
     db.commit()
 

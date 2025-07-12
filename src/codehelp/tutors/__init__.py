@@ -1,4 +1,5 @@
 from flask import Blueprint
+from markupsafe import Markup
 
 from gened.class_config import ConfigTable, register_config_table
 
@@ -17,7 +18,11 @@ guided_tutors_config_table = ConfigTable(
     config_item_class=TutorConfig,
     name='guided_tutor',
     db_table_name='tutors',
-    edit_form_template='tutor_setup_form.html',
+    display_name='focused tutor',
+    display_name_plural='focused tutors',
+    help_text=Markup('<p><i>Caution! Under development.</i></p>'),
+    requires_experiment='chats_experiment',
+    edit_form_template='guided_tutor_edit_form.html',
     routes=guided_bp,
 )
 register_config_table(guided_tutors_config_table)

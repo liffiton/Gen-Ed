@@ -267,7 +267,7 @@ input[type='radio'] {
     <div class="item_sep"></div>
     <div class="flex_item">
       {% for section_spec in extra_sections_data %}
-        {% with context = section_spec['context'] %}
+        {% with ctx = section_spec['ctx'] %}
           {% include section_spec['template_name'] %}
         {% endwith %}
         {% if not loop.last %}

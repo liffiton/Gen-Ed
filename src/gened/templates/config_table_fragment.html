@@ -1,13 +1,10 @@
-
+{% with table=ctx.table %}
 <div class="content">
-  <h2 class="title is-size-4">Contexts</h2>
-  <p>Contexts provide additional information to the LLM for each query a student makes.  You can have a single default context that is always used, or you can create separate contexts for individual assignments or modules.  If multiple contexts are available, students will be able to select from them when making queries.</p>
-  {% if context.item_data | length == 0 %}
-    <p class="has-text-danger">While not strictly required, we recommend defining at least one context to specify the language(s), frameworks, and/or libraries in use in this class.</p>
-  {% endif %}
-  {# Link to the 'contexts.md' docs page if it exists #}
-  {% if 'contexts' in docs_pages %}
-    <p>See the <a href="{{ url_for('docs.page', name='contexts') }}">contexts documentation</a> for more information and suggestions.</p>
+  <h2 class="title is-size-4">{{ table.display_name_plural | title }}</h2>
+  {% if table.help_text is string %}
+    {{ table.help_text }}
+  {% elif table.help_text is not none %}{# will be a jinja template object here #}
+    {% include table.help_text %}
   {% endif %}
   <script type="text/javascript">
     function datePassed(date) {
@@ -21,8 +18,8 @@
       return new Date(date + 'T00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
     }
     document.addEventListener('alpine:init', () => {
-      Alpine.data('config_table_{{ context.table.name }}', () => ({
-        items: {{ context.item_data | tojson }},
+      Alpine.data('config_table_{{ table.name }}', () => ({
+        items: {{ ctx.item_data | tojson }},
         drag_index: null,
 
         dragenter(index) {
@@ -51,7 +48,7 @@
         stop_drag() {
           this.drag_index = null;
           // post updated ordering to save in DB
-          fetch("{{ url_for('.class_config_table.update_order', table_name=context.table.name) }}", {
+          fetch("{{ url_for('.class_config_table.update_order', table_name=table.name) }}", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(this.items.map(item => item.id)),
@@ -67,7 +64,7 @@
         init() {
           this.$watch('item.available', newval => {
             // post updated date to save in DB
-            fetch("{{ url_for('.class_config_table.update_available', table_name=context.table.name) }}", {
+            fetch("{{ url_for('.class_config_table.update_available', table_name=table.name) }}", {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({'item_id': this.item.id, 'available': this.item.available}),
@@ -89,7 +86,7 @@
       }));
     });
   </script>
-  <table class="table is-hoverable is-narrow" style="width: auto; min-width: min(40em, 80%); margin: auto;" x-data="config_table_{{ context.table.name }}">
+  <table class="table is-hoverable is-narrow" style="width: auto; min-width: min(40em, 80%); margin: auto;" x-data="config_table_{{ table.name }}">
     <thead>
       <tr>
         <th class="p-0 has-text-centered has-text-grey" title="Reorder">
@@ -107,7 +104,7 @@
             <svg aria-hidden="true" class="icon is-small mt-1"><use href="#svg_grip" /></svg>
           </td>
           <td style="vertical-align: middle;">
-            <a class="is-underlined hover-show-icon has-text-link-dark" x-bind:title="`edit '${item.name}'`" x-bind:href="'{{ context.table.edit_url }}/' + item.id" x-text="item.name"></a>
+            <a class="is-underlined hover-show-icon has-text-link-dark" x-bind:title="`edit '${item.name}'`" x-bind:href="'{{ table.edit_url }}/' + item.id" x-text="item.name"></a>
             <svg aria-hidden="true" class="icon is-small has-text-link-dark"><use href="#svg_pencil" /></svg>
           </td>
           <td style="text-align: center; vertical-align: middle;">
@@ -140,7 +137,7 @@
                 <div class="modal-content">
                   <div class="box has-text-left">
                     <h3 class="title is-4">Schedule '<span x-text="item.name"></span>'</h3>
-                    <p>When scheduled for a certain date, an item becomes available when that date is reached anywhere on Earth (UTC+12).</p>
+                    <p>When scheduled for a certain date, the {{ table.display_name }} becomes available when that date is reached anywhere on Earth (UTC+12).</p>
                     <form @submit.prevent="item.available = newDate; showModal = false">
                       <div class="field is-grouped" style="justify-content: center;">
                         <p class="control">
@@ -170,7 +167,7 @@
                 },
               }">
                 {% macro link_display_alpinejs(route) -%}
-                  {# unholy combination of Jinja templating (route available in python) and Javascript string replacement (context available in JS)... #}
+                  {# unholy combination of Jinja templating (route available in python) and Javascript string replacement (item available in JS)... #}
                   {
                     link_URL: '{{ url_for(route, class_id=auth.cur_class.class_id, ctx_name='__replace__', _external=True) }}'.replace('__replace__', encodeURIComponent(item.name)),
                     copied: false,
@@ -192,7 +189,7 @@
                         <svg aria-hidden="true" class="icon"><use href="#svg_link" /></svg>
                         Link to '<span x-text="item.name"></span>'
                       </h3>
-                      <p>Take your students directly to CodeHelp with the '<span x-text="item.name"></span>' context pre-selected:</p>
+                      <p>Take your students directly to the '<span x-text="item.name"></span>' {{ table.display_name }} in CodeHelp:</p>
                       <div class="field has-addons is-horizontal" x-data="{{ link_display_alpinejs('helper.help_form') }}">
                         <div class="field-label label is-normal">Help Form:</div>
                         <div class="field-body" style="flex-grow: 5;">
@@ -224,11 +221,11 @@
                       </div>
                       {% endif %}
                       <div class="notification content is-warning is-light" style="font-size: 85%;">
-                        <p>Context links will let students access the context even if it is currently hidden.</p>
-                        <p>Context links will <b>not</b> register a student in the class:</p>
+                        <p>These links will let students access the {{ table.display_name }} even if it is currently hidden.</p>
+                        <p>These links will <b>not</b> register a student in the class:</p>
                         <ul>
-                          <li>Students must have already joined this class before they use a context link.</li>
-                          <li>If the class connects using LTI, students must log in via LTI from your LMS before they use a context link.</li>
+                          <li>Students must have already joined this class before they use one of these link.</li>
+                          <li>If the class connects using LTI, students must log in via LTI from your LMS before they use one of these.</li>
                         </ul>
                       </div>
                     </div>
@@ -236,10 +233,10 @@
                   <button type="button" class="modal-close is-large" aria-label="close" @click="showLinkModal = false;"></button>
                 </div>
               </span>
-              <button x-bind:title="`copy '${item.name}'`" class="button is-white is-small has-text-grey" type="submit" x-bind:formaction="'{{ url_for('.class_config_table.copy_item', table_name=context.table.name) }}/' + item.id">
+              <button x-bind:title="`copy '${item.name}'`" class="button is-white is-small has-text-grey" type="submit" x-bind:formaction="'{{ url_for('.class_config_table.copy_item', table_name=table.name) }}/' + item.id">
                 <svg aria-hidden="true" class="icon is-small"><use href="#svg_copy" /></svg>
               </button>
-              <button x-bind:title="`delete '${item.name}'`" class="button is-white is-small has-text-danger" type="submit" x-bind:formaction="'{{ url_for('.class_config_table.delete_item', table_name=context.table.name) }}/' + item.id" @click="$event => confirm('Are you sure you want to delete \'' + item.name + '\'?') || $event.preventDefault()">
+              <button x-bind:title="`delete '${item.name}'`" class="button is-white is-small has-text-danger" type="submit" x-bind:formaction="'{{ url_for('.class_config_table.delete_item', table_name=table.name) }}/' + item.id" @click="$event => confirm('Are you sure you want to delete \'' + item.name + '\'?') || $event.preventDefault()">
                 <svg aria-hidden="true" class="icon is-small"><use href="#svg_trash" /></svg>
               </button>
             </form>
@@ -247,21 +244,21 @@
         </tr>
       </template>
       <tr x-show="items.length == 0"><td colspan=4 class="has-text-centered"><i>No items defined.</i></td></tr>
-      <tr x-show="items.length > 0 && items.every(item => !datePassed(item.available))"><td colspan=4 class="has-text-centered"><span class="tag is-warning"><strong>Warning</strong>: No items are currently available.</span></td></tr>
+      <tr x-show="items.length > 0 && items.every(item => !datePassed(item.available))"><td colspan=4 class="has-text-centered"><span class="tag is-warning"><strong>Warning</strong>: No {{ table.display_name_plural }} are currently available.</span></td></tr>
     </tbody>
   </table>
   <div class="mt-2 has-text-centered">
-    <a class="button is-light is-link is-small" href="{{ context.table.new_url }}">
+    <a class="button is-light is-link is-small" href="{{ table.new_url }}">
       <span class="icon">
         <svg aria-hidden="true"><use href="#svg_plus" /></svg>
       </span>
-      <span>Create new context</span>
+      <span>Create new {{ table.display_name }}</span>
     </a>
 
     {# Button and modal for copying items from another course #}
     <span x-data='{
         showCopyModal: false,
-        courses_data: {{ context.copyable_courses | tojson }},
+        courses_data: {{ ctx.copyable_courses | tojson }},
         selected_course_id: "",
         get selected_course() {
           return this.courses_data.find(course => course.id == this.selected_course_id) || {"id": null, "name": null, "items": []};
@@ -281,9 +278,9 @@
         <div class="modal-background" @click="showCopyModal = false"></div>
         <div class="modal-content">
           <div class="box">
-            <h3 class="title is-4">Copy Items</h3>
-            <p>Select a course to see its items. All items from the selected course will be copied into the current course. Existing items will not be affected, and copied items will be renamed if necessary to avoid duplicate names.</p>
-            <form method="post" action="{{ url_for('.class_config_table.copy_from_course', table_name=context.table.name) }}">
+            <h3 class="title is-4">Copy {{ table.display_name_plural | title }}</h3>
+            <p>Select a course to see its {{ table.display_name_plural }}. All items from the selected course will be copied into the current course. Existing items will not be affected, and copied items will be renamed if necessary to avoid duplicate names.</p>
+            <form method="post" action="{{ url_for('.class_config_table.copy_from_course', table_name=table.name) }}">
               <div class="field">
                 <label class="label" for="source_class_id">Copy from course:</label>
                 <div class="control">
@@ -301,19 +298,19 @@
               {# Section to display items of the selected course #}
               <div class="mt-3 mb-3 content" style="min-height: 200px; max-height: 200px; overflow-y: auto; border: 1px solid #dbdbdb; padding: 0.5em;">
                 <div x-show="selected_course.items.length > 0" class="m-0">
-                  <p class="has-text-weight-semibold" x-text="`Items in '${selected_course.name || ''}':`"></p>
+                  <p class="has-text-weight-semibold" x-text="`{{ table.display_name_plural | capitalize }} in '${selected_course.name || ''}':`"></p>
                   <ol class="mt-0">
                     <template x-for="item_name in selected_course.items" :key="item_name">
                       <li x-text="item_name"></li>
                     </template>
                   </ol>
                 </div>
-                <div x-show="selected_course_id && selected_course.items.length == 0"><i>No items found in this course.</i></div>
+                <div x-show="selected_course_id && selected_course.items.length == 0"><i>No {{ table.display_name_plural }} found in this course.</i></div>
               </div>
 
               <div class="field is-grouped is-justify-content-flex-end">
                 <div class="control">
-                  <button type="submit" class="button is-link" x-bind:disabled="!selected_course_id || selected_course.items.length == 0">Copy items</button>
+                  <button type="submit" class="button is-link" x-bind:disabled="!selected_course_id || selected_course.items.length == 0">Copy {{ table.display_name_plural }}</button>
                 </div>
                 <div class="control">
                   <button type="button" class="button" @click="showCopyModal = false">Cancel</button>
@@ -327,3 +324,4 @@
     </span>
   </div>
 </div>
+{% endwith %}

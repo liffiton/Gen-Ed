@@ -15,14 +15,14 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from gened.auth import get_auth_class, instructor_required
+from gened.auth import get_auth, get_auth_class, instructor_required
 from gened.db import get_db
 from gened.llm import LLM, get_models, with_llm
 from gened.redir import safe_redirect
 from gened.tz import date_is_past
 
 from .config_table import bp as config_table_bp
-from .extra_sections import get_extra_sections_data
+from .extra_sections import get_extra_sections
 
 bp = Blueprint('class_config', __name__, template_folder='templates')
 
@@ -38,6 +38,7 @@ def before_request() -> None:
 def config_form() -> str:
     db = get_db()
 
+    auth = get_auth()
     cur_class = get_auth_class()
     class_id = cur_class.class_id
 
@@ -60,7 +61,16 @@ def config_form() -> str:
     else:
         link_reg_state = "date"
 
-    extra_sections_data = get_extra_sections_data()
+    extra_sections = get_extra_sections()
+    extra_sections_data = [
+        {
+            'template_name': sec.template_name,
+            'ctx': sec.context_provider() | sec.extra_args,
+        }
+        for sec in extra_sections
+        if sec.requires_experiment is None or sec.requires_experiment in auth.class_experiments
+    ]
+
 
     models = get_models(plus_id=class_row['model_id'])
 
