@@ -70,7 +70,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                     <select name="tutor_id">
                       <option disabled selected value="">Please select</option>
                       {% for tutor in tutors %}
-                        <option value="{{ tutor.id }}">{{ tutor.topic }}</option>
+                        <option value="{{ tutor.id }}">{{ tutor.name }}</option>
                       {% endfor %}
                     </select>
                   </div>

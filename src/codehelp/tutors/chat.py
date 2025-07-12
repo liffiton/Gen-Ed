@@ -62,15 +62,16 @@ def new_chat_form() -> str:
     contexts = {ctx.name: ctx.desc_html() for ctx in contexts_list}
 
     # get pre-defined guided chat tutors
-    tutors = []
     db = get_db()
     auth = get_auth()
-    if auth.cur_class:
-        tutor_rows = db.execute("SELECT * FROM tutors WHERE class_id=?", [auth.cur_class.class_id]).fetchall()
-        tutors = [json.loads(row['config']) | {'id': row['id']} for row in tutor_rows]
+
+    class_id = auth.cur_class.class_id if auth.cur_class else None
+    # Only return contexts that are available:
+    #   current date anywhere on earth (using UTC+12) is at or after the saved date
+    tutor_rows = db.execute("SELECT id, name FROM tutors WHERE class_id=? AND available <= date('now', '+12 hours') ORDER BY class_order ASC", [class_id]).fetchall()
 
     recent_chats = get_chat_history()
-    return render_template("tutor_new_form.html", contexts=contexts, tutors=tutors, recent_chats=recent_chats)
+    return render_template("tutor_new_form.html", contexts=contexts, tutors=tutor_rows, recent_chats=recent_chats)
 
 
 @bp.route("/new/ctx/<int:class_id>/<string:ctx_name>")
