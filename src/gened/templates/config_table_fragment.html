@@ -140,7 +140,7 @@
                 <div class="modal-content">
                   <div class="box has-text-left">
                     <h3 class="title is-4">Schedule '<span x-text="item.name"></span>'</h3>
-                    <p>When scheduled for a certain date, a context becomes available when that date is reached anywhere on Earth (UTC+12).</p>
+                    <p>When scheduled for a certain date, an item becomes available when that date is reached anywhere on Earth (UTC+12).</p>
                     <form @submit.prevent="item.available = newDate; showModal = false">
                       <div class="field is-grouped" style="justify-content: center;">
                         <p class="control">
@@ -246,8 +246,8 @@
           </td>
         </tr>
       </template>
-      <tr x-show="items.length == 0"><td colspan=4 class="has-text-centered"><i>No contexts defined.</i></td></tr>
-      <tr x-show="items.length > 0 && items.every(item => !datePassed(item.available))"><td colspan=4 class="has-text-centered"><span class="tag is-warning"><strong>Warning</strong>: No contexts are currently available.</span></td></tr>
+      <tr x-show="items.length == 0"><td colspan=4 class="has-text-centered"><i>No items defined.</i></td></tr>
+      <tr x-show="items.length > 0 && items.every(item => !datePassed(item.available))"><td colspan=4 class="has-text-centered"><span class="tag is-warning"><strong>Warning</strong>: No items are currently available.</span></td></tr>
     </tbody>
   </table>
   <div class="mt-2 has-text-centered">
@@ -258,19 +258,19 @@
       <span>Create new context</span>
     </a>
 
-    {# Button and modal for copying contexts from another course #}
+    {# Button and modal for copying items from another course #}
     <span x-data='{
         showCopyModal: false,
         courses_data: {{ context.copyable_courses | tojson }},
         selected_course_id: "",
         get selected_course() {
-          return this.courses_data.find(course => course.id == this.selected_course_id) || {"id": null, "name": null, "contexts": []};
+          return this.courses_data.find(course => course.id == this.selected_course_id) || {"id": null, "name": null, "items": []};
         }
       }'
       x-show="courses_data.length > 0">
       <button class="button is-light is-link is-small ml-2"
               @click="showCopyModal = true; selected_course_id = '';"
-              title="Copy all contexts from another course you teach into this one">
+              title="Copy all items from another course you teach into this one">
         <span class="icon">
           <svg aria-hidden="true"><use href="#svg_copy" /></svg>
         </span>
@@ -281,8 +281,8 @@
         <div class="modal-background" @click="showCopyModal = false"></div>
         <div class="modal-content">
           <div class="box">
-            <h3 class="title is-4">Copy Contexts</h3>
-            <p>Select a course to see its contexts. All contexts from the selected course will be copied into the current course. Existing contexts will not be affected, and copied contexts will be renamed if necessary to avoid duplicate names.</p>
+            <h3 class="title is-4">Copy Items</h3>
+            <p>Select a course to see its items. All items from the selected course will be copied into the current course. Existing items will not be affected, and copied items will be renamed if necessary to avoid duplicate names.</p>
             <form method="post" action="{{ url_for('.class_config_table.copy_from_course', table_name=context.table.name) }}">
               <div class="field">
                 <label class="label" for="source_class_id">Copy from course:</label>
@@ -298,22 +298,22 @@
                 </div>
               </div>
 
-              {# Section to display contexts of the selected course #}
+              {# Section to display items of the selected course #}
               <div class="mt-3 mb-3 content" style="min-height: 200px; max-height: 200px; overflow-y: auto; border: 1px solid #dbdbdb; padding: 0.5em;">
-                <div x-show="selected_course.contexts.length > 0" class="m-0">
-                  <p class="has-text-weight-semibold" x-text="`Contexts in '${selected_course.name || ''}':`"></p>
+                <div x-show="selected_course.items.length > 0" class="m-0">
+                  <p class="has-text-weight-semibold" x-text="`Items in '${selected_course.name || ''}':`"></p>
                   <ol class="mt-0">
-                    <template x-for="context_name in selected_course.contexts" :key="context_name">
-                      <li x-text="context_name"></li>
+                    <template x-for="item_name in selected_course.items" :key="item_name">
+                      <li x-text="item_name"></li>
                     </template>
                   </ol>
                 </div>
-                <div x-show="selected_course_id && selected_course.contexts.length == 0"><i>No contexts found in this course.</i></div>
+                <div x-show="selected_course_id && selected_course.items.length == 0"><i>No items found in this course.</i></div>
               </div>
 
               <div class="field is-grouped is-justify-content-flex-end">
                 <div class="control">
-                  <button type="submit" class="button is-link" x-bind:disabled="!selected_course_id || selected_course.contexts.length == 0">Copy Contexts</button>
+                  <button type="submit" class="button is-link" x-bind:disabled="!selected_course_id || selected_course.items.length == 0">Copy items</button>
                 </div>
                 <div class="control">
                   <button type="button" class="button" @click="showCopyModal = false">Cancel</button>
