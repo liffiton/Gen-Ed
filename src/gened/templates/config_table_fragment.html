@@ -21,7 +21,7 @@
       return new Date(date + 'T00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
     }
     document.addEventListener('alpine:init', () => {
-      Alpine.data('reorderable', () => ({
+      Alpine.data('config_table_{{ context.table_name }}', () => ({
         items: {{ context.item_data | tojson }},
         drag_index: null,
 
@@ -63,7 +63,7 @@
         showModal: false,
         newDate: null,
 
-        // throughout, 'this.item' refers to an item object from the for loop in the parent Alpine scope ('reorderable')
+        // throughout, 'this.item' refers to an item object from the for loop in the parent Alpine scope ('config_table...')
         init() {
           this.$watch('item.available', newval => {
             // post updated date to save in DB
@@ -89,7 +89,7 @@
       }));
     });
   </script>
-  <table class="table is-hoverable is-narrow" style="width: auto; min-width: min(40em, 80%); margin: auto;" x-data="reorderable">
+  <table class="table is-hoverable is-narrow" style="width: auto; min-width: min(40em, 80%); margin: auto;" x-data="config_table_{{ context.table_name }}">
     <thead>
       <tr>
         <th class="p-0 has-text-centered has-text-grey" title="Reorder">
