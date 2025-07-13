@@ -65,7 +65,7 @@ def config_form() -> str:
     extra_sections_data = [
         {
             'template_name': sec.template_name,
-            'ctx': sec.context_provider() | sec.extra_args,
+            'ctx': sec.context_provider(),
         }
         for sec in extra_sections
         if sec.requires_experiment is None or sec.requires_experiment in auth.class_experiments

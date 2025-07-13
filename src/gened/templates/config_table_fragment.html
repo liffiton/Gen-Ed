@@ -1,4 +1,4 @@
-{% with table=ctx.table %}
+{% with table=ctx.table, item_data=ctx.item_data, copyable_courses=ctx.copyable_courses %}
 <div class="content">
   <h2 class="title is-size-4">{{ table.display_name_plural | title }}</h2>
   {% if table.help_text is string %}
@@ -19,7 +19,7 @@
     }
     document.addEventListener('alpine:init', () => {
       Alpine.data('config_table_{{ table.name }}', () => ({
-        items: {{ ctx.item_data | tojson }},
+        items: {{ item_data | tojson }},
         drag_index: null,
 
         dragenter(index) {
@@ -38,27 +38,27 @@
           });
         },
       }));
-      Alpine.data('available_dropdown_{{ table.name }}', () => ({
+      Alpine.data('available_dropdown_{{ table.name }}', (item) => ({
+        // 'item': an item object passed in from the for loop in the parent Alpine scope ('config_table...')
         showDropdown: false,
         showModal: false,
         newDate: null,
 
-        // throughout, 'this.item' refers to an item object from the for loop in the parent Alpine scope ('config_table...')
         init() {
           this.$watch('item.available', newval => {
             // post updated date to save in DB
             fetch("{{ url_for('.class_config_table.update_available', table_name=table.name) }}", {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({'item_id': this.item.id, 'available': this.item.available}),
+              body: JSON.stringify({'item_id': item.id, 'available': item.available}),
             });
           });
         },
-        get status() { return this.item.available === '9999-12-31' ? 'Hidden' : datePassed(this.item.available) ? 'Now' : 'Scheduled'; },
+        get status() { return item.available === '9999-12-31' ? 'Hidden' : datePassed(item.available) ? 'Now' : 'Scheduled'; },
         get min_date_str() { const min_date = new Date(); min_date.setDate(min_date.getDate() + 1); return min_date.toISOString().split('T')[0]; },
         chooseScheduled() {
           if (this.status === 'Scheduled') {
-            this.newDate = this.item.available;
+            this.newDate = item.available;
           }
           else {
             // get today in YYYY-MM-DD format as starting point for date picker
@@ -105,7 +105,7 @@
             </a>
           </td>
           <td style="text-align: center; vertical-align: middle;">
-            <div x-data="available_dropdown_{{ table.name }}">
+            <div x-data="available_dropdown_{{ table.name }}(item)">
               <div class="dropdown" x-bind:class="{'is-active': showDropdown}">
                 <div class="dropdown-trigger">
                   <button class="button is-small is-rounded" style="white-space: normal;"
@@ -156,14 +156,8 @@
           </td>
           <td class="has-text-centered">
             <form method="post">
-              <span x-data="{
-                showLinkModal: false,
-                showModal() {
-                  this.copied = false;
-                  this.showLinkModal = true;
-                },
-              }">
-                <button x-bind:title="`link to '${item.name}'`" class="button is-white is-small has-text-grey" type="button" @click="showModal">
+              <span x-data="{ showLinkModal: false }">
+                <button x-bind:title="`link to '${item.name}'`" class="button is-white is-small has-text-grey" type="button" @click="showLinkModal = true">
                   <svg aria-hidden="true" class="icon is-small"><use href="#svg_link" /></svg>
                 </button>
                 <div class="modal" x-bind:class="{'is-active': showLinkModal}" @keydown.escape.window="showLinkModal = false;">
@@ -237,7 +231,7 @@
     {# Button and modal for copying items from another course #}
     <span x-data='{
         showCopyModal: false,
-        courses_data: {{ ctx.copyable_courses | tojson }},
+        courses_data: {{ copyable_courses | tojson }},
         selected_course_id: "",
         get selected_course() {
           return this.courses_data.find(course => course.id == this.selected_course_id) || {"id": null, "name": null, "items": []};

@@ -23,9 +23,6 @@ class ExtraSectionProvider:
     # A function that returns a dictionary of context variables for the template.
     context_provider: Callable[[], dict[str, Any]]
 
-    # A dictionary of additional name/value pairs to pass to the template.
-    extra_args: dict[str, Any] = field(default_factory=dict)
-
     # Either None or a string containing a single experiment name; this section
     # will not be shown unless that experiment is active in the current class.
     requires_experiment: str | None = None
@@ -38,14 +35,12 @@ def register_extra_section(
     template_name: str,
     context_provider: Callable[[], dict[str, Any]],
     *,
-    extra_args: dict[str, Any] | None = None,
     requires_experiment: str | None = None,
 ) -> None:
     """ Register a new section for the class configuration UI. """
     section = ExtraSectionProvider(
         template_name,
         context_provider,
-        extra_args or dict(),
         requires_experiment,
     )
     _extra_section_providers.append(section)

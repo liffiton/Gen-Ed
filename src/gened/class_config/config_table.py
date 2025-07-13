@@ -111,16 +111,17 @@ def register_config_table(table: ConfigTable) -> None:
 
     _registered_tables[table.name] = table
 
-    def get_data() -> dict[str, Any]:
-        return _get_item_config_data(db_table = table.db_table_name)
-
     if table.routes is not None:
         bp.register_blueprint(table.routes)
 
+    def get_template_context() -> dict[str, Any]:
+        ctx = _get_item_config_data(db_table = table.db_table_name)
+        ctx['table'] = table
+        return ctx
+
     register_extra_section(
         "config_table_fragment.html",
-        get_data,
-        extra_args={'table': table},
+        get_template_context,
         requires_experiment=table.requires_experiment,
     )
 
