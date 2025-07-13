@@ -141,6 +141,8 @@ Your role is to assist students with learning and practicing a specific topic. H
 
 The topic of this chat is: <topic>{{ tutor_config.topic }}</topic>
 
+The learning context given by the instructor is: <learning_context>{{ tutor_config.context }}</learning_context>
+
 Here are the specific learning objectives along with *example* assessment questions for each.
 
 {% for objective in tutor_config.objectives %}
