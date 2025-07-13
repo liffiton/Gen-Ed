@@ -248,7 +248,8 @@ def new_item_form() -> str | Response:
 def create_item() -> Response:
     cur_class = get_auth_class()
     item = g.config_table.config_item_class.from_request_form(request.form)
-    _insert_item(cur_class.class_id, item.name, item.to_json(), "9999-12-31")  # defaults to hidden
+    _, name = _insert_item(cur_class.class_id, item.name, item.to_json(), "9999-12-31")  # defaults to hidden
+    flash(f"Item '{name}' created.", "success")
     return redirect(url_for("class_config.config_form"))
 
 
@@ -296,7 +297,8 @@ def copy_item(item: ConfigItem) -> Response:
 
     # passing existing name, but _insert_item will take care of finding
     # a new, unused name in the class.
-    _insert_item(cur_class.class_id, item.name, item.to_json(), "9999-12-31")  # default to hidden
+    _, new_name = _insert_item(cur_class.class_id, item.name, item.to_json(), "9999-12-31")  # default to hidden
+    flash(f"Item '{item.name}' copied to '{new_name}'.", "success")
     return redirect(url_for("class_config.config_form"))
 
 
@@ -333,7 +335,11 @@ def _make_unique_item_name(db_table_name: str, class_id: int, name: str, item_id
     return new_name
 
 
-def _insert_item(class_id: int, name: str, config: str, available: str) -> int:
+def _insert_item(class_id: int, name: str, config: str, available: str) -> tuple[int, str]:
+    """ Insert an item with the given name, config, and availability into the given class.
+    Ensures the name is unique within the class, modifying it as needed.
+    Returns a tuple of the new row id and the name of the newly inserted item.
+    """
     db = get_db()
 
     # names must be unique within a class: check/look for an unused name
@@ -346,10 +352,7 @@ def _insert_item(class_id: int, name: str, config: str, available: str) -> int:
     db.commit()
     new_item_id = cur.lastrowid
     assert new_item_id is not None
-
-    flash(f"Item '{new_name}' created.", "success")
-
-    return new_item_id
+    return new_item_id, new_name
 
 
 @bp.route("/update/<int:item_id>", methods=["POST"])
