@@ -71,31 +71,3 @@ def record_context_string(context_str: str) -> int:
     context_string_id = cur.fetchone()['id']
     assert isinstance(context_string_id, int)
     return context_string_id
-
-
-def _get_instructor_courses(user_id: int, current_class_id: int) -> list[dict[str, str | list[str]]]:
-    """ Get other courses where the user is an instructor. """
-    db = get_db()
-    course_rows = db.execute("""
-        SELECT c.id, c.name
-        FROM classes c
-        JOIN roles r ON c.id = r.class_id
-        WHERE r.user_id = ?
-          AND r.role = 'instructor'
-          AND c.id != ?
-        ORDER BY c.name
-    """, [user_id, current_class_id]).fetchall()
-
-    # Fetch contexts for each eligible course to display in the copy modal
-    instructor_courses_data = []
-    for course in course_rows:
-        course_contexts = db.execute("""
-            SELECT name FROM contexts WHERE class_id = ? ORDER BY class_order
-        """, [course['id']]).fetchall()
-        instructor_courses_data.append({
-            'id': course['id'],
-            'name': course['name'],
-            'contexts': [ctx['name'] for ctx in course_contexts]
-        })
-
-    return instructor_courses_data
