@@ -11,19 +11,6 @@ from werkzeug.datastructures import ImmutableMultiDict
 
 from gened.class_config import ConfigItem
 
-# This module manages application-specific context configuration.
-#
-# It is kept relatively generic, and much of the specific implementation of
-# a context can be controlled by the ContextConfig dataclass and related
-# templates.
-#
-# App-specific context configuration data are stored in dataclasses.  The
-# dataclass must specify the template filename, contain the context's name,
-# define the config's fields and their types, and implement
-# `from_request_form()` and `from_row()` class methods that generate a config
-# object based on inputs in request.form (as submitted from the form in the
-# specified template) or an SQLite row from the database.
-
 _jinja_env_prompt = Environment(
     trim_blocks=True,
     lstrip_blocks=True,
