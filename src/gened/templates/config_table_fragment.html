@@ -173,8 +173,8 @@
                       <div class="field has-addons is-horizontal" x-data="link_display(share_link.url)">
                         <div class="field-label label is-normal" x-text="share_link.label"></div>
                         <div class="field-body" style="flex-grow: 5;">
-                          <div class="control">
-                            <span class="input" x-text="link_URL"></span>
+                          <div class="control is-expanded">
+                            <input class="input" readonly x-bind:value="link_URL">
                           </div>
                           <div class="control">
                             <button type="button" class="button icon-text" x-bind:class="copied ? 'is-success' : 'is-link'" @click="copy_url">
@@ -189,7 +189,7 @@
                         <p>These links will let students access the {{ table.display_name }} even if it is currently hidden.</p>
                         <p>These links will <b>not</b> register a student in the class:</p>
                         <ul>
-                          <li>Students must have already joined this class before they use one of these link.</li>
+                          <li>Students must have already joined this class before they use one of these links.</li>
                           <li>If the class connects using LTI, students must log in via LTI from your LMS before they use one of these.</li>
                         </ul>
                       </div>
