@@ -15,6 +15,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div class="container content">
         <h1 class="title">Start a New Chat</h1>
 
+        {% if contexts is not none %}
         <h2 class="is-size-4">Inquiry Chat</h2>
         <form action="{{url_for('tutors.chat.create_inquiry_chat')}}" method="post">
 
@@ -28,13 +29,13 @@ SPDX-License-Identifier: AGPL-3.0-only
           {% endif %}
 
           <div class="field is-horizontal">
-            <div class="field-label is-normal">
+            <div class="field-label is-medium">
               <label class="label" for="topic">Topic:</label>
             </div>
             <div class="field-body">
               <div class="field">
                 <div class="control">
-                  <input class="input" name="topic" id="topic">
+                  <input class="input is-medium" name="topic" id="topic">
                 </div>
               </div>
             </div>
@@ -54,19 +55,24 @@ SPDX-License-Identifier: AGPL-3.0-only
           </div>
 
         </form>
+        {% endif %}
 
         {% if tutors %}
         <h2 class="is-size-4">Guided Chat</h2>
         <form action="{{url_for('tutors.chat.create_guided_chat')}}" method="post">
 
           <div class="field is-horizontal">
-            <div class="field-label is-normal">
+            <div class="field-label is-medium">
               <label class="label" for="topic">Topic:</label>
             </div>
             <div class="field-body">
+              {% if tutors | length == 1 %}
+                <div class="input is-medium">{{ tutors[0].name }}</div>
+                <input type="hidden" name="tutor_id" value="{{ tutors[0].id }}">
+              {% else %}
               <div class="field">
                 <div class="control">
-                  <div class="select">
+                  <div class="select is-medium">
                     <select name="tutor_id">
                       <option disabled selected value="">Please select</option>
                       {% for tutor in tutors %}
@@ -76,6 +82,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                   </div>
                 </div>
               </div>
+              {% endif %}
             </div>
           </div>
 

@@ -156,7 +156,7 @@
           </td>
           <td class="has-text-centered">
             <form method="post">
-              <span x-data="{ showLinkModal: false }">
+              <span x-show="item.share_links.length > 0" x-data="{ showLinkModal: false }">
                 <button x-bind:title="`link to '${item.name}'`" class="button is-white is-small has-text-grey" type="button" @click="showLinkModal = true">
                   <svg aria-hidden="true" class="icon is-small"><use href="#svg_link" /></svg>
                 </button>
@@ -169,13 +169,9 @@
                         Link to '<span x-text="item.name"></span>'
                       </h3>
                       <p>Take your students directly to the '<span x-text="item.name"></span>' {{ table.display_name }} in {{ config['APPLICATION_TITLE'] }}:</p>
-                      {% macro link_display_row(route, label) -%}
-                      <div
-                        class="field has-addons is-horizontal"
-                        x-data="link_display(
-                        '{{ url_for(route, class_id=auth.cur_class.class_id, ctx_name='__replace__', _external=True) }}'.replace('__replace__', encodeURIComponent(item.name))
-                      )">
-                        <div class="field-label label is-normal">{{ label }}:</div>
+                      <template x-for="share_link in item.share_links">
+                      <div class="field has-addons is-horizontal" x-data="link_display(share_link.url)">
+                        <div class="field-label label is-normal" x-text="share_link.label"></div>
                         <div class="field-body" style="flex-grow: 5;">
                           <div class="control">
                             <span class="input" x-text="link_URL"></span>
@@ -188,11 +184,7 @@
                           </div>
                         </div>
                       </div>
-                      {%- endmacro %}
-                      {{ link_display_row('helper.help_form', 'Help Form') }}
-                      {% if "chats_experiment" in auth.class_experiments %}
-                        {{ link_display_row('tutors.chat.new_inquiry_chat_form', 'Inquiry Chat') }}
-                      {% endif %}
+                      </template>
                       <div class="notification content is-warning is-light" style="font-size: 85%;">
                         <p>These links will let students access the {{ table.display_name }} even if it is currently hidden.</p>
                         <p>These links will <b>not</b> register a student in the class:</p>

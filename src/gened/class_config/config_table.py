@@ -4,9 +4,9 @@
 
 import json
 from abc import ABC, abstractmethod
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from sqlite3 import Row
-from typing import Any, Self
+from typing import Any, Literal, Self
 
 from flask import (
     Blueprint,
@@ -77,6 +77,23 @@ class ConfigItem(ABC):
         filtered_attrs = {k: v for k, v in asdict(self).items() if k not in ('name', 'row_id')}
         return json.dumps(filtered_attrs)
 
+@dataclass(frozen=True)
+class ConfigShareLink:
+    label: str
+    endpoint: str
+    args: set[Literal['class_id', 'ctx_name', 'tutor_name']]
+    requires_experiment: str | None = None
+
+    def render_url(self, item: dict[str, Any]) -> str:
+        kwargs: dict[str, str] = dict()
+        for arg in self.args:
+            match arg:
+                case 'class_id':
+                    kwargs[arg] = str(get_auth_class().class_id)
+                case 'ctx_name' | 'tutor_name':
+                    kwargs[arg] = item['name']
+        return url_for(self.endpoint, _external=True, **kwargs)
+
 @dataclass(frozen=True, kw_only=True)
 class ConfigTable:
     name: str
@@ -87,7 +104,7 @@ class ConfigTable:
     display_name_plural: str
     help_text: Template | str | None = None
     edit_form_template: str
-    routes: Blueprint | None = None
+    share_links: list[ConfigShareLink] = field(default_factory=list)
 
     @property
     def new_url(self) -> str:
@@ -100,15 +117,15 @@ class DuplicateTableError(Exception):
     def __init__(self, name: str):
         super().__init__(f"A table named {name} has already been registered")
 
-def register_config_table(table: ConfigTable) -> None:
+def register_config_table(table: ConfigTable, extra_routes: Blueprint | None = None) -> None:
     """ Register the configuration UI as an extra config section. """
     if table.name in _registered_tables:
         raise DuplicateTableError(table.name)
 
     _registered_tables[table.name] = table
 
-    if table.routes is not None:
-        bp.register_blueprint(table.routes)
+    if extra_routes is not None:
+        bp.register_blueprint(extra_routes)
 
     def get_template_context() -> dict[str, Any]:
         return _get_table_template_context(table)
@@ -162,12 +179,19 @@ def _get_table_template_context(table: ConfigTable) -> dict[str, Any]:
     """, [class_id]).fetchall()
     items = [dict(c) for c in items]  # for conversion to json
 
-    # add pre-generated URLs for actions (awkward to do this in the template with some info from Jinja and some from JS)
-    # TODO: pre-generate share links, possibly with customization via ConfigTable
+    # add pre-generated URLs for actions and share links
+    # (done here b/c it's awkward to do this in the template with some info from Jinja and some from JS)
     for item in items:
         item['url_edit'] = url_for('.class_config_table.edit_item_form', table_name=table.name, item_id=item['id'])
         item['url_copy'] = url_for('.class_config_table.copy_item', table_name=table.name, item_id=item['id'])
         item['url_delete'] = url_for('.class_config_table.delete_item', table_name=table.name, item_id=item['id'])
+        item['share_links'] = []
+        for share_link in table.share_links:
+            if share_link.requires_experiment is None or share_link.requires_experiment in auth.class_experiments:
+                item['share_links'].append({
+                    'url': share_link.render_url(item),
+                    'label': share_link.label}
+                )
 
     assert auth.user
     copyable_courses = _get_instructor_courses(auth.user.id, class_id, table.db_table_name)

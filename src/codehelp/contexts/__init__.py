@@ -1,6 +1,6 @@
 from jinja2 import Environment
 
-from gened.class_config import ConfigTable, register_config_table
+from gened.class_config import ConfigShareLink, ConfigTable, register_config_table
 
 from .data import (
     get_available_contexts,
@@ -29,6 +29,19 @@ contexts_config_table = ConfigTable(
     display_name_plural='contexts',
     help_text=context_config_help,
     edit_form_template='context_edit_form.html',
+    share_links=[
+        ConfigShareLink(
+            'Help form',
+            'helper.help_form',
+            {'class_id', 'ctx_name'},
+        ),
+        ConfigShareLink(
+            'Inquiry chat',
+            'tutors.chat.new_chat_form',
+            {'class_id', 'ctx_name'},
+            requires_experiment='chats_experiment',
+        ),
+    ]
 )
 register_config_table(contexts_config_table)
 

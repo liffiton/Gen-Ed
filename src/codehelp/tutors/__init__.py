@@ -1,7 +1,7 @@
 from flask import Blueprint
 from markupsafe import Markup
 
-from gened.class_config import ConfigTable, register_config_table
+from gened.class_config import ConfigShareLink, ConfigTable, register_config_table
 
 from . import admin, data
 from .chat import bp as chat_bp
@@ -23,9 +23,16 @@ guided_tutors_config_table = ConfigTable(
     help_text=Markup('<p><i>Caution! Under development.</i></p>'),
     requires_experiment='chats_experiment',
     edit_form_template='guided_tutor_edit_form.html',
-    routes=guided_bp,
+    share_links=[
+        ConfigShareLink(
+            'Focused tutor chat',
+            'tutors.chat.new_chat_form',
+            {'class_id', 'tutor_name'},
+            requires_experiment='chats_experiment',
+        ),
+    ]
 )
-register_config_table(guided_tutors_config_table)
+register_config_table(guided_tutors_config_table, guided_bp)
 
 
 def register_with_gened() -> None:

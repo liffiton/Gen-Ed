@@ -56,43 +56,51 @@ def before_request() -> None:
 
 
 @bp.route("/new")
-def new_chat_form() -> str:
-    contexts_list = get_available_contexts()
-    # turn into format we can pass to js via JSON
-    contexts = {ctx.name: ctx.desc_html() for ctx in contexts_list}
-
-    # get pre-defined guided chat tutors
+@bp.route("/new/<int:class_id>")
+def new_chat_form(class_id: int | None = None) -> Response | str:
     db = get_db()
     auth = get_auth()
 
-    class_id = auth.cur_class.class_id if auth.cur_class else None
-    # Only return contexts that are available:
-    #   current date anywhere on earth (using UTC+12) is at or after the saved date
-    tutor_rows = db.execute("SELECT id, name FROM tutors WHERE class_id=? AND available <= date('now', '+12 hours') ORDER BY class_order ASC", [class_id]).fetchall()
+    if class_id is not None:
+        success = switch_class(class_id)
+        if not success:
+            # Can't access the specified class
+            flash("Cannot access specified class.  Make sure you are logged in correctly before using this link.", "danger")
+            return make_response(render_template("error.html"), 400)
+
+        contexts = None
+        tutor_rows = None
+
+        if 'ctx_name' in request.args:
+            ctx_name = request.args['ctx_name']
+            context = get_context_by_name(ctx_name)
+            if not context:
+                flash(f"Context not found: '{ctx_name}'", "danger")
+                return make_response(render_template("error.html"), 400)
+            contexts = {context.name: context.desc_html()}
+        elif 'tutor_name' in request.args:
+            tutor_name = request.args['tutor_name']
+            tutor_rows = db.execute("SELECT id, name FROM tutors WHERE class_id=? AND name=?", [class_id, tutor_name]).fetchall()
+            if not tutor_rows:
+                flash(f"Tutor not found: '{tutor_name}'", "danger")
+                return make_response(render_template("error.html"), 400)
+        else:
+            return make_response(render_template("error.html"), 400)
+
+    else:
+        # All contexts and all guided tutors
+        contexts_list = get_available_contexts()
+        # turn into format we can pass to js via JSON
+        contexts = {ctx.name: ctx.desc_html() for ctx in contexts_list}
+
+        # Get all pre-defined guided tutors that are available:
+        #   current date anywhere on earth (using UTC+12) is at or after the saved date
+        class_id = auth.cur_class.class_id if auth.cur_class else None
+        tutor_rows = db.execute("SELECT id, name FROM tutors WHERE class_id=? AND available <= date('now', '+12 hours') ORDER BY class_order ASC", [class_id]).fetchall()
 
     recent_chats = get_chat_history()
+
     return render_template("tutor_new_form.html", contexts=contexts, tutors=tutor_rows, recent_chats=recent_chats)
-
-
-@bp.route("/new/ctx/<int:class_id>/<string:ctx_name>")
-def new_inquiry_chat_form(class_id: int, ctx_name: str) -> str | Response:
-    success = switch_class(class_id)
-    if not success:
-        # Can't access the specified context
-        flash("Cannot access class and context.  Make sure you are logged in correctly before using this link.", "danger")
-        return make_response(render_template("error.html"), 400)
-
-    context = get_context_by_name(ctx_name)
-    if not context:
-        flash(f"Context not found: {ctx_name}", "danger")
-        return make_response(render_template("error.html"), 404)
-    contexts_list = [context]
-
-    # turn into format we can pass to js via JSON
-    contexts = {ctx.name: ctx.desc_html() for ctx in contexts_list}
-
-    recent_chats = get_chat_history()
-    return render_template("tutor_new_form.html", contexts=contexts, recent_chats=recent_chats)
 
 
 @bp.route("/create_inquiry", methods=["POST"])
