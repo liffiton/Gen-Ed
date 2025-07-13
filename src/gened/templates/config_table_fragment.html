@@ -23,27 +23,10 @@
         drag_index: null,
 
         dragenter(index) {
-          if (this.drag_index === null) { return }
-          if (index === this.drag_index) { return }
-          // reorder the list, placing the dragged item at this index and shifting others
-          let new_items = [];
-          const drag_item = this.items[this.drag_index];
-          this.items.forEach((el, i) => {
-            if (i === this.drag_index) { return }
-            else if (i === index && i < this.drag_index) {
-              new_items.push(drag_item);
-              new_items.push(el);
-            }
-            else if (i === index && i > this.drag_index) {
-              new_items.push(el);
-              new_items.push(drag_item);
-            }
-            else {
-              new_items.push(el);
-            }
-          });
-          this.items = new_items;  // update w/ newly ordered list
-          this.drag_index = index;  // this new index is now the one we're dragging
+          if (this.drag_index === null || index === this.drag_index) { return; }
+          const draggedItem = this.items.splice(this.drag_index, 1)[0];
+          this.items.splice(index, 0, draggedItem);
+          this.drag_index = index;
         },
         stop_drag() {
           this.drag_index = null;
@@ -55,7 +38,7 @@
           });
         },
       }));
-      Alpine.data('available_dropdown', () => ({
+      Alpine.data('available_dropdown_{{ table.name }}', () => ({
         showDropdown: false,
         showModal: false,
         newDate: null,
@@ -82,6 +65,15 @@
             this.newDate = this.min_date_str;
           }
           this.showModal = true;
+        },
+      }));
+      Alpine.data('link_display', (link_url) => ({
+        link_URL: link_url,
+        copied: false,
+        copy_url() {
+          navigator.clipboard.writeText(this.link_URL);
+          this.copied = true;
+          setTimeout(() => {this.copied = false;}, 2000);
         },
       }));
     });
@@ -113,7 +105,7 @@
             </a>
           </td>
           <td style="text-align: center; vertical-align: middle;">
-            <div x-data="available_dropdown">
+            <div x-data="available_dropdown_{{ table.name }}">
               <div class="dropdown" x-bind:class="{'is-active': showDropdown}">
                 <div class="dropdown-trigger">
                   <button class="button is-small is-rounded" style="white-space: normal;"
@@ -171,32 +163,25 @@
                   this.showLinkModal = true;
                 },
               }">
-                {% macro link_display_alpinejs(route) -%}
-                  {# unholy combination of Jinja templating (route available in python) and Javascript string replacement (item available in JS)... #}
-                  {
-                    link_URL: '{{ url_for(route, class_id=auth.cur_class.class_id, ctx_name='__replace__', _external=True) }}'.replace('__replace__', encodeURIComponent(item.name)),
-                    copied: false,
-                    copy_url() {
-                      navigator.clipboard.writeText(this.link_URL);
-                      this.copied = true;
-                      setTimeout(() => {this.copied = false;}, 2000);
-                    },
-                  }
-                {%- endmacro %}
                 <button x-bind:title="`link to '${item.name}'`" class="button is-white is-small has-text-grey" type="button" @click="showModal">
                   <svg aria-hidden="true" class="icon is-small"><use href="#svg_link" /></svg>
                 </button>
                 <div class="modal" x-bind:class="{'is-active': showLinkModal}" @keydown.escape.window="showLinkModal = false;">
                   <div class="modal-background" @click="showLinkModal = false;"></div>
-                  <div class="modal-content">
+                  <div class="modal-content" style="width: clamp(min(50em, 100vw), 50vw, 100vw);">
                     <div class="box has-text-left">
                       <h3 class="title is-4">
                         <svg aria-hidden="true" class="icon"><use href="#svg_link" /></svg>
                         Link to '<span x-text="item.name"></span>'
                       </h3>
-                      <p>Take your students directly to the '<span x-text="item.name"></span>' {{ table.display_name }} in CodeHelp:</p>
-                      <div class="field has-addons is-horizontal" x-data="{{ link_display_alpinejs('helper.help_form') }}">
-                        <div class="field-label label is-normal">Help Form:</div>
+                      <p>Take your students directly to the '<span x-text="item.name"></span>' {{ table.display_name }} in {{ config['APPLICATION_TITLE'] }}:</p>
+                      {% macro link_display_row(route, label) -%}
+                      <div
+                        class="field has-addons is-horizontal"
+                        x-data="link_display(
+                        '{{ url_for(route, class_id=auth.cur_class.class_id, ctx_name='__replace__', _external=True) }}'.replace('__replace__', encodeURIComponent(item.name))
+                      )">
+                        <div class="field-label label is-normal">{{ label }}:</div>
                         <div class="field-body" style="flex-grow: 5;">
                           <div class="control">
                             <span class="input" x-text="link_URL"></span>
@@ -209,21 +194,10 @@
                           </div>
                         </div>
                       </div>
+                      {%- endmacro %}
+                      {{ link_display_row('helper.help_form', 'Help Form') }}
                       {% if "chats_experiment" in auth.class_experiments %}
-                      <div class="field has-addons is-horizontal" x-data="{{ link_display_alpinejs('tutors.chat.new_inquiry_chat_form') }}">
-                        <div class="field-label label is-normal">Tutor Chat:</div>
-                        <div class="field-body" style="flex-grow: 5;">
-                          <div class="control">
-                            <span class="input" x-text="link_URL"></span>
-                          </div>
-                          <div class="control">
-                            <button type="button" class="button icon-text" x-bind:class="copied ? 'is-success' : 'is-link'" @click="copy_url">
-                              <svg aria-hidden="true" class="icon is-right"><use href="#svg_copy" /></svg>
-                              <span x-text="copied ? 'copied' : 'copy'"></span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+                        {{ link_display_row('tutors.chat.new_inquiry_chat_form', 'Inquiry Chat') }}
                       {% endif %}
                       <div class="notification content is-warning is-light" style="font-size: 85%;">
                         <p>These links will let students access the {{ table.display_name }} even if it is currently hidden.</p>
