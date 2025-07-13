@@ -90,10 +90,6 @@ class ConfigTable:
     routes: Blueprint | None = None
 
     @property
-    def edit_url(self) -> str:
-        return url_for('class_config.class_config_table.edit_item_form', table_name=self.name)
-
-    @property
     def new_url(self) -> str:
         return url_for('class_config.class_config_table.new_item_form', table_name=self.name)
 
@@ -115,9 +111,7 @@ def register_config_table(table: ConfigTable) -> None:
         bp.register_blueprint(table.routes)
 
     def get_template_context() -> dict[str, Any]:
-        ctx = _get_item_config_data(db_table = table.db_table_name)
-        ctx['table'] = table
-        return ctx
+        return _get_table_template_context(table)
 
     register_extra_section(
         "config_table_fragment.html",
@@ -154,7 +148,7 @@ def _get_instructor_courses(user_id: int, current_class_id: int, db_table: str) 
     return instructor_courses_data
 
 
-def _get_item_config_data(db_table: str) -> dict[str, Any]:
+def _get_table_template_context(table: ConfigTable) -> dict[str, Any]:
     db = get_db()
     auth = get_auth()
     cur_class = get_auth_class()
@@ -162,16 +156,27 @@ def _get_item_config_data(db_table: str) -> dict[str, Any]:
 
     items = db.execute(f"""
         SELECT id, name, CAST(available AS TEXT) AS available
-        FROM {db_table}
+        FROM {table.db_table_name}
         WHERE class_id=?
         ORDER BY class_order
     """, [class_id]).fetchall()
     items = [dict(c) for c in items]  # for conversion to json
 
-    assert auth.user
-    copyable_courses = _get_instructor_courses(auth.user.id, class_id, db_table)
+    # add pre-generated URLs for actions (awkward to do this in the template with some info from Jinja and some from JS)
+    # TODO: pre-generate share links, possibly with customization via ConfigTable
+    for item in items:
+        item['url_edit'] = url_for('.class_config_table.edit_item_form', table_name=table.name, item_id=item['id'])
+        item['url_copy'] = url_for('.class_config_table.copy_item', table_name=table.name, item_id=item['id'])
+        item['url_delete'] = url_for('.class_config_table.delete_item', table_name=table.name, item_id=item['id'])
 
-    return {"item_data": items, "copyable_courses": copyable_courses}
+    assert auth.user
+    copyable_courses = _get_instructor_courses(auth.user.id, class_id, table.db_table_name)
+
+    return {
+        "table": table,
+        "item_data": items,
+        "copyable_courses": copyable_courses
+    }
 
 
 ### Blueprint + routes

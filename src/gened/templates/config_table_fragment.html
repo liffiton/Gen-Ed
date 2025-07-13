@@ -99,7 +99,7 @@
             <svg aria-hidden="true" class="icon is-small mt-1"><use href="#svg_grip" /></svg>
           </td>
           <td style="vertical-align: middle;">
-            <a class="hover-show-icon has-text-link-dark" style="text-decoration: none;" x-bind:title="`edit '${item.name}'`" x-bind:href="'{{ table.edit_url }}/' + item.id">
+            <a class="hover-show-icon has-text-link-dark" style="text-decoration: none;" x-bind:title="`edit '${item.name}'`" x-bind:href="item.url_edit">
               <span class="is-underlined" x-text="item.name"></span>
               <svg aria-hidden="true" class="icon is-small has-text-link-dark"><use href="#svg_pencil" /></svg>
             </a>
@@ -206,10 +206,10 @@
                   <button type="button" class="modal-close is-large" aria-label="close" @click="showLinkModal = false;"></button>
                 </div>
               </span>
-              <button x-bind:title="`copy '${item.name}'`" class="button is-white is-small has-text-grey" type="submit" x-bind:formaction="'{{ url_for('.class_config_table.copy_item', table_name=table.name) }}/' + item.id">
+              <button x-bind:title="`copy '${item.name}'`" class="button is-white is-small has-text-grey" type="submit" x-bind:formaction="item.url_copy">
                 <svg aria-hidden="true" class="icon is-small"><use href="#svg_copy" /></svg>
               </button>
-              <button x-bind:title="`delete '${item.name}'`" class="button is-white is-small has-text-danger" type="submit" x-bind:formaction="'{{ url_for('.class_config_table.delete_item', table_name=table.name) }}/' + item.id" @click="$event => confirm('Are you sure you want to delete \'' + item.name + '\'?') || $event.preventDefault()">
+              <button x-bind:title="`delete '${item.name}'`" class="button is-white is-small has-text-danger" type="submit" x-bind:formaction="item.url_delete" @click="$event => confirm('Are you sure you want to delete \'' + item.name + '\'?') || $event.preventDefault()">
                 <svg aria-hidden="true" class="icon is-small"><use href="#svg_trash" /></svg>
               </button>
             </form>
