@@ -224,10 +224,10 @@ def _get_auth_from_session() -> AuthData:
 
 
 def get_auth() -> AuthData:
-    if 'auth' not in g:
+    if 'auth' not in g or not isinstance(g.auth, AuthData):
         g.auth = _get_auth_from_session()
 
-    return g.auth  # type: ignore[no-any-return]
+    return g.auth
 
 
 def get_auth_class() -> ClassData:
