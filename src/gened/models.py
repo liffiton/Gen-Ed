@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2023 Mark Liffiton <liffiton@gmail.com>
+# SPDX-FileCopyrightText: 2025 Mark Liffiton <liffiton@gmail.com>
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
@@ -19,10 +19,14 @@ from .db import get_db
 
 bp = Blueprint('models', __name__, url_prefix="/models", template_folder='templates')
 
-@bp.route("/new")
+@bp.before_request
 @login_required
+def before_request() -> None:
+    """ Apply decorator to protect all models blueprint endpoints. """
+
+@bp.route("/new")
 def new_model() -> str:
-    return render_template("custom_model.html", model=None)
+    return render_template("models.html", model=None)
 
 def _make_unique_model_shortname(shortname: str, owner_id: int, id: int = -1) -> str:
     """
@@ -41,7 +45,6 @@ def _make_unique_model_shortname(shortname: str, owner_id: int, id: int = -1) ->
     return new_shortname
 
 @bp.route("/create", methods=["POST"])
-@login_required
 def create_new_model() -> Response:
     db = get_db()
     auth = get_auth()
@@ -67,12 +70,11 @@ def create_new_model() -> Response:
         VALUES ((SELECT id FROM llm_providers WHERE name='Custom'), ?, ?, ?, ?, ?, ?)
     """, (new_shortname, model, custom_endpoint, 1, 'user', user_id))
     db.commit()
-    flash("Model added successfully!")
+    flash(f"{new_shortname} added successfully!")
 
     return redirect(url_for("profile.main"))
 
 @bp.route("/edit/<int:model_id>")
-@login_required
 def models_edit(model_id: int) -> str | Response:
     db = get_db()
     auth = get_auth()
@@ -86,10 +88,9 @@ def models_edit(model_id: int) -> str | Response:
         flash("Invalid Id", category='warning')
         return make_response(render_template("error.html"), 400)
 
-    return render_template("custom_model.html", model=current_model)
+    return render_template("models.html", model=current_model)
 
 @bp.route("/update/<int:model_id>", methods=["POST"])
-@login_required
 def models_update(model_id: int) -> Response:
     db = get_db()
     auth = get_auth()
@@ -116,19 +117,19 @@ def models_update(model_id: int) -> Response:
     """, (new_shortname, model, custom_endpoint, model_id, user_id))
     db.commit()
 
-    flash("Model updated successfully!")
+    flash(f"{new_shortname} updated successfully!")
 
     return redirect(url_for("profile.main"))
 
 @bp.route("/delete/<int:model_id>", methods=["POST"])
-@login_required
 def models_delete(model_id: int) -> Response:
     db = get_db()
     auth = get_auth()
     user_id = auth.user_id
     
+    model = db.execute("SELECT * FROM models WHERE id = ? AND owner_id = ?", [model_id, user_id]).fetchone()
     db.execute("DELETE FROM models WHERE id = ? AND owner_id = ?", [model_id, user_id])
     db.commit()
-    flash("Model deleted successfully!")
+    flash(f"{model['shortname']} deleted successfully!")
 
     return redirect(url_for("profile.main"))

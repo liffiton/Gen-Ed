@@ -94,7 +94,6 @@ def main() -> str:
         FROM models
         WHERE owner_id = ?
     """, [user_id]).fetchall()
-    
 
     models_table = DataTable(
         name='models',
@@ -108,7 +107,6 @@ def main() -> str:
         link_template='/models/edit/${value}',
         data=models,
     )
-
 
     return render_template(
         "profile_view.html",
