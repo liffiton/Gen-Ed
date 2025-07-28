@@ -5,6 +5,11 @@ SPDX-License-Identifier: AGPL-3.0-only
 #}
 
 {% extends "base.html" %}
+{% from "tables.html" import datatable, datatable_extrahead %}
+
+{% block extrahead %}
+{{ datatable_extrahead }}
+{% endblock extrahead %}
 
 {% block body %}
 <style type="text/css">
@@ -106,6 +111,24 @@ dl.profile dd { margin: 0; }
         </dd>
       {% endif %}
     </dl>
+    {% if created_classes %}
+      <h2 class="is-size-3">
+        Models
+        
+        <a class="has-text-weight-normal button ml-5 icon-text is-light is-link" href="{{url_for("models.new_model")}}">
+          <span class="icon">
+            <svg aria-hidden="true"><use href="#svg_plus"></svg>
+          </span>
+          <span>Add custom model</span>
+        </a>
+        
+      </h2>
+      
+      <div style="max-width: 30em;">
+        {{ datatable(models_table) }}
+      </div>
+    
+    {% endif %}
 
     <h2 class="title is-size-3">Your Data</h2>
     <div class="buttons">
