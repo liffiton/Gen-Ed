@@ -81,7 +81,7 @@ def get_db() -> sqlite3.Connection:
         db.execute("PRAGMA journal_mode = WAL")    # for performance (and Litestream will enable anyway)
         db.execute("PRAGMA synchronous = NORMAL")  # recommended setting for WAL mode
         db.execute("PRAGMA busy_timeout = 5000")   # to avoid immediate errors on some blocked writes
-        db.execute("PRAGMA foreign_keys=ON")
+        db.execute("PRAGMA foreign_keys = ON")
         g.db = db
 
     assert isinstance(g.db, sqlite3.Connection)
@@ -130,10 +130,11 @@ def backup_db(target: Path) -> None:
             db_output.unlink()  # Clean up temp file
 
 
-def close_db(e: BaseException | None = None) -> None:  # noqa: ARG001 - unused function argument
+def close_db(_e: BaseException | None = None) -> None:
     db = g.pop('db', None)
 
     if db is not None:
+        db.execute("PRAGMA optimize")  # https://sqlite.org/pragma.html#pragma_optimize
         db.close()
 
 
