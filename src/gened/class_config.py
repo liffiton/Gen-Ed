@@ -142,7 +142,7 @@ def save_llm_config() -> Response:
 
     elif 'save_llm_form' in request.form:
         # validate specified model
-        model_id = request.form['model_id']
+        model_id = int(request.form['model_id'])
         valid_models = get_models()
         if not any(model_id == m['id'] for m in valid_models):
             flash("Invalid model.", "danger")
@@ -150,7 +150,7 @@ def save_llm_config() -> Response:
 
         if 'llm_api_key' in request.form:
             db.execute("UPDATE classes_user SET llm_api_key=? WHERE class_id=?", [request.form['llm_api_key'], class_id])
-        db.execute("UPDATE classes_user SET model_id=? WHERE class_id=?", [request.form['model_id'], class_id])
+        db.execute("UPDATE classes_user SET model_id=? WHERE class_id=?", [model_id, class_id])
         db.commit()
         flash("Class language model configuration updated.", "success")
 
