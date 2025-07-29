@@ -66,9 +66,9 @@ def create_new_model() -> Response:
     new_shortname = _make_unique_model_shortname(shortname, user_id)
 
     db.execute("""
-        INSERT INTO models (provider_id, shortname, model, custom_endpoint, active, scope, owner_id)
-        VALUES ((SELECT id FROM llm_providers WHERE name='Custom'), ?, ?, ?, ?, ?, ?)
-    """, (new_shortname, model, custom_endpoint, 1, 'user', user_id))
+        INSERT INTO models (provider_id, shortname, model, custom_endpoint, active, owner_id)
+        VALUES ((SELECT id FROM llm_providers WHERE name='Custom'), ?, ?, ?, ?, ?)
+    """, (new_shortname, model, custom_endpoint, 1, user_id))
     db.commit()
     flash(f"{new_shortname} added successfully!")
 

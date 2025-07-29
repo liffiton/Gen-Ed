@@ -176,10 +176,8 @@ CREATE TABLE models (
     custom_endpoint TEXT,  -- can be null to use default from providers table
     config          TEXT NOT NULL DEFAULT '{}',  -- defaults from llm_providers.config_schema will be used for anything not specified here
     active          BOOLEAN NOT NULL CHECK (active IN (0,1)),
-    scope           TEXT NOT NULL CHECK (scope IN ('system', 'user')),
-    owner_id        INTEGER,
-    CHECK ((scope = 'system' AND owner_id IS NULL) OR
-           (scope = 'user' AND owner_id IS NOT NULL)),
+    owner_id        INTEGER,  -- leave NULL for system-owned/scoped models
+    scope           TEXT GENERATED ALWAYS AS (IIF(owner_id IS NULL, 'system', 'user')) VIRTUAL,
     FOREIGN KEY(provider_id) REFERENCES llm_providers(id),
     FOREIGN KEY(owner_id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -206,10 +204,10 @@ INSERT INTO llm_providers(name, endpoint, config_schema) VALUES
     }');
 
 -- See also: DEFAULT_CLASS_MODEL_SHORTNAME in base.create_app_base()
-INSERT INTO models(provider_id, shortname, model, active, scope) VALUES
-    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1', 'gpt-4.1', true, 'system'),
-    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1 mini', 'gpt-4.1-mini', true, 'system'),
-    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1 nano', 'gpt-4.1-nano', true, 'system')
+INSERT INTO models(provider_id, shortname, model, active, owner_id) VALUES
+    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1', 'gpt-4.1', true, NULL),
+    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1 mini', 'gpt-4.1-mini', true, NULL),
+    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1 nano', 'gpt-4.1-nano', true, NULL)
 ;
 
 
