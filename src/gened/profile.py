@@ -21,7 +21,7 @@ from .csv import csv_response
 from .data_deletion import delete_user_data
 from .db import get_db
 from .redir import safe_redirect
-from .tables import Col, BoolCol, DataTable, NumCol
+from .tables import Col, DataTable, NumCol
 
 bp = Blueprint('profile', __name__, template_folder='templates')
 
@@ -86,11 +86,11 @@ def main() -> str:
     """, [user_id]).fetchall()
 
     models = db.execute("""
-        SELECT 
-        id as id,
-        shortname as shortname,
-        model as model,
-        custom_endpoint as custom_endpoint
+        SELECT
+            id,
+            shortname,
+            model,
+            custom_endpoint
         FROM models
         WHERE owner_id = ?
     """, [user_id]).fetchall()
@@ -103,7 +103,7 @@ def main() -> str:
             Col('model'),
             Col('custom_endpoint'),
         ],
-        link_col=0,  
+        link_col=0,
         link_template='/models/edit/${value}',
         data=models,
     )

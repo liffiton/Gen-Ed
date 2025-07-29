@@ -6,11 +6,11 @@ from flask import (
     Blueprint,
     abort,
     flash,
+    make_response,
     redirect,
     render_template,
     request,
     url_for,
-    make_response,
 )
 from werkzeug.wrappers.response import Response
 
@@ -30,8 +30,8 @@ def new_model() -> str:
 
 def _make_unique_model_shortname(shortname: str, owner_id: int, id: int = -1) -> str:
     """
-    Given a shortname, current owner of the model, id of the model. Return a shortname that is 
-    unique within that class.
+    Given a shortname, current owner of the model, id of the model. Return a
+    shortname that is unique within that class.
     """
 
     db = get_db()
@@ -107,7 +107,7 @@ def models_update(model_id: int) -> Response:
 
     custom_endpoint = request.form.get('custom_endpoint')
     if not custom_endpoint:
-        abort(400, "custom_endpoint required") 
+        abort(400, "custom_endpoint required")
 
     new_shortname = _make_unique_model_shortname(shortname, user_id, model_id)
 
@@ -126,7 +126,7 @@ def models_delete(model_id: int) -> Response:
     db = get_db()
     auth = get_auth()
     user_id = auth.user_id
-    
+
     model = db.execute("SELECT * FROM models WHERE id = ? AND owner_id = ?", [model_id, user_id]).fetchone()
     db.execute("DELETE FROM models WHERE id = ? AND owner_id = ?", [model_id, user_id])
     db.commit()

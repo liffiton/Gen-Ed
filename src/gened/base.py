@@ -31,10 +31,10 @@ from . import (
     llm,
     lti,
     migrate,
+    models,
     oauth,
     profile,
     tz,
-    models,
 )
 
 
