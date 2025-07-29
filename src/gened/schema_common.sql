@@ -140,6 +140,7 @@ CREATE TABLE roles (
 );
 DROP INDEX IF EXISTS roles_user_class_unique;
 CREATE UNIQUE INDEX  roles_user_class_unique ON roles(user_id, class_id) WHERE user_id != -1;  -- not unique for deleted users
+CREATE INDEX roles_by_class_id ON roles(class_id);
 
 -- Store/manage demonstration links
 CREATE TABLE demo_links (
@@ -247,11 +248,14 @@ SELECT
     ) as last_query_time,
     (
         SELECT MAX(q.query_time)
-        FROM roles r_inst
-        JOIN roles r_student ON r_student.class_id=r_inst.class_id
-        JOIN queries q ON q.role_id=r_student.id
-        WHERE r_inst.user_id = users.id
-          AND r_inst.role = 'instructor'
+        FROM queries q
+        WHERE q.role_id IN (
+            SELECT r_student.id
+            FROM roles r_student
+            JOIN roles r_inst ON r_student.class_id=r_inst.class_id
+            WHERE r_inst.user_id = users.id
+              AND r_inst.role = 'instructor'
+        )
     ) as last_instructor_query_time
 FROM users
 LEFT JOIN auth_providers ON auth_providers.id=users.auth_provider
