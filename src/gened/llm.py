@@ -249,6 +249,8 @@ def get_models(plus_id : int | None = None) -> list[Row]:
     list even if it is not marked as active in the database.
     """
     db = get_db()
+    auth = get_auth()
+
     models = db.execute("""
         SELECT
             m.id,
@@ -261,7 +263,9 @@ def get_models(plus_id : int | None = None) -> list[Row]:
             m.active
         FROM models AS m
         JOIN llm_providers AS p ON p.id=m.provider_id
-        WHERE m.active OR m.id = ?
+        WHERE
+            ( m.active AND (m.scope = 'system' OR m.owner_id = ?) )
+            OR m.id = ?
         ORDER BY m.id ASC
-    """, [plus_id]).fetchall()
+    """, [auth.user_id, plus_id]).fetchall()
     return models

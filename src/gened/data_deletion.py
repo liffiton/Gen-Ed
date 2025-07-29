@@ -48,8 +48,19 @@ def delete_user_data(user_id: int) -> None:
 
     db = get_db()
 
+    # Verify the user has no created classes (if they did, they must have deleted them manually first)
+    created_classes = db.execute("""
+        SELECT class_id
+        FROM classes_user
+        WHERE creator_user_id = ?
+    """, [user_id]).fetchall()
+    assert not created_classes
+
     # Deactivate all roles
     db.execute("UPDATE roles SET user_id = -1, active = 0 WHERE user_id = ?", [user_id])
+
+    # Delete any custom models
+    db.execute("DELETE FROM models WHERE owner_id = ?", [user_id])
 
     # Anonymize and deactivate user account
     db.execute("""

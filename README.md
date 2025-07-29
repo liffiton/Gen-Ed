@@ -165,7 +165,8 @@ an application and/or contributing to the project.
 Author
 ------
 
-Gen-Ed and the included applications are by Mark Liffiton.
+Gen-Ed and the included applications are by Mark Liffiton with contributions
+from Zhansen Shingis.
 
 
 Licenses

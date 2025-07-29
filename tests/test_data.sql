@@ -12,7 +12,8 @@ VALUES
     (1, 'LERN101', 1),
     (2, 'USER001', 1),
     (3, 'USER002', 1),
-    (4, 'USER003', 1);
+    (4, 'USER003', 1),
+    (5, 'ADMIN001', 1);
 
 INSERT INTO contexts (id, name, class_id, class_order, available, config)
 VALUES
@@ -45,7 +46,8 @@ INSERT INTO classes_user (class_id, llm_api_key, link_ident, link_reg_expires, c
 VALUES
     (2, 'nope', 'reg_disabled', '0001-01-01', 11, 1),
     (3, 'nope', 'reg_expired', '2023-01-01', 11, 2),
-    (4, 'nope', 'reg_enabled', '9999-12-31', 11, 2);
+    (4, 'nope', 'reg_enabled', '9999-12-31', 11, 2),
+    (5, 'nope', 'link_id_000', '9999-12-31', 12, 2);  -- 5 is owned/created by testadmin user
 
 INSERT INTO auth_local (user_id, username, password)
 VALUES

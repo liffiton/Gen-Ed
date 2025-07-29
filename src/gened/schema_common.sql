@@ -140,6 +140,7 @@ CREATE TABLE roles (
 );
 DROP INDEX IF EXISTS roles_user_class_unique;
 CREATE UNIQUE INDEX  roles_user_class_unique ON roles(user_id, class_id) WHERE user_id != -1;  -- not unique for deleted users
+CREATE INDEX roles_by_class_id ON roles(class_id);
 
 -- Store/manage demonstration links
 CREATE TABLE demo_links (
@@ -176,14 +177,15 @@ CREATE TABLE models (
     custom_endpoint TEXT,  -- can be null to use default from providers table
     config          TEXT NOT NULL DEFAULT '{}',  -- defaults from llm_providers.config_schema will be used for anything not specified here
     active          BOOLEAN NOT NULL CHECK (active IN (0,1)),
-    scope           TEXT NOT NULL CHECK (scope IN ('system', 'user')),
-    owner_id        INTEGER,
-    CHECK ((scope = 'system' AND owner_id IS NULL) OR
-           (scope = 'user' AND owner_id IS NOT NULL)),
+    owner_id        INTEGER,  -- leave NULL for system-owned/scoped models
+    scope           TEXT GENERATED ALWAYS AS (IIF(owner_id IS NULL, 'system', 'user')) VIRTUAL,
     FOREIGN KEY(provider_id) REFERENCES llm_providers(id),
     FOREIGN KEY(owner_id) REFERENCES users(id) ON DELETE CASCADE
 );
+DROP INDEX IF EXISTS models_by_shortname_owner;
+CREATE UNIQUE INDEX models_by_shortname_owner ON models(shortname, owner_id);
 
+INSERT INTO llm_providers(name) VALUES ("Custom");
 INSERT INTO llm_providers(name, endpoint, config_schema) VALUES
     ('OpenAI', 'https://api.openai.com/v1', '{
         "type": "object",
@@ -203,10 +205,10 @@ INSERT INTO llm_providers(name, endpoint, config_schema) VALUES
     }');
 
 -- See also: DEFAULT_CLASS_MODEL_SHORTNAME in base.create_app_base()
-INSERT INTO models(provider_id, shortname, model, active, scope) VALUES
-    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1', 'gpt-4.1', true, 'system'),
-    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1 mini', 'gpt-4.1-mini', true, 'system'),
-    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1 nano', 'gpt-4.1-nano', true, 'system')
+INSERT INTO models(provider_id, shortname, model, active, owner_id) VALUES
+    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1', 'gpt-4.1', true, NULL),
+    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1 mini', 'gpt-4.1-mini', true, NULL),
+    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1 nano', 'gpt-4.1-nano', true, NULL)
 ;
 
 
@@ -246,11 +248,14 @@ SELECT
     ) as last_query_time,
     (
         SELECT MAX(q.query_time)
-        FROM roles r_inst
-        JOIN roles r_student ON r_student.class_id=r_inst.class_id
-        JOIN queries q ON q.role_id=r_student.id
-        WHERE r_inst.user_id = users.id
-          AND r_inst.role = 'instructor'
+        FROM queries q
+        WHERE q.role_id IN (
+            SELECT r_student.id
+            FROM roles r_student
+            JOIN roles r_inst ON r_student.class_id=r_inst.class_id
+            WHERE r_inst.user_id = users.id
+              AND r_inst.role = 'instructor'
+        )
     ) as last_instructor_query_time
 FROM users
 LEFT JOIN auth_providers ON auth_providers.id=users.auth_provider

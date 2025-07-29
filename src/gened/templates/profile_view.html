@@ -5,6 +5,11 @@ SPDX-License-Identifier: AGPL-3.0-only
 #}
 
 {% extends "base.html" %}
+{% from "tables.html" import datatable, datatable_extrahead %}
+
+{% block extrahead %}
+{{ datatable_extrahead }}
+{% endblock extrahead %}
 
 {% block body %}
 <style type="text/css">
@@ -14,10 +19,10 @@ dl.profile dd { margin: 0; }
 </style>
 
 <section class="section">
-  <div class="container content is-size-5">
+  <div class="container content">
     <h1 class="title">Your Profile</h1>
 
-    <dl class="profile">
+    <dl class="profile is-size-5">
       {% if user.full_name %}
         <dt>Full Name:</dt>
         <dd>{{ user.full_name }}</dd>
@@ -70,7 +75,7 @@ dl.profile dd { margin: 0; }
         </button>
       {% endif %}
     </h2>
-    <dl class="profile">
+    <dl class="profile is-size-5">
       <dt>Current:</dt>
       {% if auth.cur_class %}
         <dd>{{ auth.cur_class.class_name }} ({{ auth.cur_class.role }})</dd>
@@ -106,6 +111,24 @@ dl.profile dd { margin: 0; }
         </dd>
       {% endif %}
     </dl>
+
+    {% if created_classes %}
+      <h2 class="is-size-3">
+        Additional Models
+        <a class="has-text-weight-normal button ml-5 icon-text is-light is-link" href="{{url_for("models.new_model")}}">
+          <span class="icon">
+            <svg aria-hidden="true"><use href="#svg_plus" /></svg>
+          </span>
+          <span>Add custom model</span>
+        </a>
+      </h2>
+      <p class="is-italic">If you want to use LLMs in your classes other than those already available, you can specify custom LLMs here.</p>
+      
+      <div style="max-width: 50em;">
+        {{ datatable(models_table) }}
+      </div>
+    
+    {% endif %}
 
     <h2 class="title is-size-3">Your Data</h2>
     <div class="buttons">
