@@ -18,21 +18,37 @@ def test_model_creates(app: Flask, client: AppClient) -> None:
     response = client.post("models/create", data={
         'shortname': "own_llm",
         'custom_endpoint': 'own_endpoint',
-        'model': "Primary AI",
+        'model': "own_model",
     })
     assert response.status_code == 302 # successful redirect
 
-    page = client.get("/profile/")
-    assert "own_llm" in page.text
-    assert 'own_endpoint' in page.text
-    assert 'Primary AI' in page.text
+    # verify model shows up in profile
+    response = client.get("/profile/")
+    assert 'own_llm' in response.text
+    assert 'own_endpoint' in response.text
+    assert 'own_model' in response.text
 
+    # verify model shows up in class configuration screen (as option)
+    client.get("/classes/switch/2")  # switch to class the current user created
+    config_response = client.get("/instructor/config/")
+    assert config_response.status_code == 200
+    assert 'Custom own_llm' in config_response.text
+
+    # verify edit response populates with model details
     model = _get_model_by_shortname(app, "own_llm")
+    edit_response = client.get(f"models/edit/{model['id']}")
+    assert edit_response.status_code == 200
+    assert 'own_llm' in edit_response.text
+    assert 'own_endpoint' in edit_response.text
+    assert 'own_model' in edit_response.text
 
-    edit_page = client.get(f"models/edit/{model['id']}")
-    assert "own_llm" in edit_page.text
-    assert 'own_endpoint' in edit_page.text
-    assert 'Primary AI' in edit_page.text
+    # verify model does *not* show up in class configuration screen for another user
+    client.logout()
+    client.login('testadmin', 'testadminpassword')
+    client.get("/classes/switch/5")  # switch to class the current user created
+    config_response2 = client.get("/instructor/config/")
+    assert config_response2.status_code == 200
+    assert 'own_llm' not in config_response2.text
 
 def test_model_handle_duplicate(client: AppClient) -> None:
     client.login()
@@ -59,7 +75,7 @@ def test_model_handle_duplicate(client: AppClient) -> None:
     assert "Ollama (1)" in response.text
 
 def test_display_models_after_created_class(client: AppClient) -> None:
-    client.login(username="testadmin", password="testadminpassword")
+    client.login(username="testinstructor", password="testinstructorpassword")
 
     response = client.get("/profile/")
     assert "shortname" not in response.text
