@@ -21,7 +21,7 @@ from .csv import csv_response
 from .data_deletion import delete_user_data
 from .db import get_db
 from .redir import safe_redirect
-from .tables import Col, DataTable, NumCol
+from .tables import Action, Col, DataTable, NumCol
 
 bp = Blueprint('profile', __name__, template_folder='templates')
 
@@ -88,9 +88,10 @@ def main() -> str:
     models = db.execute("""
         SELECT
             id,
-            shortname,
+            shortname AS name,
+            custom_endpoint AS endpoint,
             model,
-            custom_endpoint
+            (SELECT COUNT(*) FROM classes_user AS cu WHERE cu.model_id=models.id) AS "used in #classes"
         FROM models
         WHERE owner_id = ?
     """, [user_id]).fetchall()
@@ -99,12 +100,16 @@ def main() -> str:
         name='models',
         columns=[
             NumCol('id', hidden=True),
-            Col('shortname'),
+            Col('name'),
+            Col('endpoint'),
             Col('model'),
-            Col('custom_endpoint'),
+            NumCol('used in #classes'),
         ],
         link_col=0,
         link_template='/models/edit/${value}',
+        actions=[
+            Action("Edit model", icon='pencil', url=url_for('models.models_edit'), id_col=0),
+        ],
         data=models,
     )
 

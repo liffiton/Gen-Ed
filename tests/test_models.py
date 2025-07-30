@@ -78,9 +78,9 @@ def test_display_models_after_created_class(client: AppClient) -> None:
     client.login(username="testinstructor", password="testinstructorpassword")
 
     response = client.get("/profile/")
-    assert "shortname" not in response.text
+    assert "Additional Models" not in response.text
     assert "model" not in response.text
-    assert "custom_endpoint" not in response.text
+    assert "endpoint" not in response.text
     assert "Add custom model" not in response.text
 
     response = client.post("/classes/create/", data={
@@ -90,7 +90,7 @@ def test_display_models_after_created_class(client: AppClient) -> None:
     assert response.status_code == 302
 
     response = client.get("/profile/")
-    assert "shortname" in response.text
+    assert "Additional Models" in response.text
     assert "model" in response.text
-    assert "custom_endpoint" in response.text
+    assert "endpoint" in response.text
     assert "Add custom model" in response.text
