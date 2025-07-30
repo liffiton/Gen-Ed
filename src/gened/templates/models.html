@@ -67,11 +67,20 @@ SPDX-License-Identifier: AGPL-3.0-only
           <div class="field">
             <div class="control">
               <button class="button is-link" type="submit" >Save</button>
+            </div>
+            <div class="control mt-6">
               {% if model %}
-                <button class="button is-danger" type="submit" formaction="{{ url_for('models.models_delete', model_id=model.id) }}" onclick="return confirm('Are you sure you want to delete this model?');">
+                {% set use_count = model.user_class_use_count %}
+                <button class="button is-danger" {% if use_count > 0 -%} disabled {%- endif %} type="submit" formaction="{{ url_for('models.models_delete', model_id=model.id) }}" onclick="return confirm('Are you sure you want to delete this model?');">
                   <span class="delete mr-2"></span>
-                  Delete
+                  Delete model
                 </button>
+                {% if use_count > 0 %}
+                  <p class="is-italic mt-2">
+                    Models cannot be deleted while selected for use in any classes.<br>
+                    This model is currently selected for {{ use_count }} class{% if use_count > 1 %}es{% endif %}.
+                  </p>
+                {% endif %}
               {% endif %}
             </div>
           </div>

@@ -3,22 +3,22 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from collections.abc import Callable
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from sqlite3 import Row
 from typing import Any, Final, Literal
 
 from .filters import fmt_response_txt, fmt_user
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class Col:
-    name: str
+    name: str = field(kw_only=False)  # override kw_only so that only this argument can be positional
     kind: str | None = None
     hidden: bool = False
     align: Literal[None, 'left', 'right', 'center'] = None
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class NumCol(Col):
     align: Final = 'right'
     kind: Final = 'num'
@@ -32,23 +32,23 @@ class BoolCol(Col):
     kind: Final = 'bool'
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class UserCol(Col):
     kind: Final = 'html'
     prerender: Final[Callable[[str], str]] = fmt_user
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class TimeCol(Col):
     kind: Final = 'time'
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class DateCol(Col):
     kind: Final = 'date'
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class ResponseCol(Col):
     kind: Final = 'html'
     prerender: Final[Callable[[str], str]] = fmt_response_txt

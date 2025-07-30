@@ -74,6 +74,7 @@ def create_new_model() -> Response:
 
     return redirect(url_for("profile.main"))
 
+@bp.route("/edit/")
 @bp.route("/edit/<int:model_id>")
 def models_edit(model_id: int) -> str | Response:
     db = get_db()
@@ -81,7 +82,11 @@ def models_edit(model_id: int) -> str | Response:
     user_id = auth.user_id
 
     current_model = db.execute("""
-        SELECT * FROM models WHERE id = ? AND owner_id = ?
+        SELECT
+            *,
+            (SELECT COUNT(*) FROM classes_user AS cu WHERE cu.model_id=models.id) AS "user_class_use_count"
+        FROM models
+        WHERE id = ? AND owner_id = ?
     """, [model_id, user_id]).fetchone()
 
     if current_model is None:
@@ -112,8 +117,8 @@ def models_update(model_id: int) -> Response:
     new_shortname = _make_unique_model_shortname(shortname, user_id, model_id)
 
     db.execute("""
-    UPDATE models SET shortname = ?, model = ?, custom_endpoint = ?
-    WHERE id = ? and owner_id = ?
+        UPDATE models SET shortname = ?, model = ?, custom_endpoint = ?
+        WHERE id = ? and owner_id = ?
     """, (new_shortname, model, custom_endpoint, model_id, user_id))
     db.commit()
 
