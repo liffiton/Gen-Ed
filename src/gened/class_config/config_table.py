@@ -270,6 +270,12 @@ def before_request() -> None:
 @bp.route("/edit/", methods=[])  # just for url_for() in js code
 @bp.route("/edit/<int:item_id>")
 def edit_item_form(item: ConfigItem) -> str | Response:
+    # check whether the user is editing this item (in the cache already w/ same row_id)
+    cached = g.config_table.config_item_class.from_cache()
+    if item.row_id == cached.row_id:
+        # use the cached version, which may have been changed but not yet saved to the DB
+        item = cached
+
     return render_template(g.config_table.edit_form_template, item=item)
 
 

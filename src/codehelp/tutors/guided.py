@@ -69,7 +69,12 @@ class TutorConfig(ConfigItem):
 
     @classmethod
     def initial(cls) -> Self:
-        return cls.from_cache()
+        item = cls.from_cache()
+        if item.row_id is not None:
+            # this is saved from an edit form, not a new/create form, so don't use it
+            return cls(name='')
+        else:
+            return item
 
     @classmethod
     def from_request_form(cls, form: ImmutableMultiDict[str, Any]) -> Self:
@@ -78,6 +83,8 @@ class TutorConfig(ConfigItem):
         populates everything *else* from the given form.
         """
         config = cls.from_cache()
+        if 'row_id' in form:
+            config.row_id = int(form['row_id'])
         config.name = form.get('name', '').strip()
         config.topic = form.get('topic', '').strip()
         config.context = form.get('context', '').strip()

@@ -13,6 +13,11 @@
     {% endif %}
     <form class="wide-labels" method="post" enctype="multipart/form-data" x-data="{loading1: false, loading2: false}" x-on:pageshow.window="loading1 = loading2 = false" x-on:submit.debounce.10ms="if ($event.submitter.id === 'gen_objectives') {loading1 = true} else {loading2 = true}">
 
+      {% if item.row_id %}
+        {# We're editing an existing tutor; pass that back in any updated so the cache is used. #}
+        <input type="hidden" name="row_id" value="{{ item.row_id }}">
+      {% endif %}
+
       <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label" for="name">Name</label>
