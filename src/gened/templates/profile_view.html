@@ -166,7 +166,7 @@ dl.profile dd { margin: 0; }
           </ul>
         </p>
         {% if auth.user.auth_provider == 'lti' %}
-          <p>This user was created using a link from an LMS.  If you connect to CodeHelp from your LMS after deleting your data here, you will create a new user on CodeHelp separate from this one.</p>
+          <p>This user was created using a link from an LMS.  If you access {{ config['APPLICATION_TITLE'] }} from your LMS <em>after</em> deleting your data here, that will create a new user separate from this one.</p>
         {% endif %}
         <p>Type "DELETE" in the text box to confirm you want to delete your account.</p>
         <p class="has-text-danger-dark"><strong class="has-text-danger-dark">Warning:</strong> Deleting your data cannot be undone.</p>
