@@ -86,6 +86,9 @@ class TutorConfig(ConfigItem):
         config.objectives = [LearningObjective(obj, form.getlist(f'questions[{i}]')) for i, obj in enumerate(objectives_split)]
         return config
 
+    def after_create(self) -> None:
+        _delete_cached_config()
+
 
 def _cache_key() -> str:
     auth = get_auth()

@@ -72,6 +72,10 @@ class ConfigItem(ABC):
         attrs['row_id'] = row['id']
         return cls(**attrs)
 
+    def after_create(self) -> None:
+        """ Override this to specify code to run after creating/inserting a new item of this type. """
+        return
+
     def to_json(self) -> str:
         """ Dump config data (all but name and row_id) to JSON (implemented here) """
         filtered_attrs = {k: v for k, v in asdict(self).items() if k not in ('name', 'row_id')}
@@ -279,6 +283,7 @@ def create_item() -> Response:
     cur_class = get_auth_class()
     item = g.config_table.config_item_class.from_request_form(request.form)
     _, name = _insert_item(cur_class.class_id, item.name, item.to_json(), "9999-12-31")  # defaults to hidden
+    item.after_create()
     flash(f"Item '{name}' created.", "success")
     return redirect(url_for("class_config.config_form"))
 
