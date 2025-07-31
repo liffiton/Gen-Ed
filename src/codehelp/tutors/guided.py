@@ -145,10 +145,10 @@ def upload_document() -> Response:
     config = TutorConfig.from_request_form(request.form)
     _save_to_cache(config)
 
-    if 'document' not in request.files:
+    if 'document_file' not in request.files:
         return safe_redirect(request.referrer, default_endpoint='profile.main')
 
-    pdf_file = request.files['document']
+    pdf_file = request.files['document_file']
     if pdf_file.filename:
         pdf_file.seek(0, 2)  # 2 = SEEK_END
         file_size = pdf_file.tell()

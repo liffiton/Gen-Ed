@@ -88,7 +88,7 @@
             {% else %}
               <div class="control file has-name">
                 <label class="file-label">
-                  <input class="file-input" type="file" name="document" accept=".pdf" x-bind:disabled="loading1 || loading2" @change="filename = $event.target.files.length ? $event.target.files[0].name : ''">
+                  <input class="file-input" type="file" name="document_file" accept=".pdf" x-bind:disabled="loading1 || loading2" @change="filename = $event.target.files.length ? $event.target.files[0].name : ''">
                   <span class="file-cta">
                     Choose a PDF…
                   </span>
