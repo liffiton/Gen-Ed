@@ -1,0 +1,16 @@
+{#
+SPDX-FileCopyrightText: 2025 Mark Liffiton <liffiton@gmail.com>
+
+SPDX-License-Identifier: AGPL-3.0-only
+#}
+
+{% if auth.user %}
+  <a class="navbar-item has-text-success" href="{{ url_for('helper.help_form') }}">
+    <div class="icon-text">
+      <span class="icon">
+        <svg aria-hidden="true"><use href="#svg_pencil" /></svg>
+      </span>
+      <span>Check Writing</span>
+    </div>
+  </a>
+{% endif %}
