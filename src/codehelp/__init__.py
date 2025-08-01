@@ -9,7 +9,7 @@ from flask.app import Flask
 
 from gened.base import GenEdAppBuilder
 
-from . import contexts, deletion_handler, queries, tutors
+from . import contexts, queries, tutors
 
 
 def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | None = None) -> Flask:
@@ -32,9 +32,6 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
     # load test config if provided, potentially overriding above config
     if test_config is not None:
         app_config = app_config | test_config
-
-    # register app-specific functionality with gened
-    deletion_handler.register_with_gened()
 
     # create the base application
     builder = GenEdAppBuilder(__name__, app_config, instance_path)

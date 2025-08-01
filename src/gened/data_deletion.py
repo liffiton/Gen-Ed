@@ -11,6 +11,8 @@ for those handlers.
 
 from typing import Protocol
 
+from flask import current_app
+
 from .db import get_db
 
 
@@ -27,25 +29,8 @@ class DeletionHandler(Protocol):
         ...
 
 
-_handler: DeletionHandler | None = None
-
-
-def register_handler(handler: DeletionHandler) -> None:
-    """Register the application's deletion handler implementation."""
-    global _handler
-    _handler = handler
-
-
-def has_handler() -> bool:
-    """Return whether a deletion handler has been registered (True) or not (False)."""
-    return _handler is not None
-
-
 def delete_user_data(user_id: int) -> None:
     """Delete/anonymize all personal data for the given user."""
-    if _handler is None:
-        raise RuntimeError("No deletion handler registered")
-
     db = get_db()
 
     # Verify the user has no created classes (if they did, they must have deleted them manually first)
@@ -78,14 +63,19 @@ def delete_user_data(user_id: int) -> None:
     db.execute("DELETE FROM auth_local WHERE user_id = ?", [user_id])
     db.execute("DELETE FROM auth_external WHERE user_id = ?", [user_id])
 
-    # Call application-specific data deletion handler(s)
-    _handler.delete_user_data(user_id)
+    # Call component-specific data deletion handler(s)
+    for handler in current_app.extensions['gen_ed_deletion_handlers']:
+        handler.delete_user_data(user_id)
 
     db.commit()
 
 
 def delete_class_data(class_id: int) -> None:
     """Delete/anonymize all personal data for the given class."""
-    if _handler is None:
-        raise RuntimeError("No deletion handler registered")
-    _handler.delete_class_data(class_id)
+    db = get_db()
+
+    # Call component-specific data deletion handler(s)
+    for handler in current_app.extensions['gen_ed_deletion_handlers']:
+        handler.delete_class_data(class_id)
+
+    db.commit()

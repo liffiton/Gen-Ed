@@ -71,3 +71,60 @@ def record_context_string(context_str: str) -> int:
     context_string_id = cur.fetchone()['id']
     assert isinstance(context_string_id, int)
     return context_string_id
+
+
+class ContextsDeletionHandler:
+    """Personal data deletion for the queries component."""
+
+    @staticmethod
+    def delete_user_data(user_id: int) -> None:
+        """Delete/Anonymize personal data for a user while preserving non-personal data for analysis."""
+        db = get_db()
+
+        # Anonymize personal data in queries
+        db.execute("""
+            UPDATE queries
+            SET code = CASE
+                    WHEN code IS NOT NULL THEN '[deleted]'
+                    ELSE NULL
+                END,
+                error = CASE
+                    WHEN error IS NOT NULL THEN '[deleted]'
+                    ELSE NULL
+                END,
+                issue = '[deleted]',
+                context_name = '[deleted]',
+                context_string_id = NULL,
+                user_id = -1
+            WHERE user_id = ?
+        """, [user_id])
+
+        db.commit()
+
+    @staticmethod
+    def delete_class_data(class_id: int) -> None:
+        """Delete/Anonymize personal data for a class while preserving non-personal data for analysis."""
+        db = get_db()
+        db.execute("PRAGMA foreign_keys=OFF")  # so we can delete context_string entries before NULLing the foreign keys referencing them
+
+        # Remove context names and configs as they may contain personal information
+        db.execute("""
+            UPDATE contexts
+            SET name = '[deleted]' || id,
+                config = '{}'
+            WHERE class_id = ?
+        """, [class_id])
+
+        # Remove context strings as they may contain personal information
+        db.execute("""
+            DELETE FROM context_strings
+            WHERE id IN (
+                SELECT context_string_id
+                FROM queries
+                WHERE role_id IN (
+                    SELECT id FROM roles WHERE class_id = ?
+                )
+            )
+        """, [class_id])
+
+        db.execute("PRAGMA foreign_keys=ON")

@@ -147,8 +147,6 @@ class QueriesDeletionHandler:
             WHERE user_id = ?
         """, [user_id])
 
-        db.commit()
-
     @staticmethod
     def delete_class_data(class_id: int) -> None:
         """Delete/Anonymize personal data for a class while preserving non-personal data for analysis."""
@@ -173,5 +171,3 @@ class QueriesDeletionHandler:
                 SELECT id FROM roles WHERE class_id = ?
             )
         """, [class_id])
-
-        db.commit()
