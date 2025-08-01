@@ -7,7 +7,7 @@ from typing import Any
 
 from flask.app import Flask
 
-from gened import base
+from gened.base import GenEdAppBuilder
 
 from . import contexts, deletion_handler, helper, queries, tutors
 
@@ -39,7 +39,9 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
     tutors.register_with_gened()
 
     # create the base application
-    app = base.create_app_base(__name__, app_config, instance_path)
+    #app = base.create_app_base(__name__, app_config, instance_path)
+    builder = GenEdAppBuilder(__name__, app_config, instance_path)
+    app = builder.build()
 
     # register blueprints specific to this application variant
     app.register_blueprint(helper.bp)

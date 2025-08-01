@@ -4,6 +4,7 @@ import pytest
 from flask import Flask
 
 import codehelp
+from gened.base import DBMissingModelError
 from gened.db import get_db
 from tests.conftest import AppClient
 
@@ -36,7 +37,7 @@ def test_invalid_model_shortname(app: Flask) -> None:
     when creating a new app for the test.
     """
     instance_path = Path(app.instance_path)
-    with pytest.raises(SystemExit) as exc_info:
+    with pytest.raises(DBMissingModelError):
         codehelp.create_app(
             test_config={
                 'TESTING': True,
@@ -45,8 +46,7 @@ def test_invalid_model_shortname(app: Flask) -> None:
             },
             instance_path = instance_path
         )
-    assert exc_info.value.code == 1
-    with pytest.raises(SystemExit) as exc_info:
+    with pytest.raises(DBMissingModelError):
         codehelp.create_app(
             test_config={
                 'TESTING': True,
@@ -55,7 +55,6 @@ def test_invalid_model_shortname(app: Flask) -> None:
             },
             instance_path = instance_path
         )
-    assert exc_info.value.code == 1
 
 
 def test_model_used_in_class_creation(app: Flask, client: AppClient) -> None:
