@@ -10,6 +10,7 @@ from typing import Any, Literal, Self
 
 from flask import (
     Blueprint,
+    Flask,
     abort,
     current_app,
     flash,
@@ -23,7 +24,7 @@ from jinja2 import Template
 from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.wrappers.response import Response
 
-from gened.auth import get_auth, get_auth_class, instructor_required
+from gened.auth import get_auth, get_auth_class
 from gened.db import get_db
 
 from .extra_sections import register_extra_section
@@ -109,27 +110,22 @@ class ConfigTable:
     help_text: Template | str | None = None
     edit_form_template: str
     share_links: list[ConfigShareLink] = field(default_factory=list)
+    extra_routes: Blueprint | None = None
 
     @property
     def new_url(self) -> str:
-        return url_for('class_config.class_config_table.new_item_form', table_name=self.name)
+        return url_for('class_config.table.crud.new_item_form', table_name=self.name)
 
-
-_registered_tables: dict[str, ConfigTable] = {}
 
 class DuplicateTableError(Exception):
     def __init__(self, name: str):
         super().__init__(f"A table named {name} has already been registered")
 
-def register_config_table(table: ConfigTable, extra_routes: Blueprint | None = None) -> None:
+
+def _register_config_table(table: ConfigTable, bp: Blueprint) -> None:
     """ Register the configuration UI as an extra config section. """
-    if table.name in _registered_tables:
-        raise DuplicateTableError(table.name)
-
-    _registered_tables[table.name] = table
-
-    if extra_routes is not None:
-        bp.register_blueprint(extra_routes)
+    if table.extra_routes is not None:
+        bp.register_blueprint(table.extra_routes)
 
     def get_template_context() -> dict[str, Any]:
         return _get_table_template_context(table)
@@ -186,9 +182,9 @@ def _get_table_template_context(table: ConfigTable) -> dict[str, Any]:
     # add pre-generated URLs for actions and share links
     # (done here b/c it's awkward to do this in the template with some info from Jinja and some from JS)
     for item in items:
-        item['url_edit'] = url_for('.class_config_table.edit_item_form', table_name=table.name, item_id=item['id'])
-        item['url_copy'] = url_for('.class_config_table.copy_item', table_name=table.name, item_id=item['id'])
-        item['url_delete'] = url_for('.class_config_table.delete_item', table_name=table.name, item_id=item['id'])
+        item['url_edit'] = url_for('class_config.table.crud.edit_item_form', table_name=table.name, item_id=item['id'])
+        item['url_copy'] = url_for('class_config.table.crud.copy_item', table_name=table.name, item_id=item['id'])
+        item['url_delete'] = url_for('class_config.table.crud.delete_item', table_name=table.name, item_id=item['id'])
         item['share_links'] = []
         for share_link in table.share_links:
             if share_link.requires_experiment is None or share_link.requires_experiment in auth.class_experiments:
@@ -207,68 +203,79 @@ def _get_table_template_context(table: ConfigTable) -> dict[str, Any]:
     }
 
 
-### Blueprint + routes
-bp = Blueprint('class_config_table', __name__, url_prefix="/table/<string:table_name>", template_folder='templates')
+### Blueprints + routes
+def create_blueprint(app: Flask) -> Blueprint:
+    bp = create_base_blueprint()
+    bp.register_blueprint(crud_bp)
 
-@bp.url_value_preprocessor
-def pull_table_name(_endpoint: str | None, values: dict[str, Any] | None) -> None:
-    """ Pull the table_name from the parsed URL parameters, validate that the
-    path specified a registered table (abort 404 if not), and make the table
-    config object available in g instead.
-    """
-    if values is None:
-        return
-    table_name = values.pop('table_name')
-    if table_name not in _registered_tables:
-        abort(404)
-    g.config_table = _registered_tables[table_name]
+    for table in app.extensions['gen_ed_config_tables'].values():
+        _register_config_table(table, bp)
 
-@bp.url_value_preprocessor
-def check_valid_item(_endpoint: str | None, values: dict[str, Any] | None) -> None:
-    """
-    For any endpoints that require an item_id in the path, check that the
-    specified item is valid in the current class, aborting with a 403 if not.
-
-    When used with @instructor_required, in which case this guarantees the
-    current user is allowed to edit the specified item.
-
-    Pops the 'item_id' argument and replaces it with an 'item' named argument
-    carrying a ConfigItem built from the item's db row.
-    """
-    if values is None or 'item_id' not in values:
-        return
-
-    db = get_db()
-    auth = get_auth()
-    if not auth.cur_class:
-        return
-
-    cur_class = auth.cur_class
-
-    # verify the given item is in the user's current class
-    cur_class_id = cur_class.class_id
-    item_id = values.pop('item_id')
-    query = f"SELECT * FROM {g.config_table.db_table_name} WHERE id=?"
-    item_row = db.execute(query, [item_id]).fetchone()
-    if item_row['class_id'] != cur_class_id:
-        abort(403)
-
-    values['item'] = g.config_table.config_item_class.from_row(item_row)
-
-@bp.url_defaults
-def add_table_name(_endpoint: str, values: dict[str, Any]) -> None:
-    """ Make any url_for into this blueprint use the current request context's table_name by default. """
-    if 'config_table' in g:
-        values.setdefault('table_name', g.config_table.name)
-
-@bp.before_request
-@instructor_required
-def before_request() -> None:
-    """ Apply instructor_required decorator to protect all class_config blueprint endpoints. """
+    return bp
 
 
-@bp.route("/edit/", methods=[])  # just for url_for() in js code
-@bp.route("/edit/<int:item_id>")
+def create_base_blueprint() -> Blueprint:
+    bp = Blueprint('table', __name__, url_prefix="/table/<string:table_name>", template_folder='templates')
+
+    @bp.url_value_preprocessor
+    def pull_table_name(_endpoint: str | None, values: dict[str, Any] | None) -> None:
+        """ Pull the table_name from the parsed URL parameters, validate that the
+        path specified a registered table (abort 404 if not), and make the table
+        config object available in g instead.
+        """
+        if values is None:
+            return
+        table_name = values.pop('table_name')
+        registered_tables = current_app.extensions['gen_ed_config_tables']
+        if table_name not in registered_tables:
+            abort(404)
+        g.config_table = registered_tables[table_name]
+
+    @bp.url_value_preprocessor
+    def check_valid_item(_endpoint: str | None, values: dict[str, Any] | None) -> None:
+        """
+        For any endpoints that require an item_id in the path, check that the
+        specified item is valid in the current class, aborting with a 403 if not.
+
+        When used with @instructor_required, in which case this guarantees the
+        current user is allowed to edit the specified item.
+
+        Pops the 'item_id' argument and replaces it with an 'item' named argument
+        carrying a ConfigItem built from the item's db row.
+        """
+        if values is None or 'item_id' not in values:
+            return
+
+        db = get_db()
+        auth = get_auth()
+        if not auth.cur_class:
+            return
+
+        cur_class = auth.cur_class
+
+        # verify the given item is in the user's current class
+        cur_class_id = cur_class.class_id
+        item_id = values.pop('item_id')
+        query = f"SELECT * FROM {g.config_table.db_table_name} WHERE id=?"
+        item_row = db.execute(query, [item_id]).fetchone()
+        if item_row['class_id'] != cur_class_id:
+            abort(403)
+
+        values['item'] = g.config_table.config_item_class.from_row(item_row)
+
+    @bp.url_defaults
+    def add_table_name(_endpoint: str, values: dict[str, Any]) -> None:
+        """ Make any url_for into this blueprint use the current request context's table_name by default. """
+        if 'config_table' in g:
+            values.setdefault('table_name', g.config_table.name)
+
+    return bp
+
+
+crud_bp = Blueprint('crud', __name__, template_folder='templates')
+
+@crud_bp.route("/edit/", methods=[])  # just for url_for() in js code
+@crud_bp.route("/edit/<int:item_id>")
 def edit_item_form(item: ConfigItem) -> str | Response:
     # check whether the user is editing this item (in the cache already w/ same row_id)
     cached = g.config_table.config_item_class.from_cache()
@@ -279,22 +286,22 @@ def edit_item_form(item: ConfigItem) -> str | Response:
     return render_template(g.config_table.edit_form_template, item=item)
 
 
-@bp.route("/new")
+@crud_bp.route("/new")
 def new_item_form() -> str | Response:
     return render_template(g.config_table.edit_form_template, item=g.config_table.config_item_class.initial())
 
 
-@bp.route("/create", methods=["POST"])
+@crud_bp.route("/create", methods=["POST"])
 def create_item() -> Response:
     cur_class = get_auth_class()
     item = g.config_table.config_item_class.from_request_form(request.form)
     _, name = _insert_item(cur_class.class_id, item.name, item.to_json(), "9999-12-31")  # defaults to hidden
     item.after_create()
     flash(f"Item '{name}' created.", "success")
-    return redirect(url_for("class_config.config_form"))
+    return redirect(url_for("class_config.base.config_form"))
 
 
-@bp.route("/copy_from_course", methods=["POST"])
+@crud_bp.route("/copy_from_course", methods=["POST"])
 def copy_from_course() -> Response:
     db = get_db()
     auth = get_auth()
@@ -321,18 +328,18 @@ def copy_from_course() -> Response:
 
     if not source_items:
         flash(f"Course '{source_class_name}' has no items to copy.", "warning")
-        return redirect(url_for("class_config.config_form"))
+        return redirect(url_for("class_config.base.config_form"))
 
     for item_row in source_items:
         _insert_item(target_class_id, item_row['name'], item_row['config'], "9999-12-31")  # default to hidden
 
     flash(f"Successfully copied {len(source_items)} item(s) from '{source_class_name}'.", "success")
 
-    return redirect(url_for("class_config.config_form"))
+    return redirect(url_for("class_config.base.config_form"))
 
 
-@bp.route("/copy/", methods=[])  # just for url_for() in js code
-@bp.route("/copy/<int:item_id>", methods=["POST"])
+@crud_bp.route("/copy/", methods=[])  # just for url_for() in js code
+@crud_bp.route("/copy/<int:item_id>", methods=["POST"])
 def copy_item(item: ConfigItem) -> Response:
     cur_class = get_auth_class()
 
@@ -340,7 +347,7 @@ def copy_item(item: ConfigItem) -> Response:
     # a new, unused name in the class.
     _, new_name = _insert_item(cur_class.class_id, item.name, item.to_json(), "9999-12-31")  # default to hidden
     flash(f"Item '{item.name}' copied to '{new_name}'.", "success")
-    return redirect(url_for("class_config.config_form"))
+    return redirect(url_for("class_config.base.config_form"))
 
 
 def _make_unique_item_name(db_table_name: str, class_id: int, name: str, item_id: int|None = None) -> str:
@@ -396,7 +403,7 @@ def _insert_item(class_id: int, name: str, config: str, available: str) -> tuple
     return new_item_id, new_name
 
 
-@bp.route("/update/<int:item_id>", methods=["POST"])
+@crud_bp.route("/update/<int:item_id>", methods=["POST"])
 def update_item(item: ConfigItem) -> Response:
     db = get_db()
 
@@ -409,11 +416,11 @@ def update_item(item: ConfigItem) -> Response:
     db.commit()
 
     flash(f"Configuration for item '{item.name}' updated.", "success")
-    return redirect(url_for("class_config.config_form"))
+    return redirect(url_for("class_config.base.config_form"))
 
 
-@bp.route("/delete/", methods=[])  # just for url_for() in js code
-@bp.route("/delete/<int:item_id>", methods=["POST"])
+@crud_bp.route("/delete/", methods=[])  # just for url_for() in js code
+@crud_bp.route("/delete/<int:item_id>", methods=["POST"])
 def delete_item(item: ConfigItem) -> Response:
     db = get_db()
 
@@ -421,10 +428,10 @@ def delete_item(item: ConfigItem) -> Response:
     db.commit()
 
     flash(f"Item '{item.name}' deleted.", "success")
-    return redirect(url_for("class_config.config_form"))
+    return redirect(url_for("class_config.base.config_form"))
 
 
-@bp.route("/update_order", methods=["POST"])
+@crud_bp.route("/update_order", methods=["POST"])
 def update_order() -> str:
     db = get_db()
     cur_class = get_auth_class()
@@ -442,7 +449,7 @@ def update_order() -> str:
     return 'ok'
 
 
-@bp.route("/update_available", methods=["POST"])
+@crud_bp.route("/update_available", methods=["POST"])
 def update_available() -> str:
     db = get_db()
     cur_class = get_auth_class()

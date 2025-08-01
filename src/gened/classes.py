@@ -216,7 +216,7 @@ def create_class() -> Response:
     success = switch_class(class_id)
     assert success
 
-    return redirect(url_for("class_config.config_form"))
+    return redirect(url_for("class_config.base.config_form"))
 
 
 # Not using @login_required here because we may need to redirect to anon. login specifically

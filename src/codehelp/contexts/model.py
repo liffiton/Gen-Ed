@@ -5,7 +5,7 @@
 from dataclasses import dataclass
 from typing import Self
 
-from flask import Flask
+from flask import Flask, current_app
 from jinja2 import Environment
 from werkzeug.datastructures import ImmutableMultiDict
 
@@ -15,11 +15,6 @@ _jinja_env_prompt = Environment(
     trim_blocks=True,
     lstrip_blocks=True,
     autoescape=False,  # noqa: S701 - no need to escape for the LLM
-)
-_jinja_env_html = Environment(
-    trim_blocks=True,
-    lstrip_blocks=True,
-    autoescape=True,
 )
 
 @dataclass
@@ -71,7 +66,7 @@ Keywords and concepts to avoid (do not mention these in your response at all): <
 
         Does not include the avoid set (not necessary to show students).
         """
-        template = _jinja_env_html.from_string("""\
+        template = current_app.jinja_env.from_string("""\
 {% if tools %}
 <p><b>Environment & tools:</b> {{ tools }}</p>
 {% endif %}
@@ -81,8 +76,3 @@ Keywords and concepts to avoid (do not mention these in your response at all): <
 {% endif %}
 """)
         return template.render(tools=self._list_fmt(self.tools), details=self.details, avoid=self._list_fmt(self.avoid))
-
-
-def get_markdown_filter(app: Flask) -> None:
-    """ Grab a copy of the app's markdown filter for use here. """
-    _jinja_env_html.filters['markdown'] = app.jinja_env.filters['markdown']

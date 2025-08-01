@@ -118,7 +118,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             </a>
 
             {% if auth.cur_class.role == 'instructor' %}
-              <a class="navbar-item is-size-6 has-text-success" href="{{ url_for('class_config.config_form') }}">
+              <a class="navbar-item is-size-6 has-text-success" href="{{ url_for('class_config.base.config_form') }}">
                 <div class="icon-text">
                   <span class="icon" title="Configure Class">
                     <svg aria-hidden="true"><use href="#svg_config" /></svg>

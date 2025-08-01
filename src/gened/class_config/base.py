@@ -15,23 +15,15 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from gened.auth import get_auth, get_auth_class, instructor_required
+from gened.auth import get_auth, get_auth_class
 from gened.db import get_db
 from gened.llm import LLM, get_models, with_llm
 from gened.redir import safe_redirect
 from gened.tz import date_is_past
 
-from .config_table import bp as config_table_bp
 from .extra_sections import get_extra_sections
 
-bp = Blueprint('class_config', __name__, template_folder='templates')
-
-bp.register_blueprint(config_table_bp)
-
-@bp.before_request
-@instructor_required
-def before_request() -> None:
-    """ Apply decorator to protect all class_config blueprint endpoints. """
+bp = Blueprint('base', __name__, template_folder='templates')
 
 
 @bp.route("/")

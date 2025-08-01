@@ -31,7 +31,7 @@
         stop_drag() {
           this.drag_index = null;
           // post updated ordering to save in DB
-          fetch("{{ url_for('.class_config_table.update_order', table_name=table.name) }}", {
+          fetch("{{ url_for('class_config.table.crud.update_order', table_name=table.name) }}", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(this.items.map(item => item.id)),
@@ -47,7 +47,7 @@
         init() {
           this.$watch('item.available', newval => {
             // post updated date to save in DB
-            fetch("{{ url_for('.class_config_table.update_available', table_name=table.name) }}", {
+            fetch("{{ url_for('class_config.table.crud.update_available', table_name=table.name) }}", {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({'item_id': item.id, 'available': item.available}),
@@ -245,7 +245,7 @@
           <div class="box">
             <h3 class="title is-4">Copy {{ table.display_name_plural | title }}</h3>
             <p>Select a course to see its {{ table.display_name_plural }}. All items from the selected course will be copied into the current course. Existing items will not be affected, and copied items will be renamed if necessary to avoid duplicate names.</p>
-            <form method="post" action="{{ url_for('.class_config_table.copy_from_course', table_name=table.name) }}">
+            <form method="post" action="{{ url_for('class_config.table.crud.copy_from_course', table_name=table.name) }}">
               <div class="field">
                 <label class="label" for="source_class_id">Copy from course:</label>
                 <div class="control">

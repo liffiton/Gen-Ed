@@ -125,7 +125,7 @@ def lti_login(lti: LTI) -> Response | tuple[str, int]:  # noqa: ARG001 (unused a
 
     # Redirect to the app
     if role == "instructor":
-        return redirect(url_for("class_config.config_form"))
+        return redirect(url_for("class_config.base.config_form"))
     else:
         return redirect(url_for("helper.help_form"))
 

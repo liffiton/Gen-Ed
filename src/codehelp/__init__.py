@@ -38,11 +38,9 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
 
     # create the base application
     builder = GenEdAppBuilder(__name__, app_config, instance_path)
+    builder.add_component(contexts.gened_component)
     builder.add_component(queries.gened_component)
     builder.add_component(tutors.gened_component)
     app = builder.build()
-
-    # give the contexts package a reference to the app's markdown filter
-    contexts.get_markdown_filter(app)
 
     return app

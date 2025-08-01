@@ -43,7 +43,7 @@ class AccessDeniedError(Exception):
     pass
 
 
-bp = Blueprint('chat', __name__, url_prefix="/chat", template_folder='templates')
+bp = Blueprint('tutors', __name__, url_prefix='/tutor', template_folder='templates')
 
 
 @bp.before_request
@@ -126,7 +126,7 @@ def create_inquiry_chat(llm: LLM) -> Response:
 
     run_chat_round(llm, chat_id)
 
-    return redirect(url_for("tutors.chat.chat_interface", chat_id=chat_id))
+    return redirect(url_for("tutors.chat_interface", chat_id=chat_id))
 
 
 @bp.route("/create_guided", methods=["POST"])
@@ -149,7 +149,7 @@ def create_guided_chat(llm: LLM) -> Response:
 
     run_chat_round(llm, chat_id)
 
-    return redirect(url_for("tutors.chat.chat_interface", chat_id=chat_id))
+    return redirect(url_for("tutors.chat_interface", chat_id=chat_id))
 
 
 def _create_chat(topic: str, context_name: str | None, sys_prompt: str, mode: ChatMode) -> int:
@@ -310,4 +310,4 @@ def new_message(llm: LLM) -> Response:
     run_chat_round(llm, chat_id, new_msg)
 
     # Send the user back to the now-updated chat view
-    return redirect(url_for("tutors.chat.chat_interface", chat_id=chat_id))
+    return redirect(url_for("tutors.chat_interface", chat_id=chat_id))

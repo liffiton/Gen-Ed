@@ -60,6 +60,7 @@ class GenEdComponent:
     blueprint: Blueprint | None = None
     navbar_item_template: str | None = None
     data_source: app_data.DataSource | None = None
+    config_table: class_config.ConfigTable | None = None
     admin_chart: app_data.ChartGenerator | None = None
     deletion_handler: data_deletion.DeletionHandler | None = None
 
@@ -105,8 +106,9 @@ class GenEdAppBuilder:
         self._config_app(app_config)
 
         # set up places to store app-specific data on the Flask instance
-        app.extensions['gen_ed_admin_charts'] = []  # list: ChartGenerator functions
-        app.extensions['gen_ed_data_sources'] = {}  # map: name(str) -> DataSource object
+        app.extensions['gen_ed_admin_charts'] = []       # list: ChartGenerator functions
+        app.extensions['gen_ed_config_tables'] = {}      # map: name(str) -> ConfigTable object
+        app.extensions['gen_ed_data_sources'] = {}       # map: name(str) -> DataSource object
         app.extensions['gen_ed_deletion_handlers'] = []  # list: DeletionHandler objects
 
         # set up middleware to fix headers from a proxy if configured as such
@@ -256,12 +258,13 @@ class GenEdAppBuilder:
         if component.data_source is not None:
             ds = component.data_source
             ds_map = self._app.extensions['gen_ed_data_sources']
-            if ds.name in ds_map:
-                # don't allow overwriting the same name
-                # but this *may* occur in tests or other situations that re-use the module across applications...
-                assert ds_map[ds.name] == ds
-            # store the DataSource
-            ds_map[ds.name] = ds
+            assert ds.name not in ds_map  # don't allow registering the same name twice
+            ds_map[ds.name] = ds  # will be used in app_data.py
+        if component.config_table is not None:
+            ct = component.config_table
+            ct_map = self._app.extensions['gen_ed_config_tables']
+            assert ct.name not in ct_map  # don't allow registering the same name twice
+            ct_map[ct.name] = ct  # will be used in class_config/config_table.py
         if component.admin_chart is not None:
             self._app.extensions['gen_ed_admin_charts'].append(component.admin_chart)
         if component.deletion_handler is not None:
@@ -272,13 +275,14 @@ class GenEdAppBuilder:
         app.register_blueprint(admin.bp, url_prefix='/admin')
         app.register_blueprint(auth.bp, url_prefix='/auth')
         app.register_blueprint(classes.bp, url_prefix='/classes')
-        app.register_blueprint(class_config.bp, url_prefix='/instructor/config')
         app.register_blueprint(demo.bp, url_prefix='/demo')
         app.register_blueprint(instructor.bp, url_prefix='/instructor')
         app.register_blueprint(lti.bp, url_prefix='/lti')
         app.register_blueprint(oauth.bp, url_prefix='/oauth')
         app.register_blueprint(profile.bp, url_prefix='/profile')
         app.register_blueprint(models.bp, url_prefix="/models")
+        class_config_bp = class_config.build_blueprint(app)  # requires building, using data stored in app.extensions['gen_ed_config_tables']
+        app.register_blueprint(class_config_bp, url_prefix='/instructor/config')
 
     def build(self) -> Flask:
         """ Finalize the app with all registered components and return a complete Flask app. """

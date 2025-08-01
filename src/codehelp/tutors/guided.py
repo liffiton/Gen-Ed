@@ -15,12 +15,17 @@ from flask import (
     flash,
     request,
 )
+from markupsafe import Markup
 from pypdf import PdfReader
 from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.wrappers.response import Response
 
 from gened.auth import get_auth, get_auth_class, instructor_required
-from gened.class_config import ConfigItem
+from gened.class_config import (
+    ConfigItem,
+    ConfigShareLink,
+    ConfigTable,
+)
 from gened.experiments import experiment_required
 from gened.llm import LLM, ChatMessage, with_llm
 from gened.redir import safe_redirect
@@ -95,6 +100,28 @@ class TutorConfig(ConfigItem):
 
     def after_create(self) -> None:
         _delete_cached_config()
+
+
+# To register the configuration UI inside gened's class_config module
+guided_tutor_config_table = ConfigTable(
+    config_item_class=TutorConfig,
+    name='guided_tutor',
+    db_table_name='tutors',
+    display_name='focused tutor',
+    display_name_plural='focused tutors',
+    help_text=Markup('<p><i>Caution! Under development.</i></p>'),
+    requires_experiment='chats_experiment',
+    edit_form_template='guided_tutor_edit_form.html',
+    share_links=[
+        ConfigShareLink(
+            'Focused tutor chat',
+            'tutors.new_chat_form',
+            {'class_id', 'tutor_name'},
+            requires_experiment='chats_experiment',
+        ),
+    ],
+    extra_routes=bp,
+)
 
 
 def _cache_key() -> str:

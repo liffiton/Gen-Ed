@@ -36,7 +36,7 @@ input[type='radio'] {
   <div class="flex_items" style="gap: 0;">
     <div class="flex_item">
       <h2 class="title is-size-4">Access</h2>
-      <form action="{{ url_for("class_config.save_access_config") }}" method="post">
+      <form action="{{ url_for(".save_access_config") }}" method="post">
         <div class="field is-horizontal">
           <div class="field-label is-normal">
             <label class="label" for="class_enabled">Class Active:</label>
@@ -134,7 +134,7 @@ input[type='radio'] {
 
       <h2 class="title is-size-4 mt-5">Language Model</h2>
       {% if user_is_creator %}
-      <form action="{{ url_for("class_config.save_llm_config") }}" method="post" x-data="{
+      <form action="{{ url_for(".save_llm_config") }}" method="post" x-data="{
           llm_config_saved: {{ 'true' if class_row.llm_api_key else 'false' }},
           llm_test_loading: false,
           llm_test_result: null,
@@ -150,7 +150,7 @@ input[type='radio'] {
           },
           test_llm() {
             this.llm_test_loading = true;
-            fetch('{{url_for('class_config.test_llm')}}')
+            fetch('{{url_for('.test_llm')}}')
               .then(response => response.text())
               .then(text => {
                 this.llm_test_loading = false;

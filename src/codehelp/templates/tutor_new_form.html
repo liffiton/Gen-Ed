@@ -17,7 +17,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
         {% if contexts is not none %}
         <h2 class="is-size-4">Inquiry Chat</h2>
-        <form action="{{url_for('tutors.chat.create_inquiry_chat')}}" method="post">
+        <form action="{{url_for('tutors.create_inquiry_chat')}}" method="post">
 
           {% if contexts %}
           <div class="field is-horizontal">
@@ -59,7 +59,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
         {% if tutors %}
         <h2 class="is-size-4">Guided Chat</h2>
-        <form action="{{url_for('tutors.chat.create_guided_chat')}}" method="post">
+        <form action="{{url_for('tutors.create_guided_chat')}}" method="post">
 
           <div class="field is-horizontal">
             <div class="field-label is-medium">
