@@ -84,7 +84,7 @@
                   type="submit"
                   id="remove_document"
                   x-bind:disabled="loading1 || loading2"
-                  formaction="{{ url_for('.guided.remove_document') }}"
+                  formaction="{{ url_for('class_config.table.guided.remove_document') }}"
                 >
                   <span class="delete mr-2"></span>
                   Remove document
@@ -108,7 +108,7 @@
                   type="submit"
                   id="upload_document"
                   x-bind:disabled="!filename || loading1 || loading2"
-                  formaction="{{ url_for('.guided.upload_document') }}"
+                  formaction="{{ url_for('class_config.table.guided.upload_document') }}"
                 >
                   <span class="icon">
                     <svg aria-hidden="true"><use href="#svg_upload"></use></svg>
@@ -134,7 +134,7 @@
                 id="gen_objectives"
                 x-bind:class="loading1 ? 'is-loading' : ''"
                 x-bind:disabled="loading2"
-                formaction="{{ url_for('.guided.generate_objectives') }}"
+                formaction="{{ url_for('class_config.table.guided.generate_objectives') }}"
               >
                 <span>{% if item.objectives %}Regenerate{% else %}Generate{% endif %}</span>
                 <span class="icon">
@@ -191,7 +191,7 @@
                 id="gen_questions"
                 x-bind:class="loading2 ? 'is-loading' : ''"
                 x-bind:disabled="loading1"
-                formaction="{{ url_for('.guided.generate_questions') }}"
+                formaction="{{ url_for('class_config.table.guided.generate_questions') }}"
               >
                 <span>{% if has_questions %}Regenerate{% else %}Generate{% endif %}</span>
                 <span class="icon">
@@ -251,7 +251,7 @@
               </button>
             </div>
             <div class="control">
-              <button class="button is-light" type="submit" formnovalidate formaction="{{ url_for('.guided.reset_setup') }}">
+              <button class="button is-light" type="submit" formnovalidate formaction="{{ url_for('class_config.table.guided.reset_setup') }}">
                 Start Over
               </button>
             </div>
@@ -268,7 +268,7 @@
   <dialog id="dia_{{ loop.index }}" style="min-height: 75vh; width: 60%; max-width: 80em; min-width: min(50em, 100vw);">
     <div class="content box">
       <h3>{{ obj.name }}</h3>
-      <form action="{{ url_for('.guided.update_questions') }}"
+      <form action="{{ url_for('class_config.table.guided.update_questions') }}"
             method="post"
             x-data='{orig_questions: null, questions: {{ obj.questions | tojson }}}'
             x-init='orig_questions = questions.slice()'
