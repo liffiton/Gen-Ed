@@ -6,9 +6,9 @@ from pathlib import Path
 
 from flask.app import Flask
 
-from gened import base
+from gened.base import GenEdAppBuilder
 
-from . import deletion_handler, helper, queries
+from . import queries
 
 
 def create_app(test_config: dict[str, str] | None = None, instance_path: Path | None = None) -> Flask:
@@ -20,7 +20,6 @@ def create_app(test_config: dict[str, str] | None = None, instance_path: Path | 
         APPLICATION_TITLE='Starburst',
         APPLICATION_AUTHOR='Mark Liffiton',
         SUPPORT_EMAIL='mliffito@iwu.edu',
-        HELP_LINK_TEXT='Generate Ideas',
         DATABASE_NAME='starburst.db',
         DOCS_DIR=module_dir / 'docs',
     )
@@ -29,14 +28,9 @@ def create_app(test_config: dict[str, str] | None = None, instance_path: Path | 
     if test_config is not None:
         app_config = app_config | test_config
 
-    # register app-specific functionality with gened
-    deletion_handler.register_with_gened()
-    queries.register_with_gened()
-
     # create the base application
-    app = base.create_app_base(__name__, app_config, instance_path)
-
-    # register blueprints specific to this application variant
-    app.register_blueprint(helper.bp)
+    builder = GenEdAppBuilder(__name__, app_config, instance_path)
+    builder.add_component(queries.gened_component)
+    app = builder.build()
 
     return app

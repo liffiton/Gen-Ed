@@ -5,8 +5,8 @@
 from sqlite3 import Cursor
 
 from gened.app_data import (
+    DataSource,
     Filters,
-    register_data,
 )
 from gened.db import get_db
 from gened.tables import Col, DataTable, NumCol, ResponseCol, TimeCol, UserCol
@@ -48,7 +48,36 @@ queries_table = DataTable(
     link_template="/ideas/view/${value}",
 )
 
+queries_data_source = DataSource(
+    'queries',
+    get_queries,
+    queries_table,
+)
 
-def register_with_gened() -> None:
-    """ Register admin functionality with the main gened admin module."""
-    register_data('queries', get_queries, queries_table)
+
+class StarburstDeletionHandler:
+    """Handler for deleting Starburst user data."""
+
+    @staticmethod
+    def delete_user_data(user_id: int) -> None:
+        """Delete/Anonymize personal data for a user while preserving non-personal data for analysis."""
+        db = get_db()
+
+        # Delete queries
+        db.execute("""
+            DELETE queries
+            WHERE user_id = ?
+        """, [user_id])
+
+    @staticmethod
+    def delete_class_data(class_id: int) -> None:
+        """Delete/Anonymize personal data for a class while preserving non-personal data for analysis."""
+        db = get_db()
+
+        # Delete queries
+        db.execute("""
+            DELETE FROM queries
+            WHERE role_id IN (
+                SELECT id FROM roles WHERE class_id = ?
+            )
+        """, [class_id])
