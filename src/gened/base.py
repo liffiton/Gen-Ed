@@ -7,18 +7,19 @@ import logging.config
 import os
 import sqlite3
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import flask.app
 import pyrage
 from dotenv import load_dotenv
-from flask import Flask, render_template, send_from_directory
+from flask import Blueprint, Flask, render_template, send_from_directory
 from flask.wrappers import Response
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from . import (
     admin,
+    app_data,
     auth,
     class_config,
     classes,
@@ -38,6 +39,7 @@ from . import (
     tz,
 )
 
+
 class MissingEnvVarError(Exception):
     def __init__(self, varname: str):
         super().__init__(f"Required environment variable not set: {varname}")
@@ -53,6 +55,15 @@ class DBMissingModelError(Exception):
         super().__init__(f"Configured model shortname not found in active models: {model_name}")
 
 
+@dataclass(frozen=True, kw_only=True)
+class GenEdComponent:
+    blueprint: Blueprint | None = None
+    navbar_item_template: str | None = None
+    data_source: app_data.DataSource | None = None
+    admin_chart: app_data.ChartGenerator | None = None
+    deletion_handler: data_deletion.DeletionHandler | None = None
+
+
 class GenEdAppBuilder:
     ''' A class to incrementally set up and finally build a complete Gen-Ed application. '''
 
@@ -60,10 +71,13 @@ class GenEdAppBuilder:
         '''
         Args:
             module_name: The name of the application's package (preferred) or module.
-                        E.g., call this as gened.create_app_base(__name__, ...) from package/__init__.py.
+                        E.g., call this as GenEdAppBuilder(__name__, ...) from package/__init__.py.
             app_config: A dictionary containing application-specific configuration for the Flask object (w/ CAPITALIZED keys)
             instance_path: A path to the instance folder (for the database file, primarily)
         '''
+        # instance vars
+        self._added_blueprints: list[Blueprint] = []
+
         # load config values from .env file
         load_dotenv()
 
@@ -89,6 +103,11 @@ class GenEdAppBuilder:
 
         # build the app's complete configuration
         self._config_app(app_config)
+
+        # set up places to store app-specific data on the Flask instance
+        app.extensions['gen_ed_admin_charts'] = []  # list: ChartGenerator functions
+        app.extensions['gen_ed_data_sources'] = {}  # map: name(str) -> DataSource object
+        app.extensions['gen_ed_deletion_handlers'] = []  # list: DeletionHandler objects
 
         # set up middleware to fix headers from a proxy if configured as such
         if os.environ.get("FLASK_APP_BEHIND_PROXY", "").lower() in ("yes", "true", "1"):
@@ -229,9 +248,27 @@ class GenEdAppBuilder:
         # configure the application
         app.config.from_mapping(total_config)
 
+    def add_component(self, component: GenEdComponent) -> None:
+        if component.blueprint is not None:
+            self._added_blueprints.append(component.blueprint)
+        if component.navbar_item_template is not None:
+            self._app.config['NAVBAR_ITEM_TEMPLATES'].append(component.navbar_item_template)
+        if component.data_source is not None:
+            ds = component.data_source
+            ds_map = self._app.extensions['gen_ed_data_sources']
+            if ds.name in ds_map:
+                # don't allow overwriting the same name
+                # but this *may* occur in tests or other situations that re-use the module across applications...
+                assert ds_map[ds.name] == ds
+            # store the DataSource
+            ds_map[ds.name] = ds
+        if component.admin_chart is not None:
+            self._app.extensions['gen_ed_admin_charts'].append(component.admin_chart)
+        if component.deletion_handler is not None:
+            self._app.extensions['gen_ed_deletion_handlers'].append(component.deletion_handler)
+
     def _register_core_blueprints(self) -> None:
         app = self._app
-
         app.register_blueprint(admin.bp, url_prefix='/admin')
         app.register_blueprint(auth.bp, url_prefix='/auth')
         app.register_blueprint(classes.bp, url_prefix='/classes')
@@ -249,7 +286,8 @@ class GenEdAppBuilder:
 
         # register blueprints
         self._register_core_blueprints()
-        #self._register_added_blueprints()
+        for bp in self._added_blueprints:
+            app.register_blueprint(bp)
 
         # initialize core modules with other setup needs
         db.init_app(app)

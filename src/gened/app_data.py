@@ -9,7 +9,7 @@ from sqlite3 import Cursor, Row
 from typing import Final, Protocol
 from urllib.parse import urlencode
 
-from flask import request
+from flask import current_app, request
 from typing_extensions import Self  # for 3.10
 
 from gened.tables import DataTable
@@ -149,38 +149,16 @@ class DataSource:
         table.data = self.get_data(filters, limit, offset)
         return table
 
-
-@dataclass
-class AppDataConfig:
-    """ Configuration of app-specific data types/sources.
-    Application-specific charts and data sources can be registered with
-    register_admin_chart(), register_data().
-    """
-    admin_chart_generators: list[ChartGenerator] = field(default_factory=list)
-    data_source_map: dict[str, DataSource] = field(default_factory=dict)
-
-_appdata = AppDataConfig()
-
-def register_admin_chart(generator_func: ChartGenerator) -> None:
-    _appdata.admin_chart_generators.append(generator_func)
-
 def get_admin_charts() -> list[ChartGenerator]:
-    return _appdata.admin_chart_generators
-
-def register_data(name: str, data_func: DataFunction, data_table: DataTable) -> None:
-    data_source = DataSource(name, data_func, data_table)
-    if name in _appdata.data_source_map:
-        # don't allow overwriting the same name
-        # but this may occur in tests or other situations that re-use the module across applications...
-        assert _appdata.data_source_map[name] == data_source
-
-    _appdata.data_source_map[name] = data_source
+    admin_charts: list[ChartGenerator] = current_app.extensions['gen_ed_admin_charts']
+    return admin_charts
 
 def get_registered_data_sources() -> dict[str, DataSource]:
-    return deepcopy(_appdata.data_source_map)
+    return deepcopy(current_app.extensions['gen_ed_data_sources'])
 
 def get_registered_data_source(name: str) -> DataSource:
-    source = _appdata.data_source_map.get(name)
+    ds_map: dict[str, DataSource] = current_app.extensions['gen_ed_data_sources']
+    source = ds_map.get(name)
     if not source:
         raise RuntimeError(f"Invalid data source name: {name}")
     return deepcopy(source)

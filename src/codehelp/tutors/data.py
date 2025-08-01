@@ -3,8 +3,8 @@ from sqlite3 import Cursor
 from typing import Any, Literal, TypeAlias
 
 from gened.app_data import (
+    DataSource,
     Filters,
-    register_data,
 )
 from gened.db import get_db
 from gened.llm import ChatMessage
@@ -47,11 +47,51 @@ def get_chats(filters: Filters, /, limit: int=-1, offset: int=0) -> Cursor:
     return cur
 
 
-def register_with_gened() -> None:
-    chats_table = DataTable(
-        name='chats',
-        columns=[NumCol('id'), UserCol('user'), TimeCol('chat_started')],
-        link_col=0,
-        link_template='/tutor/chat/${value}',
-    )
-    register_data('chats', get_chats, chats_table)
+chats_table = DataTable(
+    name='chats',
+    columns=[NumCol('id'), UserCol('user'), TimeCol('chat_started')],
+    link_col=0,
+    link_template='/tutor/chat/${value}',
+)
+
+chats_data_source = DataSource(
+    'chats',
+    get_chats,
+    chats_table,
+)
+
+
+class TutorsDeletionHandler:
+    """Personal data deletion for the tutors component."""
+
+    @staticmethod
+    def delete_user_data(user_id: int) -> None:
+        """Delete/Anonymize personal data for a user while preserving non-personal data for analysis."""
+        db = get_db()
+
+        # Anonymize personal data in chats
+        db.execute("""
+            UPDATE chats
+            SET chat_json = '{}',
+                user_id = -1
+            WHERE user_id = ?
+        """, [user_id])
+
+        db.commit()
+
+    @staticmethod
+    def delete_class_data(class_id: int) -> None:
+        """Delete/Anonymize personal data for a class while preserving non-personal data for analysis."""
+        db = get_db()
+
+        # Anonymize personal data in chats
+        db.execute("""
+            UPDATE chats
+            SET chat_json = '{}',
+                user_id = -1
+            WHERE role_id IN (
+                SELECT id FROM roles WHERE class_id = ?
+            )
+        """, [class_id])
+
+        db.commit()

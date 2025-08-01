@@ -9,7 +9,7 @@ from flask.app import Flask
 
 from gened.base import GenEdAppBuilder
 
-from . import contexts, deletion_handler, helper, queries, tutors
+from . import contexts, deletion_handler, queries, tutors
 
 
 def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | None = None) -> Flask:
@@ -35,22 +35,14 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
 
     # register app-specific functionality with gened
     deletion_handler.register_with_gened()
-    queries.register_with_gened()
-    tutors.register_with_gened()
 
     # create the base application
-    #app = base.create_app_base(__name__, app_config, instance_path)
     builder = GenEdAppBuilder(__name__, app_config, instance_path)
+    builder.add_component(queries.gened_component)
+    builder.add_component(tutors.gened_component)
     app = builder.build()
-
-    # register blueprints specific to this application variant
-    app.register_blueprint(helper.bp)
-    app.register_blueprint(tutors.bp)
 
     # give the contexts package a reference to the app's markdown filter
     contexts.get_markdown_filter(app)
-
-    # add navbar items
-    app.config['NAVBAR_ITEM_TEMPLATES'].append("tutor_nav_item.html")
 
     return app

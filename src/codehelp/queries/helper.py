@@ -19,6 +19,13 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
+from codehelp.contexts import (
+    ContextConfig,
+    get_available_contexts,
+    get_context_by_name,
+    get_context_string_by_id,
+    record_context_string,
+)
 from gened.app_data import DataAccessError, get_query, get_user_data
 from gened.auth import (
     admin_required,
@@ -33,13 +40,6 @@ from gened.llm import LLM, with_llm
 from gened.testing.mocks import mock_async_completion
 
 from . import prompts
-from .contexts import (
-    ContextConfig,
-    get_available_contexts,
-    get_context_by_name,
-    get_context_string_by_id,
-    record_context_string,
-)
 
 bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='templates')
 

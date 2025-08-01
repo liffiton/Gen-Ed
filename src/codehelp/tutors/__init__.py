@@ -1,10 +1,12 @@
 from flask import Blueprint
 from markupsafe import Markup
 
+from gened.base import GenEdComponent
 from gened.class_config import ConfigShareLink, ConfigTable, register_config_table
 
-from . import admin, data
+from . import admin
 from .chat import bp as chat_bp
+from .data import TutorsDeletionHandler, chats_data_source
 from .guided import TutorConfig
 from .guided import bp as guided_bp
 
@@ -35,10 +37,14 @@ guided_tutors_config_table = ConfigTable(
 register_config_table(guided_tutors_config_table, guided_bp)
 
 
-def register_with_gened() -> None:
-    data.register_with_gened()
+gened_component = GenEdComponent(
+    blueprint=bp,
+    navbar_item_template="tutor_nav_item.html",
+    data_source=chats_data_source,
+    deletion_handler=TutorsDeletionHandler,
+)
+
 
 __all__ = [
-    "bp",
-    "register_with_gened",
+    "gened_component",
 ]

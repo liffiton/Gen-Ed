@@ -6,9 +6,8 @@ from sqlite3 import Cursor
 
 from gened.app_data import (
     ChartData,
+    DataSource,
     Filters,
-    register_admin_chart,
-    register_data,
 )
 from gened.db import get_db
 from gened.tables import Col, DataTable, NumCol, ResponseCol, TimeCol, UserCol
@@ -108,16 +107,71 @@ def get_queries(filters: Filters, /, limit: int=-1, offset: int=0) -> Cursor:
     cur = db.execute(sql, [*where_params, limit, offset])
     return cur
 
+queries_table = DataTable(
+    name='queries',
+    columns=[NumCol('id'), UserCol('user'), TimeCol('time'), Col('context'), Col('code'), Col('error'), Col('issue'), ResponseCol('response'), Col('helpful_emoji', align='center')],
+    link_col=0,
+    link_template="/help/view/${value}",
+)
+
+queries_data_source = DataSource(
+    'queries',
+    get_queries,
+    queries_table,
+)
 
 
-def register_with_gened() -> None:
-    """ Register admin functionality and data source with gened. """
-    queries_table = DataTable(
-        name='queries',
-        columns=[NumCol('id'), UserCol('user'), TimeCol('time'), Col('context'), Col('code'), Col('error'), Col('issue'), ResponseCol('response'), Col('helpful_emoji', align='center')],
-        link_col=0,
-        link_template="/help/view/${value}",
-    )
+class QueriesDeletionHandler:
+    """Personal data deletion for the queries component."""
 
-    register_admin_chart(gen_query_charts)
-    register_data('queries', get_queries, queries_table)
+    @staticmethod
+    def delete_user_data(user_id: int) -> None:
+        """Delete/Anonymize personal data for a user while preserving non-personal data for analysis."""
+        db = get_db()
+
+        # Anonymize personal data in queries
+        db.execute("""
+            UPDATE queries
+            SET code = CASE
+                    WHEN code IS NOT NULL THEN '[deleted]'
+                    ELSE NULL
+                END,
+                error = CASE
+                    WHEN error IS NOT NULL THEN '[deleted]'
+                    ELSE NULL
+                END,
+                issue = '[deleted]',
+                context_name = '[deleted]',
+                context_string_id = NULL,
+                user_id = -1
+            WHERE user_id = ?
+        """, [user_id])
+
+        db.commit()
+
+    @staticmethod
+    def delete_class_data(class_id: int) -> None:
+        """Delete/Anonymize personal data for a class while preserving non-personal data for analysis."""
+        db = get_db()
+
+        # Anonymize personal data in queries
+        db.execute("""
+            UPDATE queries
+            SET code = CASE
+                    WHEN code IS NOT NULL THEN '[deleted]'
+                    ELSE NULL
+                END,
+                error = CASE
+                    WHEN error IS NOT NULL THEN '[deleted]'
+                    ELSE NULL
+                END,
+                issue = '[deleted]',
+                context_name = '[deleted]',
+                context_string_id = NULL,
+                user_id = -1
+            WHERE role_id IN (
+                SELECT id FROM roles WHERE class_id = ?
+            )
+        """, [class_id])
+
+        db.commit()
