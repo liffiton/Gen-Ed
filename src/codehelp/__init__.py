@@ -22,7 +22,6 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
         APPLICATION_AUTHOR='Mark Liffiton',
         FAVICON='icon.png',
         SUPPORT_EMAIL='support@codehelp.app',
-        HELP_LINK_TEXT='Get Help',
         DATABASE_NAME='codehelp.db',  # will be combined with app.instance_path in gened.create_app_base()
         DOCS_DIR=module_dir / 'docs',
         # Data retention length (prune user data with no activity for this period of time)

@@ -64,16 +64,6 @@ SPDX-License-Identifier: AGPL-3.0-only
       </div>
       <div class="navbar-menu" x-bind:class="menu_open ? 'is-active' : ''">
         <div class="navbar-start">
-        {% if auth.user %}
-          <a class="navbar-item has-text-success" href="{{ url_for('helper.help_form') }}">
-            <div class="icon-text">
-              <span class="icon">
-                <svg aria-hidden="true"><use href="#svg_qmark_circle" /></svg>
-              </span>
-              <span>{{ config['HELP_LINK_TEXT'] }}</span>
-            </div>
-          </a>
-        {% endif %}
         {% for nav_item_template in config['NAVBAR_ITEM_TEMPLATES'] %}
           {% include nav_item_template %}
         {% endfor %}

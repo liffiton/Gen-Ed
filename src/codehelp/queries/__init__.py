@@ -5,7 +5,7 @@ from .helper import bp
 
 gened_component = GenEdComponent(
     blueprint=bp,
-    #navbar_item_template="tutor_nav_item.html",
+    navbar_item_template="queries_nav_item.html",
     data_source=queries_data_source,
     admin_chart=gen_query_charts,
     deletion_handler=QueriesDeletionHandler,
