@@ -120,8 +120,8 @@ SPDX-License-Identifier: AGPL-3.0-only
     {% if chat_data.analysis %}
       <div><!-- spacing --></div>
       <div>
-        <table class="progress_widget table is-narrow" style="width: fit-content">
-          <thead><th colspan=2>Learning Objectives</th></thead>
+        <table class="progress_widget table" style="width: fit-content">
+          <thead><th colspan=2>Plan &amp; Progress</th></thead>
           <tbody>
           {% for prog in chat_data.analysis.progress %}
             <tr class="{{ prog.status | replace(' ', '_') }}">
