@@ -46,6 +46,7 @@ queries_table = DataTable(
     link_col=0,
     link_template="/check/view/${value}",
 )
+
 queries_data_source = DataSource(
     'queries',
     get_queries,
