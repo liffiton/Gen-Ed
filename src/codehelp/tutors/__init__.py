@@ -4,12 +4,9 @@
 
 from gened.base import GenEdComponent
 
-from . import admin
 from .chat import bp as bp
 from .data import TutorsDeletionHandler, chats_data_source
 from .guided import guided_tutor_config_table
-
-admin.register_with_gened()
 
 gened_component = GenEdComponent(
     blueprint=bp,
@@ -18,7 +15,6 @@ gened_component = GenEdComponent(
     config_table=guided_tutor_config_table,
     deletion_handler=TutorsDeletionHandler,
 )
-
 
 __all__ = [
     "gened_component",

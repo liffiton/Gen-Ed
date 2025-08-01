@@ -30,7 +30,12 @@ def get_chats(filters: Filters, /, limit: int=-1, offset: int=0) -> Cursor:
             json_array(users.display_name, auth_providers.name, users.display_extra) AS user,
             chats.chat_started,
             chats.user_id AS user_id,
-            classes.id AS class_id
+            classes.id AS class_id,
+            (
+                SELECT COUNT(*)
+                FROM json_each(json_extract(chats.chat_json, '$.messages'))
+                WHERE json_extract(json_each.value, '$.role')='user'
+            ) as "user messages"
         FROM chats
         JOIN users ON chats.user_id=users.id
         LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
@@ -49,9 +54,9 @@ def get_chats(filters: Filters, /, limit: int=-1, offset: int=0) -> Cursor:
 
 chats_table = DataTable(
     name='chats',
-    columns=[NumCol('id'), UserCol('user'), TimeCol('chat_started')],
+    columns=[NumCol('id'), UserCol('user'), TimeCol('chat_started'), NumCol('user messages')],
     link_col=0,
-    link_template='/tutor/chat/${value}',
+    link_template='/tutor/${value}',
 )
 
 chats_data_source = DataSource(
