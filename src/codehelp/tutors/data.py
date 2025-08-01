@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Mark Liffiton <liffiton@gmail.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
 from dataclasses import dataclass
 from sqlite3 import Cursor
 from typing import Any, Literal, TypeAlias

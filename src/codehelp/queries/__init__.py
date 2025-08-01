@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Mark Liffiton <liffiton@gmail.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
 from gened.base import GenEdComponent
 
 from .data import QueriesDeletionHandler, gen_query_charts, queries_data_source
@@ -10,7 +14,6 @@ gened_component = GenEdComponent(
     admin_chart=gen_query_charts,
     deletion_handler=QueriesDeletionHandler,
 )
-
 
 __all__ = [
     "gened_component",
