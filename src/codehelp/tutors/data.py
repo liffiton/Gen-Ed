@@ -7,6 +7,7 @@ from sqlite3 import Cursor
 from typing import Any, Literal, TypeAlias
 
 from gened.app_data import (
+    ChartData,
     DataSource,
     Filters,
 )
@@ -23,6 +24,53 @@ class ChatData:
     messages: list[ChatMessage]
     mode: ChatMode
     analysis: dict[str, Any] | None = None
+
+
+def gen_chats_chart(filters: Filters) -> list[ChartData]:
+    """ Generate chart data for CodeHelp tutor chat charts.
+    Filter using same filters as set in the admin interface
+    (passed in where_clause and where_params).
+    """
+    db = get_db()
+
+    where_clause, where_params = filters.make_where(['consumer', 'class', 'user', 'role'])
+
+    # https://www.sqlite.org/lang_with.html#recursive_query_examples
+    usage_data = db.execute(f"""
+        WITH RECURSIVE
+            cnt(val) AS (VALUES(0) UNION ALL SELECT val+1 FROM cnt WHERE val<14)
+        SELECT
+            val AS days_since,
+            COALESCE(chats, 0) AS chats
+        FROM cnt
+        LEFT JOIN (
+        SELECT
+            CAST(julianday() AS INTEGER) - CAST(julianday(chats.chat_started) AS INTEGER) AS days_since,
+            COUNT(chats.id) AS chats
+            FROM chats
+            JOIN users ON chats.user_id=users.id
+            LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
+            LEFT JOIN roles ON chats.role_id=roles.id
+            LEFT JOIN classes ON roles.class_id=classes.id
+            LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
+            LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
+            WHERE days_since <= 14
+            AND {where_clause}
+            GROUP BY days_since
+        ) ON days_since = val
+        ORDER BY days_since DESC
+    """, where_params).fetchall()
+    days_since = [row['days_since'] for row in usage_data]
+    data_chats = [row['chats'] for row in usage_data]
+    charts: list[ChartData] = [
+        ChartData(
+            labels=days_since,
+            series={'chats': data_chats},
+            colors=['#66ccff'],
+        ),
+    ]
+
+    return charts
 
 
 def get_chats(filters: Filters, /, limit: int=-1, offset: int=0) -> Cursor:
