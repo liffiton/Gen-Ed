@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+from flask import Blueprint
+
 from gened.base import GenEdComponent
 
 from .config_table import contexts_config_table
@@ -14,7 +16,12 @@ from .data import (
 )
 from .model import ContextConfig
 
+# This component does not have any routes, but we use a Blueprint to register
+# its templates folder for the template fragments it provides.
+bp = Blueprint('contexts', __name__, template_folder='templates')
+
 gened_component = GenEdComponent(
+    blueprint=bp,
     config_table=contexts_config_table,
     deletion_handler=ContextsDeletionHandler,
 )
