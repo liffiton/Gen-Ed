@@ -4,7 +4,7 @@
 
 from collections.abc import Iterator
 from copy import deepcopy
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from sqlite3 import Cursor, Row
 from typing import Final, Protocol
 from urllib.parse import urlencode

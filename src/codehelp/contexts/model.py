@@ -5,7 +5,7 @@
 from dataclasses import dataclass
 from typing import Self
 
-from flask import Flask, current_app
+from flask import current_app
 from jinja2 import Environment
 from werkzeug.datastructures import ImmutableMultiDict
 
