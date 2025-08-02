@@ -13,7 +13,7 @@ from gened.app_data import (
 )
 from gened.db import get_db
 from gened.llm import ChatMessage
-from gened.tables import DataTable, NumCol, TimeCol, UserCol
+from gened.tables import Col, DataTable, NumCol, TimeCol, UserCol
 
 ChatMode: TypeAlias = Literal["inquiry", "guided"]
 
@@ -75,28 +75,30 @@ def gen_chats_chart(filters: Filters) -> list[ChartData]:
 
 def get_chats(filters: Filters, /, limit: int=-1, offset: int=0) -> Cursor:
     db = get_db()
-    where_clause, where_params = filters.make_where(['consumer', 'class', 'user', 'role', 'chat'])
+    where_clause, where_params = filters.make_where(['consumer', 'class', 'user', 'role', 'row_id'])
     sql = f"""
         SELECT
-            chats.id AS id,
+            t.id AS id,
             json_array(users.display_name, auth_providers.name, users.display_extra) AS user,
-            chats.chat_started,
-            chats.user_id AS user_id,
+            t.chat_started,
+            t.user_id AS user_id,
+            json_extract(t.chat_json, '$.topic') AS topic,
+            t.chat_json AS chat_json,
             classes.id AS class_id,
             (
                 SELECT COUNT(*)
-                FROM json_each(json_extract(chats.chat_json, '$.messages'))
+                FROM json_each(json_extract(t.chat_json, '$.messages'))
                 WHERE json_extract(json_each.value, '$.role')='user'
             ) as "user messages"
-        FROM chats
-        JOIN users ON chats.user_id=users.id
+        FROM chats AS t
+        JOIN users ON t.user_id=users.id
         LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
-        LEFT JOIN roles ON UNLIKELY(chats.role_id=roles.id)  -- UNLIKELY() to help query planner in older sqlite versions
+        LEFT JOIN roles ON UNLIKELY(t.role_id=roles.id)  -- UNLIKELY() to help query planner in older sqlite versions
         LEFT JOIN classes ON UNLIKELY(roles.class_id=classes.id)
         LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
         LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
         WHERE {where_clause}
-        ORDER BY chats.id DESC
+        ORDER BY t.id DESC
         LIMIT ?
         OFFSET ?
     """
@@ -106,7 +108,7 @@ def get_chats(filters: Filters, /, limit: int=-1, offset: int=0) -> Cursor:
 
 chats_table = DataTable(
     name='chats',
-    columns=[NumCol('id'), UserCol('user'), TimeCol('chat_started'), NumCol('user messages')],
+    columns=[NumCol('id'), UserCol('user'), TimeCol('chat_started'), Col('topic'), NumCol('user messages')],
     link_col=0,
     link_template='/tutor/${value}',
 )
@@ -116,6 +118,7 @@ chats_data_source = DataSource(
     'chats',
     get_chats,
     chats_table,
+    time_col='chat_started',
     requires_experiment='chats_experiment',
 )
 

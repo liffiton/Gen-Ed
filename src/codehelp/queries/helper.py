@@ -26,7 +26,7 @@ from codehelp.contexts import (
     get_context_string_by_id,
     record_context_string,
 )
-from gened.app_data import DataAccessError, get_query, get_user_data
+from gened.app_data import DataAccessError
 from gened.auth import (
     admin_required,
     class_enabled_required,
@@ -40,6 +40,7 @@ from gened.llm import LLM, with_llm
 from gened.testing.mocks import mock_async_completion
 
 from . import prompts
+from .data import queries_data_source
 
 bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='templates')
 
@@ -77,7 +78,7 @@ def help_form(llm: LLM, query_id: int | None = None, class_id: int | None = None
         if query_id is not None:
             # populate with a query if one is specified in the query string
             with suppress(DataAccessError):
-                query_row = get_query(query_id)
+                query_row = queries_data_source.get_row(query_id)
                 selected_context_name = query_row['context']
         else:
             # no query specified,
@@ -101,7 +102,7 @@ def help_form(llm: LLM, query_id: int | None = None, class_id: int | None = None
     if len(contexts) == 1:
         selected_context_name = next(iter(contexts.keys()))
 
-    history = get_user_data(kind='queries', limit=10)
+    history = queries_data_source.get_user_data(limit=10)
 
     return render_template("help_form.html", llm=llm, query=query_row, history=history, contexts=contexts, selected_context_name=selected_context_name)
 
@@ -110,7 +111,7 @@ def help_form(llm: LLM, query_id: int | None = None, class_id: int | None = None
 @login_required
 def help_view(query_id: int) -> str | Response:
     try:
-        query_row = get_query(query_id)
+        query_row = queries_data_source.get_row(query_id)
     except DataAccessError:
         abort(400, "Invalid id.")
 
@@ -119,7 +120,7 @@ def help_view(query_id: int) -> str | Response:
     else:
         responses = {'error': "*No response -- an error occurred.  Please try again.*"}
 
-    history = get_user_data(kind='queries', limit=10)
+    history = queries_data_source.get_user_data(limit=10)
 
     if query_row and query_row['topics_json']:
         topics = json.loads(query_row['topics_json'])
@@ -300,7 +301,7 @@ def get_topics_html(llm: LLM, query_id: int) -> str:
 
 def get_topics(llm: LLM, query_id: int) -> list[str]:
     try:
-        query_row = get_query(query_id)
+        query_row = queries_data_source.get_row(query_id)
     except DataAccessError:
         return []
 

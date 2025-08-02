@@ -53,7 +53,7 @@ class Filters:
             LEFT JOIN classes AS role_class ON role_class.id=roles.class_id
             WHERE roles.id=?
         """),
-        'row_id': FilterSpec('row_id', 'q.id', None),
+        'row_id': FilterSpec('row_id', 't.id', None),
     }
 
     def __init__(self) -> None:
@@ -143,6 +143,7 @@ class DataSource:
     display_name: str
     get_data: DataFunction
     table: DataTable
+    time_col: str | None = None
     requires_experiment: str | None = field(default=None, kw_only=True)
 
     def get_populated_table(self, filters: Filters, * , limit: int=-1, offset: int=0) -> DataTable:
@@ -156,6 +157,19 @@ class DataSource:
         assert auth.user_id is not None
         filters = Filters().add('user', auth.user_id)
         return self.get_data(filters, limit=limit).fetchall()
+
+    def get_user_counts(self, user_id: int) -> dict[str, int]:
+        assert self.time_col is not None
+        db = get_db()
+        sql = f"""
+            SELECT
+                COUNT(t.id) AS num_total,
+                COUNT(IIF(t.{self.time_col} > date('now', '-7 days'), 1, null)) AS num_1wk
+            FROM {self.table_name} AS t
+            WHERE t.user_id = ?
+        """
+        row = db.execute(sql, [user_id]).fetchone()
+        return dict(row)
 
     def get_row(self, row_id: int) -> Row:
         return _get_data_row(self, row_id)
@@ -200,11 +214,13 @@ def _get_data_row(data_source: DataSource, row_id: int) -> Row:
     if not row:
         raise RowNotFoundError
 
-    access_permitted = (
-        auth.user_id == row['user_id']
-        or auth.is_admin
-        or (auth.cur_class and auth.cur_class.role == 'instructor' and auth.cur_class.class_id == row['class_id'])
+    is_owner = ( auth.user_id == row['user_id'] )
+    is_instructor_in_class = (
+        auth.cur_class
+        and auth.cur_class.role == 'instructor'
+        and auth.cur_class.class_id == row['class_id']
     )
+    access_permitted = is_owner or is_instructor_in_class or auth.is_admin
 
     if not access_permitted:
         raise AccessDeniedError

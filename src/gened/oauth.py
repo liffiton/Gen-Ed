@@ -150,8 +150,8 @@ def auth(provider_name: AuthProviderExt) -> Response:
     set_session_auth_user(user_row['id'])
     set_session_auth_class(last_class_id)
 
-    # Redirect to stored next_url (and reset) if one has been stored, else root path
-    next_url = session.get(NEXT_URL_SESSION_KEY) or "/"
+    # Redirect to stored next_url (and reset) if one has been stored, else the default login endpoint
+    next_url = session.get(NEXT_URL_SESSION_KEY) or url_for(current_app.config['DEFAULT_LOGIN_ENDPOINT'])
 
     # Clear the stored next URL if it is there
     session.pop(NEXT_URL_SESSION_KEY, None)

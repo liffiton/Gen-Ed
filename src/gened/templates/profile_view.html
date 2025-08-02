@@ -55,7 +55,7 @@ dl.profile dd { margin: 0; }
       {% endif %}
       {% for data_name, counts in data_counts | items %}
         <dt>{{ data_name | capitalize }}</dt>
-        <dd><a href="{{ url_for('profile.view_data') }}">{{ counts.num_queries }} total</a>, {{ counts.num_recent_queries }} in the past week.</dd>
+        <dd><a href="{{ url_for('profile.view_data') }}">{{ counts.num_total }} total</a>, {{ counts.num_1wk }} in the past week.</dd>
       {% endfor %}
       {% if not auth.cur_class %}
       <dt>Free Queries:</dt>

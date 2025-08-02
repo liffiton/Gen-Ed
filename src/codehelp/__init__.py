@@ -21,6 +21,7 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
         APPLICATION_TITLE='CodeHelp',
         APPLICATION_AUTHOR='Mark Liffiton',
         FAVICON='icon.png',
+        DEFAULT_LOGIN_ENDPOINT='helper.help_form',
         SUPPORT_EMAIL='support@codehelp.app',
         DATABASE_NAME='codehelp.db',  # will be combined with app.instance_path in gened.create_app_base()
         DOCS_DIR=module_dir / 'docs',

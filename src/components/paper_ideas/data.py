@@ -19,23 +19,23 @@ def get_queries(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
     where_clause, where_params = filters.make_where(['consumer', 'class', 'user', 'role', 'row_id'])
     sql = f"""
         SELECT
-            q.id AS id,
+            t.id AS id,
             json_array(users.display_name, auth_providers.name, users.display_extra) AS user,
-            q.query_time AS time,
-            q.assignment AS assignment,
-            q.topics AS topics,
-            q.response_text AS response,
-            q.user_id AS user_id,
+            t.query_time AS time,
+            t.assignment AS assignment,
+            t.topics AS topics,
+            t.response_text AS response,
+            t.user_id AS user_id,
             classes.id AS class_id
-        FROM paper_ideas_queries AS q
-        JOIN users ON q.user_id=users.id
+        FROM paper_ideas_queries AS t
+        JOIN users ON t.user_id=users.id
         LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
-        LEFT JOIN roles ON q.role_id=roles.id
+        LEFT JOIN roles ON t.role_id=roles.id
         LEFT JOIN classes ON roles.class_id=classes.id
         LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
         LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
         WHERE {where_clause}
-        ORDER BY q.id DESC
+        ORDER BY t.id DESC
         LIMIT ?
         OFFSET ?
     """
@@ -55,6 +55,7 @@ queries_data_source = DataSource(
     DISPLAY_NAME,
     get_queries,
     queries_table,
+    time_col='query_time',
 )
 
 

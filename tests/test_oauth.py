@@ -37,7 +37,7 @@ def test_google_callback_success(app: Flask, client: AppClient, mock_oauth_patch
         response = client.get(auth_url)
 
         assert response.status_code == 302
-        assert response.location == '/'  # Default redirect
+        assert response.location == '/help/'  # Default redirect (see codehelp app.config)
 
         # Check session is set up correctly
         sessauth = get_auth()
@@ -69,7 +69,7 @@ def test_anon_signup(app: Flask, client: AppClient, mock_oauth_client: MagicMock
             response = client.get(auth_url)
 
             assert response.status_code == 302
-            assert response.location == '/'
+            assert response.location == '/help/'  # Default redirect (see codehelp app.config)
 
             # Check session is set up correctly / anonymously
             sessauth = get_auth()
@@ -106,7 +106,7 @@ def test_github_callback_success(app: Flask, client: AppClient, mock_oauth_patch
         response = client.get(auth_url)
 
         assert response.status_code == 302
-        assert response.location == '/'  # Default redirect
+        assert response.location == '/help/'  # Default redirect (see codehelp app.config)
 
         # Verify the email API was called
         mock_oauth_patch.get.assert_called_once_with('user/emails')
@@ -133,7 +133,7 @@ def test_microsoft_callback_success(app: Flask, client: AppClient, mock_oauth_pa
     response = client.get(auth_url)
 
     assert response.status_code == 302
-    assert response.location == '/'
+    assert response.location == '/help/'  # Default redirect (see codehelp app.config)
 
     # Verify the special claims_options were used
     mock_oauth_patch.authorize_access_token.assert_called_once_with(claims_options={'iss': {}})

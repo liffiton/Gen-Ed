@@ -31,19 +31,6 @@ def before_request() -> None:
     """ Apply decorator to protect all profile blueprint endpoints. """
 
 
-def _get_user_counts(table_name: str, user_id: int) -> dict[str, int]:
-    db = get_db()
-    sql = f"""
-        SELECT
-            COUNT(q.id) AS num_queries,
-            SUM(CASE WHEN q.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
-        FROM {table_name} AS q
-        WHERE q.user_id = ?
-    """
-    row = db.execute(sql, [user_id]).fetchone()
-    return dict(row)
-
-
 @bp.route("/")
 def main() -> str:
     db = get_db()
@@ -61,7 +48,7 @@ def main() -> str:
     """, [user_id]).fetchone()
 
     data_counts = {
-        ds.display_name: _get_user_counts(ds.table_name, user_id)
+        ds.display_name: ds.get_user_counts(user_id)
         for ds in get_registered_data_sources().values()
     }
 

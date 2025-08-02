@@ -377,7 +377,7 @@ def local_login() -> Response:
         last_class_id = get_last_class(auth_row['id'])
         set_session_auth_user(auth_row['id'])
         set_session_auth_class(last_class_id)
-        return safe_redirect_next(default_endpoint="profile.main")
+        return safe_redirect_next(default_endpoint=current_app.config['DEFAULT_LOGIN_ENDPOINT'])
 
 
 @bp.route("/logout", methods=['POST'])

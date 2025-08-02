@@ -5,7 +5,6 @@
 import asyncio
 import json
 from dataclasses import asdict
-from sqlite3 import Row
 
 from flask import (
     Blueprint,
@@ -24,6 +23,7 @@ from codehelp.contexts import (
     get_available_contexts,
     get_context_by_name,
 )
+from gened.app_data import DataAccessError
 from gened.auth import class_enabled_required, get_auth, login_required
 from gened.classes import switch_class
 from gened.db import get_db
@@ -31,17 +31,8 @@ from gened.experiments import experiment_required
 from gened.llm import LLM, ChatMessage, with_llm
 
 from . import prompts
-from .data import ChatData, ChatMode
+from .data import ChatData, ChatMode, chats_data_source
 from .guided import TutorConfig
-
-
-class ChatNotFoundError(Exception):
-    pass
-
-
-class AccessDeniedError(Exception):
-    pass
-
 
 bp = Blueprint('tutors', __name__, url_prefix='/tutor', template_folder='templates')
 
@@ -98,7 +89,7 @@ def new_chat_form(class_id: int | None = None) -> Response | str:
         class_id = auth.cur_class.class_id if auth.cur_class else None
         tutor_rows = db.execute("SELECT id, name FROM tutors WHERE class_id=? AND available <= date('now', '+12 hours') ORDER BY class_order ASC", [class_id]).fetchall()
 
-    recent_chats = get_chat_history()
+    recent_chats = chats_data_source.get_user_data(limit=10)
 
     return render_template("tutor_new_form.html", contexts=contexts, tutors=tutor_rows, recent_chats=recent_chats)
 
@@ -184,49 +175,16 @@ def _create_chat(topic: str, context_name: str | None, sys_prompt: str, mode: Ch
 def chat_interface(chat_id: int) -> str | Response:
     try:
         chat_data = get_chat(chat_id)
-    except (ChatNotFoundError, AccessDeniedError):
+    except DataAccessError:
         abort(400, "Invalid id.")
 
-    recent_chats = get_chat_history()
+    recent_chats = chats_data_source.get_user_data(limit=10)
 
     return render_template("tutor_view.html", chat_id=chat_id, chat=chat_data, recent_chats=recent_chats)
 
 
-def get_chat_history(limit: int = 10) -> list[Row]:
-    '''Fetch current user's chat history.'''
-    db = get_db()
-    auth = get_auth()
-
-    history = db.execute("SELECT id, json_extract(chat_json, '$.topic') AS topic FROM chats WHERE user_id=? ORDER BY id DESC LIMIT ?", [auth.user_id, limit]).fetchall()
-    return history
-
-
 def get_chat(chat_id: int) -> ChatData:
-    db = get_db()
-    auth = get_auth()
-
-    chat_row = db.execute(
-        "SELECT chat_json, chats.user_id, roles.class_id "
-        "FROM chats "
-        "JOIN users ON chats.user_id=users.id "
-        "LEFT JOIN roles ON chats.role_id=roles.id "
-        "WHERE chats.id=?",
-        [chat_id]
-    ).fetchone()
-
-    if not chat_row:
-        raise ChatNotFoundError
-
-    is_owner = auth.user_id == chat_row['user_id']
-    is_instructor_in_class = (
-        auth.cur_class
-        and auth.cur_class.role == 'instructor'
-        and auth.cur_class.class_id == chat_row['class_id']
-    )
-    access_allowed = is_owner or is_instructor_in_class or auth.is_admin
-
-    if not access_allowed:
-        raise AccessDeniedError
+    chat_row = chats_data_source.get_row(chat_id)
 
     chat_json = chat_row['chat_json']
     chat_data = json.loads(chat_json)
@@ -247,7 +205,7 @@ def run_chat_round(llm: LLM, chat_id: int, user_message: str|None = None) -> Non
     # Get the specified chat
     try:
         chat = get_chat(chat_id)
-    except (ChatNotFoundError, AccessDeniedError):
+    except DataAccessError:
         return
 
     messages = chat.messages
