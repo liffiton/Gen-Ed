@@ -26,8 +26,8 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from .app_data import Filters, get_registered_data_source
-from .auth import get_auth_class, instructor_required
+from .app_data import Filters, get_registered_data_sources
+from .auth import get_auth, get_auth_class, instructor_required
 from .classes import switch_class
 from .csv import csv_response
 from .data_deletion import delete_class_data
@@ -67,14 +67,14 @@ def _get_class_users(*, for_export: bool = False) -> list[Row]:
             {'roles.id AS role_id,' if not for_export else ''}
             users.id AS id,
             json_array(users.display_name, auth_providers.name, users.display_extra) AS user,
-            COUNT(queries.id) AS "#queries",
-            SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS "1wk",
+            --COUNT(queries.id) AS "#queries",  -- TODO: put counts back in after refactoring dust settles
+            --SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS "1wk",
             roles.active AS "active?",
             roles.role = "instructor" AS "instructor?"
         FROM users
         LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
         JOIN roles ON roles.user_id=users.id
-        LEFT JOIN queries ON queries.role_id=roles.id
+        --LEFT JOIN queries ON queries.role_id=roles.id
         WHERE roles.class_id=?
         GROUP BY users.id
         ORDER BY users.display_name
@@ -85,10 +85,13 @@ def _get_class_users(*, for_export: bool = False) -> list[Row]:
 
 @bp.route("/")
 def main() -> str | Response:
+    auth = get_auth()
+
     users = _get_class_users()
     users_table = DataTable(
         name='users',
-        columns=[NumCol('role_id', hidden=True), NumCol('id', hidden=True), UserCol('user'), NumCol('#queries'), NumCol('1wk'), BoolCol('active?', url=url_for('.set_role_active')), BoolCol('instructor?', url=url_for('.set_role_instructor'))],
+        #columns=[NumCol('role_id', hidden=True), NumCol('id', hidden=True), UserCol('user'), NumCol('#queries'), NumCol('1wk'), BoolCol('active?', url=url_for('.set_role_active')), BoolCol('instructor?', url=url_for('.set_role_instructor'))],
+        columns=[NumCol('role_id', hidden=True), NumCol('id', hidden=True), UserCol('user'), BoolCol('active?', url=url_for('.set_role_active')), BoolCol('instructor?', url=url_for('.set_role_instructor'))],
         link_col=1,
         link_template='?user=${value}',
         csv_link=url_for('instructor.get_csv', kind='users'),
@@ -103,33 +106,33 @@ def main() -> str | Response:
         if sel_user_row:
             sel_user_name = sel_user_row['display_name']
 
-    query_data = get_registered_data_source('queries')
-    filters = _make_class_filters(sel_user_id)
-    queries_table = query_data.get_populated_table(filters)
-    queries_table.csv_link = url_for('instructor.get_csv', kind='queries')
+    tables = []
+    for ds in get_registered_data_sources().values():
+        if ds.requires_experiment and ds.requires_experiment not in auth.class_experiments:
+            continue
+        filters = _make_class_filters(sel_user_id)
+        table = ds.get_populated_table(filters)
+        table.csv_link = url_for('instructor.get_csv', kind=ds.table_name)
+        tables.append((ds.display_name, table))
 
-    chat_data = get_registered_data_source('chats')
-    filters = _make_class_filters(sel_user_id)
-    chats_table = chat_data.get_populated_table(filters)
-    chats_table.csv_link = url_for('instructor.get_csv', kind='chats')
-
-    return render_template("instructor_view.html", users=users_table, queries=queries_table, chats=chats_table, user=sel_user_name)
+    return render_template("instructor_view.html", users=users_table, tables=tables, user=sel_user_name)
 
 
 @bp.route("/csv/<string:kind>")
 def get_csv(kind: str) -> str | Response:
-    if kind not in ('queries', 'users'):
+    data_sources = get_registered_data_sources()
+    if kind != 'users' and kind not in data_sources:
         abort(404)
 
     cur_class = get_auth_class()
     class_name = cur_class.class_name
 
-    if kind == "queries":
-        query_data = get_registered_data_source('queries')
-        filters = _make_class_filters()
-        table_data = query_data.get_data(filters)
-    elif kind == "users":
+    if kind == "users":
         table_data = _get_class_users(for_export=True)
+    else:
+        query_data = data_sources[kind]
+        filters = _make_class_filters()
+        table_data = query_data.get_data(filters).fetchall()
 
     return csv_response(class_name, kind, table_data)
 

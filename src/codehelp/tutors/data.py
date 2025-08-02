@@ -113,8 +113,10 @@ chats_table = DataTable(
 
 chats_data_source = DataSource(
     'chats',
+    'chats',
     get_chats,
     chats_table,
+    requires_experiment='chats_experiment',
 )
 
 

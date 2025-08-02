@@ -15,7 +15,7 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from .app_data import get_registered_data_source, get_user_data
+from .app_data import get_registered_data_sources
 from .auth import generate_anon_username, get_auth, login_required
 from .csv import csv_response
 from .data_deletion import delete_user_data
@@ -31,22 +31,39 @@ def before_request() -> None:
     """ Apply decorator to protect all profile blueprint endpoints. """
 
 
+def _get_user_counts(table_name: str, user_id: int) -> dict[str, int]:
+    db = get_db()
+    sql = f"""
+        SELECT
+            COUNT(q.id) AS num_queries,
+            SUM(CASE WHEN q.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
+        FROM {table_name} AS q
+        WHERE q.user_id = ?
+    """
+    row = db.execute(sql, [user_id]).fetchone()
+    return dict(row)
+
+
 @bp.route("/")
 def main() -> str:
     db = get_db()
     auth = get_auth()
     user_id = auth.user_id
-    user = db.execute("""
+    assert user_id is not None
+
+    user_row = db.execute("""
         SELECT
             users.*,
-            auth_providers.name AS provider_name,
-            COUNT(queries.id) AS num_queries,
-            SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS num_recent_queries
+            auth_providers.name AS provider_name
         FROM users
-        LEFT JOIN queries ON queries.user_id=users.id
         LEFT JOIN auth_providers ON auth_providers.id=users.auth_provider
         WHERE users.id=?
     """, [user_id]).fetchone()
+
+    data_counts = {
+        ds.display_name: _get_user_counts(ds.table_name, user_id)
+        for ds in get_registered_data_sources().values()
+    }
 
     cur_class_id = auth.cur_class.class_id if auth.cur_class else -1   # can't do a != to None/null in SQL, so convert that to -1 to match all classes in that case
     other_classes = db.execute("""
@@ -115,7 +132,8 @@ def main() -> str:
 
     return render_template(
         "profile_view.html",
-        user=user,
+        user=user_row,
+        data_counts=data_counts,
         other_classes=other_classes,
         archived_classes=archived_classes,
         created_classes=created_classes,
@@ -125,23 +143,27 @@ def main() -> str:
 
 @bp.route("/data/")
 def view_data() -> str:
-    table = get_registered_data_source('queries').table
-    table.data = get_user_data(kind='queries', limit=-1)  # -1 = no limit
-    table.csv_link = url_for(".get_csv", kind="queries")
-    table.hide('user')  # it's just the current user's data; no need to list them in every row
+    tables = []
+    for ds in get_registered_data_sources().values():
+        table = ds.table
+        table.data = ds.get_user_data(limit=-1)  # -1 = no limit
+        table.csv_link = url_for(".get_csv", kind=ds.table.name)
+        table.hide('user')  # it's just the current user's data; no need to list them in every row
+        tables.append((ds.display_name, table))
 
-    return render_template("profile_view_data.html", queries=table)
+    return render_template("profile_view_data.html", tables=tables)
 
 
 @bp.route("/data/csv/<string:kind>")
 def get_csv(kind: str) -> str | Response:
-    if kind not in ('queries'):
+    data_sources = get_registered_data_sources()
+    if kind not in data_sources:
         abort(404)
 
     auth = get_auth()
     assert auth.user
 
-    queries = get_user_data(kind='queries', limit=-1)  # -1 = no limit
+    queries = data_sources[kind].get_user_data(limit=-1)  # -1 = no limit
     return csv_response(auth.user.display_name, kind, queries)
 
 

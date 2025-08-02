@@ -20,32 +20,20 @@ SPDX-License-Identifier: AGPL-3.0-only
       {{ datatable(users) }}
       <p><em>Users that are not active will not be able to access this class.</em></p>
     </div>
-    <div class="tbl_col" style="width: 75em; flex-grow: 1;">
-      <h2 class="is-size-3">
-        Queries
-        {% if user %}
-        <a class="button is-info is-rounded p-3 mt-2" style="height: 2em;" href="?" title="Remove filter">
-          user = {{user}}
-          <span class="delete is-small is-link ml-2"></span>
-        </a>
-        {% endif %}
-      </h2>
-      {{ datatable(queries) }}
-    </div>
-    {% if 'chats_experiment' in auth.class_experiments %}
-    <div class="tbl_col" style="width: 25em; flex-grow: 1;">
-      <h2 class="is-size-3">
-        Chats
-        {% if user %}
-        <a class="button is-info is-rounded p-3 mt-2" style="height: 2em;" href="?" title="Remove filter">
-          user = {{user}}
-          <span class="delete is-small is-link ml-2"></span>
-        </a>
-        {% endif %}
-      </h2>
-      {{ datatable(chats) }}
-    </div>
-    {% endif %}
+    {% for name, table in tables %}
+      <div class="tbl_col" style="width: 75em; flex-grow: 1;">
+        <h2 class="is-size-3">
+          {{ name | capitalize }}
+          {% if user %}
+          <a class="button is-info is-rounded p-3 mt-2" style="height: 2em;" href="?" title="Remove filter">
+            user = {{user}}
+            <span class="delete is-small is-link ml-2"></span>
+          </a>
+          {% endif %}
+        </h2>
+        {{ datatable(table) }}
+      </div>
+    {% endfor %}
   </div>
 </section>
 {% endblock body %}

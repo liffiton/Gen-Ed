@@ -116,6 +116,7 @@ queries_table = DataTable(
 
 queries_data_source = DataSource(
     'queries',
+    'queries',
     get_queries,
     queries_table,
 )

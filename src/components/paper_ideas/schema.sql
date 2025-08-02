@@ -2,9 +2,9 @@
 --
 -- SPDX-License-Identifier: AGPL-3.0-only
 
-DROP TABLE IF EXISTS queries;
+DROP TABLE IF EXISTS paper_ideas_queries;
 
-CREATE TABLE queries (
+CREATE TABLE paper_ideas_queries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     query_time DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
     assignment TEXT,
@@ -18,3 +18,8 @@ CREATE TABLE queries (
     FOREIGN KEY(user_id) REFERENCES users(id),
     FOREIGN KEY(role_id) REFERENCES roles(id)
 );
+
+DROP INDEX IF EXISTS paper_ideas_queries_by_user;
+CREATE INDEX paper_ideas_queries_by_user ON paper_ideas_queries(user_id);
+DROP INDEX IF EXISTS paper_ideas_queries_by_role;
+CREATE INDEX paper_ideas_queries_by_role ON paper_ideas_queries(role_id);

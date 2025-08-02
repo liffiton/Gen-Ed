@@ -263,8 +263,8 @@ class GenEdAppBuilder:
         if component.data_source is not None:
             ds = component.data_source
             ds_map = self._app.extensions['gen_ed_data_sources']
-            assert ds.name not in ds_map  # don't allow registering the same name twice
-            ds_map[ds.name] = ds  # will be used in app_data.py
+            assert ds.table_name not in ds_map  # don't allow registering the same name twice
+            ds_map[ds.table_name] = ds  # will be used in app_data.py
         if component.config_table is not None:
             ct = component.config_table
             ct_map = self._app.extensions['gen_ed_config_tables']

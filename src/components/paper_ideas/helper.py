@@ -16,12 +16,13 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from gened.app_data import DataAccessError, get_query, get_user_data
+from gened.app_data import DataAccessError
 from gened.auth import class_enabled_required, get_auth, login_required
 from gened.db import get_db
 from gened.llm import LLM, with_llm
 
 from . import prompts
+from .data import queries_data_source
 
 bp = Blueprint('helper', __name__, url_prefix="/ideas", template_folder='templates')
 
@@ -36,18 +37,18 @@ def help_form(query_id: int | None = None) -> str:
     # populate with a query+response if one is specified
     if query_id is not None:
         with suppress(DataAccessError):
-            query_row = get_query(query_id)
+            query_row = queries_data_source.get_row(query_id)
 
-    history = get_user_data(kind='queries', limit=10)
+    history = queries_data_source.get_user_data(limit=10)
 
-    return render_template("help_form.html", query=query_row, history=history)
+    return render_template("paper_ideas_form.html", query=query_row, history=history)
 
 
 @bp.route("/view/<int:query_id>")
 @login_required
 def help_view(query_id: int) -> Response | str:
     try:
-        query_row = get_query(query_id)
+        query_row = queries_data_source.get_row(query_id)
     except DataAccessError:
         abort(400, "Invalid id.")
 
@@ -56,9 +57,9 @@ def help_view(query_id: int) -> Response | str:
     else:
         responses = {'error': "*No response -- an error occurred.  Please try again.*"}
 
-    history = get_user_data(kind='queries', limit=10)
+    history = queries_data_source.get_user_data(limit=10)
 
-    return render_template("help_view.html", query=query_row, responses=responses, history=history)
+    return render_template("paper_ideas_view.html", query=query_row, responses=responses, history=history)
 
 
 async def run_query_prompts(llm: LLM, assignment: str, topics: str) -> tuple[list[dict[str, str]], dict[str, str]]:
@@ -103,7 +104,7 @@ def record_query(assignment: str, topics: str) -> int:
     role_id = auth.cur_class.role_id if auth.cur_class else None
 
     cur = db.execute(
-        "INSERT INTO queries (assignment, topics, user_id, role_id) VALUES (?, ?, ?, ?)",
+        "INSERT INTO paper_ideas_queries (assignment, topics, user_id, role_id) VALUES (?, ?, ?, ?)",
         [assignment, topics, auth.user_id, role_id]
     )
     new_row_id = cur.lastrowid
@@ -117,7 +118,7 @@ def record_response(query_id: int, responses: list[dict[str, str]], texts: dict[
     db = get_db()
 
     db.execute(
-        "UPDATE queries SET response_json=?, response_text=? WHERE id=?",
+        "UPDATE paper_ideas_queries SET response_json=?, response_text=? WHERE id=?",
         [json.dumps(responses), json.dumps(texts), query_id]
     )
     db.commit()
@@ -144,6 +145,6 @@ def post_helpful() -> str:
 
     query_id = int(request.form['id'])
     value = int(request.form['value'])
-    db.execute("UPDATE queries SET helpful=? WHERE id=? AND user_id=?", [value, query_id, auth.user_id])
+    db.execute("UPDATE paper_ideas_queries SET helpful=? WHERE id=? AND user_id=?", [value, query_id, auth.user_id])
     db.commit()
     return ""

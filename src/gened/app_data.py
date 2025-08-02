@@ -4,7 +4,7 @@
 
 from collections.abc import Iterator
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from sqlite3 import Cursor, Row
 from typing import Final, Protocol
 from urllib.parse import urlencode
@@ -53,7 +53,7 @@ class Filters:
             LEFT JOIN classes AS role_class ON role_class.id=roles.class_id
             WHERE roles.id=?
         """),
-        'query': FilterSpec('query', 'queries.id', None),
+        'row_id': FilterSpec('row_id', 'q.id', None),
     }
 
     def __init__(self) -> None:
@@ -80,7 +80,7 @@ class Filters:
 
         return filters
 
-    def add(self, spec_name: str, value: str | int, *, with_display: bool=False) -> None:
+    def add(self, spec_name: str, value: str | int, *, with_display: bool=False) -> Self:
         spec = self._available_filter_specs.get(spec_name)
 
         if not spec:
@@ -94,6 +94,8 @@ class Filters:
         else:
             display_value = None
         self._filters.append(Filter(spec, value, display_value))
+
+        return self  # for chaining
 
 
     def make_where(self, selected: list[str]) -> tuple[str, list[str | int]]:
@@ -137,24 +139,36 @@ class DataFunction(Protocol):
 
 @dataclass(frozen=True)
 class DataSource:
-    name: str
-    function: DataFunction
+    table_name: str
+    display_name: str
+    get_data: DataFunction
     table: DataTable
+    requires_experiment: str | None = field(default=None, kw_only=True)
 
-    def get_data(self, filters: Filters, /, limit: int=-1, offset: int=0) -> list[Row]:
-        return self.function(filters, limit, offset).fetchall()
-
-    def get_populated_table(self, filters: Filters, / , limit: int=-1, offset: int=0) -> DataTable:
+    def get_populated_table(self, filters: Filters, * , limit: int=-1, offset: int=0) -> DataTable:
         table = deepcopy(self.table)
-        table.data = self.get_data(filters, limit, offset)
+        table.data = self.get_data(filters, limit=limit, offset=offset).fetchall()
         return table
+
+    def get_user_data(self, limit: int) -> list[Row]:
+        '''Fetch current user's history.'''
+        auth = get_auth()
+        assert auth.user_id is not None
+        filters = Filters().add('user', auth.user_id)
+        return self.get_data(filters, limit=limit).fetchall()
+
+    def get_row(self, row_id: int) -> Row:
+        return _get_data_row(self, row_id)
+
 
 def get_admin_charts() -> list[ChartGenerator]:
     admin_charts: list[ChartGenerator] = current_app.extensions['gen_ed_admin_charts']
     return admin_charts
 
+
 def get_registered_data_sources() -> dict[str, DataSource]:
     return deepcopy(current_app.extensions['gen_ed_data_sources'])
+
 
 def get_registered_data_source(name: str) -> DataSource:
     ds_map: dict[str, DataSource] = current_app.extensions['gen_ed_data_sources']
@@ -173,16 +187,15 @@ class RowNotFoundError(DataAccessError):
 class AccessDeniedError(DataAccessError):
     pass
 
-def get_query(query_id: int) -> Row:
-    '''Fetch a single query with an access permission check.'''
+def _get_data_row(data_source: DataSource, row_id: int) -> Row:
+    '''Fetch a single row from a registerd data source with an access permission check.'''
     auth = get_auth()
     assert auth.user_id is not None
 
     filters = Filters()
-    filters.add('query', query_id)
+    filters.add('row_id', row_id)
 
-    get_data = get_registered_data_source('queries').function
-    row = get_data(filters).fetchone()
+    row = data_source.get_data(filters, limit=1).fetchone()
 
     if not row:
         raise RowNotFoundError
@@ -198,17 +211,3 @@ def get_query(query_id: int) -> Row:
 
     assert isinstance(row, Row)
     return row
-
-
-def get_user_data(kind: str, limit: int) -> list[Row]:
-    '''Fetch current user's query history.'''
-    auth = get_auth()
-    assert auth.user_id is not None
-
-    filters = Filters()
-    filters.add('user', auth.user_id)
-
-    get_data = get_registered_data_source(kind).function
-    data = get_data(filters, limit=limit).fetchall()
-
-    return data
