@@ -4,15 +4,15 @@
 
 from gened.base import GenEdComponent
 
-from .data import LangDeletionHandler, queries_data_source
+from .data import DeletionHandler, queries_data_source
 from .helper import bp
 
 gened_component = GenEdComponent(
     package=__package__,
     blueprint=bp,
-    navbar_item_template="queries_nav_item.html",
+    navbar_item_template="language_help_nav_item.html",
     data_source=queries_data_source,
-    deletion_handler=LangDeletionHandler,
+    deletion_handler=DeletionHandler,
     schema_file="schema.sql",
     migrations_dir="migrations",
 )

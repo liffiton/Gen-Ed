@@ -20,12 +20,13 @@ from flask import (
 from markupsafe import Markup
 from werkzeug.wrappers.response import Response
 
-from gened.app_data import DataAccessError, get_query, get_user_data
+from gened.app_data import DataAccessError
 from gened.auth import class_enabled_required, get_auth, login_required
 from gened.db import get_db
 from gened.llm import LLM, with_llm
 
 from . import prompts
+from .data import queries_data_source
 
 bp = Blueprint('helper', __name__, url_prefix="/check", template_folder='templates')
 
@@ -40,11 +41,11 @@ def help_form(query_id: int | None = None) -> str:
     # populate with a query+response if one is specified
     if query_id is not None:
         with suppress(DataAccessError):
-            query_row = get_query(query_id)
+            query_row = queries_data_source.get_row(query_id)
 
-    history = get_user_data(kind='queries', limit=10)
+    history = queries_data_source.get_user_data(limit=10)
 
-    return render_template("help_form.html", query=query_row, history=history)
+    return render_template("language_help_form.html", query=query_row, history=history)
 
 
 def normalize_whitespace(text: str) -> str:
@@ -101,7 +102,7 @@ def insert_corrections_html(original: str, errors: list[ErrorSet]) -> Markup:
 @login_required
 def help_view(query_id: int) -> Response | str:
     try:
-        query_row = get_query(query_id)
+        query_row = queries_data_source.get_row(query_id)
     except DataAccessError:
         abort(400, "Invalid id.")
 
@@ -115,9 +116,9 @@ def help_view(query_id: int) -> Response | str:
         response_data = json.loads(responses['main'])
         marked_up = insert_corrections_html(query_row['writing'], response_data.get('errors'))
 
-    history = get_user_data(kind='queries', limit=10)
+    history = queries_data_source.get_user_data(limit=10)
 
-    return render_template("help_view.html", query=query_row, marked_up=marked_up, responses=responses, history=history)
+    return render_template("language_help_view.html", query=query_row, marked_up=marked_up, responses=responses, history=history)
 
 
 async def run_query_prompts(llm: LLM, writing: str) -> tuple[list[dict[str, str]], dict[str, str]]:

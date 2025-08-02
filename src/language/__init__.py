@@ -6,9 +6,8 @@ from pathlib import Path
 
 from flask.app import Flask
 
+from components import language_help
 from gened.base import GenEdAppBuilder
-
-from . import queries
 
 
 def create_app(test_config: dict[str, str] | None = None, instance_path: Path | None = None) -> Flask:
@@ -30,7 +29,7 @@ def create_app(test_config: dict[str, str] | None = None, instance_path: Path | 
 
     # create the base application
     builder = GenEdAppBuilder(__name__, app_config, instance_path)
-    builder.add_component(queries.gened_component)
+    builder.add_component(language_help.gened_component)
     app = builder.build()
 
     return app
