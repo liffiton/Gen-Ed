@@ -151,16 +151,26 @@ def on_init_db(func: Callable[[], None]) -> Callable[[], None]:
 def init_db() -> None:
     db = get_db()
 
-    # Common schema in the gened package
+    # Common schema in the gened package + registered component schemas
+    component_schemas = current_app.extensions.get('gen_ed_schemas', [])
+    schema_resources = [
+        ('gened', 'schema_common.sql'),
+        *component_schemas,
+    ]
     # importlib.resources: https://stackoverflow.com/a/73497763/
     # requires Python 3.9+
-    common_schema_res = resources.files('gened').joinpath("schema_common.sql")
-    with resources.as_file(common_schema_res) as file_path, file_path.open(encoding="utf-8") as f:
-        db.executescript(f.read())
+    for package_name, schema_file in schema_resources:
+        schema_res = resources.files(package_name).joinpath(schema_file)
+        with resources.as_file(schema_res) as file_path, file_path.open(encoding="utf-8") as f:
+            db.executescript(f.read())
 
-    # App-specific schema in the app's package
-    with current_app.open_resource('schema.sql', mode='r', encoding='utf-8') as f:
-        db.executescript(f.read())
+    # App-specific schema in the app's package (if it exists)
+    try:
+        with current_app.open_resource('schema.sql', mode='r', encoding='utf-8') as f:
+            db.executescript(f.read())
+    except FileNotFoundError:
+        # No app-specific schema file, which is fine
+        pass
 
     # Mark all existing migrations as applied (since this is a fresh DB)
     for func in _on_init_db_callbacks:

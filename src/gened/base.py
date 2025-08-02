@@ -57,12 +57,15 @@ class DBMissingModelError(Exception):
 
 @dataclass(frozen=True, kw_only=True)
 class GenEdComponent:
+    package: str   # name of the package that defined this component (used to locate schema and migration resources)
     blueprint: Blueprint | None = None
     navbar_item_template: str | None = None
     data_source: app_data.DataSource | None = None
     config_table: class_config.ConfigTable | None = None
     admin_chart: app_data.ChartGenerator | None = None
     deletion_handler: data_deletion.DeletionHandler | None = None
+    schema_file: str | None = None  # relative path to schema file within component package
+    migrations_dir: str | None = None  # relative path to migrations directory within component package
 
 
 class GenEdAppBuilder:
@@ -110,6 +113,8 @@ class GenEdAppBuilder:
         app.extensions['gen_ed_config_tables'] = {}      # map: name(str) -> ConfigTable object
         app.extensions['gen_ed_data_sources'] = {}       # map: name(str) -> DataSource object
         app.extensions['gen_ed_deletion_handlers'] = []  # list: DeletionHandler objects
+        app.extensions['gen_ed_schemas'] = []            # list: (package_name, schema_file) tuples
+        app.extensions['gen_ed_migrations'] = []         # list: (package_name, migrations_dir) tuples
 
         # set up middleware to fix headers from a proxy if configured as such
         if os.environ.get("FLASK_APP_BEHIND_PROXY", "").lower() in ("yes", "true", "1"):
@@ -269,6 +274,10 @@ class GenEdAppBuilder:
             self._app.extensions['gen_ed_admin_charts'].append(component.admin_chart)
         if component.deletion_handler is not None:
             self._app.extensions['gen_ed_deletion_handlers'].append(component.deletion_handler)
+        if component.schema_file is not None:
+            self._app.extensions['gen_ed_schemas'].append((component.package, component.schema_file))
+        if component.migrations_dir is not None:
+            self._app.extensions['gen_ed_migrations'].append((component.package, component.migrations_dir))
 
     def _register_core_blueprints(self) -> None:
         app = self._app

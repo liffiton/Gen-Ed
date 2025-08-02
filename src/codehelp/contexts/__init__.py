@@ -21,9 +21,12 @@ from .model import ContextConfig
 bp = Blueprint('contexts', __name__, template_folder='templates')
 
 gened_component = GenEdComponent(
+    package=__package__,
     blueprint=bp,
     config_table=contexts_config_table,
     deletion_handler=ContextsDeletionHandler,
+    schema_file="schema.sql",
+    migrations_dir="migrations",
 )
 
 __all__ = [

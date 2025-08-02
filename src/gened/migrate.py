@@ -116,19 +116,30 @@ def _migration_info(resource: Traversable) -> MigrationDict:
 
 
 def _get_migrations() -> list[MigrationDict]:
-    # Pull shared Gen-ed migrations and app-specific migrations
-    gened_migrations = resources.files('gened').joinpath("migrations")
-    app_migrations = resources.files(current_app.name).joinpath("migrations")
+    # Common migrations in the gened package + app migrations + registered component migrations
+    component_migrations = current_app.extensions.get('gen_ed_migrations', [])
+    migration_dirs = [
+        ('gened', 'migrations'),
+        (current_app.name, 'migrations'),
+        *component_migrations,
+    ]
+
+    migration_paths = [
+        resources.files(package_name).joinpath(folder)
+        for package_name, folder in migration_dirs
+    ]
+
     migration_resources = itertools.chain(
-        *(x.iterdir() for x in (gened_migrations, app_migrations) if x.is_dir())
+        *(x.iterdir() for x in migration_paths if x.is_dir())
     )
 
-    # Collect info and sort by name and modified time (to apply migrations in order)
+    # Collect info
     migrations = [
         _migration_info(res)
         for res in migration_resources
         if not res.name.startswith('.') and res.name.endswith('.sql')
     ]
+    # Sort by name and modified time (to apply migrations in order)
     migrations.sort(key=lambda x: (x['name'], x['mtime']))
 
     return migrations
