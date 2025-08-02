@@ -28,7 +28,7 @@ from gened.llm import LLM, with_llm
 from . import prompts
 from .data import queries_data_source
 
-bp = Blueprint('helper', __name__, url_prefix="/check", template_folder='templates')
+bp = Blueprint('language_helper', __name__, url_prefix="/check", template_folder='templates')
 
 
 @bp.route("/")
@@ -84,6 +84,10 @@ def insert_corrections_html(original: str, errors: list[ErrorSet]) -> Markup:
     # note: replacing any escaped space with *literal* "\s+" string (to be used in pattern)
     # and: see this for explanation of weird replacement string: https://stackoverflow.com/questions/58328587/
     escaped_substrings = [re.sub(r"\\ ", r"\\s+", sub) for sub in escaped_substrings]
+
+    # ensure matches don't start or end in the middle of a word
+    escaped_substrings = [re.sub(r"^\b", r"\\b", sub) for sub in escaped_substrings]
+    escaped_substrings = [re.sub(r"\b$", r"\\b", sub) for sub in escaped_substrings]
 
     # create a regex pattern to match any of the substrings
     pattern = r"(" + r"|".join(escaped_substrings) + r")"
@@ -167,7 +171,7 @@ def record_query(writing: str) -> int:
     role_id = auth.cur_class.role_id if auth.cur_class else None
 
     cur = db.execute(
-        "INSERT INTO queries (writing, user_id, role_id) VALUES (?, ?, ?)",
+        "INSERT INTO language_help_queries (writing, user_id, role_id) VALUES (?, ?, ?)",
         [writing, auth.user_id, role_id]
     )
     new_row_id = cur.lastrowid
@@ -181,7 +185,7 @@ def record_response(query_id: int, responses: list[dict[str, str]], texts: dict[
     db = get_db()
 
     db.execute(
-        "UPDATE queries SET response_json=?, response_text=? WHERE id=?",
+        "UPDATE language_help_queries SET response_json=?, response_text=? WHERE id=?",
         [json.dumps(responses), json.dumps(texts), query_id]
     )
     db.commit()

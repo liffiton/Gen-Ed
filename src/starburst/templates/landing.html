@@ -13,7 +13,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <h1 class="is-size-1">Starburst: Use AI to explore writing topics.</h1>
       <p>It's like a brainstorming partner, suggesting keywords, concepts, and connections related to the seeds you provide.</p>
       {% if auth.user %}
-      <a class="button is-link is-large" href="{{ url_for('helper.help_form') }}">
+      <a class="button is-link is-large" href="{{ url_for('paper_ideas.help_form') }}">
         Try it now
       </a>
       {% endif %}

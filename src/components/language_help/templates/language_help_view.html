@@ -73,9 +73,9 @@ SPDX-License-Identifier: AGPL-3.0-only
       </div>
 
       <div class="container mt-6">
-        <a href="{{ url_for('helper.help_form') }}" class="button is-link is-outlined is-rounded p-2 ml-1 mr-1" style="vertical-align: baseline; height: 2rem;">Start again</a>
+        <a href="{{ url_for('.help_form') }}" class="button is-link is-outlined is-rounded p-2 ml-1 mr-1" style="vertical-align: baseline; height: 2rem;">Start again</a>
         or
-        <a href="{{ url_for('helper.help_form', query_id=query.id) }}" class="button is-link is-outlined is-rounded p-2 ml-1 mr-1" style="vertical-align: baseline; height: 2rem;">Retry this submission</a>
+        <a href="{{ url_for('.help_form', query_id=query.id) }}" class="button is-link is-outlined is-rounded p-2 ml-1 mr-1" style="vertical-align: baseline; height: 2rem;">Retry this submission</a>
       </div>
 
       {% endif %}

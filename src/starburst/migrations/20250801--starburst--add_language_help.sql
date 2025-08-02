@@ -1,8 +1,8 @@
--- SPDX-FileCopyrightText: 2024 Mark Liffiton <liffiton@gmail.com>
+-- SPDX-FileCopyrightText: 2025 Mark Liffiton <liffiton@gmail.com>
 --
 -- SPDX-License-Identifier: AGPL-3.0-only
 
-DROP TABLE IF EXISTS language_help_queries;
+BEGIN;
 
 CREATE TABLE language_help_queries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -16,7 +16,10 @@ CREATE TABLE language_help_queries (
     FOREIGN KEY(role_id) REFERENCES roles(id)
 );
 
+-- And create the indexes while we're at it
 DROP INDEX IF EXISTS queries_by_user;
 CREATE INDEX language_help_queries_by_user ON language_help_queries(user_id);
 DROP INDEX IF EXISTS queries_by_role;
 CREATE INDEX language_help_queries_by_role ON language_help_queries(role_id);
+
+COMMIT;

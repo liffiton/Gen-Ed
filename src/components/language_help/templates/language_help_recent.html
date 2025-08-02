@@ -11,8 +11,8 @@ SPDX-License-Identifier: AGPL-3.0-only
   {% for prev in history %}
     <div class="box p-3">
       <div class="buttons has-addons are-small is-pulled-right">
-        <a href="{{url_for('helper.help_view', query_id=prev.id)}}" class="button is-link is-outlined is-rounded p-2">View</a>
-        <a href="{{url_for('helper.help_form', query_id=prev.id)}}" class="button is-link is-outlined is-rounded p-2">Retry</a>
+        <a href="{{url_for('.help_view', query_id=prev.id)}}" class="button is-link is-outlined is-rounded p-2">View</a>
+        <a href="{{url_for('.help_form', query_id=prev.id)}}" class="button is-link is-outlined is-rounded p-2">Retry</a>
       </div>
       Writing: <span {% if prev.writing | length > 50 %}title="{{prev.writing}}"{% endif %}>{{prev.writing | truncate(50)}}</span><br>
     </div>

@@ -85,7 +85,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div class="card-content p-2 pl-5" style="background: #e5e5e5;" x-data="{helpful: {{"null" if query.helpful == None else query.helpful}}}">
         <script type="text/javascript">
           function post_helpful(value) {
-            fetch("{{url_for('helper.post_helpful')}}", {
+            fetch("{{url_for('.post_helpful')}}", {
               method: "POST",
               body: `id={{query.id}}&value=${value}`,
               headers: { "Content-Type": "application/x-www-form-urlencoded" }

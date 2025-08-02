@@ -24,7 +24,7 @@ from gened.llm import LLM, with_llm
 from . import prompts
 from .data import queries_data_source
 
-bp = Blueprint('helper', __name__, url_prefix="/ideas", template_folder='templates')
+bp = Blueprint('paper_ideas', __name__, url_prefix="/ideas", template_folder='templates')
 
 
 @bp.route("/")
