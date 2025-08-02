@@ -25,13 +25,13 @@ classifiers = [
 ]
 
 dependencies = [
-    "Authlib~=1.5.2",
+    "Authlib~=1.6.1",
     "Flask~=3.1.0",
     "cachelib~=0.13.0",
     "markdown-it-py~=3.0.0",
-    "openai~=1.0, >=1.26, != 1.78",
+    "openai~=1.0, >=1.79",
     "pylti@git+https://github.com/liffiton/pylti",
-    "pypdf~=5.7.0",
+    "pypdf~=5.9",
     "pyrage~=1.2.0",
     "python-dotenv~=1.1.0",
     "python-frontmatter~=1.1.0",
@@ -40,12 +40,12 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
-    "oauthlib~=3.2.2",
+    "oauthlib~=3.3.0",
     "pytest~=8.0",
     "pytest-cov~=6.2.0",
-    "pytest-xdist~=3.7.0",
+    "pytest-xdist~=3.8.0",
     "mypy",
-    "types-oauthlib~=3.2.0",
+    "types-oauthlib~=3.3.0",
     "types-requests",
     "pyrage-stubs~=1.2.0",
 ]
