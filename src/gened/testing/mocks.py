@@ -31,14 +31,14 @@ def _create_dummy_completion() -> ChatCompletion:
     )
 
 def mock_completion(delay: float = 0.0) -> Callable[..., ChatCompletion]:
-    def mock(*args: Any, **kwargs: Any) -> ChatCompletion:
+    def mock(*_args: Any, **_kwargs: Any) -> ChatCompletion:
         time.sleep(delay)
         return _create_dummy_completion()
     return mock
 
 
 def mock_async_completion(delay: float = 0.0) -> Callable[..., Awaitable[ChatCompletion]]:
-    async def mock(*args: Any, **kwargs: Any) -> ChatCompletion:
+    async def mock(*_args: Any, **_kwargs: Any) -> ChatCompletion:
         await asyncio.sleep(delay)
         return _create_dummy_completion()
     return mock

@@ -190,7 +190,7 @@ def init_db_command() -> None:
 @click.argument('username')
 @click.option('--admin', is_flag=True, help="Make the new user an admin.")
 @click.option('--tester', is_flag=True, help="Make the new user a tester.")
-def newuser_command(username: str, admin: bool = False, tester: bool = False) -> None:
+def newuser_command(username: str, *, admin: bool = False, tester: bool = False) -> None:
     """Add a new user to the database.  Generates and prints a random password."""
     db = get_db()
 
