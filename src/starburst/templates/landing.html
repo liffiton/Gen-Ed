@@ -10,13 +10,27 @@ SPDX-License-Identifier: AGPL-3.0-only
 <section class="section">
   <div class="container">
     <div class="box content has-background-link-light has-text-dark is-size-3">
-      <h1 class="is-size-1">Starburst: Use AI to explore writing topics.</h1>
-      <p>It's like a brainstorming partner, suggesting keywords, concepts, and connections related to the seeds you provide.</p>
-      {% if auth.user %}
-      <a class="button is-link is-large" href="{{ url_for('paper_ideas.help_form') }}">
-        Try it now
-      </a>
-      {% endif %}
+      <h1 class="is-size-1">A collection of AI-powered tools for learning.</h1>
+
+      <h2 class="is-size-2">
+        Generate Ideas
+        {% if auth.user %}
+          <a class="button is-link ml-3" href="{{ url_for('paper_ideas.help_form') }}">
+            Try it now
+          </a>
+        {% endif %}
+      </h2>
+      <p>Explore writing topics.  It's like a brainstorming partner, suggesting keywords, concepts, and connections related to the seeds you provide.</p>
+      <h2 class="is-size-2">
+        Check Writing
+        {% if auth.user %}
+          <a class="button is-link ml-3" href="{{ url_for('language_helper.help_form') }}">
+            Try it now
+          </a>
+        {% endif %}
+      </h2>
+      <p>Get quick, simple feedback on your writing.  It's most useful when learning a second (or third, or fourth, ...) language.</p>
+
     </div>
   </div>
 </section>
