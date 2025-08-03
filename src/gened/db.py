@@ -222,13 +222,12 @@ def rebuild_views() -> None:
         FROM users
         LEFT JOIN auth_providers ON auth_providers.id=users.auth_provider
         LEFT JOIN all_entries ON all_entries.user_id=users.id
-        LEFT JOIN roles ON roles.user_id=users.id
+        LEFT JOIN roles ON roles.user_id=users.id AND (roles.role = 'instructor' OR roles.role is NULL)
         LEFT JOIN classes ON classes.id=roles.class_id
         WHERE
             NOT users.is_admin
             AND users.id != -1
             AND users.delete_status != 'deleted'
-            AND (roles.role = 'instructor' OR roles.role is NULL)
         GROUP BY users.id
     """)
     db.commit()
