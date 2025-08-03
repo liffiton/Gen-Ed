@@ -77,7 +77,7 @@ def table_prep(cols: list[Col], data: list[Row], max_len: int=1000) -> list[dict
         else:
             return val
 
-    assert not data or set(data[0].keys()).issuperset(col.name for col in cols), "Data column headings must match column spec names."
+    assert not data or set(data[0].keys()).issuperset(col.name for col in cols), f"Data column headings must match column spec names: {data[0].keys()} {cols}"
     return [
         {col.name: process(col, row[col.name]) for col in cols}
         for row in data

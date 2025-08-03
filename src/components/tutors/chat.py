@@ -18,7 +18,7 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from codehelp.contexts import (
+from components.code_contexts import (
     ContextConfig,
     get_available_contexts,
     get_context_by_name,

@@ -4,7 +4,7 @@
 
 from collections.abc import Iterator
 from copy import deepcopy
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from sqlite3 import Cursor, Row
 from typing import Final, Protocol
 from urllib.parse import urlencode
@@ -137,14 +137,14 @@ class DataFunction(Protocol):
     def __call__(self, filters: Filters, /, limit: int=-1, offset: int=0) -> Cursor:
         ...
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class DataSource:
     table_name: str
     display_name: str
     get_data: DataFunction
     table: DataTable
     time_col: str | None = None
-    requires_experiment: str | None = field(default=None, kw_only=True)
+    requires_experiment: str | None = None
 
     def get_populated_table(self, filters: Filters, * , limit: int=-1, offset: int=0) -> DataTable:
         table = deepcopy(self.table)

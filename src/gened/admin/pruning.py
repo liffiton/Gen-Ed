@@ -35,11 +35,11 @@ def get_candidates() -> tuple[list[Row], int]:
                 json_array(display_name, auth_provider, display_extra) AS user,
                 created,
                 last_query_time AS "last query",
-                last_instructor_query_time AS "last class query",
-                MAX(IFNULL(created, ""), IFNULL(last_query_time, ""), IFNULL(last_instructor_query_time, "")) AS "last activity",
-                CAST(JULIANDAY(DATE('now')) - JULIANDAY(MAX(IFNULL(created, ""), IFNULL(last_query_time, ""), IFNULL(last_instructor_query_time, ""))) AS INTEGER) AS "days since",
+                last_class_created_time AS "last class created",
+                MAX(IFNULL(created, ""), IFNULL(last_query_time, ""), IFNULL(last_class_created_time, "")) AS "last activity",
+                CAST(JULIANDAY(DATE('now')) - JULIANDAY(MAX(IFNULL(created, ""), IFNULL(last_query_time, ""), IFNULL(last_class_created_time, ""))) AS INTEGER) AS "days since",
                 delete_status = 'whitelisted' AS "whitelist?"
-            FROM user_activity
+            FROM v_user_activity
             WHERE "last activity" < DATE('now', ?)
         """, [f"-{retention_time_days} days"]).fetchall()
 
@@ -68,7 +68,7 @@ def pruning_view() -> str:
 
     candidates = DataTable(
         name='candidates',
-        columns=[NumCol('id'), UserCol('user'), Col('created'), Col('last query'), Col('last class query'), Col('last activity'), NumCol('days since'), BoolCol('whitelist?', url=url_for('.set_whitelist'), reload=True)],
+        columns=[NumCol('id'), UserCol('user'), Col('created'), Col('last query'), Col('last class created'), Col('last activity'), NumCol('days since'), BoolCol('whitelist?', url=url_for('.set_whitelist'), reload=True)],
         data=pruning_candidates,
     )
 

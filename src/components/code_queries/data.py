@@ -34,14 +34,14 @@ def gen_query_charts(filters: Filters) -> list[ChartData]:
         FROM cnt
         LEFT JOIN (
         SELECT
-            CAST(julianday() AS INTEGER) - CAST(julianday(queries.query_time) AS INTEGER) AS days_since,
-            COUNT(queries.id) AS queries,
-            SUM(json_extract(queries.response_json, '$[0].error') IS NOT NULL) AS errors,
-            SUM(json_extract(queries.response_text, '$.insufficient') IS NOT NULL) AS insufficient
-            FROM queries
-            JOIN users ON queries.user_id=users.id
+            CAST(julianday() AS INTEGER) - CAST(julianday(code_queries.query_time) AS INTEGER) AS days_since,
+            COUNT(code_queries.id) AS queries,
+            SUM(json_extract(code_queries.response_json, '$[0].error') IS NOT NULL) AS errors,
+            SUM(json_extract(code_queries.response_text, '$.insufficient') IS NOT NULL) AS insufficient
+            FROM code_queries
+            JOIN users ON code_queries.user_id=users.id
             LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
-            LEFT JOIN roles ON queries.role_id=roles.id
+            LEFT JOIN roles ON code_queries.role_id=roles.id
             LEFT JOIN classes ON roles.class_id=classes.id
             LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
             LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
@@ -92,7 +92,7 @@ def get_queries(filters: Filters, /, limit: int=-1, offset: int=0) -> Cursor:
             t.context_string_id AS context_string_id,
             classes.id AS class_id,
             t.topics_json AS topics_json
-        FROM queries AS t
+        FROM code_queries AS t
         JOIN users ON t.user_id=users.id
         LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
         LEFT JOIN roles ON t.role_id=roles.id
@@ -115,25 +115,25 @@ queries_table = DataTable(
 )
 
 queries_data_source = DataSource(
-    'queries',
-    'queries',
-    get_queries,
-    queries_table,
+    table_name='code_queries',
+    display_name='queries',
+    get_data=get_queries,
+    table=queries_table,
     time_col='query_time',
 )
 
 
 class QueriesDeletionHandler:
-    """Personal data deletion for the queries component."""
+    """Personal data deletion for the code_queries component."""
 
     @staticmethod
     def delete_user_data(user_id: int) -> None:
         """Delete/Anonymize personal data for a user while preserving non-personal data for analysis."""
         db = get_db()
 
-        # Anonymize personal data in queries
+        # Anonymize personal data in code_queries
         db.execute("""
-            UPDATE queries
+            UPDATE code_queries
             SET code = CASE
                     WHEN code IS NOT NULL THEN '[deleted]'
                     ELSE NULL
@@ -154,9 +154,9 @@ class QueriesDeletionHandler:
         """Delete/Anonymize personal data for a class while preserving non-personal data for analysis."""
         db = get_db()
 
-        # Anonymize personal data in queries
+        # Anonymize personal data in code_queries
         db.execute("""
-            UPDATE queries
+            UPDATE code_queries
             SET code = CASE
                     WHEN code IS NOT NULL THEN '[deleted]'
                     ELSE NULL

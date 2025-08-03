@@ -2,8 +2,8 @@
 --
 -- SPDX-License-Identifier: AGPL-3.0-only
 
-DROP TABLE IF EXISTS queries;
-CREATE TABLE queries (
+DROP TABLE IF EXISTS code_queries;
+CREATE TABLE code_queries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     query_time DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
     context_name TEXT,
@@ -22,7 +22,7 @@ CREATE TABLE queries (
     FOREIGN KEY(role_id) REFERENCES roles(id),
     FOREIGN KEY(context_string_id) REFERENCES context_strings(id)
 );
-DROP INDEX IF EXISTS queries_by_user;
-CREATE INDEX queries_by_user ON queries(user_id);
-DROP INDEX IF EXISTS queries_by_role;
-CREATE INDEX queries_by_role ON queries(role_id);
+DROP INDEX IF EXISTS code_queries_by_user;
+CREATE INDEX code_queries_by_user ON code_queries(user_id);
+DROP INDEX IF EXISTS code_queries_by_role;
+CREATE INDEX code_queries_by_role ON code_queries(role_id);

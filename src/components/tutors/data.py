@@ -114,10 +114,10 @@ chats_table = DataTable(
 )
 
 chats_data_source = DataSource(
-    'chats',
-    'chats',
-    get_chats,
-    chats_table,
+    table_name='chats',
+    display_name='chats',
+    get_data=get_chats,
+    table=chats_table,
     time_col='chat_started',
     requires_experiment='chats_experiment',
 )

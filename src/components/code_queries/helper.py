@@ -19,7 +19,7 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from codehelp.contexts import (
+from components.code_contexts import (
     ContextConfig,
     get_available_contexts,
     get_context_by_name,
@@ -83,7 +83,7 @@ def help_form(llm: LLM, query_id: int | None = None, class_id: int | None = None
         else:
             # no query specified,
             # but we can pre-select the most recently used context, if available
-            recent_row = db.execute("SELECT context_name FROM queries WHERE queries.user_id=? ORDER BY id DESC LIMIT 1", [auth.user_id]).fetchone()
+            recent_row = db.execute("SELECT context_name FROM code_queries WHERE code_queries.user_id=? ORDER BY id DESC LIMIT 1", [auth.user_id]).fetchone()
             if recent_row:
                 selected_context_name = recent_row['context_name']
 
@@ -204,7 +204,7 @@ def record_query(context: ContextConfig | None, code: str, error: str, issue: st
         context_string_id = None
 
     cur = db.execute(
-        "INSERT INTO queries (context_name, context_string_id, code, error, issue, user_id, role_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO code_queries (context_name, context_string_id, code, error, issue, user_id, role_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
         [context_name, context_string_id, code, error, issue, auth.user_id, role_id]
     )
     new_row_id = cur.lastrowid
@@ -219,7 +219,7 @@ def record_response(query_id: int, responses: list[dict[str, str]], texts: dict[
     db = get_db()
 
     db.execute(
-        "UPDATE queries SET response_json=?, response_text=? WHERE id=?",
+        "UPDATE code_queries SET response_json=?, response_text=? WHERE id=?",
         [json.dumps(responses), json.dumps(texts), query_id]
     )
     db.commit()
@@ -280,7 +280,7 @@ def post_helpful() -> str:
 
     query_id = int(request.form['id'])
     value = int(request.form['value'])
-    db.execute("UPDATE queries SET helpful=? WHERE id=? AND user_id=?", [value, query_id, auth.user_id])
+    db.execute("UPDATE code_queries SET helpful=? WHERE id=? AND user_id=?", [value, query_id, auth.user_id])
     db.commit()
     return ""
 
@@ -295,7 +295,7 @@ def get_topics_html(llm: LLM, query_id: int) -> str:
         return render_template("topics_fragment.html", error=True)
     else:
         db = get_db()
-        context_name = db.execute("SELECT context_name FROM queries WHERE id=?", [query_id]).fetchone()[0]
+        context_name = db.execute("SELECT context_name FROM code_queries WHERE id=?", [query_id]).fetchone()[0]
         return render_template("topics_fragment.html", context_name=context_name, topics=topics)
 
 
@@ -331,8 +331,8 @@ def get_topics(llm: LLM, query_id: int) -> list[str]:
     except json.decoder.JSONDecodeError:
         return []
 
-    # Save topics into queries table for the given query
+    # Save topics into code_queries table for the given query
     db = get_db()
-    db.execute("UPDATE queries SET topics_json=? WHERE id=?", [response_txt, query_id])
+    db.execute("UPDATE code_queries SET topics_json=? WHERE id=?", [response_txt, query_id])
     db.commit()
     return topics

@@ -48,7 +48,7 @@ def test_delete_user_data_full_process(app: Flask, instructor: AppClient) -> Non
     # Capture initial state
     with app.app_context():
         db = get_db()
-        initial_queries = db.execute("SELECT * FROM queries WHERE user_id = ?", [user_id]).fetchall()
+        initial_queries = db.execute("SELECT * FROM code_queries WHERE user_id = ?", [user_id]).fetchall()
         initial_chats = db.execute("SELECT * FROM chats WHERE user_id = ?", [user_id]).fetchall()
         assert len(initial_queries) > 0, "Test data should include queries"
         assert len(initial_chats) > 0, "Test data should include chats"
@@ -104,7 +104,7 @@ def test_delete_user_data_full_process(app: Flask, instructor: AppClient) -> Non
 
         # Check queries anonymization
         query_list = ','.join('?' * len(initial_query_ids))  # for SQL IN clause
-        queries = db.execute(f"SELECT * FROM queries WHERE id IN ({query_list})", initial_query_ids).fetchall()
+        queries = db.execute(f"SELECT * FROM code_queries WHERE id IN ({query_list})", initial_query_ids).fetchall()
         # Verify each query has been properly anonymized
         assert len(queries) == len(initial_query_ids), "All original queries should still exist"
         for query in queries:
@@ -172,7 +172,7 @@ def test_delete_class_full_process(app: Flask, instructor: AppClient) -> None:
     # Capture initial state
     with app.app_context():
         db = get_db()
-        initial_queries = db.execute("SELECT COUNT(*) FROM queries WHERE role_id IN (SELECT id FROM roles WHERE class_id = ?)",
+        initial_queries = db.execute("SELECT COUNT(*) FROM code_queries WHERE role_id IN (SELECT id FROM roles WHERE class_id = ?)",
 [class_id]).fetchone()[0]
         initial_contexts = db.execute("SELECT COUNT(*) FROM contexts WHERE class_id = ?", [class_id]).fetchone()[0]
         assert initial_queries > 0, "Test data should include queries"
@@ -215,7 +215,7 @@ def test_delete_class_full_process(app: Flask, instructor: AppClient) -> None:
         # Check queries anonymization
         queries = db.execute("""
             SELECT *
-            FROM queries
+            FROM code_queries
             WHERE role_id IN (SELECT id FROM roles WHERE class_id = ?)
         """, [class_id]).fetchall()
         for query in queries:

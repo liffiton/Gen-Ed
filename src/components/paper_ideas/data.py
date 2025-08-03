@@ -51,10 +51,10 @@ queries_table = DataTable(
 )
 
 queries_data_source = DataSource(
-    TABLE_NAME,
-    DISPLAY_NAME,
-    get_queries,
-    queries_table,
+    table_name=TABLE_NAME,
+    display_name=DISPLAY_NAME,
+    get_data=get_queries,
+    table=queries_table,
     time_col='query_time',
 )
 

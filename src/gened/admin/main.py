@@ -133,7 +133,16 @@ def get_roles(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
 
 
 def get_data_sources(filters: Filters) -> dict[str, DataSource]:
-    consumers_table = DataTable(
+    data_funcs = {
+        'consumers': get_consumers,
+        'classes': get_classes,
+        'users': get_users,
+        'roles': get_roles,
+    }
+
+    datatables = {}
+
+    datatables['consumers'] = DataTable(
         name='consumers',
         columns=[NumCol('id'), Col('consumer'), Col('model'), NumCol('#classes')], # , NumCol('#queries'), NumCol('1wk')],
         link_col=0,
@@ -142,7 +151,7 @@ def get_data_sources(filters: Filters) -> dict[str, DataSource]:
         create_endpoint='admin.admin_consumers.consumer_new',
     )
 
-    classes_table = DataTable(
+    datatables['classes'] = DataTable(
         name='classes',
         columns=[NumCol('id'), Col('name'), Col('owner'), Col('model'), NumCol('#users')], # , NumCol('#queries'), NumCol('1wk')],
         link_col=0,
@@ -150,14 +159,14 @@ def get_data_sources(filters: Filters) -> dict[str, DataSource]:
         actions=[Action("Administer class", icon='admin', url=url_for('classes.switch_class_handler'), id_col=0)],
     )
 
-    users_table = DataTable(
+    datatables['users'] = DataTable(
         name='users',
         columns=[NumCol('id'), UserCol('user')], # , NumCol('#queries'), NumCol('1wk'), NumCol('tokens')],
         link_col=0,
         link_template=filters.template_string('user'),
     )
 
-    roles_table = DataTable(
+    datatables['roles'] = DataTable(
         name='roles',
         columns=[NumCol('id'), UserCol('user'), Col('role'), Col('class'), Col('class owner')],
         link_col=0,
@@ -165,10 +174,8 @@ def get_data_sources(filters: Filters) -> dict[str, DataSource]:
     )
 
     built_ins = {
-        'consumers': DataSource('consumers', 'consumers', get_consumers, consumers_table),
-        'classes': DataSource('classes', 'classes', get_classes, classes_table),
-        'users': DataSource('users', 'users', get_users, users_table),
-        'roles': DataSource('roles', 'roles', get_roles, roles_table),
+        table: DataSource(table_name=table, display_name=table, get_data=data_funcs[table], table=datatables[table])
+        for table in ('consumers', 'classes', 'users', 'roles')
     }
 
     registered = get_registered_data_sources()

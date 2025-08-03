@@ -38,6 +38,7 @@ from . import (
     profile,
     tz,
 )
+from .db import get_db
 
 
 class MissingEnvVarError(Exception):
@@ -295,6 +296,22 @@ class GenEdAppBuilder:
         class_config_bp = class_config.build_blueprint(app)  # requires building, using data stored in app.extensions['gen_ed_config_tables']
         app.register_blueprint(class_config_bp, url_prefix='/instructor/config')
 
+    def _check_db(self) -> None:
+        """ Check that the database contains necessary data. """
+        app = self._app
+
+        # Validate that the system and default class models exist and are active.
+        try:
+            for var in "SYSTEM_MODEL_SHORTNAME", "DEFAULT_CLASS_MODEL_SHORTNAME":
+                shortname = app.config[var]
+                model = llm.get_model(by_shortname=shortname)
+                if not model or not model.active:
+                    raise DBMissingModelError(shortname)
+        except sqlite3.OperationalError:
+            # e.g., pre-migration, no 'active' column; just warn
+            app.logger.warning("Error looking up default active model.  You may need to run migrations.")
+
+
     def build(self) -> Flask:
         """ Finalize the app with all registered components and return a complete Flask app. """
         app = self._app
@@ -315,28 +332,19 @@ class GenEdAppBuilder:
         # run setup and checks that depend on the database (iff it is initialized)
         # must come after db.init_app(app) to ensure db is closed at end of context manager
         with app.app_context():
-            db_conn = db.get_db()
+            db_conn = get_db()
             try:
                 db_conn.execute("SELECT 1 FROM consumers LIMIT 1")
                 db_conn.execute("SELECT 1 FROM models LIMIT 1")
-                db_initialized = True
+                for ds in self._app.extensions['gen_ed_data_sources'].values():
+                    db_conn.execute(f"SELECT 1 FROM {ds.table_name}")
             except sqlite3.OperationalError:
-                db_initialized = False
-
-            if db_initialized:
-                # load consumers from DB
+                # database is not initialized, but we may be running initdb or a migration now, so that's okay
+                pass
+            else:
+                # database has been initialized (no errors reading from those two tables)
+                self._check_db()
+                db.rebuild_views()
                 lti.reload_consumers()
-
-                # validate that the system and default class models exist
-                # and are active
-                try:
-                    for var in "SYSTEM_MODEL_SHORTNAME", "DEFAULT_CLASS_MODEL_SHORTNAME":
-                        shortname = app.config[var]
-                        model = llm.get_model(by_shortname=shortname)
-                        if not model or not model.active:
-                            raise DBMissingModelError(shortname)
-                except sqlite3.OperationalError:
-                    # e.g., pre-migration, no 'active' column; just warn
-                    app.logger.warning("Error looking up default active model.  You probably need to run migrations.")
 
         return app

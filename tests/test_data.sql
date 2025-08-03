@@ -83,7 +83,7 @@ VALUES
 INSERT INTO context_strings (id, ctx_str)
 VALUES (1, 'context 1'), (2, 'context 2');
 
-INSERT INTO queries (id, context_name, context_string_id, code, error, issue, response_json, response_text, helpful, user_id, role_id)
+INSERT INTO code_queries (id, context_name, context_string_id, code, error, issue, response_json, response_text, helpful, user_id, role_id)
 VALUES
     (1, 'ctx1', 1, 'code01', 'error01', 'issue01', '{}', '{"main": "response01"}', 0, 21, 1),
     (2, 'ctx2', 2, 'code02', 'error02', 'issue02', '{}', '{"main": "response02"}', 0, 22, 2),

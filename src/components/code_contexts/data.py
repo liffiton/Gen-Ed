@@ -74,32 +74,11 @@ def record_context_string(context_str: str) -> int:
 
 
 class ContextsDeletionHandler:
-    """Personal data deletion for the queries component."""
+    """Personal data deletion for the code_contexts component."""
 
     @staticmethod
     def delete_user_data(user_id: int) -> None:
-        """Delete/Anonymize personal data for a user while preserving non-personal data for analysis."""
-        db = get_db()
-
-        # Anonymize personal data in queries
-        db.execute("""
-            UPDATE queries
-            SET code = CASE
-                    WHEN code IS NOT NULL THEN '[deleted]'
-                    ELSE NULL
-                END,
-                error = CASE
-                    WHEN error IS NOT NULL THEN '[deleted]'
-                    ELSE NULL
-                END,
-                issue = '[deleted]',
-                context_name = '[deleted]',
-                context_string_id = NULL,
-                user_id = -1
-            WHERE user_id = ?
-        """, [user_id])
-
-        db.commit()
+        pass
 
     @staticmethod
     def delete_class_data(class_id: int) -> None:
@@ -120,7 +99,7 @@ class ContextsDeletionHandler:
             DELETE FROM context_strings
             WHERE id IN (
                 SELECT context_string_id
-                FROM queries
+                FROM code_queries
                 WHERE role_id IN (
                     SELECT id FROM roles WHERE class_id = ?
                 )
