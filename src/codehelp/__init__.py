@@ -24,6 +24,8 @@ def create_app(test_config: dict[str, Any] | None = None, instance_path: Path | 
         SUPPORT_EMAIL='support@codehelp.app',
         DATABASE_NAME='codehelp.db',  # will be combined with app.instance_path in gened.create_app_base()
         DOCS_DIR=module_dir / 'docs',
+        # Free query tokens given to new users
+        DEFAULT_TOKENS=20,
         # Data retention length (prune user data with no activity for this period of time)
         RETENTION_TIME_DAYS=2*365,  # 2 years
     )

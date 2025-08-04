@@ -21,6 +21,8 @@ def create_app(test_config: dict[str, str] | None = None, instance_path: Path | 
         SUPPORT_EMAIL='mliffito@iwu.edu',
         DATABASE_NAME='starburst.db',
         DOCS_DIR=module_dir / 'docs',
+        # Free query tokens given to new users
+        DEFAULT_TOKENS=100,
     )
 
     # load test config if provided, potentially overriding above config
