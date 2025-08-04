@@ -6,7 +6,7 @@ import asyncio
 import dataclasses
 import json
 from dataclasses import dataclass
-from typing import Any, Self
+from typing import Any
 
 from cachelib.simple import SimpleCache
 from flask import (
@@ -17,6 +17,7 @@ from flask import (
 )
 from markupsafe import Markup
 from pypdf import PdfReader
+from typing_extensions import Self  # for Python 3.10
 from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.wrappers.response import Response
 
@@ -246,9 +247,15 @@ async def generate_questions_for_objective(config: TutorConfig, index: int, llm:
 
 async def populate_questions(config: TutorConfig, llm: LLM, num_questions: int) -> None:
     """ Populate (in-place) all learning objectives in config with the given number of questions. """
-    async with asyncio.TaskGroup() as tg:
-        for i in range(len(config.objectives)):
-            tg.create_task(generate_questions_for_objective(config, i, llm, num_questions))
+    # TaskGroup is 3.11+ (TODO: switch after 3.10 eol)
+    #async with asyncio.TaskGroup() as tg:
+    #    for i in range(len(config.objectives)):
+    #        tg.create_task(generate_questions_for_objective(config, i, llm, num_questions))
+    tasks = [
+        asyncio.create_task(generate_questions_for_objective(config, i, llm, num_questions))
+        for i in range(len(config.objectives))
+    ]
+    await asyncio.gather(*tasks)
 
 
 @bp.route('/questions/generate', methods=['POST'])
