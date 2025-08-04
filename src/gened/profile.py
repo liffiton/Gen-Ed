@@ -134,6 +134,9 @@ def view_data() -> str:
     for ds in get_registered_data_sources().values():
         table = ds.table
         table.data = ds.get_user_data(limit=-1)  # -1 = no limit
+        if len(table.data) == 0:
+            # don't show tables with no data
+            continue
         table.csv_link = url_for(".get_csv", kind=ds.table.name)
         table.hide('user')  # it's just the current user's data; no need to list them in every row
         tables.append((ds.display_name, table))

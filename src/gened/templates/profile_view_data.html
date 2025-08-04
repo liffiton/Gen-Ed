@@ -12,11 +12,13 @@ SPDX-License-Identifier: AGPL-3.0-only
 {% endblock extrahead %}
 
 {% block body %}
-<section class="section p-5">
+<section class="section">
   <h1 class="title">Your Data</h1>
   {% for name, table in tables %}
     <h2 class="title is-size-4">{{ name | capitalize }}</h2>
     {{ datatable(table) }}
+  {% else %}
+    <p>You have no usage data yet.</p>
   {% endfor %}
 </section>
 {% endblock body %}
