@@ -21,10 +21,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
           {% if contexts %}
           <div class="field is-horizontal">
-            <div class="field-label is-normal">
-              <label class="label" for="context">Context:</label>
-            </div>
-            {% include "context_chooser.html" %}
+            {% include "context_chooser.html" ignore missing %}{# code_contexts component may not be loaded #}
           </div>
           {% endif %}
 

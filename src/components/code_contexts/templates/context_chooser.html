@@ -4,6 +4,9 @@
             current_ctx: {{ (selected_context_name or '') | tojson }},
           };
         </script>
+        <div class="field-label is-normal">
+          <label class="label" for="context">Context:</label>
+        </div>
         <div class="field-body" style="min-width: 0;" x-data="context_view">
             <div class="field is-narrow">
               <div class="control">
