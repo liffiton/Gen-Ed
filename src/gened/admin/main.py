@@ -89,10 +89,10 @@ def get_users(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
     return db.execute(f"""
         SELECT
             users.id AS id,
-            json_array(users.display_name, auth_providers.name, users.display_extra) AS user
+            json_array(users.display_name, auth_providers.name, users.display_extra) AS user,
+            users.query_tokens AS tokens
             --COUNT(queries.id) AS "#queries",
-            --SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS "1wk",
-            --users.query_tokens AS tokens
+            --SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS "1wk"
         FROM users
         LEFT JOIN auth_providers ON auth_providers.id=users.auth_provider
         LEFT JOIN roles ON roles.user_id=users.id
@@ -161,7 +161,7 @@ def get_data_sources(filters: Filters) -> dict[str, DataSource]:
 
     datatables['users'] = DataTable(
         name='users',
-        columns=[NumCol('id'), UserCol('user')], # , NumCol('#queries'), NumCol('1wk'), NumCol('tokens')],
+        columns=[NumCol('id'), UserCol('user'), NumCol('tokens')], # , NumCol('#queries'), NumCol('1wk')],
         link_col=0,
         link_template=filters.template_string('user'),
     )
