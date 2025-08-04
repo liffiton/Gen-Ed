@@ -65,6 +65,12 @@ SPDX-License-Identifier: AGPL-3.0-only
           </div>
         {% endif %}
         {% if marked_up %}
+          {% if auth.is_admin %}
+            <div class="notification is-info">
+              <h3>[Admin] raw response</h3>
+              <pre>{{ responses['main'] }}</pre>
+            </div>
+          {% endif %}
           <p><em>Issues are underlined.  Hover or tap each for details.</em></p>
           <div class="is-size-4">
             {{ marked_up }}
