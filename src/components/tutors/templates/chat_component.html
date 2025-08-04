@@ -53,28 +53,29 @@ SPDX-License-Identifier: AGPL-3.0-only
       font-variant: small-caps;
     }
     .progress_widget .in_progress {
-      font-weight: bold;
+      color: #04b;
+      background: #04b1;
     }
     .progress_widget .in_progress .status {
-      background: #0001;
+      background: #04b2;
     }
     .progress_widget .completed {
       color: #080;
     }
     .progress_widget .completed .status {
-      background: #0801;
+      background: #0802;
     }
     .progress_widget .moved_on {
       color: #a64;
     }
     .progress_widget .moved_on .status {
-      background: #a641;
+      background: #a642;
     }
     .progress_widget .not_started {
-      color: #844;
+      color: #611;
     }
     .progress_widget .not_started .status {
-      background: #8441;
+      background: #6112;
     }
   </style>
 
@@ -119,18 +120,22 @@ SPDX-License-Identifier: AGPL-3.0-only
     {% endif %}
     {% if chat_data.analysis %}
       <div><!-- spacing --></div>
-      <div>
-        <table class="progress_widget table" style="width: fit-content">
-          <thead><th colspan=2>Plan &amp; Progress</th></thead>
-          <tbody>
-          {% for prog in chat_data.analysis.progress %}
-            <tr class="{{ prog.status | replace(' ', '_') }}">
-              <td class="status">{{ prog.status.capitalize() }}</td>
-              <td class="objective">{{ prog.objective }}</td>
-            </tr>
-          {% endfor %}
-          </tbody>
-        </table>
+      <div class="message box progress_widget p-0 m-5">
+        <div class="message-header has-text-weight-normal" style="background: #605c5a;">
+          Tutor's plan &amp; your progress
+        </div>
+        <div class="message-body has-text-weight-light p-0">
+          <table>
+            <tbody>
+              {% for prog in chat_data.analysis.progress %}
+                <tr class="{{ prog.status | replace(' ', '_') }}">
+                  <td class="status">{{ prog.status.capitalize() }}</td>
+                  <td class="objective">{{ prog.objective }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     {% endif %}
   </div>
