@@ -14,49 +14,12 @@ SPDX-License-Identifier: AGPL-3.0-only
     <section class="section">
       <div class="container content">
         <h1 class="title">Start a New Chat</h1>
-
-        {% if contexts is not none %}
-        <h2 class="is-size-4">Inquiry Chat</h2>
-        <form action="{{url_for('tutors.create_inquiry_chat')}}" method="post">
-
-          {% if contexts %}
-          <div class="field is-horizontal">
-            {% include "context_chooser.html" ignore missing %}{# code_contexts component may not be loaded #}
-          </div>
-          {% endif %}
-
-          <div class="field is-horizontal">
-            <div class="field-label is-medium">
-              <label class="label" for="topic">Topic:</label>
-            </div>
-            <div class="field-body">
-              <div class="field">
-                <div class="control">
-                  <input class="input is-medium" name="topic" id="topic">
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="field is-horizontal">
-            <div class="field-label is-normal"><!-- spacing --></div>
-            <div class="field-body">
-              <div class="field">
-                <div class="control">
-                  <button class="button is-link" type="submit">
-                    Start
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </form>
-        {% endif %}
+        <p>If your instructor has created any tutors focused on a specific topic, they will be listed here for you to select one and begin a <em>Guided Chat</em>.<br>In any case, you can propose your own topic and start an <em>Inquiry Chat</em>.</p>
 
         {% if tutors %}
         <h2 class="is-size-4">Guided Chat</h2>
         <form action="{{url_for('tutors.create_guided_chat')}}" method="post">
+          <p>Select a topic to start a chat with a tutor set up by your instructor.</p>
 
           <div class="field is-horizontal">
             <div class="field-label is-medium">
@@ -80,6 +43,46 @@ SPDX-License-Identifier: AGPL-3.0-only
                 </div>
               </div>
               {% endif %}
+            </div>
+          </div>
+
+          <div class="field is-horizontal">
+            <div class="field-label is-normal"><!-- spacing --></div>
+            <div class="field-body">
+              <div class="field">
+                <div class="control">
+                  <button class="button is-link" type="submit">
+                    Start
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </form>
+        {% endif %}
+
+        {% if contexts is not none %}
+        <h2 class="is-size-4">Inquiry Chat</h2>
+        <form action="{{url_for('tutors.create_inquiry_chat')}}" method="post">
+          <p>Write a question or a brief description of a topic you would like help understanding.</p>
+
+          {% if contexts %}
+          <div class="field is-horizontal">
+            {% include "context_chooser.html" ignore missing %}{# code_contexts component may not be loaded #}
+          </div>
+          {% endif %}
+
+          <div class="field is-horizontal">
+            <div class="field-label is-medium">
+              <label class="label" for="topic">Topic:</label>
+            </div>
+            <div class="field-body">
+              <div class="field">
+                <div class="control">
+                  <input class="input is-medium" name="topic" id="topic">
+                </div>
+              </div>
             </div>
           </div>
 
