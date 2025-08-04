@@ -86,8 +86,10 @@ def insert_corrections_html(original: str, errors: list[ErrorSet]) -> Markup:
     escaped_substrings = [re.sub(r"\\ ", r"\\s+", sub) for sub in escaped_substrings]
 
     # ensure matches don't start or end in the middle of a word
-    escaped_substrings = [re.sub(r"^\b", r"\\b", sub) for sub in escaped_substrings]
-    escaped_substrings = [re.sub(r"\b$", r"\\b", sub) for sub in escaped_substrings]
+    # 2025-08-03: disabled -- helps with things like using lowercase 'i'
+    # instead of 'I', but breaks matching in Chinese, for example...
+    #escaped_substrings = [re.sub(r"^\b", r"\\b", sub) for sub in escaped_substrings]
+    #escaped_substrings = [re.sub(r"\b$", r"\\b", sub) for sub in escaped_substrings]
 
     # create a regex pattern to match any of the substrings
     pattern = r"(" + r"|".join(escaped_substrings) + r")"
