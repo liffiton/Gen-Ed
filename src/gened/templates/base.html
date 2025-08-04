@@ -128,10 +128,10 @@ SPDX-License-Identifier: AGPL-3.0-only
             {% if auth.is_admin %}
               <a class="navbar-item is-size-6 has-text-danger" href="{{ url_for('admin.admin_main.main') }}">
                 <div class="icon-text">
-                  <span class="icon">
+                  <span class="icon" title="Admin">
                     <svg aria-hidden="true"><use href="#svg_admin" /></svg>
                   </span>
-                  <span>Admin</span>
+                  <span class="is-hidden-desktop-only">Admin</span>
                 </div>
               </a>
             {% endif %}
