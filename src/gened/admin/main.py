@@ -218,6 +218,7 @@ def main() -> str:
         charts.extend(generate_chart(filters))
 
     init_rows = 20  # number of rows to send in the page for each table (remainder will load asynchronously)
+    limit = 1000    # maximum row number to reach in asynch request
 
     all_data_sources = get_data_sources(filters)
     tables = []
@@ -226,7 +227,6 @@ def main() -> str:
         table = source.table
         table.data = source.get_data(filters, limit=init_rows).fetchall()
         table.csv_link = url_for('.get_data', name=name, kind='csv', **request.args)  # type: ignore[arg-type]
-        limit = 1000 if name == 'queries' else 50000
         table.ajax_url = url_for('.get_data', name=name, kind='json', offset=init_rows, limit=limit-init_rows, **request.args)  # type: ignore[arg-type]
 
         tables.append(table)
