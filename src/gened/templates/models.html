@@ -9,19 +9,20 @@ SPDX-License-Identifier: AGPL-3.0-only
 {% block body %}
 
 <section class="section">
-  <div class="container">
+  <div class="container content">
     {% if model %}
       <h1 class="title">Editing '{{model["shortname"]}}' Model</h1>
       <form class="wide-labels" action="{{ url_for("models.models_update", model_id=model["id"]) }}" method="post">
     {% else %}
-      <h1 class="title">Create New Model</h1>
+      <h1 class="title">Add New Model</h1>
+      <p>You will be able to select and use this model in any classes you create.</p>
       <form class="wide-labels" action="{{ url_for("models.create_new_model") }}" method="post">      
     {% endif %}
 
       <div class="field is-horizontal">
         <div class="field-label is-normal">
-          <label class="label" for="shortname">Model Short Name</label>
-          <p class="help-text">Short nickname for model</p>
+          <label class="label" for="shortname">Name</label>
+          <p class="help-text">Short nickname to show when selecting models</p>
         </div>
         <div class="field-body">
           <div class="field">
@@ -35,7 +36,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label" for="custom_endpoint">Custom Endpoint</label>
-          <p class="help-text">API endpoint of your model</p>
+          <p class="help-text">API endpoint of your model<br>Must be OpenAI-compatible (<a href="https://ai.google.dev/gemini-api/docs/openai">for example</a>)</p>
         </div>
 
         <div class="field-body">
