@@ -129,72 +129,6 @@ def get_response_set_id(db: sqlite3.Connection, prompt_set_id: int, model: str) 
     """, [prompt_set_id, model]).fetchone()
     return result['id'] if result else None
 
-
-@app.route('/view_results', methods=['GET'])
-def view_results() -> str:
-    db = get_db()
-    eval_sets = db.execute("""
-        SELECT eval_set.*, response_set.model AS response_model, prompt_set.prompt_func, prompt_set.created AS prompt_created
-        FROM eval_set
-        JOIN response_set ON response_set.id=eval_set.response_set_id
-        JOIN prompt_set ON prompt_set.id=response_set.prompt_set_id
-        ORDER BY prompt_set.prompt_func, response_set.model, prompt_set.created
-    """).fetchall()
-
-    results = []
-    for eval_set in eval_sets:
-        eval_rows = db.execute("""
-            SELECT eval.evaluation
-            FROM eval
-            WHERE eval.set_id = ?
-        """, [eval_set['id']]).fetchall()
-
-        # Get response time statistics for this response set
-        time_stats_row = db.execute("""
-            SELECT 
-                MIN(response_time) as min_time,
-                AVG(response_time) as avg_time,
-                MAX(response_time) as max_time,
-                COUNT(response_time) as count_with_time
-            FROM response
-            WHERE set_id = ? AND response_time IS NOT NULL
-        """, [eval_set['response_set_id']]).fetchone()
-
-        response_times = None
-        if time_stats_row and time_stats_row['count_with_time'] > 0:
-            response_times = {
-                'min': time_stats_row['min_time'],
-                'avg': time_stats_row['avg_time'],
-                'max': time_stats_row['max_time'],
-                'count': time_stats_row['count_with_time']
-            }
-
-        evaluations = [json.loads(row['evaluation']) for row in eval_rows]
-
-        ok_total = sum('OK.' in eval_dict for eval_dict in evaluations)
-        ok_true = sum(v == True for eval_dict in evaluations for k, v in eval_dict.items() if k == 'OK.')
-        ok_false = ok_total - ok_true
-
-        other_total = sum(k != 'OK.' for eval_dict in evaluations for k in eval_dict)
-        other_true = sum(v == True for eval_dict in evaluations for k, v in eval_dict.items() if k != 'OK.')
-        other_false = other_total - other_true
-
-        results.append({
-            'id': eval_set['id'],
-            'prompt_func': eval_set['prompt_func'],
-            'prompt_created': eval_set['prompt_created'],
-            'response_model': eval_set['response_model'],
-            'eval_model': eval_set['model'],
-            'ok_true': ok_true,
-            'ok_false': ok_false,
-            'other_total': other_total,
-            'other_true': other_true,
-            'other_false': other_false,
-            'response_times': response_times
-        })
-
-    return render_template('view_results.html', results=results)
-
 @app.template_filter('percentage')
 def percentage_filter(value: int, total: int) -> str:
     return f"{(value / total * 100):.1f}%" if total > 0 else "N/A"
@@ -214,7 +148,9 @@ def view_false_responses(eval_set_id: int) -> str:
 
     # Fetch responses that evaluated as False
     false_responses = db.execute("""
-        SELECT response.text, response.response_time, eval.evaluation, prompt.model_response
+        SELECT response.text, response.response_time,
+               response.prompt_tokens, response.reasoning_tokens, response.completion_tokens,
+               eval.evaluation, prompt.model_response
         FROM eval
         JOIN response ON response.id = eval.response_id
         JOIN prompt ON prompt.id = response.prompt_id
@@ -225,6 +161,9 @@ def view_false_responses(eval_set_id: int) -> str:
         {
             'text': row['text'],
             'response_time': row['response_time'],
+            'prompt_tokens': row['prompt_tokens'],
+            'reasoning_tokens': row['reasoning_tokens'],
+            'completion_tokens': row['completion_tokens'],
             'evaluation': json.loads(row['evaluation']),
             'model_response': row['model_response']
         }
@@ -289,13 +228,15 @@ def compare_responses() -> Response | str:
 
     # Get responses for both models
     responses1 = db.execute("""
-        SELECT response.prompt_id, response.text, response.response_time
+        SELECT response.prompt_id, response.text, response.response_time,
+               response.prompt_tokens, response.reasoning_tokens, response.completion_tokens
         FROM response
         WHERE response.set_id = ?
     """, [set1_id]).fetchall()
 
     responses2 = db.execute("""
-        SELECT response.prompt_id, response.text, response.response_time
+        SELECT response.prompt_id, response.text, response.response_time,
+               response.prompt_tokens, response.reasoning_tokens, response.completion_tokens
         FROM response
         WHERE response.set_id = ?
     """, [set2_id]).fetchall()
@@ -369,11 +310,17 @@ def compare_responses() -> Response | str:
             'response1': {
                 'text': markdown(response1['text']) if response1 else "No response",
                 'response_time': response1['response_time'] if response1 else None,
+                'prompt_tokens': response1['prompt_tokens'] if response1 else None,
+                'reasoning_tokens': response1['reasoning_tokens'] if response1 else None,
+                'completion_tokens': response1['completion_tokens'] if response1 else None,
                 'evaluation': evals1.get(prompt_id, {})
             },
             'response2': {
                 'text': markdown(response2['text']) if response2 else "No response",
                 'response_time': response2['response_time'] if response2 else None,
+                'prompt_tokens': response2['prompt_tokens'] if response2 else None,
+                'reasoning_tokens': response2['reasoning_tokens'] if response2 else None,
+                'completion_tokens': response2['completion_tokens'] if response2 else None,
                 'evaluation': evals2.get(prompt_id, {})
             }
         })
@@ -409,7 +356,16 @@ def dashboard() -> str:
             MIN(r.response_time) as min_time,
             AVG(r.response_time) as avg_time,
             MAX(r.response_time) as max_time,
-            COUNT(r.response_time) as count_with_time
+            COUNT(r.response_time) as count_with_time,
+            MIN(r.prompt_tokens) as min_prompt_tokens,
+            AVG(r.prompt_tokens) as avg_prompt_tokens,
+            MAX(r.prompt_tokens) as max_prompt_tokens,
+            MIN(r.completion_tokens) as min_completion_tokens,
+            AVG(r.completion_tokens) as avg_completion_tokens,
+            MAX(r.completion_tokens) as max_completion_tokens,
+            MIN(r.reasoning_tokens) as min_reasoning_tokens,
+            AVG(r.reasoning_tokens) as avg_reasoning_tokens,
+            MAX(r.reasoning_tokens) as max_reasoning_tokens
         FROM response_set rs
         LEFT JOIN response r ON r.set_id = rs.id AND r.response_time IS NOT NULL
         GROUP BY rs.id, rs.prompt_set_id, rs.model
@@ -453,17 +409,34 @@ def dashboard() -> str:
         cell_data[ps_id][model] = {
             'status': 'generated',
             'response_set_id': rs_row['response_set_id'],
-            'response_times': None,
+            'stats': None,
             'eval_stats': None,
             'eval_model': None,
             'eval_set_id': None
         }
         if rs_row['count_with_time'] > 0:
-             cell_data[ps_id][model]['response_times'] = {
-                'min': rs_row['min_time'],
-                'avg': rs_row['avg_time'],
-                'max': rs_row['max_time'],
-                'count': rs_row['count_with_time']
+             cell_data[ps_id][model]['stats'] = {
+                'count': rs_row['count_with_time'],
+                'time': {
+                    'min': rs_row['min_time'],
+                    'avg': rs_row['avg_time'],
+                    'max': rs_row['max_time'],
+                } if rs_row['min_time'] is not None else None,
+                'prompt': {
+                    'min': rs_row['min_prompt_tokens'],
+                    'avg': rs_row['avg_prompt_tokens'],
+                    'max': rs_row['max_prompt_tokens'],
+                } if rs_row['min_prompt_tokens'] is not None else None,
+                'completion': {
+                    'min': rs_row['min_completion_tokens'],
+                    'avg': rs_row['avg_completion_tokens'],
+                    'max': rs_row['max_completion_tokens'],
+                } if rs_row['min_completion_tokens'] is not None else None,
+                'reasoning': {
+                    'min': rs_row['min_reasoning_tokens'],
+                    'avg': rs_row['avg_reasoning_tokens'],
+                    'max': rs_row['max_reasoning_tokens'],
+                } if rs_row['min_reasoning_tokens'] is not None else None,
             }
 
     # Update with evaluation info
@@ -492,7 +465,7 @@ def dashboard() -> str:
              cell_data[ps_id][model] = {
                 'status': 'generated', # Assume generated if evaluated
                 'response_set_id': response_set_info['response_set_id'],
-                'response_times': None, # No timing info from this query path
+                'stats': None, # No timing info from this query path
                 'eval_stats': None,
                 'eval_model': None,
                 'eval_set_id': None

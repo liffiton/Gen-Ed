@@ -80,9 +80,6 @@ SPDX-License-Identifier: AGPL-3.0-only
     .action-button {
         font-size: 0.8em;
         cursor: pointer;
-        display: block; /* Make buttons take full width */
-        margin: 5px auto; /* Center buttons */
-        max-width: 100%; /* Adjust width as needed */
     }
     .center-content {
         text-align: center;
@@ -161,11 +158,15 @@ SPDX-License-Identifier: AGPL-3.0-only
                                 <input type="hidden" name="prompt_set" value="{{ prompt_set.id }}">
                                 <input type="hidden" name="model" value="{{ model }}">
                                 {# TODO: Make eval model selectable #}
+                                <small>[{{ cell.response_set_id }}]</small>
                                 <button type="submit" class="action-button">Evaluate</button>
                             </form>
                         </div>
                     {% elif status == 'evaluated' %}
-                        <div class="center-content" {% if cell.eval_model %}title="Evaluated by: {{ cell.eval_model }}"{% endif %}>✅</div>
+                        <div class="center-content" {% if cell.eval_model %}title="Evaluated by: {{ cell.eval_model }}"{% endif %}>
+                            <small>[{{ cell.response_set_id }}]</small>
+                            ✅
+                        </div>
                         {% if cell.eval_stats %}
                         <div class="stats-block">
                             {% set stats = cell.eval_stats %}
@@ -193,11 +194,26 @@ SPDX-License-Identifier: AGPL-3.0-only
                          <div class="stats-block"><small>(No eval stats)</small></div>
                         {% endif %}
                     {% endif %}
-                    {% if cell.response_times %}
+                    {% if cell.stats and cell.stats.time.min %}
                     <div class="stats-block">
-                      <p><small>Min: {{ "%.2fs"|format(cell.response_times.min) }}</small></p>
-                      <p>Avg: {{ "%.2fs"|format(cell.response_times.avg) }}</p>
-                      <p><small>Max: {{ "%.2fs"|format(cell.response_times.max) }}</small></p>
+                      <p><small>Min: {{ "%.2fs"|format(cell.stats.time.min) }}</small></p>
+                      <p>Avg: {{ "%.2fs"|format(cell.stats.time.avg) }}</p>
+                      <p><small>Max: {{ "%.2fs"|format(cell.stats.time.max) }}</small></p>
+                    </div>
+                    {% endif %}
+                    {% if cell.stats and cell.stats.prompt %}
+                    <div class="stats-block">
+                      <p>Prompt: <small>{{ "%d"|format(cell.stats.prompt.min) }} / <strong>{{ "%.1f"|format(cell.stats.prompt.avg) }}</strong> / {{ "%d"|format(cell.stats.prompt.max) }}</small></p>
+                    </div>
+                    {% endif %}
+                    {% if cell.stats and cell.stats.completion %}
+                    <div class="stats-block">
+                      <p>Completion: <small>{{ "%d"|format(cell.stats.completion.min) }} / <strong>{{ "%.1f"|format(cell.stats.completion.avg) }}</strong> / {{ "%d"|format(cell.stats.completion.max) }}</small></p>
+                    </div>
+                    {% endif %}
+                    {% if cell.stats and cell.stats.reasoning %}
+                    <div class="stats-block">
+                      <p>Reasoning: <small>{{ "%d"|format(cell.stats.reasoning.min) }} / <strong>{{ "%.1f"|format(cell.stats.reasoning.avg) }}</strong> / {{ "%d"|format(cell.stats.reasoning.max) }}</small></p>
                     </div>
                     {% endif %}
 

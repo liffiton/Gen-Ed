@@ -126,9 +126,14 @@ def gen_responses(db: sqlite3.Connection, prompt_set_id: int, model: str) -> Non
             tqdm.write(f"\x1B[31m{text}\x1B[m")
             response_json = json.dumps(text)
 
+        # Extract token counts from response
+        prompt_tokens = response.usage.prompt_tokens
+        completion_tokens = response.usage.completion_tokens
+        reasoning_tokens = response.usage.completion_tokens_details.get("reasoning_tokens", None)  # might not be present
+
         db.execute(
-            "INSERT INTO response(set_id, prompt_id, response, text, response_time) VALUES(?, ?, ?, ?, ?)",
-            [response_set_id, prompt['id'], response_json, text, response_time]
+            "INSERT INTO response(set_id, prompt_id, response, text, response_time, prompt_tokens, reasoning_tokens, completion_tokens) VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
+            [response_set_id, prompt['id'], response_json, text, response_time, prompt_tokens, reasoning_tokens, completion_tokens]
         )
         db.commit()
 
