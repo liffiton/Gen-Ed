@@ -102,6 +102,12 @@ def main() -> str | Response:
     sel_user_id = request.args.get('user', type=int)
     if sel_user_id is not None:
         db = get_db()
+        curr_class = get_auth_class()
+        class_id = curr_class.class_id
+        role_row = db.execute("SELECT 1 FROM roles WHERE user_id=? AND class_id=?", [sel_user_id, class_id]).fetchone()
+        if not role_row:
+            abort(400, "Invalid user id")
+        
         sel_user_row = db.execute("SELECT display_name FROM users WHERE users.id=?", [sel_user_id]).fetchone()
         if sel_user_row:
             sel_user_name = sel_user_row['display_name']
