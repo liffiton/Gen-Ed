@@ -144,5 +144,5 @@ def test_user_in_instructor_class_or_not(app: Flask, instructor: AppClient) -> N
     response = instructor.get("/instructor/?user=21")
     
     assert "ltiuser1@domain.edu" not in response.text
-    assert "Bad Request" in response.text
+    assert "Invalid user id" in response.text
     assert response.status_code == 400
