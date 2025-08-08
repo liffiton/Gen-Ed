@@ -129,7 +129,11 @@ def gen_responses(db: sqlite3.Connection, prompt_set_id: int, model: str) -> Non
         # Extract token counts from response
         prompt_tokens = response.usage.prompt_tokens
         completion_tokens = response.usage.completion_tokens
-        reasoning_tokens = response.usage.completion_tokens_details.get("reasoning_tokens", None)  # might not be present
+        if response.usage.completion_tokens_details:
+            # might not be present
+            reasoning_tokens = response.usage.completion_tokens_details.reasoning_tokens
+        else:
+            reasoning_tokens = None
 
         db.execute(
             "INSERT INTO response(set_id, prompt_id, response, text, response_time, prompt_tokens, reasoning_tokens, completion_tokens) VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
