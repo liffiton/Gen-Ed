@@ -13,16 +13,20 @@ import litellm
 from python_calamine import CalamineWorkbook
 
 
-def test_and_report_model(model: str) -> None:
+def test_and_report_model(model: str, reasoning_effort: str | None = None) -> None:
     # Check for valid model
     response = litellm.completion(
         model=model,
         messages=[{"role": "user", "content": "Write \"OK.\""}],
         max_completion_tokens=1000,
+        reasoning_effort=reasoning_effort,
+        allowed_openai_params=['reasoning_effort'],  # shouldn't be necessary... maybe a newer LiteLLM will fix this.
     )
     print(response)
-    assert response.choices[0].message.content.strip() == "OK."
-    print(f"Using model: \x1B[32m{model}\x1B[m")
+    response_text = response.choices[0].message.content.strip()
+    assert response_text in {'OK.', '"OK."'}
+    model_str = f"{model} ({reasoning_effort})" if reasoning_effort else model
+    print(f"Using model: \x1B[32m{model_str}\x1B[m")
 
 
 def load_queries(file_path: Path) -> tuple[list[dict[str, Any]], Sequence[str]]:

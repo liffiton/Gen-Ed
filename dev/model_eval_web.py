@@ -6,6 +6,7 @@
 
 import json
 import os
+import re
 import sqlite3
 from pathlib import Path
 from secrets import token_bytes
@@ -98,7 +99,13 @@ def generate_responses() -> Response:
     prompt_set_id = int(request.form['prompt_set'])
     model = request.form['model']
 
-    gen_responses_func(db, prompt_set_id, model)
+    if matches := re.match(r"^(.+) +\((.+)\)$", model):
+        model = matches[1]
+        reasoning_effort = matches[2]
+    else:
+        reasoning_effort = None
+
+    gen_responses_func(db, prompt_set_id, model, reasoning_effort)
     flash(f"Responses generated successfully for prompt set {prompt_set_id} using {model}.", "success")
     return redirect(url_for('dashboard'))
 
@@ -168,31 +175,30 @@ def compare_responses() -> Response | str:
     db = get_db()
 
     # Get the selected response sets from the query parameters
-    set1_json = request.args.get('set1')
-    set2_json = request.args.get('set2')
+    set1 = request.args.get('set1')
+    set2 = request.args.get('set2')
 
-    if not set1_json or not set2_json:
+    if not set1 or not set2:
         flash("Please select two response sets to compare.", "danger")
         return redirect(url_for('dashboard'))
 
     try:
-        set1 = json.loads(set1_json)
-        set2 = json.loads(set2_json)
-    except (json.JSONDecodeError, KeyError, ValueError) as e:
+        set1_id = int(set1)
+        set2_id = int(set2)
+    except TypeError as e:
         flash(f"Error processing comparison request: {e!s}", "danger")
         return redirect(url_for('dashboard'))
 
-    # Get response set IDs
-    set1_id = int(set1['response_set_id'])
-    set2_id = int(set2['response_set_id'])
+    set1_row = db.execute("SELECT * FROM response_set WHERE id = ?", [set1_id]).fetchone()
+    set2_row = db.execute("SELECT * FROM response_set WHERE id = ?", [set2_id]).fetchone()
 
-    if not set1_id or not set2_id:
+    if not set1_row or not set2_row:
         flash("One or both of the selected response sets could not be found.", "danger")
         return redirect(url_for('dashboard'))
 
     # Check if both response sets are from the same prompt set
-    prompt_set_id1 = db.execute("SELECT prompt_set_id FROM response_set WHERE id = ?", [set1_id]).fetchone()['prompt_set_id']
-    prompt_set_id2 = db.execute("SELECT prompt_set_id FROM response_set WHERE id = ?", [set2_id]).fetchone()['prompt_set_id']
+    prompt_set_id1 = set1_row['prompt_set_id']
+    prompt_set_id2 = set2_row['prompt_set_id']
 
     if prompt_set_id1 != prompt_set_id2:
         flash("The selected response sets must be from the same prompt set for comparison.", "danger")
@@ -318,8 +324,8 @@ def compare_responses() -> Response | str:
 
     return render_template('compare_responses.html',
                             prompt_set=prompt_set,
-                            model1=set1['model'],
-                            model2=set2['model'],
+                            model1=set1_row['model'],
+                            model2=set2_row['model'],
                             comparison_data=comparison_data)
 
 

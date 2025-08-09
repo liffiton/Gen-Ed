@@ -22,7 +22,7 @@ from loaders import (
 )
 from tqdm.auto import tqdm
 
-MAX_TOKENS = 5000
+MAX_TOKENS = 10000
 
 
 def get_db(db_path: Path) -> sqlite3.Connection:
@@ -95,11 +95,12 @@ def choose_prompt_set(db: sqlite3.Connection) -> int:
 def cli_gen_responses(args: argparse.Namespace) -> None:
     db = get_db(args.db_path)
     prompt_set_id = choose_prompt_set(db)
-    gen_responses(db, prompt_set_id, args.model)
+    gen_responses(db, prompt_set_id, args.model, args.reasoning_effort)
 
 
-def gen_responses(db: sqlite3.Connection, prompt_set_id: int, model: str) -> None:
-    cur = db.execute("INSERT INTO response_set(model, prompt_set_id) VALUES (?, ?)", [model, prompt_set_id])
+def gen_responses(db: sqlite3.Connection, prompt_set_id: int, model: str, reasoning_effort: str | None = None) -> None:
+    model_str = f"{model} ({reasoning_effort})" if reasoning_effort else model
+    cur = db.execute("INSERT INTO response_set(model, prompt_set_id) VALUES (?, ?)", [model_str, prompt_set_id])
     db.commit()
     response_set_id = cur.lastrowid
 
@@ -115,7 +116,9 @@ def gen_responses(db: sqlite3.Connection, prompt_set_id: int, model: str) -> Non
                 messages=msgs,
                 max_completion_tokens=MAX_TOKENS,
                 n=1,
-                drop_params = True,  # OpenAI o* models don't allow temp!=1.0; this bypasses that error
+                reasoning_effort=reasoning_effort,
+                allowed_openai_params=['reasoning_effort'],  # shouldn't be necessary... maybe a newer LiteLLM will fix this.
+                #drop_params = True,  # OpenAI o* models don't allow temp!=1.0; this bypasses that error
             )
             response_time = time.time() - start_time
             response_json = json.dumps(response.model_dump())
@@ -327,6 +330,13 @@ def main() -> None:
     parser_response = subparsers.add_parser('response', help='Generate a response set for a given prompt set.')
     parser_response.set_defaults(command_func=cli_gen_responses)
     parser_response.add_argument('model', type=str, help="The LLM to use.")
+    parser_response.add_argument(
+        '--reasoning-effort',
+        type=str,
+        choices=['minimal', 'low', 'medium', 'high'],
+        required=False,
+        help="The 'reasoning effort' parameter (OpenAI or compatible only).",
+    )
 
     parser_eval = subparsers.add_parser('eval', help='Evaluate a given response set.')
     parser_eval.set_defaults(command_func=cli_gen_evals)
@@ -340,7 +350,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if 'model' in args:
-        test_and_report_model(args.model)
+        test_and_report_model(args.model, args.reasoning_effort)
 
     # run the function associated with the chosen command
     args.command_func(args)

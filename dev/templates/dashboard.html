@@ -273,14 +273,14 @@ SPDX-License-Identifier: AGPL-3.0-only
           if (this.selectedSets.length > 2) {
             const removed = this.selectedSets.shift();
             // Find and uncheck the checkbox (without triggering this handler again)
-            const checkboxToUncheck = document.querySelector(`input[data-response-set="${removed.responseSet}"]`);
+            const checkboxToUncheck = document.querySelector(`input[data-response-set="${removed}"]`);
             if (checkboxToUncheck) {
                 checkboxToUncheck.checked = false;
             }
           }
         } else {
           // Remove from selected sets
-          this.selectedSets = this.selectedSets.filter(set => (set.responseSet !== responseSet));
+          this.selectedSets = this.selectedSets.filter(val => (val !== responseSet));
         }
       },
 
@@ -295,19 +295,11 @@ SPDX-License-Identifier: AGPL-3.0-only
       },
 
       get set1Value() {
-        return this.selectedSets.length > 0
-          ? JSON.stringify({
-              response_set_id: this.selectedSets[0].responseSet
-            })
-          : '';
+        return this.selectedSets.length > 0 ? this.selectedSets[0] : '';
       },
 
       get set2Value() {
-        return this.selectedSets.length > 1
-          ? JSON.stringify({
-              response_set_id: this.selectedSets[1].responseSet,
-            })
-          : '';
+        return this.selectedSets.length > 1 ? this.selectedSets[1] : '';
       },
 
       submitCompare() {
