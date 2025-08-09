@@ -119,7 +119,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
     {% if prompt_sets %}
     <div style="overflow-x: auto;"> {# Enable horizontal scrolling for the table #}
-    <table @toggle-selection.window="toggleSelection($event.detail.promptSet, $event.detail.model, $event.detail.checked)"> {# Moved listener to table for scope #}
+    <table @toggle-selection.window="toggleSelection($event.detail.responseSet, $event.detail.checked)"> {# Moved listener to table for scope #}
     <thead>
         <tr>
             <th>Prompt Set</th>
@@ -155,8 +155,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                         <div class="center-content">
                             <form action="{{ url_for('evaluate_responses') }}" method="post" style="margin: 0;">
                                 {# Removed action input #}
-                                <input type="hidden" name="prompt_set" value="{{ prompt_set.id }}">
-                                <input type="hidden" name="model" value="{{ model }}">
+                                <input type="hidden" name="response_set" value="{{ cell.response_set_id }}">
                                 {# TODO: Make eval model selectable #}
                                 <small>[{{ cell.response_set_id }}]</small>
                                 <button type="submit" class="action-button">Evaluate</button>
@@ -222,9 +221,8 @@ SPDX-License-Identifier: AGPL-3.0-only
                     <div x-show="isCompareModeActive"> {# Conditionally show based on compare mode #}
                         <div class="checkbox-cell"> {# Removed x-data here, handled by parent #}
                             <input type="checkbox" class="response-checkbox"
-                                   data-prompt-set="{{ prompt_set.id }}"
-                                   data-model="{{ model }}"
-                                   @change="$dispatch('toggle-selection', { promptSet: '{{ prompt_set.id }}', model: '{{ model }}', checked: $event.target.checked })">
+                                   data-response-set="{{ cell.response_set_id }}"
+                                   @change="$dispatch('toggle-selection', { responseSet: '{{ cell.response_set_id }}', checked: $event.target.checked })">
                         </div>
                     </div>
                     {% endif %}
@@ -265,26 +263,24 @@ SPDX-License-Identifier: AGPL-3.0-only
           });
       },
 
-      toggleSelection(promptSet, model, checked) {
+      toggleSelection(responseSet, checked) {
         // This logic only runs when a checkbox is changed (i.e., when compare mode is active)
         if (checked) {
           // Add to selected sets
-          this.selectedSets.push({ promptSet, model });
+          this.selectedSets.push(responseSet);
 
           // If more than 2 are selected, uncheck the first one
           if (this.selectedSets.length > 2) {
             const removed = this.selectedSets.shift();
             // Find and uncheck the checkbox (without triggering this handler again)
-            const checkboxToUncheck = document.querySelector(`input[data-prompt-set="${removed.promptSet}"][data-model="${removed.model}"]`);
+            const checkboxToUncheck = document.querySelector(`input[data-response-set="${removed.responseSet}"]`);
             if (checkboxToUncheck) {
                 checkboxToUncheck.checked = false;
             }
           }
         } else {
           // Remove from selected sets
-          this.selectedSets = this.selectedSets.filter(set =>
-            !(set.promptSet === promptSet && set.model === model)
-          );
+          this.selectedSets = this.selectedSets.filter(set => (set.responseSet !== responseSet));
         }
       },
 
@@ -301,8 +297,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       get set1Value() {
         return this.selectedSets.length > 0
           ? JSON.stringify({
-              prompt_set_id: this.selectedSets[0].promptSet,
-              model: this.selectedSets[0].model
+              response_set_id: this.selectedSets[0].responseSet
             })
           : '';
       },
@@ -310,8 +305,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       get set2Value() {
         return this.selectedSets.length > 1
           ? JSON.stringify({
-              prompt_set_id: this.selectedSets[1].promptSet,
-              model: this.selectedSets[1].model
+              response_set_id: this.selectedSets[1].responseSet,
             })
           : '';
       },

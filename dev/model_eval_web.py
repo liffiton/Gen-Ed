@@ -105,29 +105,20 @@ def generate_responses() -> Response:
 @app.route('/evaluate_responses', methods=['POST'])
 def evaluate_responses() -> Response:
     db = get_db()
-    prompt_set_id = int(request.form['prompt_set'])
-    model = request.form['model']
+    response_set_id = int(request.form['response_set'])
 
-    cur = db.execute("SELECT id FROM response_set WHERE response_set.prompt_set_id=? AND response_set.model=?", [prompt_set_id, model])
+    cur = db.execute("SELECT id FROM response_set WHERE response_set.id=?", [response_set_id])
     row = cur.fetchone()
     if not row:
-        flash(f"Could not find response set for prompt set {prompt_set_id} and model {model} to evaluate.", "danger")
+        flash(f"Could not find response set with id {response_set_id} to evaluate.", "danger")
         return redirect(url_for('dashboard'))
 
     response_set_id = row['id']
     eval_model = "gemini/gemini-2.0-flash"   # TODO: un-hardcode evaluating model
     gen_evals_func(db, eval_model, response_set_id, "make_sufficient_prompt")  # TODO: un-hardcode prompt type
-    flash(f"Responses evaluated successfully for prompt set {prompt_set_id}, model {model}.", "success")
+    flash(f"Responses evaluated successfully for response set {response_set_id}.", "success")
     return redirect(url_for('dashboard'))
 
-
-def get_response_set_id(db: sqlite3.Connection, prompt_set_id: int, model: str) -> int | None:
-    result = db.execute("""
-        SELECT id
-        FROM response_set
-        WHERE prompt_set_id = ? AND model = ?
-    """, [prompt_set_id, model]).fetchone()
-    return result['id'] if result else None
 
 @app.template_filter('percentage')
 def percentage_filter(value: int, total: int) -> str:
@@ -192,8 +183,8 @@ def compare_responses() -> Response | str:
         return redirect(url_for('dashboard'))
 
     # Get response set IDs
-    set1_id = get_response_set_id(db, int(set1['prompt_set_id']), set1['model'])
-    set2_id = get_response_set_id(db, int(set2['prompt_set_id']), set2['model'])
+    set1_id = int(set1['response_set_id'])
+    set2_id = int(set2['response_set_id'])
 
     if not set1_id or not set2_id:
         flash("One or both of the selected response sets could not be found.", "danger")
