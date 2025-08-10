@@ -102,12 +102,12 @@ def test_newly_created_contexts_appear_on_config_page(instructor: AppClient) -> 
 
     # Check that default contexts are present and new ones are not
     assert response.status_code == 200
-    assert b'default1' in response.data
-    assert b'default2' in response.data
-    assert b'default3' in response.data
-    assert b'Context 1' not in response.data
-    assert b'Context 2' not in response.data
-    assert b'Context 3' not in response.data
+    assert 'default1' in response.text
+    assert 'default2' in response.text
+    assert 'default3' in response.text
+    assert 'Context 1' not in response.text
+    assert 'Context 2' not in response.text
+    assert 'Context 3' not in response.text
 
     # Create a few new contexts
     instructor.post('/instructor/config/table/context/create', data={'name': 'Context 1'})
@@ -119,6 +119,28 @@ def test_newly_created_contexts_appear_on_config_page(instructor: AppClient) -> 
 
     # Check that the new contexts are now displayed
     assert response.status_code == 200
-    assert b'Context 1' in response.data
-    assert b'Context 2' in response.data
-    assert b'Context 3' in response.data
+    assert 'Context 1' in response.text
+    assert 'Context 2' in response.text
+    assert 'Context 3' in response.text
+
+
+def test_context_edit_view(instructor: AppClient) -> None:
+    """Tests that the edit view works and displays correct values."""
+    # Load the config page initially
+    response = instructor.get('/instructor/config/')
+
+    # Check that default contexts are present
+    assert response.status_code == 200
+    assert 'default1' in response.text
+    assert 'default2' in response.text
+    assert 'default3' in response.text
+
+    # Load the config page for default2
+    response = instructor.get('/instructor/config/table/context/edit/6')
+    assert response.status_code == 200
+    assert 'Python2' in response.text
+    assert 'avoid2' in response.text
+    assert 'Python1' not in response.text
+    assert 'Python3' not in response.text
+    assert 'avoid1' not in response.text
+    assert 'avoid3' not in response.text

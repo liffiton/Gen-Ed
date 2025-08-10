@@ -22,9 +22,9 @@ VALUES
     (3, 'default', 3, 0, '0001-01-01', '{"tools": "Python", "avoid": ""}'),
     (4, 'default', 4, 0, '0001-01-01', '{"tools": "Python", "avoid": ""}'),
     -- contexts for testuser's class:
-    (5, 'default1', 2, 0, '0001-01-01', '{"tools": "Python", "avoid": ""}'),
-    (6, 'default2', 2, 1, '0001-01-01', '{"tools": "Python", "avoid": ""}'),
-    (7, 'default3', 2, 2, '0001-01-01', '{"tools": "Python", "avoid": ""}');
+    (5, 'default1', 2, 0, '0001-02-03', '{"tools": "Python1", "avoid": "avoid1"}'),
+    (6, 'default2', 2, 1, '0004-05-06', '{"tools": "Python2", "avoid": "avoid2"}'),
+    (7, 'default3', 2, 2, '0007-08-09', '{"tools": "Python3", "avoid": "avoid3"}');
 
 INSERT INTO classes_lti (class_id, lti_consumer_id, lti_context_id)
 VALUES

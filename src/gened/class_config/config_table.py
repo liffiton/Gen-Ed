@@ -60,6 +60,14 @@ class ConfigItem(ABC):
         return None
 
     @classmethod
+    def from_cache(cls) -> Self:
+        """ Return a cached item (currently being edited by the user, e.g.)
+        Default returns an empty item and should be overridden by any subclass
+        that uses a cache.
+        """
+        return cls(name='')
+
+    @classmethod
     @abstractmethod
     def from_request_form(cls, form: ImmutableMultiDict[str, str]) -> Self:
         ...
