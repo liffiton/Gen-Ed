@@ -30,7 +30,7 @@ class LLM:
     # TODO: store & use model config
     _client: OpenAIClient | None = field(default=None, init=False, repr=False)  # Instantiated only when needed
 
-    async def get_completion(self, prompt: str | None = None, messages: list[OpenAIChatMessage] | None = None, extra_args: dict[str, Any] | None = None) -> tuple[dict[str, str], str]:
+    async def get_completion(self, *, prompt: str | None = None, messages: list[OpenAIChatMessage] | None = None, extra_args: dict[str, Any] | None = None) -> tuple[dict[str, str], str]:
         """Get a completion from the language model.
 
         The client is lazily instantiated on first use.
@@ -40,7 +40,12 @@ class LLM:
         assert self.api_key is not None
         if self._client is None:
             self._client = OpenAIClient(self.model, self.api_key, base_url=self.endpoint)
-        return await self._client.get_completion(prompt, messages, extra_args)
+
+        if messages is None:
+            assert prompt is not None
+            messages = [{"role": "user", "content": prompt}]
+
+        return await self._client.get_completion(messages, extra_args)
 
     async def get_multi_completion(self, sys_prompt: str, user_prompts: list[str], extra_args: dict[str, Any] | None = None) -> tuple[dict[str, str], str]:
         """Get a completion from the language model
