@@ -292,14 +292,22 @@ async def stream_chat_round(llm: LLM, chat: ChatData) -> AsyncGenerator[str, Non
         analyze_response, analyze_response_txt = await llm.get_completion(
             messages=analyze_messages,
             extra_args={
-                #'reasoning_effort': 'none',  # for thinking models: o3/o4/gemini-2.5
                 'response_format': {'type': 'json_object'},
             },
         )
         analysis = json.loads(analyze_response_txt)
         chat.analysis = analysis
         save_chat(chat)
-        yield analyze_response_txt
+
+
+@bp.route("/progress/<int:chat_id>")
+def get_progress(chat_id: int) -> str:
+    try:
+        chat_data = get_chat(chat_id)
+    except DataAccessError:
+        abort(400, "Invalid id.")
+
+    return render_template("progress_widget.html", chat=chat_data)
 
 
 @bp.route("/post_message", methods=["POST"])

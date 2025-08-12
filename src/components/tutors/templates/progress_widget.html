@@ -1,0 +1,23 @@
+{#
+SPDX-FileCopyrightText: 2025 Mark Liffiton <liffiton@gmail.com>
+
+SPDX-License-Identifier: AGPL-3.0-only
+#}
+
+<div class="message box progress_widget p-0 m-5">
+  <div class="message-header has-text-weight-normal" style="background: #605c5a;">
+    Tutor's plan &amp; your progress
+  </div>
+  <div class="message-body has-text-weight-light p-0">
+    <table>
+      <tbody>
+        {% for prog in chat.analysis.progress %}
+        <tr class="{{ prog.status | replace(' ', '_') }}">
+          <td class="status">{{ prog.status.capitalize() }}</td>
+          <td class="objective">{{ prog.objective }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>

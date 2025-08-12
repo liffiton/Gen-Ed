@@ -42,6 +42,7 @@ window.md.inline.ruler.disable(['escape']);
     Alpine.data('chat_input', () => ({
       msgs: [],
       currentMessage: '',
+      progress: '',
       loading: false,
 
       renderMessage(msg) {
@@ -54,6 +55,14 @@ window.md.inline.ruler.disable(['escape']);
           text += " *[...]*";
         }
         return window.md.render(text);
+      },
+      async reloadProgress() {
+        const response = await fetch('{{ url_for('tutors.get_progress', chat_id=chat.id) }}');
+        if (response.ok) {
+          this.progress = await response.text();
+        } else {
+          console.log(`Fetch error: ${response}`);
+        }
       },
       async sendMessage(formElement) {
         if (!this.currentMessage.trim() || this.loading) return;
@@ -106,6 +115,7 @@ window.md.inline.ruler.disable(['escape']);
         } finally {
           this.loading = false;
           newResponse.loading = false;
+          this.reloadProgress();
         }
       },
     })
@@ -146,9 +156,6 @@ window.md.inline.ruler.disable(['escape']);
   .chat_message_user {
     border-left: solid 3px #a44;
     background: #a442;
-  }
-  .chat_message_user .content {
-    white-space: pre-wrap;
   }
   .chat_message_assistant {
     border-left: solid 3px #47a;
@@ -255,23 +262,10 @@ window.md.inline.ruler.disable(['escape']);
             {% endif %}
             {% if chat.analysis %}
               <div><!-- spacing --></div>
-              <div class="message box progress_widget p-0 m-5">
-                <div class="message-header has-text-weight-normal" style="background: #605c5a;">
-                  Tutor's plan &amp; your progress
-                </div>
-                <div class="message-body has-text-weight-light p-0">
-                  <table>
-                    <tbody>
-                      {% for prog in chat.analysis.progress %}
-                        <tr class="{{ prog.status | replace(' ', '_') }}">
-                          <td class="status">{{ prog.status.capitalize() }}</td>
-                          <td class="objective">{{ prog.objective }}</td>
-                        </tr>
-                      {% endfor %}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <template x-if="!progress">
+                {% include "progress_widget.html" %}
+              </template>
+              <div x-show="progress" x-html="progress"></div>
             {% endif %}
           </div>
 
