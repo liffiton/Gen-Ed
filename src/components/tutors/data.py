@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from sqlite3 import Cursor
 from typing import Any, Literal, TypeAlias
 
@@ -17,11 +17,13 @@ from gened.tables import Col, DataTable, NumCol, TimeCol, UserCol
 
 ChatMode: TypeAlias = Literal["inquiry", "guided"]
 
-@dataclass
+@dataclass(kw_only=True)
 class ChatData:
+    id: int | None = None
     topic: str
-    context_name: str | None
+    context_name: str | None = None
     messages: list[ChatMessage]
+    usages: list[dict[str, Any]] = field(default_factory=list)
     mode: ChatMode
     analysis: dict[str, Any] | None = None
 

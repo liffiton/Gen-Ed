@@ -90,7 +90,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             <details>
               <summary>System prompt</summary>
           {% endif %}
-          <div class="content">{{ message.content if message.role == 'user' else message.content | markdown }}</div>
+          <div class="content">{{ message.content | markdown }}</div>
           {% if message.role == 'system' %}
             </details>
           {% endif %}
@@ -98,13 +98,22 @@ SPDX-License-Identifier: AGPL-3.0-only
       {% endif %}
     {% endfor %}
     {% if msg_input %}
+      <template x-for="msg in msgs">
+        <div style="display: contents;">{# for 'passthrough' element so template gets a single el but grid still 'sees' two els here, not one #}
+          <div class="chat_role" :class="`chat_role_${msg.role}`" x-text="msg.role === 'user' && 'You' || 'Tutor'">
+          </div>
+          <div class="chat_message" :class="`chat_message_${msg.role}`" x-html="render(msg.content)" x-effect="msg.content /* trigger the effect */; renderMathInElement($el);">
+          </div>
+        </div>
+      </template>
+      
       <div class="chat_role chat_role_user">
         You
       </div>
       <div class="chat_message chat_message_user" style="padding-right: 0.5em">
         <div class="field has-addons">
           <div class="control is-expanded">
-            <textarea class="textarea is-link" rows=2 name="message" placeholder="Press ctrl+enter to send." autofocus x-bind:disabled="loading" @keydown.enter="if ($event.ctrlKey) {$event.target.form.submit(); loading=true; $event.preventDefault();}"></textarea>
+            <textarea class="textarea is-link" rows=2 name="message" placeholder="Press ctrl+enter to send." autofocus x-model="currentMessage" x-bind:disabled="loading" @keydown.enter="if ($event.ctrlKey) {sendMessage($event.target.form); $event.preventDefault();}"></textarea>
           </div>
           <div class="control">
             <button

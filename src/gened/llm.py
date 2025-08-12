@@ -12,7 +12,7 @@ from flask import current_app, flash, render_template
 
 from .auth import get_auth
 from .db import get_db
-from .openai_client import OpenAIChatMessage, OpenAIClient
+from .openai_client import MaybeAsyncStream, OpenAIChatMessage, OpenAIClient
 
 ChatMessage: TypeAlias = OpenAIChatMessage
 
@@ -33,6 +33,13 @@ class LLM:
     async def get_completion(self, *, prompt: str | None = None, messages: list[OpenAIChatMessage] | None = None, extra_args: dict[str, Any] | None = None) -> tuple[dict[str, str], str]:
         """Get a completion from the language model.
 
+        Args:
+            prompt: A single string to send as a user message [deprecated: use messages]
+            messages: A list of chat messages in OpenAI format
+            extra_args: A dictionary of additional named arguments to pass to the API
+
+        Only one of prompt or messages should be used in a call.
+
         The client is lazily instantiated on first use.
 
         Delegates to OpenAIClient.get_completion() (see openai_client.py)
@@ -41,11 +48,29 @@ class LLM:
         if self._client is None:
             self._client = OpenAIClient(self.model, self.api_key, base_url=self.endpoint)
 
+        # handle 'old-style' prompt parameter
         if messages is None:
             assert prompt is not None
             messages = [{"role": "user", "content": prompt}]
 
         return await self._client.get_completion(messages, extra_args)
+
+    async def stream_completion(self, *, messages: list[OpenAIChatMessage], extra_args: dict[str, Any] | None = None) -> MaybeAsyncStream:
+        """Stream a completion from the language model.
+
+        Args:
+            messages: A list of chat messages in OpenAI format
+            extra_args: A dictionary of additional named arguments to pass to the API
+
+        The client is lazily instantiated on first use.
+
+        Delegates to OpenAIClient.stream_completion() (see openai_client.py)
+        """
+        assert self.api_key is not None
+        if self._client is None:
+            self._client = OpenAIClient(self.model, self.api_key, base_url=self.endpoint)
+
+        return await self._client.stream_completion(messages, extra_args)
 
     async def get_multi_completion(self, sys_prompt: str, user_prompts: list[str], extra_args: dict[str, Any] | None = None) -> tuple[dict[str, str], str]:
         """Get a completion from the language model

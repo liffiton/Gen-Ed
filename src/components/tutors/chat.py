@@ -4,7 +4,9 @@
 
 import asyncio
 import json
+from collections.abc import AsyncGenerator, Iterator
 from dataclasses import asdict
+from typing import assert_never
 
 from flask import (
     Blueprint,
@@ -14,8 +16,10 @@ from flask import (
     redirect,
     render_template,
     request,
+    stream_with_context,
     url_for,
 )
+from openai import AsyncStream
 from werkzeug.wrappers.response import Response
 
 from components.code_contexts import (
@@ -113,11 +117,11 @@ def create_inquiry_chat(llm: LLM) -> Response:
     tikz_enabled = 'tikz_experiment' in auth.class_experiments
     sys_prompt = prompts.inquiry_sys_msg_tpl.render(topic=topic, context=context_string, tikz_enabled=tikz_enabled)
 
-    chat_id = _create_chat(topic, context_name, sys_prompt, "inquiry")
+    chat = _create_chat(topic, context_name, sys_prompt, "inquiry")
 
-    asyncio.run(run_chat_round(llm, chat_id))
+    run_chat_round(llm, chat)
 
-    return redirect(url_for("tutors.chat_interface", chat_id=chat_id))
+    return redirect(url_for("tutors.chat_interface", chat_id=chat.id))
 
 
 @bp.route("/create_guided", methods=["POST"])
@@ -136,14 +140,14 @@ def create_guided_chat(llm: LLM) -> Response:
     tikz_enabled = 'tikz_experiment' in auth.class_experiments
     sys_prompt = prompts.guided_sys_msg_tpl.render(tutor_config=tutor_config, tikz_enabled=tikz_enabled)
 
-    chat_id = _create_chat(tutor_config.topic, context_name=None, sys_prompt=sys_prompt, mode="guided")
+    chat = _create_chat(tutor_config.topic, context_name=None, sys_prompt=sys_prompt, mode="guided")
 
-    asyncio.run(run_chat_round(llm, chat_id))
+    run_chat_round(llm, chat)
 
-    return redirect(url_for("tutors.chat_interface", chat_id=chat_id))
+    return redirect(url_for("tutors.chat_interface", chat_id=chat.id))
 
 
-def _create_chat(topic: str, context_name: str | None, sys_prompt: str, mode: ChatMode) -> int:
+def _create_chat(topic: str, context_name: str | None, sys_prompt: str, mode: ChatMode) -> ChatData:
     db = get_db()
     auth = get_auth()
     user_id = auth.user_id
@@ -156,6 +160,7 @@ def _create_chat(topic: str, context_name: str | None, sys_prompt: str, mode: Ch
         topic=topic,
         context_name=context_name,
         messages=messages,
+        usages=[],
         mode=mode,
     )
 
@@ -168,7 +173,8 @@ def _create_chat(topic: str, context_name: str | None, sys_prompt: str, mode: Ch
     db.commit()
 
     assert new_row_id is not None
-    return new_row_id
+    chat_data.id = new_row_id
+    return chat_data
 
 
 @bp.route("/<int:chat_id>")
@@ -188,26 +194,42 @@ def get_chat(chat_id: int) -> ChatData:
 
     chat_json = chat_row['chat_json']
     chat_data = json.loads(chat_json)
+    if 'id' in chat_data:
+        assert chat_data['id'] == chat_id
+    else:
+        chat_data['id'] = chat_id
 
     return ChatData(**chat_data)
 
 
-def save_chat(chat_id: int, chat_data: ChatData) -> None:
+def save_chat(chat_data: ChatData) -> None:
     db = get_db()
     db.execute(
         "UPDATE chats SET chat_json=? WHERE id=?",
-        [json.dumps(asdict(chat_data)), chat_id]
+        [json.dumps(asdict(chat_data)), chat_data.id]
     )
     db.commit()
 
 
-async def run_chat_round(llm: LLM, chat_id: int) -> None:
-    # Get the specified chat
-    try:
-        chat = get_chat(chat_id)
-    except DataAccessError:
-        return
+def run_chat_round(llm: LLM, chat: ChatData) -> None:
+    """ Run a single round of the given chat with the given LLM.
 
+    Uses stream_chat_round and simply consumes all of its yielded outputs,
+    relying on its side-effects (updating the chat in the database).
+    """
+    async def consume_stream_chat() -> None:
+        async for _ in stream_chat_round(llm, chat):
+            pass
+    asyncio.run(consume_stream_chat())
+
+
+async def stream_chat_round(llm: LLM, chat: ChatData) -> AsyncGenerator[str, None]:
+    """ Run a single round of the given chat with the given LLM, streaming
+    response chunks and potentially conversation analysis via yield.
+
+    db must be passed in, because app context doesn't appear to be available
+    from async functions.  (I might be missing something, but this works.)
+    """
     msgs = chat.messages[:]
 
     if len(msgs) == 0 or (len(msgs) == 1 and msgs[0]['role'] == 'system'):
@@ -220,14 +242,34 @@ async def run_chat_round(llm: LLM, chat_id: int) -> None:
         })
 
     # Generate a response
-    response, response_txt = await llm.get_completion(messages=msgs)
+    maybe_stream = await llm.stream_completion(messages=msgs)
+    match maybe_stream:
+        case str(user_msg):
+            response_txt = user_msg
+        case AsyncStream():  # otherwise, we have an AsyncStream
+            response_txt = ""
+            async for chunk in maybe_stream:
+                if chunk.choices:
+                    choice = chunk.choices[0]
+                    delta = choice.delta.content or ""
+
+                    if choice.finish_reason == "length":  # "length" if max_completion_tokens reached
+                        delta += "\n\n[error: maximum length exceeded]"
+
+                    yield delta
+                    response_txt += delta
+                elif chunk.usage is not None:
+                    # usage available in the final chunk
+                    chat.usages.append(chunk.usage.model_dump())
+        case _:
+            assert_never(maybe_stream)
 
     # Update the chat w/ the response (and persist to the DB)
     chat.messages.append({
         'role': 'assistant',
         'content': response_txt,
     })
-    save_chat(chat_id, chat)
+    save_chat(chat)
 
     if chat.mode == "guided":
         # Summarize/analyze the chat so far
@@ -244,7 +286,8 @@ async def run_chat_round(llm: LLM, chat_id: int) -> None:
         )
         analysis = json.loads(analyze_response_txt)
         chat.analysis = analysis
-        save_chat(chat_id, chat)
+        save_chat(chat)
+        yield analyze_response_txt
 
 
 @bp.route("/post_message", methods=["POST"])
@@ -263,15 +306,26 @@ def new_message(llm: LLM) -> Response:
 
     messages = chat.messages
 
-    # Add the new message to the chat (persisting to the DB) and generate a response
+    # Add the new message to the chat (persisting to the DB)
     messages.append({
         'role': 'user',
         'content': new_msg,
     })
-    save_chat(chat_id, chat)
+    save_chat(chat)
 
-    # Run a round of the chat with the given message.
-    asyncio.run(run_chat_round(llm, chat_id))
+    # Stream back a response (while "translating" the async generator into a sync generator)
+    async_stream = stream_chat_round(llm, chat)
+    def stream_response() -> Iterator[str]:
+        with asyncio.Runner() as runner:
+            while True:
+                try:
+                    chunk: str = runner.run(anext(async_stream))
+                    yield chunk
+                except StopAsyncIteration:
+                    break
 
-    # Send the user back to the now-updated chat view
-    return redirect(url_for("tutors.chat_interface", chat_id=chat_id))
+    return Response(
+        stream_with_context(stream_response()),
+        mimetype="text/event-stream",
+    )
+

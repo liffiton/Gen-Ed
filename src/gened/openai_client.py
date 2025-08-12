@@ -2,8 +2,11 @@ from typing import Any, TypeAlias
 
 import openai
 from flask import current_app
+from openai import AsyncStream
+from openai.types.chat import ChatCompletionChunk
 
 OpenAIChatMessage: TypeAlias = openai.types.chat.ChatCompletionMessageParam
+MaybeAsyncStream: TypeAlias = AsyncStream[ChatCompletionChunk] | str
 
 
 class OpenAIClient:
@@ -70,7 +73,7 @@ class OpenAIClient:
         """
         completion_args: dict[str, Any] = {
             'temperature': 0.25,
-            'max_tokens': 2000,
+            'max_completion_tokens': 2000,
         }
         if extra_args:
             completion_args |= extra_args
@@ -87,11 +90,49 @@ class OpenAIClient:
             current_app.logger.error(log_msg)
             return {'error': str(e)}, user_msg
 
-        else:
-            choice = response.choices[0]
-            response_txt = choice.message.content or ""
+        choice = response.choices[0]
+        response_txt = choice.message.content or ""
 
-            if choice.finish_reason == "length":  # "length" if max_tokens reached
-                response_txt += "\n\n[error: maximum length exceeded]"
+        if choice.finish_reason == "length":  # "length" if max_completion_tokens reached
+            response_txt += "\n\n[error: maximum length exceeded]"
 
-            return response.model_dump(), response_txt.strip()
+        return response.model_dump(), response_txt.strip()
+
+    async def stream_completion(self, messages: list[OpenAIChatMessage], extra_args: dict[str, Any] | None = None) -> MaybeAsyncStream:
+        """Stream a completion from the LLM.
+
+        Args:
+            messages: A list of chat messages in OpenAI format
+            extra_args: A dictionary of additional named arguments to pass to the API
+
+        Returns:
+            An async generator that will yield chunks of the response or, in
+            case of an API error, a tuple of a system error message and a
+            user-facing error message
+
+        Note:
+            If an error occurs, the dict will contain an 'error' key with the error details,
+            and the text will contain a user-friendly error message.
+        """
+        completion_args: dict[str, Any] = {
+            'temperature': 0.25,
+            'max_completion_tokens': 2000,
+        }
+        if extra_args:
+            completion_args |= extra_args
+
+        try:
+            stream: AsyncStream[ChatCompletionChunk] = await self._client.chat.completions.create(
+                model=self._model,
+                messages=messages,
+                stream=True,
+                stream_options={'include_usage': True},
+                **completion_args
+            )
+
+        except openai.APIError as e:
+            user_msg, log_msg = self._translate_openai_error(e)
+            current_app.logger.error(log_msg)
+            return user_msg
+
+        return stream

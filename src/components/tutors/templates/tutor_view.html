@@ -16,6 +16,92 @@ SPDX-License-Identifier: AGPL-3.0-only
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.19/dist/katex.min.css" integrity="sha384-7lU0muIg/i1plk7MgygDUp3/bNRA65orrBub4/OSWHECgwEsY83HaS1x3bljA/XV" crossorigin="anonymous">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.19/dist/katex.min.js" integrity="sha384-RdymN7NRJ+XoyeRY4185zXaxq9QWOOx3O7beyyrRK4KQZrPlCDQQpCu95FoCGPAE" crossorigin="anonymous"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.19/dist/contrib/auto-render.min.js" integrity="sha384-hCXGrW6PitJEwbkoStFjeJxv+fSOOQKOPbJxSfM6G5sWZjAyWhXiTIIAmQqnlLlh" crossorigin="anonymous" onload="renderMathInElement(document.querySelector('#chat_view'));"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/styles/default.min.css">
+<script type="module">
+import markdownIt from 'https://cdn.jsdelivr.net/npm/markdown-it@14/+esm'
+import hljs from 'https://cdn.jsdelivr.net/npm/highlight.js@11/+esm'
+
+// highlight everything loaded from the server
+hljs.highlightAll();
+
+// set up a markdown renderer with highlighting for streamed responses
+window.md = markdownIt({
+  highlight: function (str, lang) {
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return hljs.highlight(str, { language: lang }).value;
+      } catch (__) {}
+    }
+    return ''; // use external default escaping
+  }
+});
+// disable escaping so that \(, \[, etc. come through for TeX math
+window.md.inline.ruler.disable(['escape']);
+</script>
+<script defer type="text/javascript">
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('chat_input', () => ({
+      msgs: [],
+      currentMessage: '',
+      loading: false,
+
+      render(text) {
+        return window.md.render(text);
+      },
+      async sendMessage(formElement) {
+        if (!this.currentMessage.trim() || this.loading) return;
+
+        const newMessage = this.currentMessage.trim();
+
+        // reset UI
+        this.currentMessage = '';
+        this.loading = true;
+
+        // add user's message and placeholder for response
+        this.msgs.push({
+          role: 'user',
+          content: newMessage,
+        });
+
+        let newResponse = Alpine.reactive({
+          role: 'assistant',
+          content: '',
+        });
+        this.msgs.push(newResponse);
+
+        try {
+          // build formdata to send via fetch
+          const formData = new URLSearchParams(new FormData(formElement));
+
+          // start the request
+          const response = await fetch('{{ url_for('tutors.new_message') }}', {
+            method: 'POST',
+            body: formData,
+          });
+
+          // stream the response
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            // Append to assistant message
+            newResponse.content += chunk;
+          }
+        } catch (error) {
+          newResponse.content += '\n\n[An error occurred]';
+          console.error('Streaming error:', error);
+        } finally {
+          this.loading = false;
+        }
+      },
+    })
+  )
+})
+</script>
 {% endblock extrahead %}
 
 {% block body %}
@@ -31,7 +117,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         {% endif %}
 
         {# debounce on the submit handler so that the form's actual submit fires *before* the form elements are disabled #}
-        <form action="{{url_for('tutors.new_message')}}" method="post" x-data="{loading: false}" x-on:pageshow.window="loading = false" x-on:submit.debounce.10ms="loading = true">
+        <form action="{{url_for('tutors.new_message')}}" method="post" x-data="chat_input()" x-on:pageshow.window="loading = false" x-on:submit="sendMessage($event.target); $event.preventDefault();">
           <input type="hidden" name="id" value="{{chat_id}}">
 
           {{ chat_component(auth, chat, msg_input=True) }}
