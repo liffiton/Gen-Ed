@@ -115,7 +115,7 @@ def create_inquiry_chat(llm: LLM) -> Response:
 
     chat_id = _create_chat(topic, context_name, sys_prompt, "inquiry")
 
-    run_chat_round(llm, chat_id)
+    asyncio.run(run_chat_round(llm, chat_id))
 
     return redirect(url_for("tutors.chat_interface", chat_id=chat_id))
 
@@ -138,7 +138,7 @@ def create_guided_chat(llm: LLM) -> Response:
 
     chat_id = _create_chat(tutor_config.topic, context_name=None, sys_prompt=sys_prompt, mode="guided")
 
-    run_chat_round(llm, chat_id)
+    asyncio.run(run_chat_round(llm, chat_id))
 
     return redirect(url_for("tutors.chat_interface", chat_id=chat_id))
 
@@ -201,7 +201,7 @@ def save_chat(chat_id: int, chat_data: ChatData) -> None:
     db.commit()
 
 
-def run_chat_round(llm: LLM, chat_id: int) -> None:
+async def run_chat_round(llm: LLM, chat_id: int) -> None:
     # Get the specified chat
     try:
         chat = get_chat(chat_id)
@@ -212,15 +212,15 @@ def run_chat_round(llm: LLM, chat_id: int) -> None:
 
     if len(msgs) == 0 or (len(msgs) == 1 and msgs[0]['role'] == 'system'):
         # Gemini, at least, requires a user message to start, but we don't need
-        # to save or display it, so make a copy of the messages rather than
-        # updating the messages in the `chat` object.
+        # to save or display it, so only add this to the copy of the messages
+        # rather than updating the messages in the `chat` object.
         msgs.append({
             'role': 'user',
             'content': 'Please generate an initial message for the user.',
         })
 
     # Generate a response
-    response, response_txt = asyncio.run(llm.get_completion(messages=msgs))
+    response, response_txt = await llm.get_completion(messages=msgs)
 
     # Update the chat w/ the response (and persist to the DB)
     chat.messages.append({
@@ -235,13 +235,13 @@ def run_chat_round(llm: LLM, chat_id: int) -> None:
             *chat.messages,
             {'role': 'system', 'content': prompts.guided_analyze_tpl.render(chat=chat)},
         ]
-        analyze_response, analyze_response_txt = asyncio.run(llm.get_completion(
+        analyze_response, analyze_response_txt = await llm.get_completion(
             messages=analyze_messages,
             extra_args={
                 #'reasoning_effort': 'none',  # for thinking models: o3/o4/gemini-2.5
                 'response_format': {'type': 'json_object'},
             },
-        ))
+        )
         analysis = json.loads(analyze_response_txt)
         chat.analysis = analysis
         save_chat(chat_id, chat)
@@ -271,7 +271,7 @@ def new_message(llm: LLM) -> Response:
     save_chat(chat_id, chat)
 
     # Run a round of the chat with the given message.
-    run_chat_round(llm, chat_id)
+    asyncio.run(run_chat_round(llm, chat_id))
 
     # Send the user back to the now-updated chat view
     return redirect(url_for("tutors.chat_interface", chat_id=chat_id))
