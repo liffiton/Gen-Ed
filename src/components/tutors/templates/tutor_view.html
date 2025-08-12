@@ -44,7 +44,15 @@ window.md.inline.ruler.disable(['escape']);
       currentMessage: '',
       loading: false,
 
-      render(text) {
+      renderMessage(msg) {
+        if (msg.loading && !msg.content) {
+          return "<em>[thinking...]</em>"
+        }
+
+        let text = msg.content;
+        if (msg.loading) {
+          text += " *[...]*";
+        }
         return window.md.render(text);
       },
       async sendMessage(formElement) {
@@ -60,11 +68,13 @@ window.md.inline.ruler.disable(['escape']);
         this.msgs.push({
           role: 'user',
           content: newMessage,
+          loading: false,
         });
 
         let newResponse = Alpine.reactive({
           role: 'assistant',
           content: '',
+          loading: true,
         });
         this.msgs.push(newResponse);
 
@@ -95,6 +105,7 @@ window.md.inline.ruler.disable(['escape']);
           console.error('Streaming error:', error);
         } finally {
           this.loading = false;
+          newResponse.loading = false;
         }
       },
     })
@@ -217,7 +228,7 @@ window.md.inline.ruler.disable(['escape']);
                 <div style="display: contents;">{# for 'passthrough' element so template gets a single el but grid still 'sees' two els here, not one #}
                   <div class="chat_role" :class="`chat_role_${msg.role}`" x-text="msg.role === 'user' && 'You' || 'Tutor'">
                   </div>
-                  <div class="chat_message" :class="`chat_message_${msg.role}`" x-html="render(msg.content)" x-effect="msg.content /* trigger the effect */; renderMathInElement($el);">
+                  <div class="chat_message" :class="`chat_message_${msg.role}`" x-html="renderMessage(msg)" x-effect="msg.content /* triggers the effect */; renderMathInElement($el);">
                   </div>
                 </div>
               </template>
