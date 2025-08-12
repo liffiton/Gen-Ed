@@ -151,12 +151,15 @@ def _create_chat(topic: str, context_name: str | None, sys_prompt: str, mode: Ch
     db = get_db()
     auth = get_auth()
     user_id = auth.user_id
+    class_id = auth.cur_class.class_id if auth.cur_class else None
     role_id = auth.cur_class.role_id if auth.cur_class else None
 
     messages : list[ChatMessage] = [
         {'role': 'system', 'content': sys_prompt},
     ]
     chat_data = ChatData(
+        user_id=user_id,
+        class_id=class_id,
         topic=topic,
         context_name=context_name,
         messages=messages,
@@ -186,7 +189,13 @@ def chat_interface(chat_id: int) -> str | Response:
 
     recent_chats = chats_data_source.get_user_data(limit=10)
 
-    return render_template("tutor_view.html", chat_id=chat_id, chat=chat_data, recent_chats=recent_chats)
+    auth = get_auth()
+    assert auth.user
+    is_owner = auth.user.id == chat_data.user_id
+    is_current_class = auth.cur_class is not None and auth.cur_class.class_id == chat_data.class_id
+    show_message_input = is_owner and is_current_class
+
+    return render_template("tutor_view.html", chat=chat_data, recent_chats=recent_chats, msg_input=show_message_input)
 
 
 def get_chat(chat_id: int) -> ChatData:
@@ -194,19 +203,22 @@ def get_chat(chat_id: int) -> ChatData:
 
     chat_json = chat_row['chat_json']
     chat_data = json.loads(chat_json)
-    if 'id' in chat_data:
-        assert chat_data['id'] == chat_id
-    else:
-        chat_data['id'] = chat_id
+
+    chat_data['id'] = chat_id
+    chat_data['user_id'] = chat_row['user_id']
+    chat_data['class_id'] = chat_row['class_id']
 
     return ChatData(**chat_data)
 
 
 def save_chat(chat_data: ChatData) -> None:
+    # remove redundant items (already stored elsewhere in db)
+    data_filtered = {k: v for k, v in asdict(chat_data).items() if k not in ('id', 'user_id', 'class_id')}
+
     db = get_db()
     db.execute(
         "UPDATE chats SET chat_json=? WHERE id=?",
-        [json.dumps(asdict(chat_data)), chat_data.id]
+        [json.dumps(data_filtered), chat_data.id]
     )
     db.commit()
 
