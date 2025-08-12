@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from dataclasses import dataclass
+from typing import Self
 
 from flask import current_app
 from jinja2 import Environment
-from typing_extensions import Self  # for Python 3.10
 from werkzeug.datastructures import ImmutableMultiDict
 
 from gened.class_config import ConfigItem

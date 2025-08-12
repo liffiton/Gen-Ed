@@ -6,7 +6,7 @@ import asyncio
 import dataclasses
 import json
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Self
 
 from cachelib.simple import SimpleCache
 from flask import (
@@ -17,7 +17,6 @@ from flask import (
 )
 from markupsafe import Markup
 from pypdf import PdfReader
-from typing_extensions import Self  # for Python 3.10
 from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.wrappers.response import Response
 

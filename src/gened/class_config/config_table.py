@@ -6,7 +6,7 @@ import json
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field
 from sqlite3 import Row
-from typing import Any, Literal
+from typing import Any, Literal, Self
 
 from flask import (
     Blueprint,
@@ -21,7 +21,6 @@ from flask import (
     url_for,
 )
 from jinja2 import Template
-from typing_extensions import Self  # for Python 3.10
 from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.wrappers.response import Response
 
