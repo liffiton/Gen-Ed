@@ -201,38 +201,29 @@ def save_chat(chat_id: int, chat_data: ChatData) -> None:
     db.commit()
 
 
-def run_chat_round(llm: LLM, chat_id: int, user_message: str|None = None) -> None:
+def run_chat_round(llm: LLM, chat_id: int) -> None:
     # Get the specified chat
     try:
         chat = get_chat(chat_id)
     except DataAccessError:
         return
 
-    messages = chat.messages
+    msgs = chat.messages[:]
 
-    if user_message is not None:
-        # Add the new message to the chat (persisting to the DB) and generate a response
-        messages.append({
-            'role': 'user',
-            'content': user_message,
-        })
-        save_chat(chat_id, chat)
-        # Generate a response
-        response, response_txt = asyncio.run(llm.get_completion(messages=messages))
-    else:
+    if len(msgs) == 0 or (len(msgs) == 1 and msgs[0]['role'] == 'system'):
         # Gemini, at least, requires a user message to start, but we don't need
         # to save or display it, so make a copy of the messages rather than
         # updating the messages in the `chat` object.
-        msgs_copy = messages[:]
-        msgs_copy.append({
+        msgs.append({
             'role': 'user',
             'content': 'Please generate an initial message for the user.',
         })
-        # Generate a response
-        response, response_txt = asyncio.run(llm.get_completion(messages=msgs_copy))
+
+    # Generate a response
+    response, response_txt = asyncio.run(llm.get_completion(messages=msgs))
 
     # Update the chat w/ the response (and persist to the DB)
-    messages.append({
+    chat.messages.append({
         'role': 'assistant',
         'content': response_txt,
     })
@@ -241,7 +232,7 @@ def run_chat_round(llm: LLM, chat_id: int, user_message: str|None = None) -> Non
     if chat.mode == "guided":
         # Summarize/analyze the chat so far
         analyze_messages: list[ChatMessage] = [
-            *messages,
+            *chat.messages,
             {'role': 'system', 'content': prompts.guided_analyze_tpl.render(chat=chat)},
         ]
         analyze_response, analyze_response_txt = asyncio.run(llm.get_completion(
@@ -264,8 +255,23 @@ def new_message(llm: LLM) -> Response:
 
     # TODO: limit length
 
+    # Get the specified chat
+    try:
+        chat = get_chat(chat_id)
+    except DataAccessError:
+        abort(400, "Invalid id")
+
+    messages = chat.messages
+
+    # Add the new message to the chat (persisting to the DB) and generate a response
+    messages.append({
+        'role': 'user',
+        'content': new_msg,
+    })
+    save_chat(chat_id, chat)
+
     # Run a round of the chat with the given message.
-    run_chat_round(llm, chat_id, new_msg)
+    run_chat_round(llm, chat_id)
 
     # Send the user back to the now-updated chat view
     return redirect(url_for("tutors.chat_interface", chat_id=chat_id))
