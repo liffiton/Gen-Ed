@@ -132,17 +132,17 @@ def test_set_role_instructor(app: Flask, instructor: AppClient) -> None:
     assert response.status_code == 302  # Redirect to login
     assert response.location.startswith('/auth/login?')
 
-def test_user_in_instructor_class_or_not(app: Flask, instructor: AppClient) -> None:
-    # Current tested class is a class with id 2 
-    # assuming student with id 12 is present in the class 
+def test_user_in_instructor_class_or_not(instructor: AppClient) -> None:
+    # Current tested class is a class with id 2
+    # assuming student with id 12 is present in the class
     response = instructor.get("/instructor/?user=12")
-    
+
     assert "testadmin" in response.text
     assert response.status_code == 200
 
     # Assuming user 21 is not in class, return Bad Request Error
     response = instructor.get("/instructor/?user=21")
-    
+
     assert "ltiuser1@domain.edu" not in response.text
     assert "Invalid user id" in response.text
     assert response.status_code == 400
