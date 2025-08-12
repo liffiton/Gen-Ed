@@ -40,7 +40,9 @@ Australasian Computing Education Conference (ACE '24).  DOI:
 Install
 -------
 
-Requires Python 3.10 or higher.
+Requires Python 3.11 or higher.  (If your system Python version is not 3.11 or
+higher, we recommend using [uv](https://docs.astral.sh/uv/) to create your
+virtual environment with a newer Python version.)
 
 1. Create and activate a Python virtual environment.
    (E.g., `python3 -m venv venv; source venv/bin/activate`)

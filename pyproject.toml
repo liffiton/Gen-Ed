@@ -10,7 +10,7 @@ authors = [
     { name='Mark Liffiton', email='liffiton@gmail.com' }
 ]
 readme = 'README.md'
-requires-python = '>=3.10'
+requires-python = '>=3.11'
 
 classifiers = [
     "Development Status :: 4 - Beta",

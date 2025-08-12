@@ -13,7 +13,7 @@ jobs:
   typecheck:
     strategy:
       matrix:
-        python-version: ["3.10", "3.13"]  # earliest supported plus most recent release
+        python-version: ["3.11", "3.13"]  # earliest supported plus most recent release
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -33,7 +33,7 @@ jobs:
   test:
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13"]
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
