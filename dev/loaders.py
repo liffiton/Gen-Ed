@@ -13,19 +13,29 @@ import litellm
 from python_calamine import CalamineWorkbook
 
 
-def test_and_report_model(model: str, reasoning_effort: str | None = None) -> None:
+def model_string(model, reasoning_effort, verbosity) -> str:
+    model_str = model
+    if reasoning_effort:
+        model_str += f" ({reasoning_effort})"
+    if verbosity:
+        model_str += f" (verbosity {verbosity})"
+    return model_str
+
+
+def test_and_report_model(model: str, reasoning_effort: str | None = None, verbosity: str | None = None) -> None:
     # Check for valid model
     response = litellm.completion(
         model=model,
         messages=[{"role": "user", "content": "Write \"OK.\""}],
         max_completion_tokens=1000,
         reasoning_effort=reasoning_effort,
-        allowed_openai_params=['reasoning_effort'],  # shouldn't be necessary... maybe a newer LiteLLM will fix this.
+        verbosity=verbosity,
+        allowed_openai_params=['reasoning_effort', 'verbosity'],  # shouldn't be necessary... maybe a newer LiteLLM will fix this.
     )
     print(response)
     response_text = response.choices[0].message.content.strip()
     assert response_text in {'OK.', '"OK."'}
-    model_str = f"{model} ({reasoning_effort})" if reasoning_effort else model
+    model_str = model_string(model, reasoning_effort, verbosity)
     print(f"Using model: \x1B[32m{model_str}\x1B[m")
 
 

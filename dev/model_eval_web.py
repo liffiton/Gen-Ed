@@ -98,14 +98,18 @@ def generate_responses() -> Response:
     db = get_db()
     prompt_set_id = int(request.form['prompt_set'])
     model = request.form['model']
+    reasoning_effort = None
+    verbosity = None
 
-    if matches := re.match(r"^(.+) +\((.+)\)$", model):
+    if matches := re.match(r"^(.+) +\((.+)\) +\(verbosity (.+)\)$", model):
         model = matches[1]
         reasoning_effort = matches[2]
-    else:
-        reasoning_effort = None
+        verbosity = matches[2]
+    elif matches := re.match(r"^(.+) +\((.+)\)$", model):
+        model = matches[1]
+        reasoning_effort = matches[2]
 
-    gen_responses_func(db, prompt_set_id, model, reasoning_effort)
+    gen_responses_func(db, prompt_set_id, model, reasoning_effort, verbosity)
     flash(f"Responses generated successfully for prompt set {prompt_set_id} using {model}.", "success")
     return redirect(url_for('dashboard'))
 

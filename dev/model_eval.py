@@ -18,6 +18,7 @@ from loaders import (
     load_prompt,
     load_queries,
     make_prompt,
+    model_string,
     test_and_report_model,
 )
 from tqdm.auto import tqdm
@@ -95,11 +96,11 @@ def choose_prompt_set(db: sqlite3.Connection) -> int:
 def cli_gen_responses(args: argparse.Namespace) -> None:
     db = get_db(args.db_path)
     prompt_set_id = choose_prompt_set(db)
-    gen_responses(db, prompt_set_id, args.model, args.reasoning_effort)
+    gen_responses(db, prompt_set_id, args.model, args.reasoning_effort, args.verbosity)
 
 
-def gen_responses(db: sqlite3.Connection, prompt_set_id: int, model: str, reasoning_effort: str | None = None) -> None:
-    model_str = f"{model} ({reasoning_effort})" if reasoning_effort else model
+def gen_responses(db: sqlite3.Connection, prompt_set_id: int, model: str, reasoning_effort: str | None = None, verbosity: str | None = None) -> None:
+    model_str = model_string(model, reasoning_effort, verbosity)
     cur = db.execute("INSERT INTO response_set(model, prompt_set_id) VALUES (?, ?)", [model_str, prompt_set_id])
     db.commit()
     response_set_id = cur.lastrowid
@@ -117,7 +118,8 @@ def gen_responses(db: sqlite3.Connection, prompt_set_id: int, model: str, reason
                 max_completion_tokens=MAX_TOKENS,
                 n=1,
                 reasoning_effort=reasoning_effort,
-                allowed_openai_params=['reasoning_effort'],  # shouldn't be necessary... maybe a newer LiteLLM will fix this.
+                verbosity=verbosity,
+                allowed_openai_params=['reasoning_effort', 'verbosity'],  # shouldn't be necessary... maybe a newer LiteLLM will fix this.
                 #drop_params = True,  # OpenAI o* models don't allow temp!=1.0; this bypasses that error
             )
             response_time = time.time() - start_time
@@ -337,6 +339,13 @@ def main() -> None:
         required=False,
         help="The 'reasoning effort' parameter (OpenAI or compatible only).",
     )
+    parser_response.add_argument(
+        '--verbosity',
+        type=str,
+        choices=['low', 'medium', 'high'],
+        required=False,
+        help="The 'verbosity' parameter (OpenAI or compatible only).",
+    )
 
     parser_eval = subparsers.add_parser('eval', help='Evaluate a given response set.')
     parser_eval.set_defaults(command_func=cli_gen_evals)
@@ -350,7 +359,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if 'model' in args:
-        test_and_report_model(args.model, args.reasoning_effort)
+        test_and_report_model(args.model, args.reasoning_effort, args.verbosity)
 
     # run the function associated with the chosen command
     args.command_func(args)
