@@ -6,7 +6,7 @@ from openai import AsyncStream
 from openai.types.chat import ChatCompletionChunk
 
 OpenAIChatMessage: TypeAlias = openai.types.chat.ChatCompletionMessageParam
-MaybeAsyncStream: TypeAlias = AsyncStream[ChatCompletionChunk] | str
+ChatStream: TypeAlias = AsyncStream[ChatCompletionChunk]
 
 
 class OpenAIClient:
@@ -98,7 +98,7 @@ class OpenAIClient:
 
         return response.model_dump(), response_txt.strip()
 
-    async def stream_completion(self, messages: list[OpenAIChatMessage], extra_args: dict[str, Any] | None = None) -> MaybeAsyncStream:
+    async def stream_completion(self, messages: list[OpenAIChatMessage], extra_args: dict[str, Any] | None = None) -> ChatStream:
         """Stream a completion from the LLM.
 
         Args:
@@ -106,13 +106,11 @@ class OpenAIClient:
             extra_args: A dictionary of additional named arguments to pass to the API
 
         Returns:
-            An async generator that will yield chunks of the response or, in
-            case of an API error, a tuple of a system error message and a
-            user-facing error message
+            An async generator that will yield chunks of the response.
 
         Note:
-            If an error occurs, the dict will contain an 'error' key with the error details,
-            and the text will contain a user-friendly error message.
+            If an error occurs, the function will raise a RuntimeError with a
+            user-suitable error message.
         """
         completion_args: dict[str, Any] = {
             'temperature': 0.25,
@@ -133,6 +131,6 @@ class OpenAIClient:
         except openai.APIError as e:
             user_msg, log_msg = self._translate_openai_error(e)
             current_app.logger.error(log_msg)
-            return user_msg
+            raise RuntimeError(user_msg) from e
 
         return stream

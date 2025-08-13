@@ -12,7 +12,7 @@ from flask import current_app, flash, render_template
 
 from .auth import get_auth
 from .db import get_db
-from .openai_client import MaybeAsyncStream, OpenAIChatMessage, OpenAIClient
+from .openai_client import ChatStream, OpenAIChatMessage, OpenAIClient
 
 ChatMessage: TypeAlias = OpenAIChatMessage
 
@@ -55,7 +55,7 @@ class LLM:
 
         return await self._client.get_completion(messages, extra_args)
 
-    async def stream_completion(self, *, messages: list[OpenAIChatMessage], extra_args: dict[str, Any] | None = None) -> MaybeAsyncStream:
+    async def stream_completion(self, *, messages: list[OpenAIChatMessage], extra_args: dict[str, Any] | None = None) -> ChatStream:
         """Stream a completion from the language model.
 
         Args:

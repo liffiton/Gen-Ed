@@ -42,12 +42,13 @@ window.md.inline.ruler.disable(['escape']);
     Alpine.data('chat_input', () => ({
       msgs: [],
       currentMessage: '',
+      errorMessage: '',
       progress: '',
       loading: false,
 
       renderMessage(msg) {
         if (msg.loading && !msg.content) {
-          return "<em>[thinking...]</em>"
+          return "💭 <em>thinking...</em>"
         }
 
         let text = msg.content;
@@ -70,6 +71,8 @@ window.md.inline.ruler.disable(['escape']);
         const newMessage = this.currentMessage.trim();
 
         // reset UI
+        const savedMessage = this.currentMessage;  // in case of error
+        this.errorMessage = '';
         this.currentMessage = '';
         this.loading = true;
 
@@ -97,6 +100,15 @@ window.md.inline.ruler.disable(['escape']);
             body: formData,
           });
 
+          if (!response.ok) {
+            // erase the previously entered message, which failed, and put it
+            // back in the input element
+            this.errorMessage = "⚠️ " + await response.text();
+            this.msgs.splice(-2, 2);
+            this.currentMessage = savedMessage;
+            return;
+          }
+
           // stream the response
           const reader = response.body.getReader();
           const decoder = new TextDecoder();
@@ -109,13 +121,13 @@ window.md.inline.ruler.disable(['escape']);
             // Append to assistant message
             newResponse.content += chunk;
           }
+          this.reloadProgress();
         } catch (error) {
           newResponse.content += '\n\n[An error occurred]';
           console.error('Streaming error:', error);
         } finally {
           this.loading = false;
           newResponse.loading = false;
-          this.reloadProgress();
         }
       },
     })
@@ -235,8 +247,14 @@ window.md.inline.ruler.disable(['escape']);
                 <div style="display: contents;">{# for 'passthrough' element so template gets a single el but grid still 'sees' two els here, not one #}
                   <div class="chat_role" :class="`chat_role_${msg.role}`" x-text="msg.role === 'user' && 'You' || 'Tutor'">
                   </div>
-                  <div class="chat_message" :class="`chat_message_${msg.role}`" x-html="renderMessage(msg)" x-effect="msg.content /* triggers the effect */; renderMathInElement($el);">
+                  <div class="chat_message" :class="`chat_message_${msg.role}`" x-html="renderMessage(msg)" x-effect="msg.content + msg.loading /* hacky way to trigger the effect */; renderMathInElement($el);">
                   </div>
+                </div>
+              </template>
+              <template x-if="errorMessage !== ''">
+                <div style="display: contents;">{# for 'passthrough' element #}
+                  <div class="chat_role chat_role_system">System</div>
+                  <div class="chat_message chat_message_system" x-text="errorMessage"></div>
                 </div>
               </template>
 

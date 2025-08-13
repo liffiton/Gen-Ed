@@ -6,7 +6,6 @@ import asyncio
 import json
 from collections.abc import AsyncGenerator, Iterator
 from dataclasses import asdict
-from typing import assert_never
 
 from flask import (
     Blueprint,
@@ -19,7 +18,6 @@ from flask import (
     stream_with_context,
     url_for,
 )
-from openai import AsyncStream
 from werkzeug.wrappers.response import Response
 
 from components.code_contexts import (
@@ -119,7 +117,13 @@ def create_inquiry_chat(llm: LLM) -> Response:
 
     chat = _create_chat(topic, context_name, sys_prompt, "inquiry")
 
-    run_chat_round(llm, chat)
+    try:
+        run_chat_round(llm, chat)
+    except RuntimeError as e:
+        # On error, erase the nascent chat and tell the user what happened.
+        erase_chat(chat)
+        flash(str(e), 'danger')
+        return make_response(render_template("error.html"), 502)
 
     return redirect(url_for("tutors.chat_interface", chat_id=chat.id))
 
@@ -142,7 +146,13 @@ def create_guided_chat(llm: LLM) -> Response:
 
     chat = _create_chat(tutor_config.topic, context_name=None, sys_prompt=sys_prompt, mode="guided")
 
-    run_chat_round(llm, chat)
+    try:
+        run_chat_round(llm, chat)
+    except RuntimeError as e:
+        # On error, erase the nascent chat and tell the user what happened.
+        erase_chat(chat)
+        flash(str(e), 'danger')
+        return make_response(render_template("error.html"), 502)
 
     return redirect(url_for("tutors.chat_interface", chat_id=chat.id))
 
@@ -223,6 +233,12 @@ def save_chat(chat_data: ChatData) -> None:
     db.commit()
 
 
+def erase_chat(chat_data: ChatData) -> None:
+    db = get_db()
+    db.execute("DELETE FROM chats WHERE id=?", [chat_data.id])
+    db.commit()
+
+
 def run_chat_round(llm: LLM, chat: ChatData) -> None:
     """ Run a single round of the given chat with the given LLM.
 
@@ -238,9 +254,6 @@ def run_chat_round(llm: LLM, chat: ChatData) -> None:
 async def stream_chat_round(llm: LLM, chat: ChatData) -> AsyncGenerator[str, None]:
     """ Run a single round of the given chat with the given LLM, streaming
     response chunks and potentially conversation analysis via yield.
-
-    db must be passed in, because app context doesn't appear to be available
-    from async functions.  (I might be missing something, but this works.)
     """
     msgs = chat.messages[:]
 
@@ -253,28 +266,23 @@ async def stream_chat_round(llm: LLM, chat: ChatData) -> AsyncGenerator[str, Non
             'content': 'Please generate an initial message for the user.',
         })
 
-    # Generate a response
-    maybe_stream = await llm.stream_completion(messages=msgs)
-    match maybe_stream:
-        case str(user_msg):
-            response_txt = user_msg
-        case AsyncStream():  # otherwise, we have an AsyncStream
-            response_txt = ""
-            async for chunk in maybe_stream:
-                if chunk.choices:
-                    choice = chunk.choices[0]
-                    delta = choice.delta.content or ""
+    # Generate a completion and stream the response
+    stream = await llm.stream_completion(messages=msgs)
 
-                    if choice.finish_reason == "length":  # "length" if max_completion_tokens reached
-                        delta += "\n\n[error: maximum length exceeded]"
+    response_txt = ""
+    async for chunk in stream:
+        if chunk.choices:
+            choice = chunk.choices[0]
+            delta = choice.delta.content or ""
 
-                    yield delta
-                    response_txt += delta
-                elif chunk.usage is not None:
-                    # usage available in the final chunk
-                    chat.usages.append(chunk.usage.model_dump())
-        case _:
-            assert_never(maybe_stream)
+            if choice.finish_reason == "length":  # "length" if max_completion_tokens reached
+                delta += "\n\n[error: maximum length exceeded]"
+
+            yield delta
+            response_txt += delta
+        elif chunk.usage is not None:
+            # usage available in the final chunk
+            chat.usages.append(chunk.usage.model_dump())
 
     # Update the chat w/ the response (and persist to the DB)
     chat.messages.append({
@@ -331,18 +339,31 @@ def new_message(llm: LLM) -> Response:
         'role': 'user',
         'content': new_msg,
     })
-    save_chat(chat)
 
     # Stream back a response (while "translating" the async generator into a sync generator)
     async_stream = stream_chat_round(llm, chat)
+
+    runner = asyncio.Runner()
+    try:
+        # Get first chunk before we send a Response so we can catch errors
+        # and abort first if needed.
+        first_chunk = runner.run(anext(async_stream))
+    except RuntimeError as e:
+        return Response(str(e), 502, mimetype='text/plain')
+
+    # only save the user's new message if the response succeeds
+    # (front-end can let the user re-submit it if they want)
+    save_chat(chat)
+
     def stream_response() -> Iterator[str]:
-        with asyncio.Runner() as runner:
-            while True:
-                try:
-                    chunk: str = runner.run(anext(async_stream))
-                    yield chunk
-                except StopAsyncIteration:
-                    break
+        yield first_chunk
+        while True:
+            try:
+                chunk: str = runner.run(anext(async_stream))
+                yield chunk
+            except StopAsyncIteration:
+                break
+        runner.close()
 
     return Response(
         stream_with_context(stream_response()),
