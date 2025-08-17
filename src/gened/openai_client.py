@@ -55,12 +55,12 @@ class OpenAIClient:
 
         return user_msg, log_msg
 
-    async def get_completion(self, messages: list[OpenAIChatMessage], extra_args: dict[str, Any] | None = None) -> tuple[dict[str, str], str]:
+    async def get_completion(self, messages: list[OpenAIChatMessage], completion_args: dict[str, Any]) -> tuple[dict[str, str], str]:
         """Get a completion from the LLM.
 
         Args:
             messages: A list of chat messages in OpenAI format
-            extra_args: A dictionary of additional named arguments to pass to the API
+            completion_args: A dictionary of additional named arguments to pass to the API
 
         Returns:
             A tuple containing:
@@ -71,13 +71,6 @@ class OpenAIClient:
             If an error occurs, the dict will contain an 'error' key with the error details,
             and the text will contain a user-friendly error message.
         """
-        completion_args: dict[str, Any] = {
-            'temperature': 0.25,
-            'max_completion_tokens': 2000,
-        }
-        if extra_args:
-            completion_args |= extra_args
-
         try:
             response = await self._client.chat.completions.create(
                 model=self._model,
@@ -98,12 +91,12 @@ class OpenAIClient:
 
         return response.model_dump(), response_txt.strip()
 
-    async def stream_completion(self, messages: list[OpenAIChatMessage], extra_args: dict[str, Any] | None = None) -> ChatStream:
+    async def stream_completion(self, messages: list[OpenAIChatMessage], completion_args: dict[str, Any]) -> ChatStream:
         """Stream a completion from the LLM.
 
         Args:
             messages: A list of chat messages in OpenAI format
-            extra_args: A dictionary of additional named arguments to pass to the API
+            completion_args: A dictionary of additional named arguments to pass to the API
 
         Returns:
             An async generator that will yield chunks of the response.
@@ -112,13 +105,6 @@ class OpenAIClient:
             If an error occurs, the function will raise a RuntimeError with a
             user-suitable error message.
         """
-        completion_args: dict[str, Any] = {
-            'temperature': 0.25,
-            'max_completion_tokens': 2000,
-        }
-        if extra_args:
-            completion_args |= extra_args
-
         try:
             stream: AsyncStream[ChatCompletionChunk] = await self._client.chat.completions.create(
                 model=self._model,

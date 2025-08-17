@@ -165,8 +165,7 @@ CREATE TABLE migrations (
 CREATE TABLE llm_providers (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     name            TEXT NOT NULL UNIQUE,
-    endpoint        TEXT,  -- can be null if overridden in models table
-    config_schema   TEXT NOT NULL DEFAULT '{}'
+    endpoint        TEXT  -- can be null if overridden in models table
 );
 
 CREATE TABLE models (
@@ -175,7 +174,7 @@ CREATE TABLE models (
     shortname       TEXT NOT NULL UNIQUE,
     model           TEXT NOT NULL,
     custom_endpoint TEXT,  -- can be null to use default from providers table
-    config          TEXT NOT NULL DEFAULT '{}',  -- defaults from llm_providers.config_schema will be used for anything not specified here
+    default_params  TEXT NOT NULL DEFAULT '{}',
     active          BOOLEAN NOT NULL CHECK (active IN (0,1)),
     owner_id        INTEGER,  -- leave NULL for system-owned/scoped models
     scope           TEXT GENERATED ALWAYS AS (IIF(owner_id IS NULL, 'system', 'user')) VIRTUAL,
@@ -186,29 +185,13 @@ DROP INDEX IF EXISTS models_by_shortname_owner;
 CREATE UNIQUE INDEX models_by_shortname_owner ON models(shortname, owner_id);
 
 INSERT INTO llm_providers(name) VALUES ("Custom");
-INSERT INTO llm_providers(name, endpoint, config_schema) VALUES
-    ('OpenAI', 'https://api.openai.com/v1', '{
-        "type": "object",
-        "properties": {
-            "temperature": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 2,
-                "default": 0.25
-            },
-            "max_tokens": {
-                "type": "integer", 
-                "minimum": 1,
-                "default": 2000
-            }
-        }
-    }');
+INSERT INTO llm_providers(name, endpoint) VALUES ('OpenAI', 'https://api.openai.com/v1');
 
 -- See also: DEFAULT_CLASS_MODEL_SHORTNAME in base.create_app_base()
-INSERT INTO models(provider_id, shortname, model, active, owner_id) VALUES
-    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1', 'gpt-4.1', true, NULL),
-    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1 mini', 'gpt-4.1-mini', true, NULL),
-    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1 nano', 'gpt-4.1-nano', true, NULL)
+INSERT INTO models(provider_id, shortname, model, default_params, active, owner_id) VALUES
+    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1', 'gpt-4.1', '{}', true, NULL),
+    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1 mini', 'gpt-4.1-mini', '{}', true, NULL),
+    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1 nano', 'gpt-4.1-nano', '{}', true, NULL)
 ;
 
 

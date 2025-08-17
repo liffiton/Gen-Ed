@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import json
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import wraps
@@ -16,6 +17,11 @@ from .openai_client import ChatStream, OpenAIChatMessage, OpenAIClient
 
 ChatMessage: TypeAlias = OpenAIChatMessage
 
+DEFAULT_COMPLETION_ARGS: dict[str, Any] = {
+    'temperature': 0.25,
+    'max_completion_tokens': 10000,
+}
+
 
 @dataclass
 class LLM:
@@ -25,10 +31,19 @@ class LLM:
     model: str
     endpoint: str | None  # if None, use the default OpenAI endpoint
     api_key: str | None
+    default_params: dict[str, Any] | None
     active: bool
     tokens_remaining: int | None = None  # None if current user is not using tokens
-    # TODO: store & use model config
     _client: OpenAIClient | None = field(default=None, init=False, repr=False)  # Instantiated only when needed
+
+    def make_args(self, extra_args: dict[str, Any] | None) -> dict[str, Any]:
+        completion_args = DEFAULT_COMPLETION_ARGS
+        if self.default_params:
+            completion_args |= self.default_params
+        if extra_args:
+            completion_args |= extra_args
+
+        return completion_args
 
     async def get_completion(self, *, prompt: str | None = None, messages: list[OpenAIChatMessage] | None = None, extra_args: dict[str, Any] | None = None) -> tuple[dict[str, str], str]:
         """Get a completion from the language model.
@@ -53,7 +68,8 @@ class LLM:
             assert prompt is not None
             messages = [{"role": "user", "content": prompt}]
 
-        return await self._client.get_completion(messages, extra_args)
+        completion_args = self.make_args(extra_args)
+        return await self._client.get_completion(messages, completion_args)
 
     async def stream_completion(self, *, messages: list[OpenAIChatMessage], extra_args: dict[str, Any] | None = None) -> ChatStream:
         """Stream a completion from the language model.
@@ -70,7 +86,8 @@ class LLM:
         if self._client is None:
             self._client = OpenAIClient(self.model, self.api_key, base_url=self.endpoint)
 
-        return await self._client.stream_completion(messages, extra_args)
+        completion_args = self.make_args(extra_args)
+        return await self._client.stream_completion(messages, completion_args)
 
     async def get_multi_completion(self, sys_prompt: str, user_prompts: list[str], extra_args: dict[str, Any] | None = None) -> tuple[dict[str, str], str]:
         """Get a completion from the language model
@@ -249,8 +266,7 @@ def get_model(*, by_id: int | None = None, by_shortname: str | None = None) -> L
             m.shortname,
             m.model,
             COALESCE(m.custom_endpoint, p.endpoint) AS endpoint,
-            m.config,
-            p.config_schema,
+            m.default_params,
             m.active
         FROM models AS m
         JOIN llm_providers AS p ON p.id=m.provider_id
@@ -262,12 +278,14 @@ def get_model(*, by_id: int | None = None, by_shortname: str | None = None) -> L
     if not model_row:
         return None
 
-    # TODO: validate and parse config JSON
+    default_params = json.loads(model_row['default_params'])
+
     return LLM(
         provider=model_row['provider'],
         shortname=model_row['shortname'],
         model=model_row['model'],
         endpoint=model_row['endpoint'],
+        default_params=default_params,
         active=model_row['active'],
         api_key=None,  # to be filled in later if needed
     )
@@ -288,8 +306,7 @@ def get_models(plus_id : int | None = None) -> list[Row]:
             m.shortname,
             m.model,
             COALESCE(m.custom_endpoint, p.endpoint) AS endpoint,
-            m.config,
-            p.config_schema,
+            m.default_params,
             m.active
         FROM models AS m
         JOIN llm_providers AS p ON p.id=m.provider_id
