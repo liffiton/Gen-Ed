@@ -179,7 +179,7 @@
       </div>
 
       {% if item.objectives %}
-      {% set has_questions = item.objectives | selectattr("questions") | first  %}
+      {% set has_questions = item.objectives | selectattr("questions") | first %}
       <div class="field is-horizontal">
         <div class="field-label is-normal"><!-- spacing --></div>
         <div class="field-body">
