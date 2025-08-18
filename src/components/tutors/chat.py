@@ -318,7 +318,7 @@ def get_progress(chat_id: int) -> str:
     return render_template("progress_widget.html", chat=chat_data)
 
 
-@bp.route("/post_message", methods=["POST"])
+@bp.route("/post_message.sse", methods=["POST"])  # '.sse' extension needed for reverse proxy config to disable buffering / allow streaming
 @with_llm()
 def new_message(llm: LLM) -> Response:
     chat_id = int(request.form["id"])
