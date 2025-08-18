@@ -293,27 +293,37 @@ async def stream_chat_round(llm: LLM, chat: ChatData) -> AsyncGenerator[str, Non
 
     if chat.mode == "guided":
         # Summarize/analyze the chat so far
-        analyze_messages: list[ChatMessage] = [
-            *chat.messages,
-            {'role': 'system', 'content': prompts.guided_analyze_tpl.render(chat=chat)},
-        ]
-        analyze_response, analyze_response_txt = await llm.get_completion(
-            messages=analyze_messages,
-            extra_args={
-                'response_format': {'type': 'json_object'},
-            },
-        )
-        analysis = json.loads(analyze_response_txt)
-        chat.analysis = analysis
-        save_chat(chat)
+        await _analyze_guided_chat(chat, llm)
+
+
+async def _analyze_guided_chat(chat_data: ChatData, llm: LLM) -> ChatData:
+    analyze_messages: list[ChatMessage] = [
+        *chat_data.messages,
+        {'role': 'system', 'content': prompts.guided_analyze_tpl.render(chat=chat_data)},
+    ]
+    analyze_response, analyze_response_txt = await llm.get_completion(
+        messages=analyze_messages,
+        extra_args={
+            'response_format': {'type': 'json_object'},
+        },
+    )
+    analysis = json.loads(analyze_response_txt)
+    chat_data.analysis = analysis
+    save_chat(chat_data)
+    return chat_data
 
 
 @bp.route("/progress/<int:chat_id>")
-def get_progress(chat_id: int) -> str:
+@with_llm()
+def get_progress(chat_id: int, llm: LLM) -> str:
     try:
         chat_data = get_chat(chat_id)
     except DataAccessError:
         abort(400, "Invalid id.")
+
+    if request.args.get('retry'):
+        # re-run the analysis
+        chat_data = asyncio.run(_analyze_guided_chat(chat_data, llm))
 
     return render_template("progress_widget.html", chat=chat_data)
 
