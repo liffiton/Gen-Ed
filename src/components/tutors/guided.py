@@ -6,6 +6,7 @@ import asyncio
 import dataclasses
 import json
 from dataclasses import dataclass
+from sqlite3 import Row
 from typing import Any, Self
 
 from cachelib.simple import SimpleCache
@@ -80,6 +81,17 @@ class TutorConfig(ConfigItem):
             return cls(name='')
         else:
             return item
+
+    # Override from_row, because we need to convert nested dicts and store the
+    # config loaded from the db into the cache
+    @classmethod
+    def from_row(cls, row: Row) -> Self:
+        item = super().from_row(row)
+        # may need to convert dictionary-stored learning objectives to LearningObjective objects
+        if isinstance(item.objectives[0], dict):
+            item.objectives = [LearningObjective(**obj) for obj in item.objectives]  # type: ignore[arg-type]
+            _save_to_cache(item)
+        return item
 
     @classmethod
     def from_request_form(cls, form: ImmutableMultiDict[str, Any]) -> Self:

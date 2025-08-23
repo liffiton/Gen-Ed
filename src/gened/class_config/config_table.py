@@ -76,6 +76,11 @@ class ConfigItem(ABC):
         """ Instantiate an item object from an SQLite row.
             (Requires correct field names in the row and in its 'config' JSON column.)
         """
+        # first check whether we have a cached version to use
+        cached = cls.from_cache()
+        if cached.row_id == row['id']:
+            return cached
+
         attrs = json.loads(row['config'])
         attrs['name'] = row['name']
         attrs['row_id'] = row['id']
