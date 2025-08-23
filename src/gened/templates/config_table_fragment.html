@@ -22,13 +22,21 @@
         items: {{ item_data | tojson }},
         drag_index: null,
 
+        dragstart(index, event) {
+          // only allow drag if over the drag handle td
+          const dragElement = event.target.querySelector("[data-drag-handle]");
+          // use :hover match to detect if cursor is within the element
+          if (dragElement === null || !dragElement.matches(":hover")) { event.preventDefault(); return; }
+          this.drag_index = index;
+        },
         dragenter(index) {
           if (this.drag_index === null || index === this.drag_index) { return; }
           const draggedItem = this.items.splice(this.drag_index, 1)[0];
           this.items.splice(index, 0, draggedItem);
           this.drag_index = index;
         },
-        stop_drag() {
+        dragend() {
+          if (this.drag_index === null) { return; }
           this.drag_index = null;
           // post updated ordering to save in DB
           fetch("{{ url_for('class_config.table.crud.update_order', table_name=table.name) }}", {
@@ -94,8 +102,8 @@
     </thead>
     <tbody>
       <template x-for="(item, index) in items" x-bind:key="item.name">
-        <tr x-bind:draggable="(drag_index == index)" @dragenter="dragenter(index)" @dragover.prevent @dragend="stop_drag" x-bind:style="(drag_index == index) && {background: '#fc9'}">
-          <td style="cursor: move; vertical-align: middle; text-align: center;" @mousedown="drag_index=index" @mouseup="stop_drag" title="drag to reorder">
+        <tr draggable="true" @dragstart="dragstart(index, $event)" @dragend="dragend" @dragenter="dragenter(index)" x-bind:style="(drag_index == index) && {background: '#fc9'}">
+          <td data-drag-handle style="cursor: move; vertical-align: middle; text-align: center;" title="drag to reorder">
             <svg aria-hidden="true" class="icon is-small mt-1"><use href="#svg_grip" /></svg>
           </td>
           <td style="vertical-align: middle;">
