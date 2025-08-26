@@ -50,7 +50,14 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div class="flex_item">
         <h1 class="is-size-3">
           {{ table.name }}
-          {% if table.create_endpoint %}<a class="button is-light is-link is-small mt-2" href="{{ url_for(table.create_endpoint) }}">Create New</a>{% endif %}
+          {% if table.create_endpoint %}
+            <a class="button is-light is-link is-small m-2" href="{{ url_for(table.create_endpoint) }}">
+              <span class="icon">
+                <svg aria-hidden="true"><use href="#svg_plus" /></svg>
+              </span>
+              <span>Create new</span>
+            </a>
+          {% endif %}
         </h1>
         {{ datatable(table) }}
       </div>

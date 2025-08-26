@@ -92,6 +92,8 @@ def demo_link_view() -> str:
         name='demo_links',
         columns=[NumCol('id'), Col('name'), DateCol('expiration'), NumCol('tokens'), BoolCol('enabled'), NumCol('uses')],
         actions=[Action("Edit link", icon='pencil', url=url_for('.demo_link_form'), id_col=0)],
+        link_col=0,
+        link_template=url_for('.demo_link_form') + '${value}',
         create_endpoint='.demo_link_new',
         data=demo_links,
     )
