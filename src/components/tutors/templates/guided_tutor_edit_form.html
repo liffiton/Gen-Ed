@@ -1,5 +1,38 @@
 {% extends "base.html" %}
 
+{% block extrahead %}
+  <script type="text/javascript">
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('question_editor', (init_questions) => ({
+        orig_questions: null,
+        questions: init_questions,
+        drag_index: null,
+
+        init() {
+          this.orig_questions = this.questions.slice();
+        },
+        dragstart(index, event) {
+          // only allow drag if over the drag handle td
+          const dragElement = event.target.querySelector("[data-drag-handle]");
+          // use :hover match to detect if cursor is within the element
+          if (dragElement === null || !dragElement.matches(":hover")) { event.preventDefault(); return; }
+          this.drag_index = index;
+        },
+        dragenter(index) {
+          if (this.drag_index === null || index === this.drag_index) { return; }
+          const draggedItem = this.questions.splice(this.drag_index, 1)[0];
+          this.questions.splice(index, 0, draggedItem);
+          this.drag_index = index;
+        },
+        dragend() {
+          if (this.drag_index === null) { return; }
+          this.drag_index = null;
+        },
+      }));
+    });
+  </script>
+{% endblock %}
+
 {% block body %}
 <section class="section">
   <div class="container">
@@ -270,14 +303,16 @@
       <h3>{{ obj.name }}</h3>
       <form action="{{ url_for('class_config.table.guided.update_questions') }}"
             method="post"
-            x-data='{orig_questions: null, questions: {{ obj.questions | tojson }}}'
-            x-init='orig_questions = questions.slice()'
+            x-data='question_editor({{ obj.questions | tojson }})'
             >
             <input type="hidden" name="obj_index" value="{{ loop.index0 }}">
             <div class="field">
               <div class="label">Questions</div>
               <template x-for="(question, index) in questions">
-                <div class="mt-2" style="display: flex; gap: 0.5em; align-items: center;">
+                <div x-bind:draggable="drag_index === index" @dragstart="dragstart(index, $event)" @dragend="dragend" @dragenter="dragenter(index)" class="mt-2" style="display: flex; gap: 0.5em; align-items: center;">
+                  <span data-drag-handle @mousedown="drag_index = index" @mouseup="drag_index = null" style="cursor: move; vertical-align: middle; text-align: center;" title="drag to reorder">
+                    <svg aria-hidden="true" class="icon is-small mt-1"><use href="#svg_grip" /></svg>
+                  </span>
                   <button type="button" class="delete" title="delete question" @click="questions.splice(index, 1)"></button>
                   <div class="control is-flex-grow-1">
                     <textarea class="textarea" name="questions[]" x-model="questions[index]" rows=3 ></textarea>
