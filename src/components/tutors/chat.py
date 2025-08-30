@@ -10,6 +10,7 @@ from dataclasses import asdict
 from flask import (
     Blueprint,
     abort,
+    current_app,
     flash,
     make_response,
     redirect,
@@ -299,7 +300,7 @@ async def stream_chat_round(llm: LLM, chat: ChatData) -> AsyncGenerator[str, Non
 async def _analyze_guided_chat(chat_data: ChatData, llm: LLM) -> ChatData:
     analyze_messages: list[ChatMessage] = [
         *chat_data.messages,
-        {'role': 'system', 'content': prompts.guided_analyze_tpl.render(chat=chat_data)},
+        {'role': 'user', 'content': prompts.guided_analyze_tpl.render(chat=chat_data)},
     ]
     analyze_response, analyze_response_txt = await llm.get_completion(
         messages=analyze_messages,
@@ -307,9 +308,14 @@ async def _analyze_guided_chat(chat_data: ChatData, llm: LLM) -> ChatData:
             'response_format': {'type': 'json_object'},
         },
     )
-    analysis = json.loads(analyze_response_txt)
-    chat_data.analysis = analysis
-    save_chat(chat_data)
+    try:
+        analysis = json.loads(analyze_response_txt)
+    except json.JSONDecodeError:
+        current_app.logger.warning(f"Invalid JSON response in _analyze_guided_chat: {analyze_response_txt}")
+    else:
+        chat_data.analysis = analysis
+        save_chat(chat_data)
+
     return chat_data
 
 
