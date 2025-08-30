@@ -65,7 +65,7 @@ markers = [
 
 [tool.ruff]
 include = ["pyproject.toml", "src/**/*.py", "tests/**/*.py"]
-output-format = "concise"
+output-format = "grouped"
 
 [tool.ruff.lint]
 select = ["ALL"]
