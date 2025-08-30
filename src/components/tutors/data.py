@@ -2,9 +2,14 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import json
+from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from sqlite3 import Cursor
-from typing import Any, Literal, TypeAlias
+from typing import Any, Final, Literal, TypeAlias
+
+from markupsafe import Markup
 
 from gened.app_data import (
     ChartData,
@@ -88,6 +93,7 @@ def get_chats(filters: Filters, /, limit: int=-1, offset: int=0) -> Cursor:
             t.user_id AS user_id,
             json_extract(t.chat_json, '$.topic') AS topic,
             t.chat_json AS chat_json,
+            json_extract(t.chat_json, '$.analysis') AS analysis,
             classes.id AS class_id,
             (
                 SELECT COUNT(*)
@@ -110,18 +116,50 @@ def get_chats(filters: Filters, /, limit: int=-1, offset: int=0) -> Cursor:
     return cur
 
 
-chats_table = DataTable(
-    name='chats',
-    columns=[NumCol('id'), UserCol('user'), TimeCol('chat_started'), Col('topic'), NumCol('user messages')],
-    link_col=0,
-    link_template='/tutor/${value}',
-)
+def fmt_analysis(value: str) -> Markup:
+    '''Format an analysis json object for display in a table cell.'''
+    if not value:
+        return Markup()
+
+    obj = json.loads(value)
+    #summary = obj['summary']
+    progress = obj['progress']
+    counts = Counter(objective['status'] for objective in progress)
+
+    statuses = [
+        ('not started', '#ebb'),
+        ('moved on', '#dca'),
+        ('in progress', '#add'),
+        ('completed', '#ada'),
+    ]
+    tags = [
+        Markup("<span class='tag m-0' style='background: {}; color: {}'>{}</span>").format(
+            color if counts[status] else '#ddd',
+            'inherit' if counts[status] else '#999',
+            counts[status]
+        )
+        for status, color in statuses
+    ]
+    title = Markup("&#13;").join(Markup("{}: {}").format(status, counts[status]) for status, _ in statuses if counts[status])
+
+    return Markup("<div class='tags has-addons' title='{}'>").format(title) + Markup("").join(tags) + Markup("</div>")
+
+
+@dataclass(frozen=True, kw_only=True)
+class AnalysisCol(Col):
+    kind: Final = 'html'
+    prerender: Final[Callable[[str], str]] = fmt_analysis
 
 chats_data_source = DataSource(
     table_name='chats',
     display_name='chats',
     get_data=get_chats,
-    table=chats_table,
+    table=DataTable(
+        name='chats',
+        columns=[NumCol('id'), UserCol('user'), TimeCol('chat_started'), Col('topic'), NumCol('user messages'), AnalysisCol('analysis')],
+        link_col=0,
+        link_template='/tutor/${value}',
+    ),
     time_col='chat_started',
     requires_experiment='chats_experiment',
 )
