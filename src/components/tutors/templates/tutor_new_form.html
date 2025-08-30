@@ -14,12 +14,15 @@ SPDX-License-Identifier: AGPL-3.0-only
     <section class="section">
       <div class="container content">
         <h1 class="title">Start a New Chat</h1>
-        <p>If your instructor has created any tutors focused on a specific topic, they will be listed here for you to select one and begin a <em>Guided Chat</em>.<br>In any case, you can propose your own topic and start an <em>Inquiry Chat</em>.</p>
 
         {% if tutors %}
         <h2 class="is-size-4">Guided Chat</h2>
         <form action="{{url_for('tutors.create_guided_chat')}}" method="post">
-          <p>Select a topic to start a chat with a tutor set up by your instructor.</p>
+          {% if tutors | length == 1 %}
+            <p>Start a chat with a tutor set up by your instructor to focus on this topic.</p>
+          {% else %}
+            <p>Select a tutor that has been set up by your instructor to focus on a specific topic.</p>
+          {% endif %}
 
           <div class="field is-horizontal">
             <div class="field-label is-medium">
