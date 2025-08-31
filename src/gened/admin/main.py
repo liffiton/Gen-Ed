@@ -245,10 +245,14 @@ def main() -> str:
     tables = []
 
     for name, source in all_data_sources.items():
+        data = source.get_data(filters, limit=init_rows).fetchall()
         table = source.table
-        table.data = source.get_data(filters, limit=init_rows).fetchall()
+        table.data = data
         table.csv_link = url_for('.get_data', name=name, kind='csv', **request.args)  # type: ignore[arg-type]
-        table.ajax_url = url_for('.get_data', name=name, kind='json', offset=init_rows, limit=limit-init_rows, **request.args)  # type: ignore[arg-type]
+        if len(data) == init_rows:
+            # we reached the limit, so there may be (is probably) more to fetch
+            # but we can skip providing an ajax URL if we have less than the limit, because that must be all the data
+            table.ajax_url = url_for('.get_data', name=name, kind='json', offset=init_rows, limit=limit-init_rows, **request.args)  # type: ignore[arg-type]
 
         tables.append(table)
 
