@@ -185,8 +185,6 @@ def rebuild_views() -> None:
     """ Populate the database with views built for/from registered components. """
     db = get_db()
 
-    # drop existing view
-    db.execute("DROP VIEW IF EXISTS v_user_activity")
 
     ds_map = current_app.extensions['gen_ed_data_sources']
     union_parts = []
@@ -204,12 +202,16 @@ def rebuild_views() -> None:
             FROM {table_name} t
         """)
 
+    db.execute("DROP VIEW IF EXISTS v_user_items")
+    db.execute(f"""
+        CREATE VIEW v_user_items AS
+        {' UNION ALL '.join(union_parts)}
+        ORDER BY user_id
+    """)
+
+    db.execute("DROP VIEW IF EXISTS v_user_activity")
     db.execute(f"""
         CREATE VIEW v_user_activity AS
-        WITH all_entries AS (
-            {' UNION ALL '.join(union_parts)}
-            ORDER BY user_id
-        )
         SELECT
             users.id,
             users.display_name,
@@ -217,11 +219,11 @@ def rebuild_views() -> None:
             auth_providers.name AS auth_provider,
             users.delete_status,
             users.created,
-            MAX(all_entries.entry_time) AS last_query_time,
+            MAX(v_user_items.entry_time) AS last_query_time,
             MAX(classes.created) AS last_class_created_time
         FROM users
         LEFT JOIN auth_providers ON auth_providers.id=users.auth_provider
-        LEFT JOIN all_entries ON all_entries.user_id=users.id
+        LEFT JOIN v_user_items ON v_user_items.user_id=users.id
         LEFT JOIN roles ON roles.user_id=users.id AND (roles.role = 'instructor' OR roles.role is NULL)
         LEFT JOIN classes ON classes.id=roles.class_id
         WHERE
