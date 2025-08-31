@@ -160,11 +160,12 @@ def test_logout(client: AppClient) -> None:
     ('/profile/', 302, (200, "2 in the past week"), (200, "Your Profile")),
     ('/help/', 302, 200, 200),
     ('/help/view/1', 302, (400, "Invalid id."), (200, "response01")),
-    ('/tutor/new', 302, 200, 404),
-    ('/tutor/1', 302, (200, "user_msg_1"), 404),
-    ('/tutor/2', 302, (200, "user_msg_2"), 404),
-    ('/tutor/3', 302, (400, "Invalid id."), 404),
-    ('/tutor/999', 302, (400, "Invalid id."), 404),
+    ('/help/view/999', 302, (400, "Invalid id."), (400, "Invalid id.")),
+    ('/tutor/new', 302, 200, 200),
+    ('/tutor/1', 302, (200, "user_msg_1"), (200, "user_msg_1")),
+    ('/tutor/2', 302, (200, "user_msg_2"), (200, "user_msg_2")),
+    ('/tutor/3', 302, (400, "Invalid id."), (200, "user_msg_3")),
+    ('/tutor/999', 302, (400, "Invalid id."), (400, "Invalid id.")),
     ('/admin/', 302, 302, 200),         # admin_required redirects to login
     ('/admin/get_db/', 302, 302, 200),   # admin_required redirects to login
 ])

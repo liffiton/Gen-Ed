@@ -35,10 +35,10 @@ def experiment_required(experiment_name: str) -> Callable[[Callable[P, R]], Call
             if not auth.user:
                 flash("Login required.", "warning")
                 return redirect(url_for('auth.login', next=request.full_path))
-            elif experiment_name not in auth.class_experiments:
-                return abort(404)
-            else:
+            if experiment_name in auth.class_experiments or auth.is_admin:
                 return f(*args, **kwargs)
+            else:
+                return abort(404)
         return decorated_function
     return decorator
 
