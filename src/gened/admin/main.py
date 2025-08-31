@@ -39,13 +39,12 @@ def count_queries() -> None:
         CREATE TEMPORARY TABLE __query_counts AS
         SELECT
             users.id AS user_id,
-            roles.id AS role_id,
+            code_queries.role_id AS role_id,  -- may be NULL due to LEFT JOIN
             COUNT(code_queries.id) AS queries,
             SUM(CASE WHEN code_queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS week_queries
         FROM users
-        LEFT JOIN roles ON roles.user_id = users.id
-        JOIN code_queries ON code_queries.role_id = roles.id
-        GROUP BY users.id, roles.id
+        LEFT JOIN code_queries ON code_queries.user_id = users.id
+        GROUP BY users.id, code_queries.role_id
     """)
 
 
@@ -117,8 +116,9 @@ def get_users(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
         LEFT JOIN classes ON roles.class_id=classes.id
         LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
         LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
-        LEFT JOIN __query_counts ON IIF(roles.id IS NULL, __query_counts.user_id=users.id, __query_counts.role_id=roles.id)
+        LEFT JOIN __query_counts ON __query_counts.user_id=users.id
         WHERE {where_clause}
+          AND (roles.id IS NULL OR __query_counts.role_id=roles.id)
         GROUP BY users.id
         ORDER BY "1wk" DESC, users.id DESC
         LIMIT ?
