@@ -31,6 +31,24 @@ bp = Blueprint('admin_main', __name__, url_prefix='/', template_folder='template
 register_blueprint(bp)
 
 
+def count_queries() -> None:
+    """ Count queries and store in a temporary table to be used in various queries for the admin screen. """
+    db = get_db()
+
+    db.execute("""
+        CREATE TEMPORARY TABLE __query_counts AS
+        SELECT
+            users.id AS user_id,
+            roles.id AS role_id,
+            COUNT(code_queries.id) AS queries,
+            SUM(CASE WHEN code_queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS week_queries
+        FROM users
+        LEFT JOIN roles ON roles.user_id = users.id
+        JOIN code_queries ON code_queries.role_id = roles.id
+        GROUP BY users.id, roles.id
+    """)
+
+
 def get_consumers(_: Filters, limit: int=-1, offset: int=0) -> Cursor:
     db = get_db()
     return db.execute("""
@@ -38,18 +56,18 @@ def get_consumers(_: Filters, limit: int=-1, offset: int=0) -> Cursor:
             consumers.id AS id,
             consumers.lti_consumer AS consumer,
             models.shortname AS model,
-            COUNT(DISTINCT classes.id) AS "#classes"
-            --COUNT(DISTINCT roles.id) AS "#users",
-            --COUNT(queries.id) AS "#queries", -- TODO: put counts back in after the refactoring dust settles
-            --SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS "1wk"
+            COUNT(DISTINCT classes.id) AS "#classes",
+            COUNT(DISTINCT roles.id) AS "#users",
+            SUM(__query_counts.queries) AS "#queries",
+            SUM(__query_counts.week_queries) AS "1wk"
         FROM consumers
         LEFT JOIN models ON models.id=consumers.model_id
         LEFT JOIN classes_lti ON classes_lti.lti_consumer_id=consumers.id
         LEFT JOIN classes ON classes.id=classes_lti.class_id
-        --LEFT JOIN roles ON roles.class_id=classes.id
-        --LEFT JOIN queries ON queries.role_id=roles.id
+        LEFT JOIN roles ON roles.class_id=classes.id
+        LEFT JOIN __query_counts ON __query_counts.role_id=roles.id
         GROUP BY consumers.id
-        --ORDER BY "1wk" DESC, consumers.id DESC
+        ORDER BY "1wk" DESC, consumers.id DESC
         LIMIT ?
         OFFSET ?
     """, [limit, offset])
@@ -64,9 +82,9 @@ def get_classes(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
             classes.name AS name,
             COALESCE(consumers.lti_consumer, class_owner.display_name) AS owner,
             models.shortname AS model,
-            COUNT(DISTINCT roles.id) AS "#users"
-            --COUNT(queries.id) AS "#queries",  -- TODO: put counts back in after the refactoring dust settles
-            --SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS "1wk"
+            COUNT(DISTINCT roles.id) AS "#users",
+            SUM(__query_counts.queries) AS "#queries",
+            SUM(__query_counts.week_queries) AS "1wk"
         FROM classes
         LEFT JOIN classes_user ON classes.id=classes_user.class_id
         LEFT JOIN users AS class_owner ON classes_user.creator_user_id=class_owner.id
@@ -74,10 +92,10 @@ def get_classes(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
         LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
         LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
         LEFT JOIN roles ON roles.class_id=classes.id
-        --LEFT JOIN queries ON queries.role_id=roles.id
+        LEFT JOIN __query_counts ON __query_counts.role_id=roles.id
         WHERE {where_clause}
         GROUP BY classes.id
-        --ORDER BY "1wk" DESC, classes.id DESC
+        ORDER BY "1wk" DESC, classes.id DESC
         LIMIT ?
         OFFSET ?
     """, [*where_params, limit, offset])
@@ -90,19 +108,19 @@ def get_users(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
         SELECT
             users.id AS id,
             json_array(users.display_name, auth_providers.name, users.display_extra) AS user,
-            users.query_tokens AS tokens
-            --COUNT(queries.id) AS "#queries",
-            --SUM(CASE WHEN queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS "1wk"
+            users.query_tokens AS tokens,
+            SUM(__query_counts.queries) AS "#queries",
+            SUM(__query_counts.week_queries) AS "1wk"
         FROM users
         LEFT JOIN auth_providers ON auth_providers.id=users.auth_provider
         LEFT JOIN roles ON roles.user_id=users.id
         LEFT JOIN classes ON roles.class_id=classes.id
         LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
         LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
-        --LEFT JOIN queries ON queries.role_id=roles.id OR (queries.role_id IS NULL AND queries.user_id=users.id)
+        LEFT JOIN __query_counts ON IIF(roles.id IS NULL, __query_counts.user_id=users.id, __query_counts.role_id=roles.id)
         WHERE {where_clause}
         GROUP BY users.id
-        --ORDER BY "1wk" DESC, users.id DESC
+        ORDER BY "1wk" DESC, users.id DESC
         LIMIT ?
         OFFSET ?
     """, [*where_params, limit, offset])
@@ -133,6 +151,9 @@ def get_roles(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
 
 
 def get_data_sources(filters: Filters) -> dict[str, DataSource]:
+    # set up temporary table with query counts
+    count_queries()
+
     data_funcs = {
         'consumers': get_consumers,
         'classes': get_classes,
@@ -144,7 +165,7 @@ def get_data_sources(filters: Filters) -> dict[str, DataSource]:
 
     datatables['consumers'] = DataTable(
         name='consumers',
-        columns=[NumCol('id'), Col('consumer'), Col('model'), NumCol('#classes')], # , NumCol('#queries'), NumCol('1wk')],
+        columns=[NumCol('id'), Col('consumer'), Col('model'), NumCol('#classes'), NumCol('#users'), NumCol('#queries'), NumCol('1wk')],
         link_col=0,
         link_template=filters.template_string('consumer'),
         actions=[Action("Edit consumer", icon='pencil', url=url_for('admin.admin_consumers.consumer_form'), id_col=0)],
@@ -153,7 +174,7 @@ def get_data_sources(filters: Filters) -> dict[str, DataSource]:
 
     datatables['classes'] = DataTable(
         name='classes',
-        columns=[NumCol('id'), Col('name'), Col('owner'), Col('model'), NumCol('#users')], # , NumCol('#queries'), NumCol('1wk')],
+        columns=[NumCol('id'), Col('name'), Col('owner'), Col('model'), NumCol('#users'), NumCol('#queries'), NumCol('1wk')],
         link_col=0,
         link_template=filters.template_string('class'),
         actions=[Action("Administer class", icon='admin', url=url_for('classes.switch_class_handler'), id_col=0)],
@@ -161,7 +182,7 @@ def get_data_sources(filters: Filters) -> dict[str, DataSource]:
 
     datatables['users'] = DataTable(
         name='users',
-        columns=[NumCol('id'), UserCol('user'), NumCol('tokens')], # , NumCol('#queries'), NumCol('1wk')],
+        columns=[NumCol('id'), UserCol('user'), NumCol('tokens'), NumCol('#queries'), NumCol('1wk')],
         link_col=0,
         link_template=filters.template_string('user'),
     )
