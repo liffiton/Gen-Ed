@@ -67,14 +67,14 @@ def _get_class_users(*, for_export: bool = False) -> list[Row]:
             {'roles.id AS role_id,' if not for_export else ''}
             users.id AS id,
             json_array(users.display_name, auth_providers.name, users.display_extra) AS user,
-            COUNT(code_queries.id) AS "#queries",
-            SUM(CASE WHEN code_queries.query_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS "1wk",
+            COUNT(v_user_items.entry_time) AS '#uses',
+            SUM(CASE WHEN v_user_items.entry_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS '1wk',
             roles.active AS "active?",
             roles.role = "instructor" AS "instructor?"
         FROM users
         LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
         JOIN roles ON roles.user_id=users.id
-        LEFT JOIN code_queries ON code_queries.role_id=roles.id
+        LEFT JOIN v_user_items ON v_user_items.role_id=roles.id
         WHERE roles.class_id=?
         GROUP BY users.id
         ORDER BY users.display_name
@@ -90,7 +90,7 @@ def main() -> str | Response:
     users = _get_class_users()
     users_table = DataTable(
         name='users',
-        columns=[NumCol('role_id', hidden=True), NumCol('id', hidden=True), UserCol('user'), NumCol('#queries'), NumCol('1wk'), BoolCol('active?', url=url_for('.set_role_active')), BoolCol('instructor?', url=url_for('.set_role_instructor'))],
+        columns=[NumCol('role_id', hidden=True), NumCol('id', hidden=True), UserCol('user'), NumCol('#uses'), NumCol('1wk'), BoolCol('active?', url=url_for('.set_role_active')), BoolCol('instructor?', url=url_for('.set_role_instructor'))],
         link_col=1,
         link_template='?user=${value}',
         csv_link=url_for('instructor.get_csv', kind='users'),

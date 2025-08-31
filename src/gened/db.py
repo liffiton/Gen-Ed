@@ -210,7 +210,7 @@ def rebuild_views() -> None:
     """)
 
     db.execute("DROP VIEW IF EXISTS v_user_activity")
-    db.execute(f"""
+    db.execute("""
         CREATE VIEW v_user_activity AS
         SELECT
             users.id,
