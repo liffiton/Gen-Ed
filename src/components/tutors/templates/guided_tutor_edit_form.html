@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 
 {% block extrahead %}
+  <script type="module">
+    import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4/+esm'
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4/build/pdf.worker.min.mjs'
+  </script>
   <script type="text/javascript">
     document.addEventListener('alpine:init', () => {
       Alpine.data('question_editor', (init_questions) => ({
@@ -28,6 +32,138 @@
           if (this.drag_index === null) { return; }
           this.drag_index = null;
         },
+      }));
+
+      Alpine.data('pdfUploader', () => ({
+        // The currently loaded document's filename and text
+        filename: {{ (item.document_filename or "") | tojson }},
+        text: {{ (item.document_text or "") | tojson }},
+
+        // Temporary storage for a newly-extracted document
+        preview_filename: '',
+        preview_text: '',
+
+        processing: false,
+        progress: 0,
+        statusText: '',
+        error: '',
+        wordCount: 0,
+        isNewPreview: false,
+
+        async handleFileSelect(event) {
+          const file = event.target.files[0];
+          if (!file) {
+            this.clearFile();
+            return;
+          }
+
+          this.preview_filename = file.name;
+
+          try {
+            await this.extractTextFromPDF(file);
+          } catch (error) {
+            this.error = `Failed to extract text from PDF: ${error.message}`;
+            console.error('PDF extraction error:', error);
+          }
+        },
+
+        async extractTextFromPDF(file) {
+          this.progress = 0;
+          this.statusText = 'Loading PDF...';
+          this.processing = true;
+
+          const arrayBuffer = await file.arrayBuffer();
+          this.progress = 15;
+          this.statusText = 'Parsing PDF structure...';
+
+          const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+          const numPages = pdf.numPages;
+
+          let fullText = '';
+
+          for (let i = 1; i <= numPages; i++) {
+            this.statusText = `Extracting text from page ${i} of ${numPages}...`;
+            this.progress = 15 + (i / numPages) * 75;
+
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent({
+              normalizeWhitespace: true
+            });
+
+            // Simple approach: add line breaks based on hasEOL flag
+            let pageText = '';
+            for (const item of textContent.items) {
+              pageText += item.str;
+              if (item.hasEOL) {
+                pageText += '\n';
+              } else {
+                // Add space if the next item doesn't start immediately
+                pageText += ' ';
+              }
+            }
+
+            fullText += pageText + '\n\n';
+          }
+
+          this.statusText = 'Processing extracted text...';
+          this.progress = 95;
+
+          // Clean up the text
+          fullText = fullText.trim();
+
+          // Count words
+          this.wordCount = fullText.split(/\s+/).filter(word => word.length > 0).length;
+
+          // Truncate if too long (50k words limit)
+          if (this.wordCount > 50000) {
+            const words = fullText.split(/\s+/);
+            fullText = words.slice(0, 50000).join(' ');
+          }
+
+          this.preview_text = fullText;
+
+          this.progress = 100;
+          this.statusText = 'Text extraction complete!';
+          this.processing = false;
+
+          this.isNewPreview = true;
+          this.openPreviewModal();
+        },
+
+        clearFile() {
+          this.filename = '';
+          this.text = '';
+          this.clearState();
+
+          // Clear the file input
+          const fileInput = this.$el.querySelector('input[type="file"]');
+          if (fileInput) fileInput.value = '';
+        },
+
+        clearState() {
+          this.processing = false;
+          this.preview_filename = '';
+          this.preview_text = '';
+          this.error = '';
+          this.statusText = '';
+          this.progress = 0;
+        },
+
+        openPreviewModal() {
+          document.getElementById('doc_text_modal').showModal();
+        },
+
+        acceptPreview() {
+          this.filename = this.preview_filename;
+          this.text = this.preview_text;
+          this.clearState();
+          document.getElementById('doc_text_modal').close();
+        },
+
+        rejectPreview() {
+          this.clearState();
+          document.getElementById('doc_text_modal').close();
+        }
       }));
     });
   </script>
@@ -93,68 +229,99 @@
         </div>
       </div>
 
-      <div class="field is-horizontal">
+      <div class="field is-horizontal" x-data="pdfUploader()">
+        <input type="hidden" name="document_filename" x-model="filename">
+        <input type="hidden" name="document_text" x-model="text">
         <div class="field-label is-normal">
           <label class="label">Document (optional)</label>
-          <p class="help-text">You may upload a PDF with additional context for generating objectives and questions (e.g., lecture notes, a book chapter, or an assignment).<br>Max file size: 1MB.</p>
+          <p class="help-text">You may upload a PDF with additional context for generating objectives and questions (e.g., lecture notes, a book chapter, or an assignment).<br>Text will be extracted in your browser.<br>Max extracted text: 50,000 words.</p>
         </div>
+
         <div class="field-body">
-          <div class="field is-grouped" x-data="{filename: ''}">
-            {% if item.document_filename %}
-              <div class="control">
-                <p class="mt-2">
-                  Using: <strong>{{ item.document_filename }}</strong>
-                </p>
-              </div>
-              <div class="control">
-                <button class="button is-rounded is-outlined is-small mt-1" type="button" onclick="document.getElementById('doc_text_modal').showModal()">
-                  View text
-                </button>
-              </div>
-              <div class="control">
-                <button
-                  class="button is-rounded is-dnger is-outlined is-small mt-1"
-                  type="submit"
-                  id="remove_document"
+          <!-- Show existing document if there is one -->
+          <div class="field is-grouped" x-show="filename">
+            <div class="control">
+              <p class="mt-2">
+              Using: <strong x-text="filename"></strong>
+              </p>
+            </div>
+            <div class="control">
+              <button class="button is-rounded is-info is-outlined is-small mt-1" type="button" @click="isNewPreview = false; openPreviewModal()">
+                View text
+              </button>
+            </div>
+            <div class="control">
+              <button
+                  class="button is-rounded is-danger is-outlined is-small mt-1"
+                  type="button"
+                  @click="clearFile()"
                   x-bind:disabled="loading1 || loading2"
-                  formaction="{{ url_for('class_config.table.guided.remove_document') }}"
-                >
+                  >
                   <span class="delete mr-2"></span>
                   Remove document
-                </button>
+              </button>
+            </div>
+          </div>
+
+          <!-- Show file upload when no document -->
+          <div class="field" x-show="!filename">
+            <div class="control file has-name">
+              <label class="file-label">
+                <input class="file-input" type="file" accept=".pdf" x-bind:disabled="loading1 || loading2 || processing" @change="handleFileSelect($event)">
+                <span class="file-cta">
+                  Choose a PDF…
+                </span>
+                <span class="file-name" x-text="filename || 'No file chosen'">
+                  No file chosen
+                </span>
+              </label>
+            </div>
+
+            <!-- Progress bar -->
+            <div x-show="processing" class="control mt-2">
+              <progress class="progress is-primary mb-2" x-bind:value="progress" max="100">
+                <span x-text="progress + '%'"></span>
+              </progress>
+              <p class="help-text" x-text="statusText"></p>
+            </div>
+
+            <!-- Error display -->
+            <div x-show="error" class="control mt-2">
+              <div class="notification is-danger is-light" @click="clearState()">
+                <button class="delete" type="button"></button>
+                <span x-text="error"></span>
               </div>
-            {% else %}
-              <div class="control file has-name">
-                <label class="file-label">
-                  <input class="file-input" type="file" name="document_file" accept=".pdf" x-bind:disabled="loading1 || loading2" @change="filename = $event.target.files.length ? $event.target.files[0].name : ''">
-                  <span class="file-cta">
-                    Choose a PDF…
-                  </span>
-                  <span class="file-name" x-text="filename || 'No file chosen'">
-                    No file chosen
-                  </span>
-                </label>
-              </div>
-              <div class="control">
-                <button
-                  class="button is-link"
-                  type="submit"
-                  id="upload_document"
-                  x-bind:disabled="!filename || loading1 || loading2"
-                  formaction="{{ url_for('class_config.table.guided.upload_document') }}"
-                >
-                  <span class="icon">
-                    <svg aria-hidden="true"><use href="#svg_upload"></use></svg>
-                  </span>
-                  <span>
-                    Upload this document
-                  </span>
-                </button>
-              </div>
-            {% endif %}
+            </div>
+
           </div>
         </div>
+
+        <dialog id="doc_text_modal" style="width: 60%; max-width: 80em; min-width: min(50em, 100vw);">
+          <div class="content box">
+            <h3 x-text="isNewPreview ? `Preview of: ${preview_filename}` : filename"></h3>
+            <p x-show="isNewPreview" class="help">
+              <span x-text="wordCount"></span> words extracted
+              <span x-show="wordCount > 50000" class="has-text-danger ml-1">(exceeds 50,000 word limit - will be truncated)</span>
+            </p>
+            <pre style="white-space: pre-wrap; max-height: 60vh; overflow-y: auto;" x-text="isNewPreview ? preview_text : text"></pre>
+            <div class="field is-grouped" x-show="isNewPreview">
+              <div class="control">
+                <button class="button is-link" type="button" @click="acceptPreview()">Keep</button>
+              </div>
+              <div class="control">
+                <button class="button" type="button" @click="rejectPreview()">Cancel</button>
+              </div>
+            </div>
+            <div class="field is-grouped" x-show="!isNewPreview">
+              <div class="control">
+                <button class="button" type="button" @click="$event.target.closest('dialog').close()">Close</button>
+              </div>
+            </div>
+          </div>
+        </dialog>
       </div>
+
+      <hr>
 
       <div class="field is-horizontal">
         <div class="field-label is-normal"><!-- spacing --></div>
@@ -337,19 +504,5 @@
     </div>
   </dialog>
 {% endfor %}
-
-{% if item.document_filename %}
-<dialog id="doc_text_modal" style="width: 60%; max-width: 80em; min-width: min(50em, 100vw);">
-  <div class="content box">
-    <h3>{{ item.document_filename }}</h3>
-    <pre style="white-space: pre-wrap; max-height: 60vh; overflow-y: auto;">{{ item.document_text }}</pre>
-    <div class="field is-grouped">
-      <div class="control">
-        <button class="button" type="button" onclick="this.closest('dialog').close()">Close</button>
-      </div>
-    </div>
-  </div>
-</dialog>
-{% endif %}
 
 {% endblock body %}

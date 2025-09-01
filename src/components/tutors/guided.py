@@ -13,11 +13,9 @@ from cachelib.simple import SimpleCache
 from flask import (
     Blueprint,
     abort,
-    flash,
     request,
 )
 from markupsafe import Markup
-from pypdf import PdfReader
 from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.wrappers.response import Response
 
@@ -105,6 +103,8 @@ class TutorConfig(ConfigItem):
         config.name = form.get('name', '').strip()
         config.topic = form.get('topic', '').strip()
         config.context = form.get('context', '').strip()
+        config.document_filename = form.get('document_filename', '').strip()
+        config.document_text = form.get('document_text', '').strip()
         objectives_str = form.get('objectives', '').strip()
         objectives_split = [obj.strip() for obj in objectives_str.split('\n')] if objectives_str else []
         config.objectives = [LearningObjective(obj, form.getlist(f'questions[{i}]')) for i, obj in enumerate(objectives_split)]
@@ -183,39 +183,6 @@ def generate_objectives(llm: LLM) -> Response:
     config.objectives = [LearningObjective(obj, []) for obj in objectives]
 
     _save_to_cache(config)
-
-    return safe_redirect(request.referrer, default_endpoint='profile.main')
-
-
-@bp.route('/document/upload', methods=['POST'])
-def upload_document() -> Response:
-    """Upload a document and extract its text."""
-    # first, save whatever might have been included in the form along with the file
-    config = TutorConfig.from_request_form(request.form)
-    _save_to_cache(config)
-
-    if 'document_file' not in request.files:
-        return safe_redirect(request.referrer, default_endpoint='profile.main')
-
-    pdf_file = request.files['document_file']
-    if pdf_file.filename:
-        pdf_file.seek(0, 2)  # 2 = SEEK_END
-        file_size = pdf_file.tell()
-        pdf_file.seek(0)
-        if file_size > 1 * 1024 * 1024:
-            flash("Uploaded file is too large (max 1MB).", "danger")
-            return safe_redirect(request.referrer, default_endpoint='profile.main')
-
-        try:
-            reader = PdfReader(pdf_file)  # type: ignore[arg-type]
-            text = "\n\n".join(page.extract_text() for page in reader.pages)
-        except Exception as e:
-            flash(f"Error reading PDF: {e}", "danger")
-        else:
-            config = TutorConfig.from_cache()
-            config.document_text = text
-            config.document_filename = pdf_file.filename
-            _save_to_cache(config)
 
     return safe_redirect(request.referrer, default_endpoint='profile.main')
 
