@@ -171,6 +171,9 @@ window.md.inline.ruler.disable(['escape']);
     border-left: solid 3px #a44;
     background: #a442;
   }
+  .chat_message_user_contents {
+    white-space: pre-wrap;
+  }
   .chat_message_assistant {
     border-left: solid 3px #47a;
   }
@@ -233,13 +236,15 @@ window.md.inline.ruler.disable(['escape']);
                 </div>
                 <div class="chat_message chat_message_{{message.role}}">
                   {% if message.role == 'system' %}
-                    <details>
-                      <summary>System prompt</summary>
-                    {% endif %}
+                  <details>
+                    <summary>System prompt</summary>
                     <div class="content">{{ message.content | markdown }}</div>
-                    {% if message.role == 'system' %}
-                      </details>
-                    {% endif %}
+                    </details>
+                  {% elif message.role == 'assistant' %}
+                    <div class="content">{{ message.content | markdown }}</div>
+                  {% elif message.role == 'user' %}
+                    <div class="chat_message_user_contents">{{ message.content }}</div>
+                  {% endif %}
                 </div>
               {% endif %}
             {% endfor %}
