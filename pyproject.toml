@@ -27,7 +27,6 @@ classifiers = [
 dependencies = [
     "Authlib~=1.6.1",
     "Flask~=3.1.0",
-    "cachelib~=0.13.0",
     "markdown-it-py~=3.0.0",
     "openai~=1.0, >=1.79",
     "pylti@git+https://github.com/liffiton/pylti",

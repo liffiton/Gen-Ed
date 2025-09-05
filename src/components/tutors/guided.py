@@ -9,17 +9,14 @@ from dataclasses import dataclass
 from sqlite3 import Row
 from typing import Any, Self
 
-from cachelib.simple import SimpleCache
 from flask import (
     Blueprint,
-    abort,
     request,
 )
 from markupsafe import Markup
 from werkzeug.datastructures import ImmutableMultiDict
-from werkzeug.wrappers.response import Response
 
-from gened.auth import get_auth, get_auth_class, instructor_required
+from gened.auth import instructor_required
 from gened.class_config import (
     ConfigItem,
     ConfigShareLink,
@@ -27,17 +24,11 @@ from gened.class_config import (
 )
 from gened.experiments import experiment_required
 from gened.llm import LLM, ChatMessage, with_llm
-from gened.redir import safe_redirect
 
 from . import prompts
 
 DEFAULT_OBJECTIVES = 5
 DEFAULT_QUESTIONS_PER_OBJECTIVE = 4
-
-
-# Use a simple memory-based cache for storing draft tutor configurations.
-# NOTE that this will be cleared if the server restarts.
-_tutor_config_cache = SimpleCache(default_timeout=60*60*24*5)  # 5 days
 
 
 bp = Blueprint('guided', __name__, url_prefix=None, template_folder='templates')
@@ -65,39 +56,24 @@ class TutorConfig(ConfigItem):
     objectives: list[LearningObjective] = dataclasses.field(default_factory=list)
 
     @classmethod
-    def from_cache(cls) -> Self:
-        obj: Self | None = _tutor_config_cache.get(_cache_key())
-        if obj is None:
-            obj = cls(name='')
-        return obj
-
-    @classmethod
     def initial(cls) -> Self:
-        item = cls.from_cache()
-        if item.row_id is not None:
-            # this is saved from an edit form, not a new/create form, so don't use it
-            return cls(name='')
-        else:
-            return item
+        return cls(name='')
 
-    # Override from_row, because we need to convert nested dicts and store the
-    # config loaded from the db into the cache
+    # Override from_row, because we need to convert nested dicts
     @classmethod
     def from_row(cls, row: Row) -> Self:
         item = super().from_row(row)
         # may need to convert dictionary-stored learning objectives to LearningObjective objects
         if isinstance(item.objectives[0], dict):
             item.objectives = [LearningObjective(**obj) for obj in item.objectives]  # type: ignore[arg-type]
-            _save_to_cache(item)
         return item
 
     @classmethod
     def from_request_form(cls, form: ImmutableMultiDict[str, Any]) -> Self:
         """
-        Loads a stored object from the cache first for the document data, and
-        populates everything *else* from the given form.
+        Populates a TutorConfig from the given form.
         """
-        config = cls.from_cache()
+        config = cls.initial()
         if 'row_id' in form:
             config.row_id = int(form['row_id'])
         config.name = form.get('name', '').strip()
@@ -109,9 +85,6 @@ class TutorConfig(ConfigItem):
         objectives_split = [obj.strip() for obj in objectives_str.split('\n')] if objectives_str else []
         config.objectives = [LearningObjective(obj, form.getlist(f'questions[{i}]')) for i, obj in enumerate(objectives_split)]
         return config
-
-    def after_create(self) -> None:
-        _delete_cached_config()
 
 
 # To register the configuration UI inside gened's class_config module
@@ -136,29 +109,14 @@ guided_tutor_config_table = ConfigTable(
 )
 
 
-def _cache_key() -> str:
-    auth = get_auth()
-    assert auth.user_id is not None
-    cur_class = get_auth_class()
-    return f"guided_tutor_config_{auth.user_id}_{cur_class.class_id}"
-
-
-def _save_to_cache(config: TutorConfig) -> None:
-    _tutor_config_cache.set(_cache_key(), config)
-
-
-def _delete_cached_config() -> None:
-    _tutor_config_cache.delete(_cache_key())
-
-
 @bp.route('/objectives/generate', methods=['POST'])
 @with_llm(spend_token=False)
-def generate_objectives(llm: LLM) -> Response:
+def generate_objectives(llm: LLM) -> list[LearningObjective]:
     """Generate learning objectives for the given topic."""
     config = TutorConfig.from_request_form(request.form)
 
-    num_items_initial = 30
     num_items_final = int(request.form.get('num_objectives', DEFAULT_OBJECTIVES))
+    num_items_initial = max(20, num_items_final + 10)
 
     sys_prompt = prompts.tutor_setup_objectives_sys_prompt.render(topic=config.topic, learning_context=config.context, document=config.document_text)
     user_prompts = [
@@ -180,21 +138,9 @@ def generate_objectives(llm: LLM) -> Response:
     objectives = json.loads(response_txt)['objectives']
     assert isinstance(objectives, list)
     assert all(isinstance(val, str) for val in objectives)
-    config.objectives = [LearningObjective(obj, []) for obj in objectives]
+    objectives = [LearningObjective(obj, []) for obj in objectives]
 
-    _save_to_cache(config)
-
-    return safe_redirect(request.referrer, default_endpoint='profile.main')
-
-
-@bp.route('/document/remove', methods=['POST'])
-def remove_document() -> Response:
-    """Remove an uploaded document."""
-    config = TutorConfig.from_cache()
-    config.document_filename = ""
-    config.document_text = ""
-    _save_to_cache(config)
-    return safe_redirect(request.referrer, default_endpoint='profile.main')
+    return objectives
 
 
 async def generate_questions_for_objective(config: TutorConfig, index: int, llm: LLM, num_questions: int) -> None:
@@ -238,7 +184,7 @@ async def populate_questions(config: TutorConfig, llm: LLM, num_questions: int) 
 
 @bp.route('/questions/generate', methods=['POST'])
 @with_llm(spend_token=False)
-def generate_questions(llm: LLM) -> Response:
+def generate_questions(llm: LLM) -> list[LearningObjective]:
     """Generate questions based on topic and objectives."""
     config = TutorConfig.from_request_form(request.form)
 
@@ -247,26 +193,4 @@ def generate_questions(llm: LLM) -> Response:
     task = populate_questions(config, llm, num_questions)
     asyncio.run(task)
 
-    _save_to_cache(config)
-    return safe_redirect(request.referrer, default_endpoint='profile.main')
-
-
-@bp.route('/questions/update', methods=['POST'])
-def update_questions() -> Response:
-    """ Update the questions for one learning objective. """
-    config = TutorConfig.from_cache()
-    obj_index = request.form.get('obj_index')
-    if obj_index is None or not obj_index.isnumeric():
-        abort(400)
-    questions = request.form.getlist('questions[]')
-    questions = [q.strip() for q in questions]
-    config.objectives[int(obj_index)].questions = questions
-    _save_to_cache(config)
-    return safe_redirect(request.referrer, default_endpoint='profile.main')
-
-
-@bp.route('/reset', methods=['POST'])
-def reset_setup() -> Response:
-    """Clear the in-progress tutor setup and start over."""
-    _delete_cached_config()
-    return safe_redirect(request.referrer, default_endpoint='profile.main')
+    return config.objectives

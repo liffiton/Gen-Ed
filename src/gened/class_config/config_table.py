@@ -54,15 +54,7 @@ class ConfigItem(ABC):
     @classmethod
     def initial(cls) -> Self | None:
         """ Return an "initial" object for this class.
-        Can be overridden, e.g., if using a cache.
-        """
-        return None
-
-    @classmethod
-    def from_cache(cls) -> Self:
-        """ Return a cached item (currently being edited by the user, e.g.)
-        Default returns an empty item and should be overridden by any subclass
-        that uses a cache.
+        Can be overridden if needed.
         """
         return cls(name='')
 
@@ -76,19 +68,10 @@ class ConfigItem(ABC):
         """ Instantiate an item object from an SQLite row.
             (Requires correct field names in the row and in its 'config' JSON column.)
         """
-        # first check whether we have a cached version to use
-        cached = cls.from_cache()
-        if cached.row_id == row['id']:
-            return cached
-
         attrs = json.loads(row['config'])
         attrs['name'] = row['name']
         attrs['row_id'] = row['id']
         return cls(**attrs)
-
-    def after_create(self) -> None:
-        """ Override this to specify code to run after creating/inserting a new item of this type. """
-        return
 
     def to_json(self) -> str:
         """ Dump config data (all but name and row_id) to JSON (implemented here) """
@@ -290,12 +273,6 @@ crud_bp = Blueprint('crud', __name__, template_folder='templates')
 @crud_bp.route("/edit/", methods=[])  # just for url_for() in js code
 @crud_bp.route("/edit/<int:item_id>")
 def edit_item_form(item: ConfigItem) -> str | Response:
-    # check whether the user is editing this item (in the cache already w/ same row_id)
-    cached = g.config_table.config_item_class.from_cache()
-    if item.row_id == cached.row_id:
-        # use the cached version, which may have been changed but not yet saved to the DB
-        item = cached
-
     return render_template(g.config_table.edit_form_template, item=item)
 
 
@@ -309,7 +286,6 @@ def create_item() -> Response:
     cur_class = get_auth_class()
     item = g.config_table.config_item_class.from_request_form(request.form)
     _, name = _insert_item(cur_class.class_id, item.name, item.to_json(), "9999-12-31")  # defaults to hidden
-    item.after_create()
     flash(f"Item '{name}' created.", "success")
     return redirect(url_for("class_config.base.config_form"))
 

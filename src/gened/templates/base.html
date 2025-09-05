@@ -42,10 +42,12 @@ SPDX-License-Identifier: AGPL-3.0-only
       /* fix spacing in some of markdownit's lists */
       .content p:has(+ul), .content p:has(+ol) { margin-bottom: 0.25em !important; }
       .content ul ol, .content ol ul, .content ul ul, .content ol ol { margin-top: 0.25em; }
+      /* for AlpineJS */
+      [x-cloak] { display: none !important; }
     </style>
+    {% block extrahead %}{% endblock extrahead %}
     <script src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3/dist/cdn.min.js" defer type="text/javascript"></script>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer type="text/javascript"></script>
-    {% block extrahead %}{% endblock extrahead %}
     <title>{{ config['APPLICATION_TITLE'] }}</title>
   </head>
   <body>
@@ -209,15 +211,20 @@ SPDX-License-Identifier: AGPL-3.0-only
     </footer>
     <script type="text/JavaScript">
       // close dialogs on click outside
+      function dialogCloseIfOutside(e) {
+        const dialog = e.currentTarget.closest('dialog');  // the dialog on which the event was registered or the nearest dialog parent of the registered target
+        if (!dialog) {
+          return;
+        }
+        const rect = dialog.getBoundingClientRect();
+        const isInDialog=(rect.top <= e.clientY && e.clientY <= rect.top + rect.height
+          && rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
+        if (!isInDialog) {
+          dialog.close();
+        }
+      }
       const dialogs = document.querySelectorAll("dialog");
-      dialogs.forEach(dialog => dialog.addEventListener('click', function (e) {
-          const rect = dialog.getBoundingClientRect();
-          const isInDialog=(rect.top <= e.clientY && e.clientY <= rect.top + rect.height
-            && rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
-          if (!isInDialog) {
-              dialog.close();
-          }
-      }));
+      dialogs.forEach(dialog => dialog.addEventListener('click', dialogCloseIfOutside));
     </script>
     {% if 'timezone' not in session %}
     <script type="text/javascript">

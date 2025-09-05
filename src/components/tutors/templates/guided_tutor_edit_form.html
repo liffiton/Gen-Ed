@@ -2,18 +2,124 @@
 
 {% block extrahead %}
   <script type="module">
-    import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4/+esm'
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4/build/pdf.worker.min.mjs'
-  </script>
-  <script type="text/javascript">
+    // For extracting text from documents
+    import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4/+esm';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4/build/pdf.worker.min.mjs';
+
+    // For rendering questions
+    import markdownIt from 'https://cdn.jsdelivr.net/npm/markdown-it@14/+esm';
+    const md = markdownIt();
+
     document.addEventListener('alpine:init', () => {
-      Alpine.data('question_editor', (init_questions) => ({
-        orig_questions: null,
-        questions: init_questions,
+      const orig_tutor = {{ item | tojson }};
+      Alpine.data('tutor_editor', () => ({
+        tutor: null,
+        loading: null,
+        objectiveNames: "",
+
+        init() {
+          // Do one-way model updates *to* objectiveNames, so user can still edit the list (for regenerating questions)
+          this.$watch('tutor', newVal => this.objectiveNames = newVal.objectives.map(obj => obj.name).join('\n'));
+          this.reset_form();
+        },
+        reset_form() {
+          this.tutor = structuredClone(orig_tutor);
+        },
+
+        render(question) {
+          return md.render(question);
+        },
+
+        get hasObjectives() {
+          return this.objectiveNames;
+        },
+        get hasQuestions() {
+          return this.hasObjectives && this.tutor.objectives.some(obj => obj.questions.length);
+        },
+
+        async generateObjectives() {
+          const form = this.$refs.tutor_form;
+
+          // validate and report issues in form (if any) before proceeding
+          if (!form.reportValidity()) {
+            return;
+          }
+
+          this.loading = 'objectives';
+          try {
+            // build formdata to send via fetch
+            const formData = new URLSearchParams(new FormData(form));
+
+            // start the request
+            const response = await fetch('{{ url_for('class_config.table.guided.generate_objectives') }}', {
+              method: 'POST',
+              body: formData,
+            });
+
+            if (!response.ok) {
+              const text = await response.text();
+              alert(`An error occurred: ${text}`);
+              return;
+            }
+
+            const newObjectives = await response.json();
+            this.tutor.objectives = newObjectives;
+          } catch (error) {
+            alert(`An error occurred: ${error}`);
+          } finally {
+            this.loading = null;
+          }
+        },
+
+        async generateQuestions() {
+          const form = this.$refs.tutor_form;
+
+          // validate and report issues in form (if any) before proceeding
+          if (!form.reportValidity()) {
+            return;
+          }
+
+          this.loading = 'questions';
+          try {
+            // build formdata to send via fetch
+            const formData = new URLSearchParams(new FormData(form));
+
+            // start the request
+            const response = await fetch('{{ url_for('class_config.table.guided.generate_questions') }}', {
+              method: 'POST',
+              body: formData,
+            });
+
+            if (!response.ok) {
+              const text = await response.text();
+              alert(`An error occurred: ${text}`);
+              return;
+            }
+
+            const newQuestions = await response.json();
+            this.tutor.objectives = newQuestions;
+          } catch (error) {
+            alert(`An error occurred: ${error}`);
+          } finally {
+            this.loading = null;
+          }
+        },
+      }));
+
+      Alpine.data('question_editor', (objective_index) => ({
+        questions: null,
         drag_index: null,
 
         init() {
-          this.orig_questions = this.questions.slice();
+          this.reset();
+        },
+        reset() {
+          // get unlinked/unaliased copy of the parent objective's questions
+          this.questions = Alpine.raw(this.tutor.objectives[objective_index].questions.slice());
+        },
+        updateParent() {
+          // copy the edited questions back to the parent objective
+          this.tutor.objectives[objective_index].questions = this.questions.slice();
         },
         dragstart(index, event) {
           // only allow drag if over the drag handle td
@@ -35,10 +141,6 @@
       }));
 
       Alpine.data('pdfUploader', () => ({
-        // The currently loaded document's filename and text
-        filename: {{ (item.document_filename or "") | tojson }},
-        text: {{ (item.document_text or "") | tojson }},
-
         // Temporary storage for a newly-extracted document
         preview_filename: '',
         preview_text: '',
@@ -131,8 +233,8 @@
         },
 
         clearFile() {
-          this.filename = '';
-          this.text = '';
+          this.tutor.document_filename = '';
+          this.tutor.document_text = '';
           this.clearState();
 
           // Clear the file input
@@ -154,8 +256,8 @@
         },
 
         acceptPreview() {
-          this.filename = this.preview_filename;
-          this.text = this.preview_text;
+          this.tutor.document_filename = this.preview_filename;
+          this.tutor.document_text = this.preview_text;
           this.clearState();
           document.getElementById('doc_text_modal').close();
         },
@@ -170,7 +272,7 @@
 {% endblock extrahead %}
 
 {% block body %}
-<section class="section">
+<section class="section" x-data='tutor_editor()'>
   <div class="container">
     {% if item.row_id %}
       {# We're editing an existing tutor. #}
@@ -180,7 +282,7 @@
       <h1 class="title">Create a focused tutor for guided chats in class '{{ auth.cur_class.class_name }}'</h1>
       {% set form_save_action = url_for(".create_item") %}
     {% endif %}
-    <form class="wide-labels" method="post" enctype="multipart/form-data" x-data="{loading1: false, loading2: false}" x-on:pageshow.window="loading1 = loading2 = false" x-on:submit.debounce.10ms="if ($event.submitter.id === 'gen_objectives') {loading1 = true} else {loading2 = true}">
+    <form x-ref="tutor_form" class="wide-labels" method="post" enctype="multipart/form-data">
 
       {% if item.row_id %}
         {# We're editing an existing tutor; pass that back in any updated so the cache is used. #}
@@ -195,7 +297,7 @@
         <div class="field-body">
           <div class="field">
             <div class="control">
-              <input class="input" name="name" id="name" x-bind:disabled="loading1 || loading2" required value="{{ item.name }}">
+              <input class="input" name="name" id="name" required x-bind:disabled="loading" x-model="tutor.name">
             </div>
           </div>
         </div>
@@ -209,7 +311,7 @@
         <div class="field-body">
           <div class="field">
             <div class="control">
-              <input class="input" name="topic" id="topic" x-bind:disabled="loading1 || loading2" required value="{{ item.topic }}">
+              <input class="input" name="topic" id="topic" required x-bind:disabled="loading" x-model="tutor.topic">
             </div>
           </div>
         </div>
@@ -223,15 +325,15 @@
         <div class="field-body">
           <div class="field">
             <div class="control">
-              <input class="input" name="context" id="context" x-bind:disabled="loading1 || loading2" required value="{{ item.context }}">
+              <input class="input" name="context" id="context" required x-bind:disabled="loading" x-model="tutor.context">
             </div>
           </div>
         </div>
       </div>
 
       <div class="field is-horizontal" x-data="pdfUploader()">
-        <input type="hidden" name="document_filename" x-model="filename">
-        <input type="hidden" name="document_text" x-model="text">
+        <input type="hidden" name="document_filename" x-model="tutor.document_filename">
+        <input type="hidden" name="document_text" x-model="tutor.document_text">
         <div class="field-label is-normal">
           <label class="label">Document (optional)</label>
           <p class="help-text">You may upload a PDF with additional context for generating objectives and questions (e.g., lecture notes, a book chapter, or an assignment).<br>Text will be extracted in your browser.<br>Max extracted text: 50,000 words.</p>
@@ -239,10 +341,10 @@
 
         <div class="field-body">
           <!-- Show existing document if there is one -->
-          <div class="field is-grouped" x-show="filename">
+          <div class="field is-grouped" x-show="tutor.document_filename" x-cloak>
             <div class="control">
               <p class="mt-2">
-              Using: <strong x-text="filename"></strong>
+              Using: <strong x-text="tutor.document_filename"></strong>
               </p>
             </div>
             <div class="control">
@@ -255,7 +357,7 @@
                   class="button is-rounded is-danger is-outlined is-small mt-1"
                   type="button"
                   @click="clearFile()"
-                  x-bind:disabled="loading1 || loading2"
+                  x-bind:disabled="loading"
                   >
                   <span class="delete mr-2"></span>
                   Remove document
@@ -264,14 +366,14 @@
           </div>
 
           <!-- Show file upload when no document -->
-          <div class="field" x-show="!filename">
+          <div class="field" x-show="!tutor.document_filename" x-cloak>
             <div class="control file has-name">
               <label class="file-label">
-                <input class="file-input" type="file" accept=".pdf" x-bind:disabled="loading1 || loading2 || processing" @change="handleFileSelect($event)">
+                <input class="file-input" type="file" accept=".pdf" x-bind:disabled="loading || processing" @change="handleFileSelect($event)">
                 <span class="file-cta">
                   Choose a PDF…
                 </span>
-                <span class="file-name" x-text="filename || 'No file chosen'">
+                <span class="file-name" x-text="tutor.document_filename || 'No file chosen'">
                   No file chosen
                 </span>
               </label>
@@ -298,12 +400,12 @@
 
         <dialog id="doc_text_modal" style="width: 60%; max-width: 80em; min-width: min(50em, 100vw);">
           <div class="content box">
-            <h3 x-text="isNewPreview ? `Preview of: ${preview_filename}` : filename"></h3>
+            <h3 x-text="isNewPreview ? `Preview of: ${preview_filename}` : tutor.document_filename"></h3>
             <p x-show="isNewPreview" class="help">
               <span x-text="wordCount"></span> words extracted
               <span x-show="wordCount > 50000" class="has-text-danger ml-1">(exceeds 50,000 word limit - will be truncated)</span>
             </p>
-            <pre style="white-space: pre-wrap; max-height: 60vh; overflow-y: auto;" x-text="isNewPreview ? preview_text : text"></pre>
+            <pre style="white-space: pre-wrap; max-height: 60vh; overflow-y: auto;" x-text="isNewPreview ? preview_text : tutor.document_text"></pre>
             <div class="field is-grouped" x-show="isNewPreview">
               <div class="control">
                 <button class="button is-link" type="button" @click="acceptPreview()">Keep</button>
@@ -329,28 +431,26 @@
           <div class="field is-grouped is-flex-wrap-wrap">
             <div class="control">
               <button
-                class="button {% if not item.objectives %}is-link{% else %}is-warning{% endif %}"
-                type="submit"
+                class="button"
+                type="button"
                 id="gen_objectives"
-                x-bind:class="loading1 ? 'is-loading' : ''"
-                x-bind:disabled="loading2"
-                formaction="{{ url_for('class_config.table.guided.generate_objectives') }}"
+                :class="[hasObjectives ? 'is-warning' : 'is-link', loading === 'objectives' && 'is-loading']"
+                :disabled="loading && loading !== 'objectives'"
+                @click="generateObjectives"
               >
-                <span>{% if item.objectives %}Regenerate{% else %}Generate{% endif %}</span>
+                <span x-text="hasObjectives ? 'Regenerate' : 'Generate'"></span>
                 <span class="icon">
                   <svg aria-hidden="true"><use href="#svg_corner_right_down" /></svg>
                 </span>
               </button>
             </div>
             <div class="control">
-              <input name="num_objectives" required class="input" type="number" size="1" style="width: 4em;" x-data="{num_objectives: $persist(5)}" x-model="num_objectives">
+              <input name="num_objectives" required class="input" type="number" min=1 size="1" style="width: 4em;" x-data="{num_objectives: $persist(5)}" x-model="num_objectives">
             </div>
             <div class="control pt-2">
               draft learning objectives.
             </div>
-            {% if item.objectives %}
-              <div class="help-text ml-2 pt-3 is-size-7 is-italic">This will overwrite existing objectives and questions.</div>
-            {% endif %}
+            <div x-show="hasObjectives" class="help-text ml-2 pt-3 is-size-7 is-italic">This will overwrite existing objectives and questions.</div>
           </div>
         </div>
       </div>
@@ -359,83 +459,102 @@
         <div class="field-label is-normal">
           <label class="label" for="objectives"><h2 class="title is-size-5">Learning Objectives</h2></label>
         </div>
-        {% if item.objectives %}
         <div class="field-body">
           <div class="field">
-            <div class="control">
-              <textarea class="textarea" x-bind:disabled="loading1 || loading2" required name="objectives" id="objectives" rows="5">
-                {%- for obj in item.objectives %}
-                  {{- obj.name }}
-                {% endfor -%}
-              </textarea>
-            </div>
+            <textarea class="textarea" name="objectives" id="objectives" x-model="objectiveNames"></textarea>
           </div>
         </div>
-        {% else %}
-        <div class="field-body pt-1">
-          <p><i>None yet.</i></p>
-        </div>
-        {% endif %}
       </div>
 
-      {% if item.objectives %}
-      {% set has_questions = item.objectives | selectattr("questions") | first %}
-      <div class="field is-horizontal">
+      <div class="field is-horizontal" x-show="hasObjectives">
         <div class="field-label is-normal"><!-- spacing --></div>
         <div class="field-body">
           <div class="field is-grouped is-flex-wrap-wrap">
             <div class="control">
               <button
-                class="button {% if not has_questions %}is-link{% else %}is-warning{% endif %}"
-                type="submit"
+                class="button"
+                type="button"
                 id="gen_questions"
-                x-bind:class="loading2 ? 'is-loading' : ''"
-                x-bind:disabled="loading1"
-                formaction="{{ url_for('class_config.table.guided.generate_questions') }}"
+                :class="[hasQuestions ? 'is-warning' : 'is-link', loading === 'questions' && 'is-loading']"
+                :disabled="loading && loading !== 'questions'"
+                @click="generateQuestions"
               >
-                <span>{% if has_questions %}Regenerate{% else %}Generate{% endif %}</span>
+                <span x-text="hasQuestions ? 'Regenerate' : 'Generate'"></span>
                 <span class="icon">
                   <svg aria-hidden="true"><use href="#svg_corner_right_down" /></svg>
                 </span>
               </button>
             </div>
             <div class="control">
-              <input name="num_questions" required class="input" type="number" size="1" style="width: 4em;" x-data="{num_questions: $persist(5)}" x-model="num_questions">
+              <input name="num_questions" required class="input" type="number" min=1 size="1" style="width: 4em;" x-data="{num_questions: $persist(3)}" x-model="num_questions">
             </div>
             <div class="control pt-2">
               draft questions per objective.
             </div>
-            {% if has_questions %}
-              <div class="help-text ml-2 pt-3 is-size-7 is-italic">This will overwrite existing questions.</div>
-            {% endif %}
+            <div x-show="hasQuestions" class="help-text ml-2 pt-3 is-size-7 is-italic">This will overwrite existing questions.</div>
           </div>
         </div>
       </div>
-      {% endif %}
 
       <div class="field is-horizontal">
         <div class="field-label is-normal">
-          <h2 class="title is-size-5">Questions</h2>
+          <h2 class="title is-size-5">Tutor Plan</h2>
         </div>
         <div class="field-body">
           <div class="content">
-            {% for obj in item.objectives %}
+            <p class="pt-2" x-show="!hasObjectives"><i>Nothing yet.</i></p>
+            <template x-for="(obj, index) in tutor.objectives">
               <div class="box">
-              <h3 class="is-size-6">{{ loop.index }}. {{ obj.name }}</h3>
-              <ol>
-                {% set obj_index = loop.index0 %}
-                {% for question in obj.questions %}
-                  <input type="hidden" name="questions[{{ obj_index }}]" value="{{ question }}">
-                  <li class="mt-3">{{ question | markdown }}</li>
-                {% endfor %}
-              </ol>
-              <button class="button is-link is-light ml-4" type="button" onclick="document.getElementById('dia_{{ loop.index }}').showModal()">
-                Edit questions
-              </button>
+                <h3 class="is-size-6" x-text="`${index + 1}. ${obj.name}`"></h3>
+                <ol>
+                  <template x-for="question in obj.questions">
+                    <div>
+                      <input type="hidden" x-bind:name="`questions[${index}]`" x-model="question">
+                      <li class="mt-3" x-html="render(question)"></li>
+                    </div>
+                  </template>
+                </ol>
+                <button class="button is-link is-light ml-4" type="button" @click="$dispatch('opendialog'); document.getElementById(`q_dialog_${index}`).showModal()">
+                  Edit questions
+                </button>
+
+                <template x-data='question_editor(index)' x-teleport="body" @opendialog.window="reset">
+                  <dialog x-bind:id="`q_dialog_${index}`" style="min-height: 75vh; width: 60%; max-width: 80em; min-width: min(50em, 100vw);" @click="dialogCloseIfOutside" @close="reset">
+                    <div class="content box">
+                      <h3 x-text="obj.name"></h3>
+                      <div class="field">
+                        <div class="label">Questions</div>
+                        <template x-for="(question, index) in questions">
+                          <div x-bind:draggable="drag_index === index" @dragstart="dragstart(index, $event)" @dragend="dragend" @dragenter="dragenter(index)" class="mt-2" style="display: flex; gap: 0.5em; align-items: center;">
+                            <span data-drag-handle @mousedown="drag_index = index" @mouseup="drag_index = null" style="cursor: move; vertical-align: middle; text-align: center;" title="drag to reorder">
+                              <svg aria-hidden="true" class="icon is-small mt-1"><use href="#svg_grip" /></svg>
+                            </span>
+                            <button type="button" class="delete" title="delete question" @click="questions.splice(index, 1)"></button>
+                            <div class="control is-flex-grow-1">
+                              <textarea class="textarea" name="questions[]" x-model="questions[index]" rows=3 ></textarea>
+                            </div>
+                          </div>
+                        </template>
+                      </div>
+                      <div class="field">
+                        <div class="control">
+                          <button type="button" class="button" @click="questions.push('')">+ add a question</button>
+                        </div>
+                      </div>
+                      <div class="field is-grouped">
+                        <div class="control">
+                          <button class="button is-link" type="button" @click="updateParent(); $event.target.closest('dialog').close()">Update</button>
+                        </div>
+                        <div class="control">
+                          <button class="button" type="button" @click="reset(); $event.target.closest('dialog').close()">Cancel</button>
+                        </div>
+                      </div>
+                    </div>
+                  </dialog>
+                </template>
+
               </div>
-            {% else %}
-              <p class="pt-2"><i>None yet.</i></p>
-            {% endfor %}
+            </template>
           </div>
         </div>
       </div>
@@ -445,13 +564,12 @@
         <div class="field-body">
           <div class="field is-grouped">
             <div class="control">
-              {% set missing_questions = not item.objectives or (item.objectives | selectattr("questions") | list | length != item.objectives | length) %}
-              <button class="button is-link" type="submit" {% if missing_questions %}disabled{% endif %} formaction="{{ form_save_action }}">
+              <button class="button is-link" type="submit" :disabled="loading || !hasQuestions" formaction="{{ form_save_action }}">
                 Save Tutor
               </button>
             </div>
             <div class="control">
-              <button class="button is-light" type="submit" formnovalidate formaction="{{ url_for('class_config.table.guided.reset_setup') }}">
+              <button class="button is-light" type="button" @click="reset_form">
                 Start Over
               </button>
             </div>
@@ -463,46 +581,5 @@
 
   </div>
 </section>
-
-{% for obj in item.objectives %}
-  <dialog id="dia_{{ loop.index }}" style="min-height: 75vh; width: 60%; max-width: 80em; min-width: min(50em, 100vw);">
-    <div class="content box">
-      <h3>{{ obj.name }}</h3>
-      <form action="{{ url_for('class_config.table.guided.update_questions') }}"
-            method="post"
-            x-data='question_editor({{ obj.questions | tojson }})'
-            >
-            <input type="hidden" name="obj_index" value="{{ loop.index0 }}">
-            <div class="field">
-              <div class="label">Questions</div>
-              <template x-for="(question, index) in questions">
-                <div x-bind:draggable="drag_index === index" @dragstart="dragstart(index, $event)" @dragend="dragend" @dragenter="dragenter(index)" class="mt-2" style="display: flex; gap: 0.5em; align-items: center;">
-                  <span data-drag-handle @mousedown="drag_index = index" @mouseup="drag_index = null" style="cursor: move; vertical-align: middle; text-align: center;" title="drag to reorder">
-                    <svg aria-hidden="true" class="icon is-small mt-1"><use href="#svg_grip" /></svg>
-                  </span>
-                  <button type="button" class="delete" title="delete question" @click="questions.splice(index, 1)"></button>
-                  <div class="control is-flex-grow-1">
-                    <textarea class="textarea" name="questions[]" x-model="questions[index]" rows=3 ></textarea>
-                  </div>
-                </div>
-              </template>
-              <div class="control mt-2">
-                <button type="button" class="button" @click="questions.push('')">
-                  + add a question
-                </button>
-              </div>
-            </div>
-            <div class="field is-grouped">
-              <div class="control">
-                <button class="button is-link" type="submit">Update</button>
-              </div>
-              <div class="control">
-                <button class="button" type="button" @click="questions = orig_questions.slice(); $event.target.closest('dialog').close()">Cancel</button>
-              </div>
-            </div>
-      </form>
-    </div>
-  </dialog>
-{% endfor %}
 
 {% endblock body %}
