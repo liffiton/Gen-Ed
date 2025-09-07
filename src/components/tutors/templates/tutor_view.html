@@ -62,6 +62,26 @@ window.md.inline.ruler.disable(['escape']);
           return window.md.render(text);
         }
       },
+      handleTab(e) {
+        // Adapted from https://stackoverflow.com/a/6637396
+        const el = e.target;
+        if (el.value.length === 0) {
+          // allow normal tab to advance if no contents yet
+          return;
+        }
+
+        // prevent tab moving to next input
+        e.preventDefault();
+
+        const start = el.selectionStart;
+        const end = el.selectionEnd;
+
+        // set textarea value to: text before caret + tab  + text after caret
+        el.value = el.value.substring(0, start) + "\t" + el.value.substring(end);
+
+        // put caret at right position again
+        el.selectionStart = el.selectionEnd = start + 1;
+      },
       async reloadProgress() {
         const response = await fetch('{{ url_for('tutors.get_progress', chat_id=chat.id) }}');
         if (response.ok) {
@@ -179,6 +199,9 @@ window.md.inline.ruler.disable(['escape']);
   .chat_message_user_contents {
     white-space: pre-wrap;
   }
+  .chat_message_user textarea {
+    tab-size: 4;
+  }
   .chat_message_assistant {
     border-left: solid 3px #47a;
   }
@@ -276,7 +299,7 @@ window.md.inline.ruler.disable(['escape']);
               <div class="chat_message chat_message_user" style="padding-right: 0.5em">
                 <div class="field has-addons">
                   <div class="control is-expanded">
-                    <textarea class="textarea is-link" rows=2 name="message" placeholder="Press ctrl+enter to send." autofocus x-model="currentMessage" x-ref="msgInput" x-bind:disabled="loading" @keydown.enter="if ($event.ctrlKey) {sendMessage($event.target.form); $event.preventDefault();}"></textarea>
+                    <textarea class="textarea is-link" rows=2 name="message" placeholder="Press ctrl+enter to send." autofocus x-model="currentMessage" x-ref="msgInput" x-bind:disabled="loading" @keydown.tab="handleTab" @keydown.enter="if ($event.ctrlKey) {sendMessage($event.target.form); $event.preventDefault();}"></textarea>
                   </div>
                   <div class="control">
                     <button
