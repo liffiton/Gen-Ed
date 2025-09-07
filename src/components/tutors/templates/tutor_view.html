@@ -55,7 +55,12 @@ window.md.inline.ruler.disable(['escape']);
         if (msg.loading) {
           text += " *[...]*";
         }
-        return window.md.render(text);
+
+        if (msg.user === 'user') {
+          return text;
+        } else {
+          return window.md.render(text);
+        }
       },
       async reloadProgress() {
         const response = await fetch('{{ url_for('tutors.get_progress', chat_id=chat.id) }}');
