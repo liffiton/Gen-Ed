@@ -142,3 +142,9 @@ def test_llm(llm: LLM) -> str:
         if response_txt != "OK":
             current_app.logger.error(f"LLM check had no error but responded not 'OK'?  Response: {response_txt}")
         return "ok"
+
+
+@bp.route("/lti_content_select")
+def lti_content_select() -> str:
+    content_item_return_url = request.args.get('content_item_return_url')
+    return render_template("lti_content_select.html", return_url=content_item_return_url)

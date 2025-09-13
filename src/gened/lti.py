@@ -87,11 +87,16 @@ def lti_login(lti: LTI) -> Response | tuple[str, int]:  # noqa: ARG001 (unused a
         # anything else becomes "student"
         role = "student"
 
-    # another sanity check
-    if lti_message_type == "ContentItemSelectionRequest" and role != "instructor":
-        current_app.logger.warning(f"LTI login requests content item selection, but role != 'instructor'")
-        session.clear()
-        abort(400)
+    # another set of sanity checks
+    if lti_message_type == "ContentItemSelectionRequest":
+        if role != "instructor":
+            current_app.logger.warning("LTI login requests content item selection, but role != 'instructor'")
+            session.clear()
+            abort(400)
+        if 'content_item_return_url' not in session:
+            current_app.logger.warning("LTI login requests content item selection, but session does not contain 'content_item_return_url'")
+            session.clear()
+            abort(400)
 
     db = get_db()
 
@@ -133,7 +138,12 @@ def lti_login(lti: LTI) -> Response | tuple[str, int]:  # noqa: ARG001 (unused a
     # Redirect to the app
     if role == "instructor":
         if lti_message_type == "ContentItemSelectionRequest":
-            return redirect(url_for("class_config.base.config_form"))
+            return redirect(
+                url_for(
+                    "class_config.base.lti_content_select",
+                    content_item_return_url=session.get('content_item_return_url'),
+                )
+            )
         else:
             return redirect(url_for("class_config.base.config_form"))
     else:

@@ -13,7 +13,7 @@ from typing import Any
 
 import pyrage
 from dotenv import load_dotenv
-from flask import Blueprint, Flask, render_template, send_from_directory
+from flask import Blueprint, Flask, render_template, request, send_from_directory
 from flask.wrappers import Response
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -134,6 +134,16 @@ class GenEdAppBuilder:
         #from werkzeug.middleware.profiler import ProfilerMiddleware
         #app.wsgi_app = ProfilerMiddleware(app.wsgi_app)
 
+        # enable iframe LTI loads (SameSite=Lax will break those)
+        @app.before_request
+        def set_cookie_policy() -> None:
+            if request.headers.get('Sec-Fetch-Dest') == 'iframe':
+                app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+                # and SESSION_COOKIE_SECURE should still be set from base config
+            else:
+                # needs to be set/reset on every request, since app.config persists
+                app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
         # strip whitespace before and after {% ... %} template statements
         app.jinja_env.lstrip_blocks = True
         app.jinja_env.trim_blocks = True
@@ -194,7 +204,7 @@ class GenEdAppBuilder:
             # Some simple/weak XSS/CSRF protection
             SESSION_COOKIE_SECURE=True,
             SESSION_COOKIE_HTTPONLY=True,
-            SESSION_COOKIE_SAMESITE='Lax',
+            #SESSION_COOKIE_SAMESITE='Lax',  # will be set in before_request handler above
             # Cache timeout for static files (seconds)
             SEND_FILE_MAX_AGE_DEFAULT=3*60*60,  # 3 hours
             # Default redirect after login (may want to override with a tool endpoint)
