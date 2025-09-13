@@ -52,6 +52,7 @@ def lti_error(exception: dict[str, Any]) -> tuple[str, int]:
 @lti_flask(request='initial', error=lti_error)  # type: ignore[misc]
 def lti_login(lti: LTI) -> Response | tuple[str, int]:  # noqa: ARG001 (unused argument required by lti_flask decorator)
     authenticated = session.get("lti_authenticated", False)
+    lti_message_type = session.get("lti_message_type")
     role = session.get("roles", "").lower()
     full_name = session.get("lis_person_name_full", None)
     email = session.get("lis_person_contact_email_primary", None)
@@ -60,7 +61,7 @@ def lti_login(lti: LTI) -> Response | tuple[str, int]:  # noqa: ARG001 (unused a
     lti_context_id = session.get("context_id", "")
     class_name = session.get("context_label", "")
 
-    current_app.logger.debug(f"LTI login: {lti_consumer=} {full_name=} {email=} {role=} {class_name=}")
+    current_app.logger.debug(f"LTI login: {lti_consumer=} {lti_message_type=} {full_name=} {email=} {role=} {class_name=}")
 
     # sanity checks
     if not authenticated:
@@ -85,6 +86,12 @@ def lti_login(lti: LTI) -> Response | tuple[str, int]:  # noqa: ARG001 (unused a
     else:
         # anything else becomes "student"
         role = "student"
+
+    # another sanity check
+    if lti_message_type == "ContentItemSelectionRequest" and role != "instructor":
+        current_app.logger.warning(f"LTI login requests content item selection, but role != 'instructor'")
+        session.clear()
+        abort(400)
 
     db = get_db()
 
@@ -125,7 +132,10 @@ def lti_login(lti: LTI) -> Response | tuple[str, int]:  # noqa: ARG001 (unused a
 
     # Redirect to the app
     if role == "instructor":
-        return redirect(url_for("class_config.base.config_form"))
+        if lti_message_type == "ContentItemSelectionRequest":
+            return redirect(url_for("class_config.base.config_form"))
+        else:
+            return redirect(url_for("class_config.base.config_form"))
     else:
         return redirect(url_for(current_app.config['DEFAULT_LOGIN_ENDPOINT']))
 

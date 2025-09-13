@@ -18,5 +18,12 @@
     <!-- enable navigation menu link -->
     <lticm:property name="enabled">true</lticm:property>
   </lticm:options>
+  <lticm:options name="editor_button">
+    <!-- enable editor button for deep linking -->
+    <lticm:property name="enabled">true</lticm:property>
+    <lticm:property name="message_type">ContentItemSelectionRequest</lticm:property>
+    <lticm:property name="text">{{ config.APPLICATION_TITLE }}</lticm:property>
+    <lticm:property name="visibility">admins</lticm:property>
+  </lticm:options>
 </blti:extensions>
 </cartridge_basiclti_link>
