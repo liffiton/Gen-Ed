@@ -45,7 +45,8 @@ bp = Blueprint('tutors', __name__, url_prefix='/tutor', template_folder='templat
 @login_required
 def before_request() -> None:
     """Apply decorators to protect all tutor blueprint endpoints.
-    Use @experiment_required first so that non-logged-in users get a 404 as well.
+    Use @experiment_required first so that non-logged-in users get an error
+    rather than a redirect to login.
     """
 
 

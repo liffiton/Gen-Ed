@@ -8,8 +8,9 @@ from typing import ParamSpec, TypeVar
 
 from flask import (
     Blueprint,
-    abort,
+    current_app,
     flash,
+    make_response,
     redirect,
     render_template,
     request,
@@ -27,7 +28,7 @@ from .tables import Action, Col, DataTable, NumCol
 P = ParamSpec('P')  # decorator type hint
 R = TypeVar('R')    # decorator type hint
 def experiment_required(experiment_name: str) -> Callable[[Callable[P, R]], Callable[P, Response | R]]:
-    '''404 if the current class is not registered in the specified experiment.'''
+    '''400 error if the current class is not registered in the specified experiment.'''
     def decorator(f: Callable[P, R]) -> Callable[P, Response | R]:
         @wraps(f)
         def decorated_function(*args: P.args, **kwargs: P.kwargs) -> Response | R:
@@ -38,7 +39,10 @@ def experiment_required(experiment_name: str) -> Callable[[Callable[P, R]], Call
             if experiment_name in auth.class_experiments or auth.is_admin:
                 return f(*args, **kwargs)
             else:
-                return abort(404)
+                config = current_app.config
+                flash("Cannot access the specified resource.", "warning")
+                flash(f"Make sure you log in to {config['APPLICATION_TITLE']} from the correct class before using this link.", "warning")
+                return make_response(render_template("error.html"), 400)
         return decorated_function
     return decorator
 
