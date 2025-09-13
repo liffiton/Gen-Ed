@@ -251,7 +251,6 @@ window.md.inline.ruler.disable(['escape']);
           <p class="is-size-5"><b>Context:</b> {{ chat.context_name }}</p>
         {% endif %}
 
-        {# debounce on the submit handler so that the form's actual submit fires *before* the form elements are disabled #}
         <form action="{{url_for('tutors.new_message')}}" method="post" x-data="chat_input()" x-on:pageshow.window="loading = false" x-on:submit="sendMessage($event.target); $event.preventDefault();">
 
           <input type="hidden" name="id" value="{{ chat.id }}">
