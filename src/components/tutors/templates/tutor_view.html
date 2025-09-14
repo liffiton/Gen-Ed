@@ -56,7 +56,7 @@ window.md.inline.ruler.disable(['escape']);
           text += " *[...]*";
         }
 
-        if (msg.user === 'user') {
+        if (msg.role === 'user') {
           return text;
         } else {
           return window.md.render(text);
