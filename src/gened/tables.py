@@ -15,7 +15,7 @@ class Col:
     name: str = field(kw_only=False)  # override kw_only so that only this argument can be positional
     kind: str | None = None
     hidden: bool = False
-    align: Literal[None, 'left', 'right', 'center'] = None
+    align: Literal['left', 'right', 'center'] | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
