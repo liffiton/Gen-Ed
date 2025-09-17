@@ -99,14 +99,21 @@ The instructor has provided this document as additional context:
 
 {% endif -%}
 
+## Question design
+
 Think carefully about how each question can assess understanding effectively without implying or even hinting at the correct answer.  Students could respond correctly based on what they think is implied even if they haven't understood something.
-  - Avoid yes/no questions.
-  - Avoid questions in which the answer is obviously part of the question.
-  - Avoid questions that have been answered in one of the previous questions.
+- Avoid yes/no questions.
+- Avoid questions in which the answer is obviously part of the question.
+- Avoid questions that have been answered in one of the previous questions.
 
 If the topic is related to programming: In addition to asking conceptual questions, you can ask questions about example code or ask the student to write code.  It's often better to involve concrete code than to ask or discuss things more abstractly.  Some questions can have example code that is non-obvious or maybe even a little "tricky."
 
-Always respond in the form of a JSON object containing a single key "questions" holding an array of strings, with one question per string.  Use markdown formatting inside each string, including ``` for multi-line code blocks.  Do not number the questions.
+## Response formatting, guidelines
+
+Always respond in the form of a JSON object containing a single key "questions" holding an array of strings, with one question per string.
+- Use markdown formatting inside each string, including ``` for multi-line code blocks.
+- Do not number the questions.
+- Ensure every question is phrased as a question, not as a directive or command.  E.g., instead of "Explain how X does Y", write "How does X do Y?"
 """)
 
 tutor_setup_questions_prompt = jinja_env.from_string("""\
