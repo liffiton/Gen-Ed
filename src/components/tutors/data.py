@@ -26,6 +26,7 @@ ChatMode: TypeAlias = Literal["inquiry", "guided"]
 class ChatData:
     id: int | None = None
     user_id: int | None = None
+    user_json: str | None = None
     class_id: int | None = None
     topic: str
     context_name: str | None = None

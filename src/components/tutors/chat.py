@@ -218,6 +218,7 @@ def get_chat(chat_id: int) -> ChatData:
 
     chat_data['id'] = chat_id
     chat_data['user_id'] = chat_row['user_id']
+    chat_data['user_json'] = chat_row['user']
     chat_data['class_id'] = chat_row['class_id']
 
     return ChatData(**chat_data)
@@ -225,7 +226,7 @@ def get_chat(chat_id: int) -> ChatData:
 
 def save_chat(chat_data: ChatData) -> None:
     # remove redundant items (already stored elsewhere in db)
-    data_filtered = {k: v for k, v in asdict(chat_data).items() if k not in ('id', 'user_id', 'class_id')}
+    data_filtered = {k: v for k, v in asdict(chat_data).items() if k not in ('id', 'user_id', 'user_json', 'class_id')}
 
     db = get_db()
     db.execute(

@@ -245,7 +245,11 @@ window.md.inline.ruler.disable(['escape']);
   <div class="column is-three-quarters-desktop">
     <section class="section">
       <div class="container content" id="chat_view">
-        <h1 class="title">{{ chat.topic }}</h1>
+        {% if auth.user_id != chat.user_id %}
+          <p><strong>User:</strong> {{ chat.user_json | fmt_user }}</p>
+        {% endif %}
+
+        <h1 class="title is-size-4">Topic: {{ chat.topic }}</h1>
 
         {% if chat.context_name %}
           <p class="is-size-5"><b>Context:</b> {{ chat.context_name }}</p>
