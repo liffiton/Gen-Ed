@@ -1,0 +1,27 @@
+{% block body %}
+
+{# https://developerdocs.instructure.com/services/canvas/external-tools/lti/file.content_item #}
+<form action="{{ return_url }}" method="POST">
+  <input type="hidden" name="lti_message_type" value="ContentItemSelection">
+  <input type="hidden" name="lti_version" value="LTI-1p0">
+  <textarea name="content_items">
+    {
+      "@context": "http://purl.imsglobal.org/ctx/lti/v1/ContentItem",
+      "@graph": [
+        {
+          "@type": "LtiLinkItem",
+          "@id": "random",
+          "text": "{{ config['APPLICATION_TITLE'] }}: Resource (TBD)",
+          "mediaType": "application/vnd.ims.lti.v1.ltilink",
+          "url": "{{ url_for("lti.lti_login", _external=True) }}",
+          "placementAdvice": {
+            "presentationDocumentTarget": "window"
+          }
+        }
+      ]
+    }
+  </textarea>
+  <input type="submit">
+</form>
+
+{% endblock body %}
