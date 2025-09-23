@@ -10,13 +10,14 @@ authors = [
     { name='Mark Liffiton', email='liffiton@gmail.com' }
 ]
 readme = 'README.md'
+license = 'AGPL-3.0-only'
+license-files = ['LICENSES/*']
 requires-python = '>=3.11'
 
 classifiers = [
     "Development Status :: 4 - Beta",
     "Framework :: Flask",
     "Intended Audience :: Education",
-    "License :: OSI Approved :: GNU Affero General Public License v3",
     "Programming Language :: Python :: 3",
     "Topic :: Education",
     "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
@@ -47,6 +48,9 @@ test = [
     "types-requests",
     "pyrage-stubs~=1.2.0",
 ]
+
+[project.urls]
+Repository = 'https://github.com/liffiton/Gen-Ed/'
 
 
 [tool.pytest.ini_options]
