@@ -199,11 +199,17 @@ ${ options.searchable ?
               // button or something other than the data/cell itself -- don't trigger anything and let the default happen
               return;
             }
+            const value = table.data.data[row].cells[link_col].data;
+            const url = link_func(value);
             if (event.button === 0) {
               // left click: follow the row's link
-              const value = table.data.data[row].cells[link_col].data;
-              const url = link_func(value);
               window.location = url;
+              event.preventDefault();
+            }
+            else if (event.button === 1) {
+              // middle click: follow the row's link in a new tab
+              window.open(url, '_blank').focus();
+              event.preventDefault();
             }
           });
         }
