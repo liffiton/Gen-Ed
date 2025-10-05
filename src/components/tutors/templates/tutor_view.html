@@ -244,9 +244,14 @@ window.md.inline.ruler.disable(['escape']);
 
   <div class="column is-three-quarters-desktop">
     <section class="section">
-      <div class="container content" id="chat_view">
-        {% if auth.user_id != chat.user_id %}
+      <div class="container content" id="chat_view" x-data="{ show_tutor: true, show_student: true }">
+        {% if auth.cur_class.role == 'admin' or auth.cur_class.role == 'instructor' %}
           <p><strong>User:</strong> {{ chat.user_json | fmt_user }}</p>
+          <p class="buttons are-small">
+            <strong>Show/Hide messages:</strong>
+            <button class="button ml-3" :class="show_tutor && 'is-primary'" @click="show_tutor = !show_tutor">Tutor</button>
+            <button class="button" :class="show_student && 'is-primary'" @click="show_student = !show_student">Student</button>
+          </p>
         {% endif %}
 
         <h1 class="title is-size-4">Topic: {{ chat.topic }}</h1>
@@ -272,9 +277,9 @@ window.md.inline.ruler.disable(['escape']);
                     <div class="content">{{ message.content | markdown }}</div>
                     </details>
                   {% elif message.role == 'assistant' %}
-                    <div class="content">{{ message.content | markdown }}</div>
+                    <div class="content" x-show="show_tutor">{{ message.content | markdown }}</div>
                   {% elif message.role == 'user' %}
-                    <div class="chat_message_user_contents">{{ message.content }}</div>
+                    <div class="chat_message_user_contents" x-show="show_student">{{ message.content }}</div>
                   {% endif %}
                 </div>
               {% endif %}
@@ -302,7 +307,7 @@ window.md.inline.ruler.disable(['escape']);
               <div class="chat_message chat_message_user" style="padding-right: 0.5em">
                 <div class="field has-addons">
                   <div class="control is-expanded">
-                    <textarea class="textarea is-link" rows=2 name="message" placeholder="Press ctrl+enter to send." autofocus x-model="currentMessage" x-ref="msgInput" x-bind:disabled="loading" @keydown.tab="handleTab" @keydown.enter="if ($event.ctrlKey) {sendMessage($event.target.form); $event.preventDefault();}"></textarea>
+                    <textarea class="textarea is-link" rows=2 name="message" placeholder="Press ctrl+enter to send." {% if auth.user_id == chat.user_id %}autofocus{% endif %} x-model="currentMessage" x-ref="msgInput" x-bind:disabled="loading" @keydown.tab="handleTab" @keydown.enter="if ($event.ctrlKey) {sendMessage($event.target.form); $event.preventDefault();}"></textarea>
                   </div>
                   <div class="control">
                     <button
