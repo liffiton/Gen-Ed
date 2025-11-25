@@ -84,8 +84,7 @@ def set_whitelist(user_id: int, bool_whitelist: int) -> str:
     assert current['delete_status'] in ('', 'whitelisted')
 
     new_status = 'whitelisted' if bool_whitelist else ''
-    db.execute("UPDATE users SET delete_status=? WHERE id=?", [
-new_status, user_id])
+    db.execute("UPDATE users SET delete_status=? WHERE id=?", [new_status, user_id])
     db.commit()
     return "okay"
 
@@ -98,8 +97,24 @@ def prune_users() -> Response:
 
     user_ids = [int(x) for x in request.form.getlist('user_ids')]
 
-    for user_id in user_ids:
-        delete_user_data(user_id)
+    db = get_db()
 
-    flash(f'Successfully deleted {len(user_ids)} user(s)', 'success')
+    count = 0
+    for user_id in user_ids:
+        # Check whitelist status before deleting to handle race conditions
+        # (e.g. user was whitelisted after page load).
+        user = db.execute("SELECT delete_status FROM users WHERE id = ?", [user_id]).fetchone()
+
+        if not user:
+            current_app.logger.warning(f"Skipped pruning of non-existent user {user_id}")
+            continue
+
+        if user['delete_status'] == 'whitelisted':
+            current_app.logger.warning(f"Skipped pruning of whitelisted user {user_id}")
+            continue
+
+        delete_user_data(user_id)
+        count += 1
+
+    flash(f'Successfully deleted {count} user(s)', 'success')
     return redirect(url_for('.pruning_view'))
