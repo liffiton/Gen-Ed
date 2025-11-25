@@ -335,7 +335,7 @@ def main() -> None:
     parser_response.add_argument(
         '--reasoning-effort',
         type=str,
-        choices=['minimal', 'low', 'medium', 'high'],
+        choices=['none', 'minimal', 'low', 'medium', 'high'],
         required=False,
         help="The 'reasoning effort' parameter (OpenAI or compatible only).",
     )
