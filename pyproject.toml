@@ -94,6 +94,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = [  # Ignore warnings in the tests directory
     "E712",     # equality comparisons to False (make assertions clearer)
+    "FBT001",   # boolean positional arguments (used for parameterized tests)
     "PLR0913",  # too many arguments (fixtures push us in that direction)
     "PLR2004",  # magic numbers
     "S106",     # hardcoded passwords

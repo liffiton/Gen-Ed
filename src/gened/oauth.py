@@ -56,7 +56,7 @@ def init_app(app: Flask) -> None:
         _oauth.register(
             name='github',
             api_base_url='https://api.github.com/',
-            access_token_url='https://github.com/login/oauth/access_token',
+            access_token_url='https://github.com/login/oauth/access_token',  # noqa: S106 -- it's not an actual access token
             authorize_url='https://github.com/login/oauth/authorize',
             userinfo_endpoint='https://api.github.com/user',
             client_kwargs={'scope': 'user:email'},

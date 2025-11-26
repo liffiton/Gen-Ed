@@ -111,7 +111,7 @@ def test_valid_login(
         username: str,
         password: str,
         next_url: str,
-        is_admin: bool,  # noqa: FBT001 - bool positional argument
+        is_admin: bool,
     ) -> None:
     # Test with the next URL specified
     check_login(
