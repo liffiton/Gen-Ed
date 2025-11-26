@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from typing import get_args
+from typing import Any, get_args
 
 from authlib.integrations.flask_client import (  # type: ignore[import-untyped]
     OAuth,
@@ -24,6 +24,7 @@ from .auth import (
     AuthProviderExt,
     LoginData,
     ext_login_update_or_create,
+    generate_anon_username,
     get_last_class,
     set_session_auth_class,
     set_session_auth_user,
@@ -93,6 +94,26 @@ def login(provider_name: AuthProviderExt) -> Response:
     return redir
 
 
+def _userinfo_to_logindata(user: dict[str, Any], *, anonymize: bool) -> LoginData:
+    ext_id = user.get('sub') or user.get('id')
+    assert ext_id is not None
+
+    if anonymize:
+        return LoginData(
+            ext_id=ext_id,
+            full_name=generate_anon_username(),
+            anon=True,
+        )
+    else:
+        return LoginData(
+            ext_id=ext_id,
+            email=user.get('email'),
+            full_name=user.get('name'),
+            auth_name=user.get('login'),
+            anon=False,
+        )
+
+
 @bp.route('/auth/<string:provider_name>')
 def auth(provider_name: AuthProviderExt) -> Response:
     if provider_name not in get_args(AuthProviderExt):
@@ -118,27 +139,21 @@ def auth(provider_name: AuthProviderExt) -> Response:
 
     user = token.get('userinfo') or client.userinfo()
 
-    # normalize user info from different providers into a common form
-    user_normed = LoginData(ext_id=( user.get('sub') or user.get('id') ))
-
     # anonymous login requests get anonymized user info (other than the external ID)
-    if session.get(ANON_LOGIN_SESSION_KEY):
-        user_normed.anon = True
+    anonymize = bool(session.get(ANON_LOGIN_SESSION_KEY))
 
-    else:
-        if not user.get('email'):
-            # On Github, email will be null if user does not share email publicly, but we can enumerate
-            # their email addresses using the user api and choose the one they have marked 'primary'
-            # [https://github.com/authlib/loginpass/blob/master/loginpass/github.py]
-            assert provider_name == 'github'
-            response = client.get('user/emails')
-            response.raise_for_status()
-            data = response.json()
-            user['email'] = next(item['email'] for item in data if item['primary'])
+    if not user.get('email') and not anonymize:
+        # On Github, email will be null if user does not share email publicly, but we can enumerate
+        # their email addresses using the user api and choose the one they have marked 'primary'
+        # [https://github.com/authlib/loginpass/blob/master/loginpass/github.py]
+        assert provider_name == 'github'
+        response = client.get('user/emails')
+        response.raise_for_status()
+        data = response.json()
+        user['email'] = next(item['email'] for item in data if item['primary'])
 
-        user_normed.email = user.get('email')
-        user_normed.full_name = user.get('name')
-        user_normed.auth_name = user.get('login')
+    # normalize user info from different providers into a common form
+    user_normed = _userinfo_to_logindata(user, anonymize=anonymize)
 
     # Create a new user (with default # of free tokens) or update the existing if matched
     tokens = current_app.config.get('DEFAULT_TOKENS', 0)

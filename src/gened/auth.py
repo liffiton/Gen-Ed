@@ -35,7 +35,7 @@ AuthProviderLocal = Literal['local', 'demo']
 AuthProvider = AuthProviderExt | AuthProviderLocal
 RoleType = Literal['instructor', 'student']
 
-@dataclass
+@dataclass(frozen=True)
 class LoginData:
     ext_id: str  # external authentication provider user ID
     email: str | None = None
@@ -333,8 +333,7 @@ def ext_login_update_or_create(provider_name: AuthProviderExt, userdata: LoginDa
     else:
         # No existing user.  Create a new user account.
         if userdata.anon:
-            assert userdata.full_name is userdata.email is userdata.auth_name is None
-            userdata.full_name = generate_anon_username()
+            assert userdata.email is userdata.auth_name is None
 
         cur = db.execute(
             "INSERT INTO users (auth_provider, full_name, email, auth_name, query_tokens) VALUES (?, ?, ?, ?, ?)",
