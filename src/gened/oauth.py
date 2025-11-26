@@ -28,6 +28,7 @@ from .auth import (
     set_session_auth_class,
     set_session_auth_user,
 )
+from .redir import safe_redirect
 
 GOOGLE_CONF_URL = "https://accounts.google.com/.well-known/openid-configuration"
 # Microsoft docs: https://learn.microsoft.com/en-us/azure/active-directory/develop/v2-protocols-oidc
@@ -150,10 +151,8 @@ def auth(provider_name: AuthProviderExt) -> Response:
     set_session_auth_user(user_row['id'])
     set_session_auth_class(last_class_id)
 
-    # Redirect to stored next_url (and reset) if one has been stored, else the default login endpoint
-    next_url = session.get(NEXT_URL_SESSION_KEY) or url_for(current_app.config['DEFAULT_LOGIN_ENDPOINT'])
-
-    # Clear the stored next URL if it is there
-    session.pop(NEXT_URL_SESSION_KEY, None)
-
-    return redirect(next_url)
+    # Redirect to stored next_url (and reset it) if one has been stored *and* it is safe.
+    # Otherwise, redirect to the default login endpoint.
+    next_url = session.pop(NEXT_URL_SESSION_KEY, None)
+    default_endpoint = current_app.config['DEFAULT_LOGIN_ENDPOINT']
+    return safe_redirect(next_url, default_endpoint)

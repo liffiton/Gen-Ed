@@ -157,6 +157,25 @@ def test_callback_with_next_url(app: Flask, client: AppClient, mock_oauth_client
     assert response.status_code == 302
     assert response.location == next_target
 
+def test_oauth_open_redirect(app: Flask, client: AppClient, mock_oauth_client: MagicMock) -> None:
+    """Ensure OAuth callback does not redirect to external domains."""
+    external_url = "https://malicious.site/login"
+
+    with app.test_request_context():
+        login_url = url_for('oauth.login', provider_name='google', next=external_url)
+        auth_url = url_for('oauth.auth', provider_name='google')
+
+    # Initiate login with malicious next URL
+    client.get(login_url)
+
+    # Handle callback
+    with patch('gened.oauth._oauth.create_client', return_value=mock_oauth_client):
+        response = client.get(auth_url)
+
+    assert response.status_code == 302
+    assert response.location != external_url
+    assert response.location == '/help/'  # Default redirect
+
 def test_callback_failure(app: Flask, client: AppClient, mock_oauth_patch: MagicMock) -> None:
     """Test OAuth callback when authentication fails"""
     from authlib.integrations.flask_client import (  # type: ignore[import-untyped]
