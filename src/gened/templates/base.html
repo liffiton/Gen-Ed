@@ -211,20 +211,22 @@ SPDX-License-Identifier: AGPL-3.0-only
     </footer>
     <script type="text/JavaScript">
       // close dialogs on click outside
-      function dialogCloseIfOutside(e) {
-        const dialog = e.currentTarget.closest('dialog');  // the dialog on which the event was registered or the nearest dialog parent of the registered target
-        if (!dialog) {
-          return;
-        }
-        const rect = dialog.getBoundingClientRect();
-        const isInDialog=(rect.top <= e.clientY && e.clientY <= rect.top + rect.height
-          && rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
-        if (!isInDialog) {
-          dialog.close();
-        }
+      function dialogCloseIfOutside(dialog) {
+        let downOnBackdrop = false;
+
+        dialog.addEventListener('mousedown', (event) => {
+          downOnBackdrop = (event.target === dialog);  // only true if clicking on the backdrop; else target is the child element in the dialog
+        });
+
+        dialog.addEventListener('mouseup', (event) => {
+          if (downOnBackdrop && event.target === dialog) {
+            dialog.close();
+          }
+          downOnBackdrop = false;
+        });
       }
       const dialogs = document.querySelectorAll("dialog");
-      dialogs.forEach(dialog => dialog.addEventListener('click', dialogCloseIfOutside));
+      dialogs.forEach(dialog => dialogCloseIfOutside(dialog));
     </script>
     {% if 'timezone' not in session %}
     <script type="text/javascript">
