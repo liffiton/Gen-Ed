@@ -9,7 +9,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 {% block admin_body %}
   <h1 class="is-size-3">Pruning User Data</h1>
   <h2 class="is-size-5 my-3"><strong>{{ num_candidates }}</strong> candidates for pruning (no activity in > {{ config['RETENTION_TIME_DAYS'] }} days) ({{ num_whitelisted }} whitelisted)</h2>
-  <div style="max-width: 50em;">
+  <div style="max-width: 70em;">
     {{ datatable(candidates) }}
   </div>
 
