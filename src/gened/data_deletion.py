@@ -29,6 +29,10 @@ class DeletionHandler(Protocol):
         ...
 
 
+class UserHasCreatedClassesError(Exception):
+    """Raised when attempting to delete a user who has created classes."""
+
+
 def delete_user_data(user_id: int) -> None:
     """Delete/anonymize all personal data for the given user."""
     db = get_db()
@@ -39,7 +43,9 @@ def delete_user_data(user_id: int) -> None:
         FROM classes_user
         WHERE creator_user_id = ?
     """, [user_id]).fetchall()
-    assert not created_classes
+
+    if created_classes:
+        raise UserHasCreatedClassesError
 
     # Deactivate all roles
     db.execute("UPDATE roles SET user_id = -1, active = 0 WHERE user_id = ?", [user_id])

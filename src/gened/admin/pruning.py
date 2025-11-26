@@ -17,7 +17,7 @@ from flask import (
 from markupsafe import Markup
 from werkzeug.wrappers.response import Response
 
-from gened.data_deletion import delete_user_data
+from gened.data_deletion import UserHasCreatedClassesError, delete_user_data
 from gened.db import get_db
 from gened.redir import safe_redirect
 from gened.tables import BoolCol, Col, DataTable, NumCol, UserCol
@@ -33,11 +33,12 @@ def get_candidates() -> tuple[list[Row], int]:
             SELECT
                 id,
                 json_array(display_name, auth_provider, display_extra) AS user,
-                created,
+                created AS "user created",
                 last_query_time AS "last query",
+                last_role_created_time AS "last role created",
                 last_class_created_time AS "last class created",
-                MAX(IFNULL(created, ""), IFNULL(last_query_time, ""), IFNULL(last_class_created_time, "")) AS "last activity",
-                CAST(JULIANDAY(DATE('now')) - JULIANDAY(MAX(IFNULL(created, ""), IFNULL(last_query_time, ""), IFNULL(last_class_created_time, ""))) AS INTEGER) AS "days since",
+                last_activity AS "last activity",
+                CAST(JULIANDAY(DATE('now')) - JULIANDAY(last_activity) AS INTEGER) AS "days since",
                 delete_status = 'whitelisted' AS "whitelist?"
             FROM v_user_activity
             WHERE "last activity" < DATE('now', ?)
@@ -68,7 +69,7 @@ def pruning_view() -> str:
 
     candidates = DataTable(
         name='candidates',
-        columns=[NumCol('id'), UserCol('user'), Col('created'), Col('last query'), Col('last class created'), Col('last activity'), NumCol('days since'), BoolCol('whitelist?', url=url_for('.set_whitelist'), reload=True)],
+        columns=[NumCol('id'), UserCol('user'), Col('user created'), Col('last query'), Col('last role created'), Col('last class created'), Col('last activity'), NumCol('days since'), BoolCol('whitelist?', url=url_for('.set_whitelist'), reload=True)],
         data=pruning_candidates,
     )
 
@@ -113,8 +114,12 @@ def prune_users() -> Response:
             current_app.logger.warning(f"Skipped pruning of whitelisted user {user_id}")
             continue
 
-        delete_user_data(user_id)
-        count += 1
+        try:
+            delete_user_data(user_id)
+            count += 1
+        except UserHasCreatedClassesError:
+            current_app.logger.warning(f"Skipped pruning of class-owner user {user_id}")
+            continue
 
     flash(f'Successfully deleted {count} user(s)', 'success')
     return redirect(url_for('.pruning_view'))

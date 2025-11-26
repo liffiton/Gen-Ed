@@ -219,14 +219,16 @@ def rebuild_views() -> None:
             users.display_extra,
             auth_providers.name AS auth_provider,
             users.delete_status,
-            users.created,
+            MAX(users.created) AS created,  -- [taking the max of one value] just so it's the same string format as the others
             MAX(v_user_items.entry_time) AS last_query_time,
-            MAX(classes.created) AS last_class_created_time
+            MAX(roles.created) AS last_role_created_time,
+            MAX(classes_user.created) AS last_class_created_time,
+            MAX(IFNULL(users.created, ""), IFNULL(v_user_items.entry_time, ""), IFNULL(roles.created, ""), IFNULL(classes_user.created, "")) AS last_activity
         FROM users
         LEFT JOIN auth_providers ON auth_providers.id=users.auth_provider
         LEFT JOIN v_user_items ON v_user_items.user_id=users.id
-        LEFT JOIN roles ON roles.user_id=users.id AND (roles.role = 'instructor' OR roles.role is NULL)
-        LEFT JOIN classes ON classes.id=roles.class_id
+        LEFT JOIN roles ON roles.user_id=users.id
+        LEFT JOIN classes_user ON classes_user.creator_user_id=users.id
         WHERE
             NOT users.is_admin
             AND users.id != -1

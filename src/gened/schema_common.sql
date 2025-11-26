@@ -135,11 +135,13 @@ CREATE TABLE roles (
     class_id INTEGER NOT NULL,
     role     TEXT NOT NULL CHECK( role IN ('instructor', 'student') ),
     active   BOOLEAN NOT NULL CHECK (active IN (0,1)) DEFAULT 1,  -- if not active, the user has no permissions in the class
+    created  DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id),
     FOREIGN KEY(class_id) REFERENCES classes(id)
 );
 DROP INDEX IF EXISTS roles_user_class_unique;
 CREATE UNIQUE INDEX  roles_user_class_unique ON roles(user_id, class_id) WHERE user_id != -1;  -- not unique for deleted users
+DROP INDEX IF EXISTS roles_by_class_id;
 CREATE INDEX roles_by_class_id ON roles(class_id);
 
 -- Store/manage demonstration links
