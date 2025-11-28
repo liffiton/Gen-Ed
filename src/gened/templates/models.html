@@ -10,6 +10,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 <section class="section">
   <div class="container content">
+    {# djlint: off H025 -- the <form...> is not actually an orphan #}
     {% if model %}
       <h1 class="title">Editing '{{model["shortname"]}}' Model</h1>
       <form class="wide-labels" action="{{ url_for("models.models_update", model_id=model["id"]) }}" method="post">
@@ -18,6 +19,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <p>You will be able to select and use this model in any classes you create.</p>
       <form class="wide-labels" action="{{ url_for("models.create_new_model") }}" method="post">      
     {% endif %}
+    {# djlint: on #}
 
       <div class="field is-horizontal">
         <div class="field-label is-normal">

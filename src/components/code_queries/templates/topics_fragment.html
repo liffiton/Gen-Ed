@@ -10,7 +10,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <ul>
 {% for topic in topics %}
   <li>
-    <form action="{{url_for('tutors.create_inquiry_chat')}}" method="POST">
+    <form action="{{url_for('tutors.create_inquiry_chat')}}" method="post">
       {{topic}}
       <input type="hidden" name="context" value="{{context_name}}">
       <input type="hidden" name="topic" value="{{topic}}">

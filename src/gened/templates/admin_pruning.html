@@ -31,7 +31,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <p>Type "DELETE" in the text box to confirm you want to delete all {{ num_candidates }} accounts.</p>
         <p class="has-text-danger-dark"><strong class="has-text-danger-dark">Warning:</strong> Deleting this data cannot be undone.</p>
       </div>
-      <form method="POST" action="{{ url_for('.prune_users') }}">
+      <form method="post" action="{{ url_for('.prune_users') }}">
         {% for candidate in candidates.data %}
           {% if not candidate.whitelisted %}
             <input type="hidden" name="user_ids" value="{{ candidate.id }}">

@@ -1,7 +1,7 @@
 {% block body %}
 
 {# https://developerdocs.instructure.com/services/canvas/external-tools/lti/file.content_item #}
-<form action="{{ return_url }}" method="POST">
+<form action="{{ return_url }}" method="post">
   <input type="hidden" name="lti_message_type" value="ContentItemSelection">
   <input type="hidden" name="lti_version" value="LTI-1p0">
   <textarea name="content_items">

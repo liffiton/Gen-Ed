@@ -9,6 +9,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 {% block body %}
 <section class="section">
   <div class="container">
+    {# djlint: off H025 -- the <form...> is not actually an orphan #}
     {% if item.row_id %}
       {# We're editing an existing context. #}
       <h1 class="title">Editing context '{{ item.name }}' in class '{{ auth.cur_class.class_name }}'</h1>
@@ -17,6 +18,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <h1 class="title">Create context in class '{{ auth.cur_class.class_name }}'</h1>
       <form class="wide-labels" action="{{ url_for(".create_item") }}" method="post">
     {% endif %}
+    {# djlint: on #}
 
         <div class="field is-horizontal">
           <div class="field-label is-normal">

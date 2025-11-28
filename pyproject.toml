@@ -105,7 +105,7 @@ ignore = [
 [tool.djlint]
 profile = "jinja"
 files = ["src/"]
-ignore = "T001,H021,H023,H029"
+ignore = "T001,H021,H023,H030,H031"
 
 [tool.mypy]
 files = [ "src/", "tests/" ]

@@ -175,7 +175,7 @@ dl.profile dd { margin: 0; }
         <p>Type "DELETE" in the text box to confirm you want to delete your account.</p>
         <p class="has-text-danger-dark"><strong class="has-text-danger-dark">Warning:</strong> Deleting your data cannot be undone.</p>
       </div>
-      <form method="POST" action="{{ url_for('profile.delete_data') }}">
+      <form method="post" action="{{ url_for('profile.delete_data') }}">
         {% if created_classes %}
           <div class="field has-addons">
             <div class="control">
@@ -268,7 +268,7 @@ dl.profile dd { margin: 0; }
           </p>
           <p class="has-text-danger-dark"><strong class="has-text-danger-dark">Warning:</strong> Account anonymization cannot be undone.</p>
         </div>
-        <form method="POST" action="{{ url_for('profile.anonymize') }}">
+        <form method="post" action="{{ url_for('profile.anonymize') }}">
           <div class="field is-grouped">
             <div class="control">
               <button type="submit" class="button is-info">Anonymize Account</button>

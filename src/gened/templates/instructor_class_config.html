@@ -140,9 +140,9 @@ input[type='radio'] {
           llm_test_result: null,
           model: {{ class_row.model_id }},
           model_providers: {
-            {% for model in models %}
-            {{model.id}}: '{{model.provider}}'{% if not loop.last %},{% endif %}
-            {% endfor %}
+            {%- for model in models -%}
+            {{ model.id }}: '{{ model.provider }}' {%- if not loop.last -%} , {%- endif -%}
+            {%- endfor -%}
           },
           dialog: document.querySelector('#llm_test_dialog'),
           showDialog() {
@@ -307,7 +307,7 @@ input[type='radio'] {
         <p class="has-text-danger"><strong class="has-text-danger">Warning:</strong> Deleting class data cannot be undone.</p>
       </div>
       <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1em;">
-        <form method="POST" action="{{ url_for('instructor.delete_class') }}">
+        <form method="post" action="{{ url_for('instructor.delete_class') }}">
           <div class="field is-grouped" x-data="{ confirm_delete: '' }">
             <input type="hidden" name="class_id", value="{{ auth.cur_class.class_id }}">
             <div class="control">
