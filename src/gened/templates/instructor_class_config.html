@@ -237,7 +237,7 @@ input[type='radio'] {
         <dialog id="llm_test_dialog">
           <div class="notification"
                x-bind:class="llm_test_result === 'ok' ? 'is-success' : 'is-danger'"
-               x-html="llm_test_result === 'ok' ? 'Your API key worked with the chosen model!' : llm_test_result">
+               x-html="llm_test_result === 'ok' ? '<strong>Your API key worked with the chosen model!</strong>' : llm_test_result">
           </div>
         </dialog>
 
@@ -282,7 +282,13 @@ input[type='radio'] {
 
     <div class="item_sep" style="min-width: 90%;"></div>
 
-    <div class="box" style="max-width: 50em; margin: auto; border: 2px solid #f009; background: #ff000008">
+    <div class="flex_item my-5">
+      <h2 class="title is-size-4">Class Data</h2>
+      <button class="button is-danger" type="button" onClick="document.getElementById('delete_class_dialog').showModal()"><span class="delete mr-2"></span> Delete Class Data...</button>
+    </div>
+
+    <dialog id="delete_class_dialog"> 
+    <div class="box" style="border: 2px solid #f009; background: #ffeeee">
       <h2 class="title is-4 has-text-danger">Delete Class Data</h2>
       <div class="content">
         <p>This will:
@@ -300,18 +306,29 @@ input[type='radio'] {
         <p>Type "DELETE" in the text box to confirm you want to delete data for this class.</p>
         <p class="has-text-danger"><strong class="has-text-danger">Warning:</strong> Deleting class data cannot be undone.</p>
       </div>
-      <form method="POST" action="{{ url_for('instructor.delete_class') }}" class="field has-addons">
-        <input type="hidden" name="class_id", value="{{ auth.cur_class.class_id }}">
-        <div class="control">
-          <input class="input is-danger" type="text" name="confirm_delete" placeholder="Type DELETE to confirm">
-        </div>
-        <div class="control">
-          <button type="submit" class="button is-danger">
-            Delete Class Data
-          </button>
-        </div>
-      </form>
+      <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1em;">
+        <form method="POST" action="{{ url_for('instructor.delete_class') }}">
+          <div class="field is-grouped" x-data="{ confirm_delete: '' }">
+            <input type="hidden" name="class_id", value="{{ auth.cur_class.class_id }}">
+            <div class="control">
+              <input class="input is-danger" type="text" name="confirm_delete" x-model="confirm_delete" placeholder="Type DELETE to confirm">
+            </div>
+            <div class="control">
+              <button type="submit" class="button is-danger" :disabled="confirm_delete !== 'DELETE'">
+                Delete Class Data
+              </button>
+            </div>
+          </div>
+        </form>
+        <form method="dialog">
+          <div class="control">
+            <button type="submit" class="button">Cancel</button>
+          </div>
+        </form>
+      </div>
     </div>
+    </dialog>
+
   </div>
 </section>
 
