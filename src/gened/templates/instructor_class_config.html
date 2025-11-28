@@ -295,7 +295,7 @@ input[type='radio'] {
         </p>
         <p>Users will <em>not</em> be deleted, nor will their data in any other class they are enrolled in.</p>
         {% if auth.user.auth_provider == 'lti' %}
-          <p>This class was accessed using a link to {{ config['APPLICATION_NAME'] }} from an LMS.  If that link still exists in the LMS after deleting the class data here, anyone following it will create a new, distinct instance of this class (without any old data, but still with the ability to submit new queries).  To prevent that, remove the link from the LMS <em>before</em> deleting the class data here.</p>
+          <p>This class was accessed using a link to {{ config['APPLICATION_TITLE'] }} from an LMS.  If that link still exists in the LMS after deleting the class data here, anyone following it will create a new, distinct instance of this class (without any old data, but still with the ability to submit new queries).  To prevent that, remove the link from the LMS <em>before</em> deleting the class data here.</p>
         {% endif %}
         <p>Type "DELETE" in the text box to confirm you want to delete data for this class.</p>
         <p class="has-text-danger"><strong class="has-text-danger">Warning:</strong> Deleting class data cannot be undone.</p>
