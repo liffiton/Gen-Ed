@@ -193,13 +193,21 @@
                         </div>
                       </div>
                       </template>
-                      <div class="notification content is-warning is-light" style="font-size: 85%;">
+                      <div class="notification content is-warning has-background-warning-light" style="font-size: 85%;">
                         <p>These links will let students access the {{ table.display_name }} even if it is currently hidden.</p>
-                        <p>These links will <b>not</b> register a student in the class:</p>
-                        <ul>
-                          <li>Students must have already joined this class before they use one of these links.</li>
-                          <li>If the class connects using LTI, students must log in via LTI from your LMS before they use one of these.</li>
-                        </ul>
+                        {% if auth.user.auth_provider == 'lti' %}
+                        <p>These links will <b>not</b> log a student in to the class:
+                          <ul>
+                            <li>Students must log in to {{ config['APPLICATION_TITLE'] }} via the main link from your LMS <strong>before</strong> they use one of these links.</li>
+                          </ul>
+                        </p>
+                        {% else %}
+                        <p>These links will <b>not</b> register a student in the class:
+                          <ul>
+                            <li>Students must have already joined this class <strong>before</strong> they use one of these links.</li>
+                          </ul>
+                        </p>
+                        {% endif %}
                       </div>
                     </div>
                   </div>
