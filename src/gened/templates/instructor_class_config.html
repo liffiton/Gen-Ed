@@ -36,7 +36,7 @@ input[type='radio'] {
   <div class="flex_items" style="gap: 0;">
     <div class="flex_item">
       <h2 class="title is-size-4">Access</h2>
-      <form action="{{ url_for(".save_access_config") }}" method="post">
+      <form action="{{ url_for('.save_access_config') }}" method="post">
         <div class="field is-horizontal">
           <div class="field-label is-normal">
             <label class="label" for="class_enabled">Class Active:</label>
@@ -113,7 +113,7 @@ input[type='radio'] {
           </div>
         </div>
 
-        {% endif %}{# end if class['link_ident'] -- i.e., end of user-created class config #}
+        {% endif %}{# end if class_row['link_ident'] -- i.e., end of user-created class config #}
 
         <div class="field is-horizontal">
           <div class="field-label is-normal"><!-- spacing --></div>
@@ -284,49 +284,51 @@ input[type='radio'] {
 
     <div class="flex_item my-5">
       <h2 class="title is-size-4">Class Data</h2>
-      <button class="button is-danger" type="button" onClick="document.getElementById('delete_class_dialog').showModal()"><span class="delete mr-2"></span> Delete Class Data...</button>
+      <button class="button icon-text is-danger" type="button" onclick="document.getElementById('delete_class_dialog').showModal()">
+        <span class="icon">
+          <svg aria-hidden="true"><use href="#svg_trash" /></svg>
+        </span>
+        <span> Delete Class Data ...</span>
+      </button>
     </div>
 
-    <dialog id="delete_class_dialog"> 
-    <div class="box" style="border: 2px solid #f009; background: #ffeeee">
-      <h2 class="title is-4 has-text-danger">Delete Class Data</h2>
-      <div class="content">
-        <p>This will:
-          <ul>
-            <li>Delete all user inputs made in this class</li>
-            <li>Remove all users from the class, including you</li>
-            <li>Delete class configuration data</li>
-            <li>Anonymize all class usage data</li>
-          </ul>
-        </p>
+    <dialog id="delete_class_dialog" style="max-width: 50em;">
+      <div class="box content" style="border: 3px solid #a00; background: #fff0f0;">
+        <h2 class="has-text-danger-dark">Delete Class Data</h2>
+        <p>This will:</p>
+        <ul>
+          <li>Delete all user inputs made in this class</li>
+          <li>Remove all users from the class, including you</li>
+          <li>Delete class configuration data</li>
+          <li>Anonymize all class usage data</li>
+        </ul>
         <p>Users will <em>not</em> be deleted, nor will their data in any other class they are enrolled in.</p>
         {% if auth.user.auth_provider == 'lti' %}
-          <p>This class was accessed using a link to {{ config['APPLICATION_TITLE'] }} from an LMS.  If that link still exists in the LMS after deleting the class data here, anyone following it will create a new, distinct instance of this class (without any old data, but still with the ability to submit new queries).  To prevent that, remove the link from the LMS <em>before</em> deleting the class data here.</p>
+          <p><strong>Warning:</strong> This class was accessed using a link to {{ config['APPLICATION_TITLE'] }} from an LMS.  If that link still exists in the LMS after deleting the class data here, anyone following it will create a new, distinct instance of this class (without any old data, but still with the ability to submit new queries).  To prevent that, remove the link from the LMS <em>before</em> deleting the class data here.</p>
         {% endif %}
         <p>Type "DELETE" in the text box to confirm you want to delete data for this class.</p>
-        <p class="has-text-danger"><strong class="has-text-danger">Warning:</strong> Deleting class data cannot be undone.</p>
-      </div>
-      <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1em;">
-        <form method="post" action="{{ url_for('instructor.delete_class') }}">
-          <div class="field is-grouped" x-data="{ confirm_delete: '' }">
-            <input type="hidden" name="class_id", value="{{ auth.cur_class.class_id }}">
-            <div class="control">
-              <input class="input is-danger" type="text" name="confirm_delete" x-model="confirm_delete" placeholder="Type DELETE to confirm">
+        <p class="has-text-danger-dark"><strong class="has-text-danger-dark">Warning:</strong> Deleting class data cannot be undone.</p>
+        <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1em;">
+          <form method="post" action="{{ url_for('instructor.delete_class') }}" x-data="{ confirm_delete: '' }">
+            <div class="field is-grouped">
+              <input type="hidden" name="class_id" value="{{ auth.cur_class.class_id }}">
+              <div class="control">
+                <input class="input is-danger" type="text" size=18 name="confirm_delete" x-model="confirm_delete" placeholder="Type DELETE to confirm">
+              </div>
+              <div class="control">
+                <button type="submit" class="button is-danger" :disabled="confirm_delete !== 'DELETE'">
+                  Delete Class Data
+                </button>
+              </div>
             </div>
+          </form>
+          <form method="dialog">
             <div class="control">
-              <button type="submit" class="button is-danger" :disabled="confirm_delete !== 'DELETE'">
-                Delete Class Data
-              </button>
+              <button type="submit" class="button">Cancel</button>
             </div>
-          </div>
-        </form>
-        <form method="dialog">
-          <div class="control">
-            <button type="submit" class="button">Cancel</button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
-    </div>
     </dialog>
 
   </div>

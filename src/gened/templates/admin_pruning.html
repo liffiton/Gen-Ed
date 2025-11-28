@@ -8,49 +8,54 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 {% block admin_body %}
   <h1 class="is-size-3">Pruning User Data</h1>
-  <h2 class="is-size-5 my-3"><strong>{{ num_candidates }}</strong> candidates for pruning (no activity in > {{ config['RETENTION_TIME_DAYS'] }} days) ({{ num_whitelisted }} whitelisted)</h2>
+  <h2 class="is-size-5 my-3">
+    <strong>{{ num_candidates }}</strong> candidates for pruning
+    (no activity in &gt; {{ config['RETENTION_TIME_DAYS'] }} days)
+    ({{ num_whitelisted }} whitelisted)
+  </h2>
   <div style="max-width: 70em;">
     {{ datatable(candidates) }}
   </div>
 
   <div>
-    <button class="button is-danger is-size-4" type="button" onClick="document.getElementById('delete_users_dialog').showModal();">Delete All</button>
+    <button class="button is-danger is-size-4" type="button" onclick="document.getElementById('delete_users_dialog').showModal();">Delete All</button>
   </div>
 
-  <dialog id="delete_users_dialog" style="max-width: 50em; min-width: min(32em, 100vw);">
-    <div class="content box" style="border: 3px solid #a00; background: #fff8f8;">
+  <dialog id="delete_users_dialog">
+    <div class="content box" style="border: 3px solid #a00; background: #fff0f0;">
       <h2 class="has-text-danger-dark">Delete All {{ num_candidates }} Candidate Accounts</h2>
-      <div class="content">
-        <p>For every candidate user, this will:
-          <ul>
-            <li>Delete all inputs they have made in any class</li>
-            <li>Anonymize all of their usage data</li>
-            <li>Delete the user</li>
-          </ul>
-        </p>
-        <p>Type "DELETE" in the text box to confirm you want to delete all {{ num_candidates }} accounts.</p>
-        <p class="has-text-danger-dark"><strong class="has-text-danger-dark">Warning:</strong> Deleting this data cannot be undone.</p>
+      <p>For every candidate user, this will:</p>
+      <ul>
+        <li>Delete all inputs they have made in any class</li>
+        <li>Anonymize all of their usage data</li>
+        <li>Delete the user</li>
+      </ul>
+      <p>Type "DELETE" in the text box to confirm you want to delete all {{ num_candidates }} accounts.</p>
+      <p class="has-text-danger-dark"><strong class="has-text-danger-dark">Warning:</strong> Deleting this data cannot be undone.</p>
+      <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1em;">
+        <form method="post" action="{{ url_for('.prune_users') }}" x-data="{ confirm_delete: '' }">
+          {% for candidate in candidates.data -%}
+            {%- if not candidate.whitelisted -%}
+              <input type="hidden" name="user_ids" value="{{ candidate.id }}">
+            {%- endif -%}
+          {%- endfor %}
+          <div class="field is-grouped">
+            <div class="control">
+              <input class="input is-danger" type="text" size=18 name="confirm_delete" x-model="confirm_delete" placeholder="Type DELETE to confirm">
+            </div>
+            <div class="control">
+              <button type="submit" class="button is-danger" :disabled="confirm_delete !== 'DELETE'">
+                Delete User Data
+              </button>
+            </div>
+          </div>
+        </form>
+        <form method="dialog">
+          <div class="control">
+            <button class="button" type="submit">Cancel</button>
+          </div>
+        </form>
       </div>
-      <form method="post" action="{{ url_for('.prune_users') }}">
-        {% for candidate in candidates.data %}
-          {% if not candidate.whitelisted %}
-            <input type="hidden" name="user_ids" value="{{ candidate.id }}">
-          {% endif %}
-        {% endfor %}
-        <div class="field has-addons">
-          <div class="control">
-            <input class="input is-danger" type="text" name="confirm_delete" placeholder="Type DELETE to confirm">
-          </div>
-          <div class="control">
-            <button type="submit" class="button is-danger">
-              Delete User Data
-            </button>
-          </div>
-        </div>
-        <div class="control">
-          <button class="button" type="submit" formnovalidate formmethod="dialog">Cancel</button>
-        </div>
-      </form>
     </div>
   </dialog>
 

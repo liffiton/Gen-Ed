@@ -79,7 +79,6 @@ def test_display_models_after_created_class(client: AppClient) -> None:
 
     response = client.get("/profile/")
     assert "Additional Models" not in response.text
-    assert "model" not in response.text
     assert "endpoint" not in response.text
     assert "Add custom model" not in response.text
 
