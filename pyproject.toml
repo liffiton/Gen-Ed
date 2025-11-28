@@ -40,10 +40,10 @@ dependencies = [
 [project.optional-dependencies]
 test = [
     "oauthlib~=3.3.0",
-    "pytest~=8.0",
-    "pytest-cov~=6.2.0",
+    "pytest~=9.0",
+    "pytest-cov~=7.0",
     "pytest-xdist~=3.8.0",
-    "mypy",
+    "mypy~=1.19",
     "types-oauthlib~=3.3.0",
     "types-requests",
     "pyrage-stubs~=1.2.0",
