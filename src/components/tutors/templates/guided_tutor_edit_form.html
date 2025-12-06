@@ -137,16 +137,12 @@
       }));
 
       Alpine.data('pdfUploader', () => ({
-        // Temporary storage for a newly-extracted document
-        preview_filename: '',
-        preview_text: '',
-
         processing: false,
         progress: 0,
         statusText: '',
         error: '',
         wordCount: 0,
-        isNewPreview: false,
+        isNewDocument: false,
 
         async handleFileSelect(event) {
           const file = event.target.files[0];
@@ -155,7 +151,7 @@
             return;
           }
 
-          this.preview_filename = file.name;
+          this.tutor.document_filename = file.name;
 
           // Find the matching handler using destructuring assignment
           const fileName = file.name.toLowerCase();
@@ -240,6 +236,24 @@
           }
         },
 
+        // Helper to process document text (count words, truncate, store)
+        processDocumentText(rawText) {
+          // Clean up the text
+          let text = rawText.trim();
+
+          // Count words
+          this.wordCount = text.split(/\s+/).filter(word => word.length > 0).length;
+
+          // Truncate if too long (50k words limit)
+          if (this.wordCount > 50000) {
+            const words = text.split(/\s+/);
+            text = words.slice(0, 50000).join(' ');
+            this.wordCount = 50000;
+          }
+
+          this.tutor.document_text = text;
+        },
+
         // Main extraction method using provided file type handler
         async extractText(file, handler) {
           this.progress = 0;
@@ -256,25 +270,14 @@
 
           progressCallback(80, 'Processing extracted text...');
 
-          // Clean up the text
-          fullText = fullText.trim();
-
-          // Count words
-          this.wordCount = fullText.split(/\s+/).filter(word => word.length > 0).length;
-
-          // Truncate if too long (50k words limit)
-          if (this.wordCount > 50000) {
-            const words = fullText.split(/\s+/);
-            fullText = words.slice(0, 50000).join(' ');
-          }
-
-          this.preview_text = fullText;
+          // Process the extracted text (count words, truncate)
+          this.processDocumentText(fullText);
 
           progressCallback(100, 'Text extraction complete!');
           this.processing = false;
 
-          this.isNewPreview = true;
-          this.openPreviewModal();
+          this.isNewDocument = true;
+          this.openDocumentModal();
         },
 
         clearFile() {
@@ -289,26 +292,25 @@
 
         clearState() {
           this.processing = false;
-          this.preview_filename = '';
-          this.preview_text = '';
           this.error = '';
           this.statusText = '';
           this.progress = 0;
         },
 
-        openPreviewModal() {
+        openDocumentModal() {
+          this.$refs.document_text_editor.textContent = this.tutor.document_text;
           document.getElementById('doc_text_modal').showModal();
         },
 
-        acceptPreview() {
-          this.tutor.document_filename = this.preview_filename;
-          this.tutor.document_text = this.preview_text;
+        saveDocument() {
           this.clearState();
+          // Process the potentially-edited text (count words, truncate)
+          this.processDocumentText(this.$refs.document_text_editor.textContent);
           document.getElementById('doc_text_modal').close();
         },
 
-        rejectPreview() {
-          this.clearState();
+        rejectDocument() {
+          this.clearFile();
           document.getElementById('doc_text_modal').close();
         }
       }));
@@ -381,7 +383,7 @@
         <input type="hidden" name="document_text" x-model="tutor.document_text">
         <div class="field-label is-normal">
           <label class="label">Document (optional)</label>
-          <p class="help-text">You may upload a PDF or DOCX file with additional context for generating objectives and questions (e.g., lecture notes, a book chapter, or an assignment).<br>Text will be extracted in your browser.<br>Max extracted text: 50,000 words.</p>
+          <p class="help-text">You may upload a PDF or DOCX file or paste text with additional context for generating objectives and questions (e.g., lecture notes, a book chapter, or an assignment).<br>Text will be extracted in your browser.<br>Max extracted text: 50,000 words.</p>
         </div>
 
         <div class="field-body">
@@ -389,12 +391,12 @@
           <div class="field is-grouped" x-show="tutor.document_filename" x-cloak>
             <div class="control">
               <p class="mt-2">
-              Using: <strong x-text="tutor.document_filename"></strong>
+              Using: <strong x-text="tutor.document_filename"></strong> <em class="mx-2" x-text="`(${wordCount} words)`"></em>
               </p>
             </div>
             <div class="control">
-              <button class="button is-rounded is-info is-outlined is-small mt-1" type="button" @click="isNewPreview = false; openPreviewModal()">
-                View text
+              <button class="button is-rounded is-info is-outlined is-small mt-1" type="button" @click="isNewDocument = false; openDocumentModal()">
+                View/edit text
               </button>
             </div>
             <div class="control">
@@ -423,6 +425,10 @@
                 </span>
               </label>
             </div>
+            <p class="m-2"><em>or</em></p>
+            <div class="control">
+              <button type="button" class="button" @click="tutor.document_filename = 'Pasted text'; isNewDocument = true; openDocumentModal();">Paste text</button>
+            </div>
 
             <!-- Progress bar -->
             <div x-show="processing" class="control mt-2">
@@ -445,23 +451,22 @@
 
         <dialog id="doc_text_modal" style="width: 60%; max-width: 80em; min-width: min(50em, 100vw);">
           <div class="content box">
-            <h3 x-text="isNewPreview ? `Preview of: ${preview_filename}` : tutor.document_filename"></h3>
-            <p x-show="isNewPreview" class="help">
+            <h3 x-text="tutor.document_filename"></h3>
+            <p x-show="isNewDocument && wordCount > 0" class="help">
               <span x-text="wordCount"></span> words extracted
               <span x-show="wordCount > 50000" class="has-text-danger ml-1">(exceeds 50,000 word limit - will be truncated)</span>
             </p>
-            <pre style="white-space: pre-wrap; max-height: 60vh; overflow-y: auto;" x-text="isNewPreview ? preview_text : tutor.document_text"></pre>
-            <div class="field is-grouped" x-show="isNewPreview">
+            <pre
+              style="white-space: pre-wrap; height: 60vh; overflow-y: auto;"
+              contenteditable="true"
+              x-ref="document_text_editor"
+            ></pre>
+            <div class="field is-grouped">
               <div class="control">
-                <button class="button is-link" type="button" @click="acceptPreview()">Keep</button>
+                <button class="button is-link" type="button" @click="saveDocument()">Save</button>
               </div>
               <div class="control">
-                <button class="button" type="button" @click="rejectPreview()">Cancel</button>
-              </div>
-            </div>
-            <div class="field is-grouped" x-show="!isNewPreview">
-              <div class="control">
-                <button class="button" type="button" @click="$event.target.closest('dialog').close()">Close</button>
+                <button class="button" type="button" @click="isNewDocument && rejectDocument() || $event.target.closest('dialog').close()">Cancel</button>
               </div>
             </div>
           </div>
