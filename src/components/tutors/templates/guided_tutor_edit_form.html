@@ -161,54 +161,99 @@
 
           this.preview_filename = file.name;
 
+          // Find the matching handler using destructuring assignment
+          const fileName = file.name.toLowerCase();
+          const entry = Object.entries(this.fileHandlers)
+            .find(([ext, _handler]) => fileName.endsWith(ext));
+
+          if (!entry) {
+            this.clearFile();
+            this.error = 'Unsupported file type. Please upload a PDF or DOCX file.';
+            return;
+          }
+
+          const [_, handler] = entry;
+
           try {
-            await this.extractTextFromPDF(file);
+            await this.extractText(file, handler);
           } catch (error) {
-            this.error = `Failed to extract text from PDF: ${error.message}`;
-            console.error('PDF extraction error:', error);
+            this.error = `Failed to extract text from ${handler.displayName} file: ${error.message}`;
+            console.error('Text extraction error:', error);
           }
         },
 
-        async extractTextFromPDF(file) {
-          this.progress = 0;
-          this.statusText = 'Loading PDF...';
-          this.processing = true;
+        // File type handlers using strategy pattern
+        fileHandlers: {
+          '.pdf': {
+            displayName: 'PDF',
+            extract: async (file, progressCallback) => {
+              const arrayBuffer = await file.arrayBuffer();
+              progressCallback(15, 'Parsing PDF structure...');
 
-          const arrayBuffer = await file.arrayBuffer();
-          this.progress = 15;
-          this.statusText = 'Parsing PDF structure...';
+              const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+              const numPages = pdf.numPages;
 
-          const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-          const numPages = pdf.numPages;
+              let fullText = '';
 
-          let fullText = '';
+              for (let i = 1; i <= numPages; i++) {
+                progressCallback(15 + (i / numPages) * 75, 
+                  `Extracting text from page ${i} of ${numPages}...`);
 
-          for (let i = 1; i <= numPages; i++) {
-            this.statusText = `Extracting text from page ${i} of ${numPages}...`;
-            this.progress = 15 + (i / numPages) * 75;
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent({
+                  normalizeWhitespace: true
+                });
 
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent({
-              normalizeWhitespace: true
-            });
+                // Simple approach: add line breaks based on hasEOL flag
+                let pageText = '';
+                for (const item of textContent.items) {
+                  pageText += item.str;
+                  if (item.hasEOL) {
+                    pageText += '\n';
+                  } else {
+                    // Add space if the next item doesn't start immediately
+                    pageText += ' ';
+                  }
+                }
 
-            // Simple approach: add line breaks based on hasEOL flag
-            let pageText = '';
-            for (const item of textContent.items) {
-              pageText += item.str;
-              if (item.hasEOL) {
-                pageText += '\n';
-              } else {
-                // Add space if the next item doesn't start immediately
-                pageText += ' ';
+                fullText += pageText + '\n\n';
               }
+
+              progressCallback(95, 'Processing extracted text...');
+              return fullText;
             }
+          },
+          '.docx': {
+            displayName: 'DOCX',
+            extract: async (file, progressCallback) => {
+              // Dynamically import mammoth.js
+              const mammoth = await import('https://cdn.jsdelivr.net/npm/mammoth@1/+esm');
 
-            fullText += pageText + '\n\n';
+              progressCallback(30, 'Parsing DOCX structure...');
+
+              const arrayBuffer = await file.arrayBuffer();
+              const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+
+              progressCallback(80, 'Processing extracted text...');
+
+              return result.value;
+            }
           }
+        },
 
-          this.statusText = 'Processing extracted text...';
-          this.progress = 95;
+        // Main extraction method using provided file type handler
+        async extractText(file, handler) {
+          this.progress = 0;
+          this.statusText = `Loading ${handler.displayName}...`;
+          this.processing = true;
+          this.error = '';
+
+          const progressCallback = (progress, status) => {
+            this.progress = progress;
+            this.statusText = status;
+          };
+
+          let fullText = await handler.extract(file, progressCallback);
 
           // Clean up the text
           fullText = fullText.trim();
@@ -336,7 +381,7 @@
         <input type="hidden" name="document_text" x-model="tutor.document_text">
         <div class="field-label is-normal">
           <label class="label">Document (optional)</label>
-          <p class="help-text">You may upload a PDF with additional context for generating objectives and questions (e.g., lecture notes, a book chapter, or an assignment).<br>Text will be extracted in your browser.<br>Max extracted text: 50,000 words.</p>
+          <p class="help-text">You may upload a PDF or DOCX file with additional context for generating objectives and questions (e.g., lecture notes, a book chapter, or an assignment).<br>Text will be extracted in your browser.<br>Max extracted text: 50,000 words.</p>
         </div>
 
         <div class="field-body">
@@ -369,9 +414,9 @@
           <div class="field" x-show="!tutor.document_filename" x-cloak>
             <div class="control file has-name">
               <label class="file-label">
-                <input class="file-input" type="file" accept=".pdf" x-bind:disabled="loading || processing" @change="handleFileSelect($event)">
+                <input class="file-input" type="file" accept=".pdf,.docx" x-bind:disabled="loading || processing" @change="handleFileSelect($event)">
                 <span class="file-cta">
-                  Choose a PDF…
+                  Choose a PDF or DOCX…
                 </span>
                 <span class="file-name" x-text="tutor.document_filename || 'No file chosen'">
                   No file chosen
