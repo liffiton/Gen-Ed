@@ -2,10 +2,6 @@
 
 {% block extrahead %}
   <script type="module">
-    // For extracting text from documents
-    import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4/+esm';
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4/build/pdf.worker.min.mjs';
-
     // For rendering questions
     import markdownIt from 'https://cdn.jsdelivr.net/npm/markdown-it@14/+esm';
     const md = markdownIt();
@@ -187,6 +183,11 @@
           '.pdf': {
             displayName: 'PDF',
             extract: async (file, progressCallback) => {
+              // Dynamically import PDF.js
+              progressCallback(5, 'Loading PDF library...');
+              pdfjsLib = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4/+esm');
+              pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4/build/pdf.worker.min.mjs';
+
               const arrayBuffer = await file.arrayBuffer();
               progressCallback(15, 'Parsing PDF structure...');
 
@@ -219,7 +220,6 @@
                 fullText += pageText + '\n\n';
               }
 
-              progressCallback(95, 'Processing extracted text...');
               return fullText;
             }
           },
@@ -227,14 +227,13 @@
             displayName: 'DOCX',
             extract: async (file, progressCallback) => {
               // Dynamically import mammoth.js
+              progressCallback(5, 'Loading DOCX library...');
               const mammoth = await import('https://cdn.jsdelivr.net/npm/mammoth@1/+esm');
 
               progressCallback(30, 'Parsing DOCX structure...');
 
               const arrayBuffer = await file.arrayBuffer();
               const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
-
-              progressCallback(80, 'Processing extracted text...');
 
               return result.value;
             }
@@ -255,6 +254,8 @@
 
           let fullText = await handler.extract(file, progressCallback);
 
+          progressCallback(80, 'Processing extracted text...');
+
           // Clean up the text
           fullText = fullText.trim();
 
@@ -269,8 +270,7 @@
 
           this.preview_text = fullText;
 
-          this.progress = 100;
-          this.statusText = 'Text extraction complete!';
+          progressCallback(100, 'Text extraction complete!');
           this.processing = false;
 
           this.isNewPreview = true;
