@@ -64,7 +64,7 @@ class TutorConfig(ConfigItem):
     def from_row(cls, row: Row) -> Self:
         item = super().from_row(row)
         # may need to convert dictionary-stored learning objectives to LearningObjective objects
-        if isinstance(item.objectives[0], dict):
+        if item.objectives and isinstance(item.objectives[0], dict):
             item.objectives = [LearningObjective(**obj) for obj in item.objectives]  # type: ignore[arg-type]
         return item
 
