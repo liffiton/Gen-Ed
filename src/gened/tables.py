@@ -63,27 +63,6 @@ class Action:
     query_arg: str | None = None
 
 
-def table_prep(cols: list[Col], data: list[Row], max_len: int=1000) -> list[dict[str, Any]]:
-    """ Prepare tabular data to be sent to the simple-datatables as JSON.
-    This pre-renders columns that have hooks for that, shortens overly-long
-    strings (that the user doesn't care to see in the table and that will just
-    waste bandwidth) and converts into a format that simple-datatables accepts.
-    """
-    def process(col: Col, val: Any) -> Any:
-        if hasattr(col, 'prerender'):
-            return col.prerender(val)
-        elif isinstance(val, str) and len(val) > max_len:
-            return f"{val[:max_len]} ..."
-        else:
-            return val
-
-    assert not data or set(data[0].keys()).issuperset(col.name for col in cols), f"Data column headings must match column spec names: {data[0].keys()} {cols}"
-    return [
-        {col.name: process(col, row[col.name]) for col in cols}
-        for row in data
-    ]
-
-
 @dataclass(kw_only=True)
 class DataTable:
     name: str
@@ -107,5 +86,25 @@ class DataTable:
         return sum(1 for col in self.columns if col.hidden)
 
     @property
-    def table_data(self) -> list[dict[str, Any]]:
-        return table_prep(self.columns, self.data or [])
+    def data_for_json(self) -> list[dict[str, Any]]:
+        """ Prepare tabular data to be sent to simple-datatables as JSON.
+        This pre-renders columns that have hooks for that, shortens overly-long
+        strings (that the user doesn't care to see in the table and that will just
+        waste bandwidth) and converts into a format that simple-datatables accepts.
+        """
+        data = self.data or []
+        assert not data or set(data[0].keys()).issuperset(col.name for col in self.columns), f"Data column headings must match column spec names: {data[0].keys()} {self.columns}"
+
+        max_len = 1000
+        def process(col: Col, val: Any) -> Any:
+            if hasattr(col, 'prerender'):
+                return col.prerender(val)
+            elif isinstance(val, str) and len(val) > max_len:
+                return f"{val[:max_len]} ..."
+            else:
+                return val
+
+        return [
+            { col.name: process(col, row[col.name]) for col in self.columns }
+            for row in data
+        ]

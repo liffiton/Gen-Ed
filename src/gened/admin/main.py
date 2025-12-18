@@ -225,7 +225,7 @@ def get_data(name: str, kind: str='json') -> str | Response:
     table.data = source.get_data(filters, limit=limit, offset=offset).fetchall()
 
     if kind == 'json':
-        return jsonify(table.table_data)
+        return jsonify(table.data_for_json)
     if kind == 'csv':
         return csv_response('admin_export', name, table.data)
     return ''

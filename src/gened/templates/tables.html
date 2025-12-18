@@ -268,7 +268,7 @@ ${ options.searchable ?
     initTable(
       {{name | tojson}},
       {{table.columns | tojson}},
-      {{table.table_data | tojson}},
+      {{table.data_for_json | tojson}},
       {{table.link_col | tojson}},
       value => `{{table.link_template | safe}}`,
       {{table.actions | tojson}},
