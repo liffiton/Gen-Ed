@@ -126,7 +126,7 @@ The student has already demonstrated understanding and mastery of previous objec
 The student will later encounter these following objectives, which should NOT be covered in these questions:
 {% for follow in following %} - {{ follow }}\n{% endfor %}
 {% endif %}
-Generate {{ num_items }} questions.")
+Generate {{ num_items }} questions.
 """)
 
 guided_sys_msg_tpl = jinja_env.from_string("""\
