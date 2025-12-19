@@ -95,7 +95,6 @@ guided_tutor_config_table = ConfigTable(
     display_name='focused tutor',
     display_name_plural='focused tutors',
     help_text=Markup('<p><i>Caution! Under development.</i></p>'),
-    requires_experiment='chats_experiment',
     edit_form_template='guided_tutor_edit_form.html',
     share_links=[
         ConfigShareLink(

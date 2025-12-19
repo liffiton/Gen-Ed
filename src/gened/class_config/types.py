@@ -85,7 +85,6 @@ class ConfigShareLink:
 @dataclass(frozen=True, kw_only=True)
 class ConfigTable:
     name: str
-    requires_experiment: str | None = None
     config_item_class: type[ConfigItem]
     db_table_name: str
     display_name: str
