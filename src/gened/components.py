@@ -52,3 +52,7 @@ def get_registered_components() -> list[GenEdComponent]:
 def get_component_data_sources() -> dict[str, app_data.DataSource]:
     components = get_registered_components()
     return {c.data_source.table_name: deepcopy(c.data_source) for c in components if c.data_source is not None}
+
+
+def get_component_navbar_templates() -> list[str]:
+    return [ c.navbar_item_template for c in get_registered_components() if c.navbar_item_template ]

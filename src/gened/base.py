@@ -36,7 +36,7 @@ from . import (
     profile,
     tz,
 )
-from .components import GenEdComponent
+from .components import GenEdComponent, get_component_navbar_templates
 from .db import get_db
 
 
@@ -120,10 +120,15 @@ class GenEdAppBuilder:
         app.jinja_env.lstrip_blocks = True
         app.jinja_env.trim_blocks = True
 
-        # Inject auth data into template contexts
+        # Inject into template contexts:
+        #  - auth data
+        #  - navbar item templates from components
         @app.context_processor
         def inject_auth_data() -> dict[str, Any]:
-            return { 'auth': auth.get_auth() }
+            return {
+                'auth': auth.get_auth(),
+                'navbar_items': get_component_navbar_templates(),
+            }
 
         @app.route('/')
         def landing() -> str:
@@ -193,8 +198,6 @@ class GenEdAppBuilder:
             # finalize the database path now that we have an instance_path
             # may be overridden by app_config (e.g. if test_config sets DATABASE)
             DATABASE=os.path.join(app.instance_path, app_config['DATABASE_NAME']),
-            # list of navbar item templates; will be extended by specific create_app()s
-            NAVBAR_ITEM_TEMPLATES=[],
         )
 
         # Add vars set in .env, loaded by load_dotenv() above, to config dictionary.
@@ -255,8 +258,6 @@ class GenEdAppBuilder:
         components: list[GenEdComponent] = self._app.extensions['gen_ed_components']
         components.append(component)
 
-        if component.navbar_item_template is not None:
-            self._app.config['NAVBAR_ITEM_TEMPLATES'].append(component.navbar_item_template)
         if component.config_table is not None:
             ct = component.config_table
             ct_map = self._app.extensions['gen_ed_config_tables']

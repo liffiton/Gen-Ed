@@ -67,7 +67,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       </div>
       <div class="navbar-menu" x-bind:class="menu_open ? 'is-active' : ''">
         <div class="navbar-start">
-        {% for nav_item_template in config['NAVBAR_ITEM_TEMPLATES'] %}
+        {% for nav_item_template in navbar_items %}
           {% include nav_item_template %}
         {% endfor %}
         </div>
