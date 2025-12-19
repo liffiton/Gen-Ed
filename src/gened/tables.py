@@ -5,7 +5,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from sqlite3 import Row
-from typing import Any, Final, Literal
+from typing import Any, Final, Literal, Self
 
 from .filters import fmt_response_txt, fmt_user
 
@@ -63,8 +63,8 @@ class Action:
     query_arg: str | None = None
 
 
-@dataclass(kw_only=True)
-class DataTable:
+@dataclass(frozen=True, kw_only=True)
+class DataTableSpec:
     name: str
     columns: list[Col]
     link_col: int | None = None
@@ -73,17 +73,23 @@ class DataTable:
     create_endpoint: str | None = None
     csv_link: str | None = None
     ajax_url: str | None = None
-    data: list[Row] | None = None
 
-    def hide(self, col_name: str) -> None:
-        self.columns = [
+    def with_hidden(self, col_name: str) -> Self:
+        new_columns = [
             replace(col, hidden=True) if col.name == col_name else col
             for col in self.columns
         ]
+        return replace(self, columns=new_columns)
 
     @property
     def num_hidden(self) -> int:
         return sum(1 for col in self.columns if col.hidden)
+
+
+@dataclass(kw_only=True)
+class DataTable:
+    spec: DataTableSpec
+    data: list[Row]
 
     @property
     def data_for_json(self) -> list[dict[str, Any]]:
@@ -92,8 +98,9 @@ class DataTable:
         strings (that the user doesn't care to see in the table and that will just
         waste bandwidth) and converts into a format that simple-datatables accepts.
         """
-        data = self.data or []
-        assert not data or set(data[0].keys()).issuperset(col.name for col in self.columns), f"Data column headings must match column spec names: {data[0].keys()} {self.columns}"
+        data = self.data
+        cols = self.spec.columns
+        assert not data or set(data[0].keys()).issuperset(col.name for col in cols), f"Data column headings must match column spec names: {data[0].keys()} {cols}"
 
         max_len = 1000
         def process(col: Col, val: Any) -> Any:
@@ -105,6 +112,6 @@ class DataTable:
                 return val
 
         return [
-            { col.name: process(col, row[col.name]) for col in self.columns }
+            { col.name: process(col, row[col.name]) for col in cols }
             for row in data
         ]

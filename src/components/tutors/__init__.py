@@ -18,6 +18,7 @@ gened_component = GenEdComponent(
     deletion_handler=TutorsDeletionHandler,
     schema_file="schema.sql",
     migrations_dir="migrations",
+    requires_experiment="chats_experiment",
 )
 
 __all__ = [

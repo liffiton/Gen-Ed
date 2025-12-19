@@ -247,12 +247,13 @@ ${ options.searchable ?
 {% endset %}
 
 {% macro datatable(table) -%}
-  {% set name = table.name %}
+  {% set spec = table.spec %}
+  {% set name = spec.name %}
   {% if table.data %}
     <style type="text/css">
     {% set css_sel = 'table#' + name %}
-    {% for col in table.columns %}
-      {% set n = loop.index - table.num_hidden %}
+    {% for col in spec.columns %}
+      {% set n = loop.index - spec.num_hidden %}
       {% if col.align %}
       {{css_sel}} tr td:nth-child({{n}}), 
       {{css_sel}} thead th:nth-child({{n}}) {
@@ -262,18 +263,18 @@ ${ options.searchable ?
     {% endfor %}
     </style>
   {% endif %}
-  <table id="{{name}}" class="{{ 'row_selectable' if table.link_col is not none else '' }}">
+  <table id="{{name}}" class="{{ 'row_selectable' if spec.link_col is not none else '' }}">
   </table>
   <script type="text/javascript">
     initTable(
       {{name | tojson}},
-      {{table.columns | tojson}},
+      {{spec.columns | tojson}},
       {{table.data_for_json | tojson}},
-      {{table.link_col | tojson}},
-      value => `{{table.link_template | safe}}`,
-      {{table.actions | tojson}},
-      {{table.csv_link | tojson}},
-      {{table.ajax_url | tojson}},
+      {{spec.link_col | tojson}},
+      value => `{{spec.link_template | safe}}`,
+      {{spec.actions | tojson}},
+      {{spec.csv_link | tojson}},
+      {{spec.ajax_url | tojson}},
     );
   </script>
 {%- endmacro %}

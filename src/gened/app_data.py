@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from collections.abc import Iterator
-from copy import deepcopy
 from dataclasses import dataclass
 from sqlite3 import Cursor, Row
 from typing import Final, Protocol, Self
@@ -11,7 +10,7 @@ from urllib.parse import urlencode
 
 from flask import request
 
-from gened.tables import DataTable
+from gened.tables import DataTable, DataTableSpec
 
 from .auth import get_auth
 from .db import get_db
@@ -154,14 +153,12 @@ class DataSource:
     table_name: str
     display_name: str
     get_data: DataFunction
-    table: DataTable
+    table_spec: DataTableSpec
     time_col: str | None = None
-    requires_experiment: str | None = None
 
     def get_populated_table(self, filters: Filters, * , limit: int=-1, offset: int=0) -> DataTable:
-        table = deepcopy(self.table)
-        table.data = self.get_data(filters, limit=limit, offset=offset).fetchall()
-        return table
+        data = self.get_data(filters, limit=limit, offset=offset).fetchall()
+        return DataTable(spec=self.table_spec, data=data)
 
     def get_user_data(self, limit: int) -> list[Row]:
         '''Fetch current user's history.'''

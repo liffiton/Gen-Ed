@@ -2,7 +2,6 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from copy import deepcopy
 from dataclasses import dataclass
 from typing import TypeGuard
 
@@ -12,6 +11,7 @@ from . import (
     app_data,
     class_config,
 )
+from .auth import get_auth
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -36,6 +36,12 @@ class GenEdComponent:
     schema_file: str | None = None
     # relative path to a directory within the component package for schema migration scripts
     migrations_dir: str | None = None
+    # only make this component available if the given experiment is active (or, if None, component is always available)
+    requires_experiment: str | None = None
+
+    def is_available(self) -> bool:
+        auth = get_auth()
+        return self.requires_experiment is None or self.requires_experiment in auth.class_experiments
 
 
 def is_component_list(lst: list[object]) -> TypeGuard[list[GenEdComponent]]:
@@ -49,9 +55,12 @@ def get_registered_components() -> list[GenEdComponent]:
     return components
 
 
-def get_component_data_sources() -> dict[str, app_data.DataSource]:
+def get_component_data_source_by_name(name: str) -> app_data.DataSource | None:
     components = get_registered_components()
-    return {c.data_source.table_name: deepcopy(c.data_source) for c in components if c.data_source is not None}
+    for c in components:
+        if (ds := c.data_source) and ds.table_name == name:
+            return ds
+    return None
 
 
 def get_component_navbar_templates() -> list[str]:

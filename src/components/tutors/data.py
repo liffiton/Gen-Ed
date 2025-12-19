@@ -18,7 +18,7 @@ from gened.app_data import (
 )
 from gened.db import get_db
 from gened.llm import ChatMessage
-from gened.tables import Col, DataTable, NumCol, TimeCol, UserCol
+from gened.tables import Col, DataTableSpec, NumCol, TimeCol, UserCol
 
 ChatMode: TypeAlias = Literal["inquiry", "guided"]
 
@@ -155,14 +155,13 @@ chats_data_source = DataSource(
     table_name='chats',
     display_name='chats',
     get_data=get_chats,
-    table=DataTable(
+    table_spec=DataTableSpec(
         name='chats',
         columns=[NumCol('id'), UserCol('user'), TimeCol('chat_started'), Col('topic'), NumCol('user messages'), AnalysisCol('analysis')],
         link_col=0,
         link_template='/tutor/${value}',
     ),
     time_col='chat_started',
-    requires_experiment='chats_experiment',
 )
 
 

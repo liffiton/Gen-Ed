@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+from dataclasses import replace
+
 from flask import (
     Blueprint,
     abort,
@@ -16,12 +18,12 @@ from flask import (
 from werkzeug.wrappers.response import Response
 
 from .auth import generate_anon_username, get_auth, login_required
-from .components import get_component_data_sources
+from .components import get_component_data_source_by_name, get_registered_components
 from .csv import csv_response
 from .data_deletion import delete_user_data
 from .db import get_db
 from .redir import safe_redirect
-from .tables import Action, Col, DataTable, NumCol
+from .tables import Action, Col, DataTable, DataTableSpec, NumCol
 
 bp = Blueprint('profile', __name__, template_folder='templates')
 
@@ -47,9 +49,10 @@ def main() -> str:
         WHERE users.id=?
     """, [user_id]).fetchone()
 
+    data_sources = [ c.data_source for c in get_registered_components() if c.data_source ]
     data_counts = {
-        ds.display_name: ds.get_user_counts(user_id)
-        for ds in get_component_data_sources().values()
+        ds.table_spec.name: ds.get_user_counts(user_id)
+        for ds in data_sources
     }
 
     cur_class_id = auth.cur_class.class_id if auth.cur_class else -1   # can't do a != to None/null in SQL, so convert that to -1 to match all classes in that case
@@ -100,7 +103,7 @@ def main() -> str:
         WHERE owner_id = ?
     """, [user_id]).fetchall()
 
-    models_table = DataTable(
+    table_spec = DataTableSpec(
         name='models',
         columns=[
             NumCol('id', hidden=True),
@@ -114,8 +117,8 @@ def main() -> str:
         actions=[
             Action("Edit model", icon='pencil', url=url_for('models.models_edit'), id_col=0),
         ],
-        data=models,
     )
+    models_table = DataTable(spec=table_spec, data=models)
 
     return render_template(
         "profile_view.html",
@@ -131,14 +134,19 @@ def main() -> str:
 @bp.route("/data/")
 def view_data() -> str:
     tables = []
-    for ds in get_component_data_sources().values():
-        table = ds.table
-        table.data = ds.get_user_data(limit=-1)  # -1 = no limit
-        if len(table.data) == 0:
+    for component in get_registered_components():
+        if not (ds := component.data_source):
+            continue
+
+        data = ds.get_user_data(limit=-1)  # -1 = no limit
+        if len(data) == 0:
             # don't show tables with no data
             continue
-        table.csv_link = url_for(".get_csv", kind=ds.table.name)
-        table.hide('user')  # it's just the current user's data; no need to list them in every row
+
+        table_spec = ds.table_spec
+        table_spec = replace(table_spec, csv_link = url_for(".get_csv", kind=table_spec.name))
+        table_spec = table_spec.with_hidden('user')  # it's just the current user's data; no need to list them in every row
+        table = DataTable(spec=table_spec, data=data)
         tables.append((ds.display_name, table))
 
     return render_template("profile_view_data.html", tables=tables)
@@ -146,14 +154,14 @@ def view_data() -> str:
 
 @bp.route("/data/csv/<string:kind>")
 def get_csv(kind: str) -> str | Response:
-    data_sources = get_component_data_sources()
-    if kind not in data_sources:
+    data_source = get_component_data_source_by_name(kind)
+    if data_source is None:
         abort(404)
 
     auth = get_auth()
     assert auth.user
 
-    queries = data_sources[kind].get_user_data(limit=-1)  # -1 = no limit
+    queries = data_source.get_user_data(limit=-1)  # -1 = no limit
     return csv_response(auth.user.display_name, kind, queries)
 
 

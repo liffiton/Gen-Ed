@@ -20,7 +20,7 @@ from werkzeug.wrappers.response import Response
 from gened.data_deletion import UserHasCreatedClassesError, delete_user_data
 from gened.db import get_db
 from gened.redir import safe_redirect
-from gened.tables import BoolCol, Col, DataTable, NumCol, UserCol
+from gened.tables import BoolCol, Col, DataTable, DataTableSpec, NumCol, UserCol
 
 from .component_registry import register_blueprint, register_navbar_item
 
@@ -67,11 +67,11 @@ def pruning_view() -> str:
     pruning_candidates, num_candidates = get_candidates()
     num_whitelisted = len(pruning_candidates) - num_candidates
 
-    candidates = DataTable(
+    table_spec = DataTableSpec(
         name='candidates',
         columns=[NumCol('id'), UserCol('user'), Col('user created'), Col('last query'), Col('last role created'), Col('last class created'), Col('last activity'), NumCol('days since'), BoolCol('whitelist?', url=url_for('.set_whitelist'), reload=True)],
-        data=pruning_candidates,
     )
+    candidates = DataTable(spec=table_spec, data=pruning_candidates)
 
     return render_template("admin_pruning.html", candidates=candidates, num_candidates=num_candidates, num_whitelisted=num_whitelisted)
 

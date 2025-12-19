@@ -10,7 +10,7 @@ from gened.app_data import (
     Filters,
 )
 from gened.db import get_db
-from gened.tables import Col, DataTable, NumCol, ResponseCol, TimeCol, UserCol
+from gened.tables import Col, DataTableSpec, NumCol, ResponseCol, TimeCol, UserCol
 
 
 def gen_query_charts(filters: Filters) -> list[ChartData]:
@@ -107,7 +107,7 @@ def get_queries(filters: Filters, /, limit: int=-1, offset: int=0) -> Cursor:
     cur = db.execute(sql, [*where_params, limit, offset])
     return cur
 
-queries_table = DataTable(
+queries_table = DataTableSpec(
     name='queries',
     columns=[NumCol('id'), UserCol('user'), TimeCol('time'), Col('context'), Col('code'), Col('error'), Col('issue'), ResponseCol('response'), Col('rating', align='center')],
     link_col=0,
@@ -118,7 +118,7 @@ queries_data_source = DataSource(
     table_name='code_queries',
     display_name='queries',
     get_data=get_queries,
-    table=queries_table,
+    table_spec=queries_table,
     time_col='query_time',
 )
 

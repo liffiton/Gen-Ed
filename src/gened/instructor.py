@@ -13,6 +13,7 @@ All routes in this blueprint require instructor privileges.
 For general class operations available to all users, see classes.py.
 """
 
+from dataclasses import replace
 from sqlite3 import Row
 
 from flask import (
@@ -27,14 +28,14 @@ from flask import (
 from werkzeug.wrappers.response import Response
 
 from .app_data import Filters
-from .auth import get_auth, get_auth_class, instructor_required
+from .auth import get_auth_class, instructor_required
 from .classes import switch_class
-from .components import get_component_data_sources
+from .components import get_component_data_source_by_name, get_registered_components
 from .csv import csv_response
 from .data_deletion import delete_class_data
 from .db import get_db
 from .redir import safe_redirect
-from .tables import BoolCol, DataTable, NumCol, UserCol
+from .tables import BoolCol, DataTable, DataTableSpec, NumCol, UserCol
 
 bp = Blueprint('instructor', __name__, template_folder='templates')
 
@@ -86,16 +87,16 @@ def _get_class_users(*, for_export: bool = False) -> list[Row]:
 
 @bp.route("/")
 def main() -> str | Response:
-    auth = get_auth()
-
-    users = _get_class_users()
-    users_table = DataTable(
+    users_table_spec = DataTableSpec(
         name='users',
         columns=[NumCol('role_id', hidden=True), NumCol('id', hidden=True), UserCol('user'), NumCol('#uses'), NumCol('1wk'), BoolCol('active?', url=url_for('.set_role_active')), BoolCol('instructor?', url=url_for('.set_role_instructor'))],
         link_col=1,
         link_template='?user=${value}',
         csv_link=url_for('instructor.get_csv', kind='users'),
-        data=users,
+    )
+    users_table = DataTable(
+        spec=users_table_spec,
+        data=_get_class_users(),
     )
 
     sel_user_name = None
@@ -113,12 +114,15 @@ def main() -> str | Response:
             sel_user_name = sel_user_row['display_name']
 
     tables = []
-    for ds in get_component_data_sources().values():
-        if ds.requires_experiment and ds.requires_experiment not in auth.class_experiments:
+
+    filters = _make_class_filters(sel_user_id)
+    for component in get_registered_components():
+        if not (ds := component.data_source):
             continue
-        filters = _make_class_filters(sel_user_id)
+        if not component.is_available():
+            continue
         table = ds.get_populated_table(filters)
-        table.csv_link = url_for('instructor.get_csv', kind=ds.table_name)
+        table.spec = replace(table.spec, csv_link = url_for('instructor.get_csv', kind=ds.table_name))
         tables.append((ds.display_name, table))
 
     return render_template("instructor_view.html", users=users_table, tables=tables, user=sel_user_name)
@@ -126,19 +130,17 @@ def main() -> str | Response:
 
 @bp.route("/csv/<string:kind>")
 def get_csv(kind: str) -> str | Response:
-    data_sources = get_component_data_sources()
-    if kind != 'users' and kind not in data_sources:
-        abort(404)
-
     cur_class = get_auth_class()
     class_name = cur_class.class_name
 
     if kind == "users":
         table_data = _get_class_users(for_export=True)
     else:
-        query_data = data_sources[kind]
+        data_source = get_component_data_source_by_name(kind)
+        if data_source is None:
+            abort(404)
         filters = _make_class_filters()
-        table_data = query_data.get_data(filters).fetchall()
+        table_data = data_source.get_data(filters).fetchall()
 
     return csv_response(class_name, kind, table_data)
 

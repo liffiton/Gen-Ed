@@ -21,7 +21,7 @@ from werkzeug.wrappers.response import Response
 from . import admin
 from .auth import get_auth
 from .db import get_db
-from .tables import Action, Col, DataTable, NumCol
+from .tables import Action, Col, DataTable, DataTableSpec, NumCol
 
 # Decorator for routes designated as part of an experiment
 # Controls access to experiments based on the current class
@@ -63,15 +63,15 @@ def experiments_view() -> str:
         SELECT *, (SELECT COUNT(*) FROM experiment_class WHERE experiment_id=id) AS "#classes" FROM experiments
     """).fetchall()
 
-    table = DataTable(
+    table_spec = DataTableSpec(
         name='experiments',
         columns=[NumCol('id'), Col('name'), Col('description'), NumCol('#classes')],
         actions=[Action("Edit experiment", icon='pencil', url=url_for('.experiment_form'), id_col=0)],
         link_col=0,
         link_template=url_for('.experiment_form') + '${value}',
         create_endpoint='.experiment_new',
-        data=experiments,
     )
+    table = DataTable(spec=table_spec, data=experiments)
 
     return render_template("admin_experiments.html", experiments=table)
 
