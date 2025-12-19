@@ -8,7 +8,6 @@ from typing import Any
 
 from flask import (
     Blueprint,
-    Flask,
     abort,
     current_app,
     flash,
@@ -31,12 +30,11 @@ from .types import ConfigTable
 bp = Blueprint('base', __name__, template_folder='templates')
 
 
-def build_blueprint(app: Flask) -> Blueprint:
+def build_blueprint() -> Blueprint:
     """ Build a new blueprint for class_config.
-    Requires the application to make routes based on registered components.
-    And we must create a new blueprint here so that we aren't trying to register
-    new routes on a global blueprint object, which will fail during testing (as this
-    will be called numerous times across the tests).
+    We must create a new blueprint here so that we aren't trying to register
+    new routes on a global blueprint object, which will fail during testing (as
+    this will be called numerous times across the tests).
     """
     new_bp = Blueprint('class_config', __name__, template_folder='templates')
 
@@ -45,7 +43,7 @@ def build_blueprint(app: Flask) -> Blueprint:
 
     new_bp.register_blueprint(bp)
 
-    config_table_bp = create_blueprint(app)
+    config_table_bp = create_blueprint()
     new_bp.register_blueprint(config_table_bp)
 
     return new_bp

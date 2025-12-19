@@ -72,6 +72,14 @@ def get_component_data_source_by_name(name: str) -> app_data.DataSource | None:
     return None
 
 
+def get_component_config_table_by_name(name: str) -> class_config_types.ConfigTable | None:
+    components = get_registered_components()
+    for c in components:
+        if (ct := c.config_table) and ct.name == name:
+            return ct
+    return None
+
+
 def get_component_navbar_templates() -> list[str]:
     return [
         c.navbar_item_template for c in get_registered_components()

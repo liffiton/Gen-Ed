@@ -92,9 +92,6 @@ class GenEdAppBuilder:
         # build the app's complete configuration
         self._config_app(app_config)
 
-        # set up places to store app-specific data on the Flask instance
-        app.extensions['gen_ed_config_tables'] = {}      # map: name(str) -> ConfigTable object
-
         # registry of installed components for this application, stored on the Flask instance
         # list[GenEdComponent]
         app.extensions['gen_ed_components'] = []
@@ -258,12 +255,6 @@ class GenEdAppBuilder:
         components: list[GenEdComponent] = self._app.extensions['gen_ed_components']
         components.append(component)
 
-        if component.config_table is not None:
-            ct = component.config_table
-            ct_map = self._app.extensions['gen_ed_config_tables']
-            assert ct.name not in ct_map  # don't allow registering the same name twice
-            ct_map[ct.name] = ct  # will be used in class_config/config_table.py
-
     def _register_core_blueprints(self) -> None:
         app = self._app
         app.register_blueprint(admin.bp, url_prefix='/admin')
@@ -275,7 +266,9 @@ class GenEdAppBuilder:
         app.register_blueprint(oauth.bp, url_prefix='/oauth')
         app.register_blueprint(profile.bp, url_prefix='/profile')
         app.register_blueprint(models.bp, url_prefix="/models")
-        class_config_bp = class_config.build_blueprint(app)  # requires building, using data stored in app.extensions['gen_ed_config_tables']
+        # class_config blueprints require a build step using registered components
+        with app.app_context():  # so current_app works when getting registerd components
+            class_config_bp = class_config.build_blueprint()
         app.register_blueprint(class_config_bp, url_prefix='/instructor/config')
 
     def _check_db(self) -> None:

@@ -6,7 +6,6 @@ from typing import Any
 
 from flask import (
     Blueprint,
-    Flask,
     abort,
     current_app,
     flash,
@@ -19,18 +18,26 @@ from flask import (
 from werkzeug.wrappers.response import Response
 
 from gened.auth import get_auth, get_auth_class
+from gened.components import (
+    get_component_config_table_by_name,
+    get_registered_components,
+)
 from gened.db import get_db
 
 from .types import ConfigItem
 
 
-def create_blueprint(app: Flask) -> Blueprint:
+def create_blueprint() -> Blueprint:
     bp = create_base_blueprint()
     bp.register_blueprint(crud_bp)
 
-    for table in app.extensions['gen_ed_config_tables'].values():
-        if table.extra_routes is not None:
-            bp.register_blueprint(table.extra_routes)
+    for component in get_registered_components():
+        if not (ct := component.config_table):
+            continue
+        if not (extra_routes := ct.extra_routes):
+            continue
+
+        bp.register_blueprint(extra_routes)
 
     return bp
 
@@ -47,10 +54,11 @@ def create_base_blueprint() -> Blueprint:
         if values is None:
             return
         table_name = values.pop('table_name')
-        registered_tables = current_app.extensions['gen_ed_config_tables']
-        if table_name not in registered_tables:
+
+        config_table = get_component_config_table_by_name(table_name)
+        if config_table is None:
             abort(404)
-        g.config_table = registered_tables[table_name]
+        g.config_table = config_table
 
     @bp.url_value_preprocessor
     def check_valid_item(_endpoint: str | None, values: dict[str, Any] | None) -> None:
