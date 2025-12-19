@@ -4,7 +4,7 @@
 
 from jinja2 import Environment
 
-from gened.class_config import ConfigShareLink, ConfigTable
+from gened.class_config.types import ConfigShareLink, ConfigTable
 
 from .model import ContextConfig
 

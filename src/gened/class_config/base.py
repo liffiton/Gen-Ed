@@ -4,33 +4,124 @@
 
 import asyncio
 import datetime as dt
+from typing import Any
 
 from flask import (
     Blueprint,
+    Flask,
     abort,
     current_app,
     flash,
     render_template,
     request,
+    url_for,
 )
 from werkzeug.wrappers.response import Response
 
-from gened.auth import get_auth, get_auth_class
+from gened.auth import get_auth, get_auth_class, instructor_required
+from gened.components import get_registered_components
 from gened.db import get_db
 from gened.llm import LLM, get_models, with_llm
 from gened.redir import safe_redirect
 from gened.tz import date_is_past
 
-from .extra_sections import get_extra_sections
+from .config_table import create_blueprint
+from .types import ConfigTable
 
 bp = Blueprint('base', __name__, template_folder='templates')
+
+
+def build_blueprint(app: Flask) -> Blueprint:
+    """ Build a new blueprint for class_config.
+    Requires the application to make routes based on registered components.
+    And we must create a new blueprint here so that we aren't trying to register
+    new routes on a global blueprint object, which will fail during testing (as this
+    will be called numerous times across the tests).
+    """
+    new_bp = Blueprint('class_config', __name__, template_folder='templates')
+
+    # Apply instructor_required to protect all class_config blueprint endpoints.
+    new_bp.before_request(instructor_required(lambda: None))
+
+    new_bp.register_blueprint(bp)
+
+    config_table_bp = create_blueprint(app)
+    new_bp.register_blueprint(config_table_bp)
+
+    return new_bp
+
+
+def _get_instructor_courses(user_id: int, current_class_id: int, db_table: str) -> list[dict[str, str | list[str]]]:
+    """ Get other courses where the user is an instructor. """
+    db = get_db()
+    course_rows = db.execute("""
+        SELECT c.id, c.name
+        FROM classes c
+        JOIN roles r ON c.id = r.class_id
+        WHERE r.user_id = ?
+          AND r.role = 'instructor'
+          AND c.id != ?
+        ORDER BY c.name
+    """, [user_id, current_class_id]).fetchall()
+
+    # Fetch items for each eligible course to display in the copy modal
+    instructor_courses_data = []
+    for course in course_rows:
+        course_items = db.execute(f"""
+            SELECT name FROM {db_table} WHERE class_id = ? ORDER BY class_order
+        """, [course['id']]).fetchall()
+        instructor_courses_data.append({
+            'id': course['id'],
+            'name': course['name'],
+            'items': [item['name'] for item in course_items]
+        })
+
+    return instructor_courses_data
+
+
+def get_table_template_context(table: ConfigTable) -> dict[str, Any]:
+    """ Returns a dictionary of context variables to be used within the config screen template. """
+    db = get_db()
+    auth = get_auth()
+    cur_class = get_auth_class()
+    class_id = cur_class.class_id
+
+    items = db.execute(f"""
+        SELECT id, name, CAST(available AS TEXT) AS available
+        FROM {table.db_table_name}
+        WHERE class_id=?
+        ORDER BY class_order
+    """, [class_id]).fetchall()
+    items = [dict(c) for c in items]  # for conversion to json
+
+    # add pre-generated URLs for actions and share links
+    # (done here b/c it's awkward to do this in the template with some info from Jinja and some from JS)
+    for item in items:
+        item['url_edit'] = url_for('class_config.table.crud.edit_item_form', table_name=table.name, item_id=item['id'])
+        item['url_copy'] = url_for('class_config.table.crud.copy_item', table_name=table.name, item_id=item['id'])
+        item['url_delete'] = url_for('class_config.table.crud.delete_item', table_name=table.name, item_id=item['id'])
+        item['share_links'] = []
+        for share_link in table.share_links:
+            if share_link.requires_experiment is None or share_link.requires_experiment in auth.class_experiments:
+                item['share_links'].append({
+                    'url': share_link.render_url(item),
+                    'label': share_link.label}
+                )
+
+    assert auth.user
+    copyable_courses = _get_instructor_courses(auth.user.id, class_id, table.db_table_name)
+
+    return {
+        "table": table,
+        "item_data": items,
+        "copyable_courses": copyable_courses
+    }
 
 
 @bp.route("/")
 def config_form() -> str:
     db = get_db()
 
-    auth = get_auth()
     cur_class = get_auth_class()
     class_id = cur_class.class_id
 
@@ -53,16 +144,19 @@ def config_form() -> str:
     else:
         link_reg_state = "date"
 
-    extra_sections = get_extra_sections()
-    extra_sections_data = [
-        {
-            'template_name': sec.template_name,
-            'ctx': sec.context_provider(),
-        }
-        for sec in extra_sections
-        if sec.requires_experiment is None or sec.requires_experiment in auth.class_experiments
-    ]
+    # Add config sections for registered components
+    extra_sections_data = []
+    for component in get_registered_components():
+        if not (config_table := component.config_table):
+            continue
+        if not component.is_available():
+            continue
 
+        extra_section = {
+            'template_name': 'config_table_fragment.html',
+            'ctx': get_table_template_context(config_table),
+        }
+        extra_sections_data.append(extra_section)
 
     models = get_models(plus_id=class_row['model_id'])
 

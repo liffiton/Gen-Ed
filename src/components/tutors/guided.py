@@ -17,7 +17,7 @@ from markupsafe import Markup
 from werkzeug.datastructures import ImmutableMultiDict
 
 from gened.auth import instructor_required
-from gened.class_config import (
+from gened.class_config.types import (
     ConfigItem,
     ConfigShareLink,
     ConfigTable,

@@ -19,7 +19,6 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from . import (
     admin,
     auth,
-    class_config,
     classes,
     db,
     db_admin,
@@ -36,6 +35,7 @@ from . import (
     profile,
     tz,
 )
+from .class_config import base as class_config
 from .components import GenEdComponent, get_component_navbar_templates
 from .db import get_db
 

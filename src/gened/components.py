@@ -7,11 +7,9 @@ from typing import TypeGuard
 
 from flask import Blueprint, current_app
 
-from . import (
-    app_data,
-    class_config,
-)
+from . import app_data
 from .auth import get_auth
+from .class_config import types as class_config_types
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -27,7 +25,7 @@ class GenEdComponent:
     # configure a DataSource, used primarily to present data from this component to users, instructors, and admins
     data_source: app_data.DataSource | None = None
     # set up a table in the class configuration screen for configuring items for this component
-    config_table: class_config.ConfigTable | None = None
+    config_table: class_config_types.ConfigTable | None = None
     # add a time series chart to the top of the admin dashboard
     admin_chart: app_data.ChartGenerator | None = None
     # register a DeletionHandler to properly delete or anonymize data for this component when deleting a user or class
@@ -40,6 +38,10 @@ class GenEdComponent:
     requires_experiment: str | None = None
 
     def is_available(self) -> bool:
+        """ Returns True if this component is available in the current context.
+        Checks:
+          - If the component requires an experiment, the experiment must be active in the current class.
+        """
         auth = get_auth()
         return self.requires_experiment is None or self.requires_experiment in auth.class_experiments
 

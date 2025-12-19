@@ -9,7 +9,7 @@ from flask import current_app
 from jinja2 import Environment
 from werkzeug.datastructures import ImmutableMultiDict
 
-from gened.class_config import ConfigItem
+from gened.class_config.types import ConfigItem
 
 _jinja_env_prompt = Environment(
     trim_blocks=True,
