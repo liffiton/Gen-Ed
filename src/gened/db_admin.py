@@ -137,6 +137,12 @@ def rebuild_views() -> None:
         {' UNION ALL '.join(union_parts)}
         ORDER BY user_id
     """)
+    # validate view immediately
+    try:
+        db.execute("SELECT 1 FROM v_user_items")
+    except sqlite3.OperationalError:
+        db.execute("DROP VIEW IF EXISTS v_user_items")
+        raise
 
     db.execute("DROP VIEW IF EXISTS v_user_activity")
     db.execute("""
@@ -163,6 +169,13 @@ def rebuild_views() -> None:
             AND users.delete_status != 'deleted'
         GROUP BY users.id
     """)
+    # validate view immediately
+    try:
+        db.execute("SELECT 1 FROM v_user_activity")
+    except sqlite3.OperationalError:
+        db.execute("DROP VIEW IF EXISTS v_user_activity")
+        raise
+
     db.commit()
 
 

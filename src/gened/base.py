@@ -325,13 +325,13 @@ class GenEdAppBuilder:
                 for component in components:
                     if ds := component.data_source:
                         db_conn.execute(f"SELECT 1 FROM {ds.table_name}")
+                db_admin.rebuild_views()
             except sqlite3.OperationalError:
                 # database is not initialized, but we may be running initdb or a migration now, so that's okay
                 pass
             else:
                 # database has been initialized (no errors reading from those two tables)
                 self._check_db()
-                db_admin.rebuild_views()
                 lti.reload_consumers()
 
         return app

@@ -33,7 +33,7 @@ INSERT INTO __new_roles (id, user_id, class_id, role, active, created)
 
 -- overwrite table
 -- (need to drop the view that was created automatically because it relies on roles, but it will be created automatically at startup every time)
-DROP VIEW v_user_activity;
+DROP VIEW IF EXISTS v_user_activity;
 DROP TABLE roles;
 ALTER TABLE __new_roles RENAME TO roles;
 
