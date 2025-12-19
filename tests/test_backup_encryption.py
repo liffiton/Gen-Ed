@@ -10,11 +10,13 @@ from tempfile import NamedTemporaryFile, TemporaryDirectory
 import pytest
 from flask import Flask
 
+from gened.admin.download import get_encryption_status
+from gened.db_admin import backup_db
+
 
 def test_db_download_status(app: Flask, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that db_download_status correctly reflects encryption availability"""
     with app.app_context():
-        from gened.admin.download import get_encryption_status
 
         # No key configured
         monkeypatch.setattr(platform, "system", lambda: "Linux")
@@ -46,8 +48,6 @@ def test_backup_db_encryption(app: Flask) -> None:
         return
 
     with app.app_context():
-        from gened.db import backup_db
-
         # Test unencrypted backup (no key configured)
         app.config['AGE_PUBLIC_KEY'] = None
         with NamedTemporaryFile() as backup_file:

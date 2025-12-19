@@ -4,7 +4,7 @@
 
 from flask import Blueprint
 
-from gened.base import GenEdComponent
+from gened.components import GenEdComponent
 
 from .config_table import contexts_config_table
 from .data import (

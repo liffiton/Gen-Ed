@@ -118,7 +118,7 @@ A typical component directory includes:
 
 The `GenEdComponent` object is a dataclass that aggregates all the pieces of
 the component that the Gen-Ed framework needs to know about. See
-`src/gened/base.py` for the definition and use of its parameters.
+`src/gened/components.py` for the definition and use of its parameters.
 
 To create a new component, a developer can create a new directory in
 `src/components`, structure it as described above, and then add its

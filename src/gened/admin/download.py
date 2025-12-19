@@ -16,7 +16,7 @@ from flask import (
 from markupsafe import Markup
 from werkzeug.wrappers.response import Response
 
-from gened.db import backup_db
+from gened.db_admin import backup_db
 
 from .component_registry import register_blueprint, register_navbar_item
 

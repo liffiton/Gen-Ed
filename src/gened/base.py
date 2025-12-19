@@ -7,24 +7,22 @@ import logging.config
 import os
 import sqlite3
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import pyrage
 from dotenv import load_dotenv
-from flask import Blueprint, Flask, render_template, request, send_from_directory
+from flask import Flask, render_template, request, send_from_directory
 from flask.wrappers import Response
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from . import (
     admin,
-    app_data,
     auth,
     class_config,
     classes,
-    data_deletion,
     db,
+    db_admin,
     demo,
     docs,
     experiments,  # noqa: F401 -- importing the module registers an admin component
@@ -38,6 +36,7 @@ from . import (
     profile,
     tz,
 )
+from .components import GenEdComponent
 from .db import get_db
 
 
@@ -56,29 +55,6 @@ class DBMissingModelError(Exception):
         super().__init__(f"Configured model shortname not found in active models: {model_name}")
 
 
-@dataclass(frozen=True, kw_only=True)
-class GenEdComponent:
-    # name of the package that defined this component (used to locate schema and migration resources)
-    package: str
-    # ..all items below here are optional..
-    # register the component's own routes or use this just to register a template folder
-    blueprint: Blueprint | None = None
-    # add an item to the navbar by specifying a template file for it
-    navbar_item_template: str | None = None
-    # configure a DataSource, used primarily to present data from this component to users, instructors, and admins
-    data_source: app_data.DataSource | None = None
-    # set up a table in the class configuration screen for configuring items for this component
-    config_table: class_config.ConfigTable | None = None
-    # add a time series chart to the top of the admin dashboard
-    admin_chart: app_data.ChartGenerator | None = None
-    # register a DeletionHandler to properly delete or anonymize data for this component when deleting a user or class
-    deletion_handler: data_deletion.DeletionHandler | None = None
-    # relative path to an SQL schema file within the component package for any needed tables/indexes/views/etc.
-    schema_file: str | None = None
-    # relative path to a directory within the component package for schema migration scripts
-    migrations_dir: str | None = None
-
-
 class GenEdAppBuilder:
     ''' A class to incrementally set up and finally build a complete Gen-Ed application. '''
 
@@ -90,9 +66,6 @@ class GenEdAppBuilder:
             app_config: A dictionary containing application-specific configuration for the Flask object (w/ CAPITALIZED keys)
             instance_path: A path to the instance folder (for the database file, primarily)
         '''
-        # instance vars
-        self._added_blueprints: list[Blueprint] = []
-
         # load config values from .env file
         load_dotenv()
 
@@ -120,12 +93,11 @@ class GenEdAppBuilder:
         self._config_app(app_config)
 
         # set up places to store app-specific data on the Flask instance
-        app.extensions['gen_ed_admin_charts'] = []       # list: ChartGenerator functions
         app.extensions['gen_ed_config_tables'] = {}      # map: name(str) -> ConfigTable object
-        app.extensions['gen_ed_data_sources'] = {}       # map: name(str) -> DataSource object
-        app.extensions['gen_ed_deletion_handlers'] = []  # list: DeletionHandler objects
-        app.extensions['gen_ed_schemas'] = []            # list: (package_name, schema_file) tuples
-        app.extensions['gen_ed_migrations'] = []         # list: (package_name, migrations_dir) tuples
+
+        # registry of installed components for this application, stored on the Flask instance
+        # list[GenEdComponent]
+        app.extensions['gen_ed_components'] = []
 
         # set up middleware to fix headers from a proxy if configured as such
         if os.environ.get("FLASK_APP_BEHIND_PROXY", "").lower() in ("yes", "true", "1"):
@@ -279,28 +251,17 @@ class GenEdAppBuilder:
         app.config.from_mapping(total_config)
 
     def add_component(self, component: GenEdComponent) -> None:
-        if component.blueprint is not None:
-            self._added_blueprints.append(component.blueprint)
+        # Register component identity/metadata
+        components: list[GenEdComponent] = self._app.extensions['gen_ed_components']
+        components.append(component)
+
         if component.navbar_item_template is not None:
             self._app.config['NAVBAR_ITEM_TEMPLATES'].append(component.navbar_item_template)
-        if component.data_source is not None:
-            ds = component.data_source
-            ds_map = self._app.extensions['gen_ed_data_sources']
-            assert ds.table_name not in ds_map  # don't allow registering the same name twice
-            ds_map[ds.table_name] = ds  # will be used in app_data.py
         if component.config_table is not None:
             ct = component.config_table
             ct_map = self._app.extensions['gen_ed_config_tables']
             assert ct.name not in ct_map  # don't allow registering the same name twice
             ct_map[ct.name] = ct  # will be used in class_config/config_table.py
-        if component.admin_chart is not None:
-            self._app.extensions['gen_ed_admin_charts'].append(component.admin_chart)
-        if component.deletion_handler is not None:
-            self._app.extensions['gen_ed_deletion_handlers'].append(component.deletion_handler)
-        if component.schema_file is not None:
-            self._app.extensions['gen_ed_schemas'].append((component.package, component.schema_file))
-        if component.migrations_dir is not None:
-            self._app.extensions['gen_ed_migrations'].append((component.package, component.migrations_dir))
 
     def _register_core_blueprints(self) -> None:
         app = self._app
@@ -335,14 +296,17 @@ class GenEdAppBuilder:
     def build(self) -> Flask:
         """ Finalize the app with all registered components and return a complete Flask app. """
         app = self._app
+        components: list[GenEdComponent] = app.extensions['gen_ed_components']
 
-        # register blueprints
+        # register blueprints (core + any component blueprints)
         self._register_core_blueprints()
-        for bp in self._added_blueprints:
-            app.register_blueprint(bp)
+        for component in components:
+            if bp := component.blueprint:
+                app.register_blueprint(bp)
 
         # initialize core modules with other setup needs
         db.init_app(app)
+        db_admin.init_app(app)
         docs.init_app(app, url_prefix='/docs')
         filters.init_app(app)
         migrate.init_app(app)
@@ -356,15 +320,17 @@ class GenEdAppBuilder:
             try:
                 db_conn.execute("SELECT 1 FROM consumers LIMIT 1")
                 db_conn.execute("SELECT 1 FROM models LIMIT 1")
-                for ds in self._app.extensions['gen_ed_data_sources'].values():
-                    db_conn.execute(f"SELECT 1 FROM {ds.table_name}")
+                # check any registered component data sources
+                for component in components:
+                    if ds := component.data_source:
+                        db_conn.execute(f"SELECT 1 FROM {ds.table_name}")
             except sqlite3.OperationalError:
                 # database is not initialized, but we may be running initdb or a migration now, so that's okay
                 pass
             else:
                 # database has been initialized (no errors reading from those two tables)
                 self._check_db()
-                db.rebuild_views()
+                db_admin.rebuild_views()
                 lti.reload_consumers()
 
         return app

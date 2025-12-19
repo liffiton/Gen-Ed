@@ -15,8 +15,8 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from .app_data import get_registered_data_sources
 from .auth import generate_anon_username, get_auth, login_required
+from .components import get_component_data_sources
 from .csv import csv_response
 from .data_deletion import delete_user_data
 from .db import get_db
@@ -49,7 +49,7 @@ def main() -> str:
 
     data_counts = {
         ds.display_name: ds.get_user_counts(user_id)
-        for ds in get_registered_data_sources().values()
+        for ds in get_component_data_sources().values()
     }
 
     cur_class_id = auth.cur_class.class_id if auth.cur_class else -1   # can't do a != to None/null in SQL, so convert that to -1 to match all classes in that case
@@ -131,7 +131,7 @@ def main() -> str:
 @bp.route("/data/")
 def view_data() -> str:
     tables = []
-    for ds in get_registered_data_sources().values():
+    for ds in get_component_data_sources().values():
         table = ds.table
         table.data = ds.get_user_data(limit=-1)  # -1 = no limit
         if len(table.data) == 0:
@@ -146,7 +146,7 @@ def view_data() -> str:
 
 @bp.route("/data/csv/<string:kind>")
 def get_csv(kind: str) -> str | Response:
-    data_sources = get_registered_data_sources()
+    data_sources = get_component_data_sources()
     if kind not in data_sources:
         abort(404)
 

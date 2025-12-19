@@ -26,9 +26,10 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from .app_data import Filters, get_registered_data_sources
+from .app_data import Filters
 from .auth import get_auth, get_auth_class, instructor_required
 from .classes import switch_class
+from .components import get_component_data_sources
 from .csv import csv_response
 from .data_deletion import delete_class_data
 from .db import get_db
@@ -112,7 +113,7 @@ def main() -> str | Response:
             sel_user_name = sel_user_row['display_name']
 
     tables = []
-    for ds in get_registered_data_sources().values():
+    for ds in get_component_data_sources().values():
         if ds.requires_experiment and ds.requires_experiment not in auth.class_experiments:
             continue
         filters = _make_class_filters(sel_user_id)
@@ -125,7 +126,7 @@ def main() -> str | Response:
 
 @bp.route("/csv/<string:kind>")
 def get_csv(kind: str) -> str | Response:
-    data_sources = get_registered_data_sources()
+    data_sources = get_component_data_sources()
     if kind != 'users' and kind not in data_sources:
         abort(404)
 

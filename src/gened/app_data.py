@@ -9,7 +9,7 @@ from sqlite3 import Cursor, Row
 from typing import Final, Protocol, Self
 from urllib.parse import urlencode
 
-from flask import current_app, request
+from flask import request
 
 from gened.tables import DataTable
 
@@ -17,6 +17,19 @@ from .auth import get_auth
 from .db import get_db
 
 """ Manage app-specific data. """
+
+
+class DeletionHandler(Protocol):
+    """Protocol defining the interface for personal data deletion handlers."""
+    @staticmethod
+    def delete_user_data(user_id: int) -> None:
+        """Delete/anonymize all personal data for the given user."""
+        ...
+
+    @staticmethod
+    def delete_class_data(class_id: int) -> None:
+        """Delete/anonymize all personal data for the given class."""
+        ...
 
 
 @dataclass(frozen=True)
@@ -172,23 +185,6 @@ class DataSource:
 
     def get_row(self, row_id: int) -> Row:
         return _get_data_row(self, row_id)
-
-
-def get_admin_charts() -> list[ChartGenerator]:
-    admin_charts: list[ChartGenerator] = current_app.extensions['gen_ed_admin_charts']
-    return admin_charts
-
-
-def get_registered_data_sources() -> dict[str, DataSource]:
-    return deepcopy(current_app.extensions['gen_ed_data_sources'])
-
-
-def get_registered_data_source(name: str) -> DataSource:
-    ds_map: dict[str, DataSource] = current_app.extensions['gen_ed_data_sources']
-    source = ds_map.get(name)
-    if not source:
-        raise RuntimeError(f"Invalid data source name: {name}")
-    return deepcopy(source)
 
 
 class DataAccessError(Exception):

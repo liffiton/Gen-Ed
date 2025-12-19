@@ -14,12 +14,8 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from gened.app_data import (
-    DataSource,
-    Filters,
-    get_admin_charts,
-    get_registered_data_sources,
-)
+from gened.app_data import DataSource, Filters
+from gened.components import get_component_data_sources, get_registered_components
 from gened.csv import csv_response
 from gened.db import get_db
 from gened.tables import Action, Col, DataTable, NumCol, UserCol
@@ -200,7 +196,7 @@ def get_data_sources(filters: Filters) -> dict[str, DataSource]:
         for table in ('consumers', 'classes', 'users', 'roles')
     }
 
-    registered = get_registered_data_sources()
+    registered = get_component_data_sources()
 
     return built_ins | registered
 
@@ -235,9 +231,11 @@ def get_data(name: str, kind: str='json') -> str | Response:
 def main() -> str:
     filters = Filters.from_args(with_display=True)
 
+    # generate admin charts for any component that registered one
     charts = []
-    for generate_chart in get_admin_charts():
-        charts.extend(generate_chart(filters))
+    for component in get_registered_components():
+        if generate_charts := component.admin_chart:
+            charts.extend(generate_charts(filters))
 
     init_rows = 20  # number of rows to send in the page for each table (remainder will load asynchronously)
     limit = 1000    # maximum row number to reach in asynch request

@@ -14,7 +14,9 @@ import click
 from flask import current_app
 from flask.app import Flask
 
-from .db import backup_db, get_db, on_init_db
+from .components import get_registered_components
+from .db import get_db
+from .db_admin import backup_db, on_init_db
 
 
 class MigrationDict(TypedDict):
@@ -112,12 +114,14 @@ def _migration_info(resource: Traversable) -> MigrationDict:
 
 def _get_migrations() -> list[MigrationDict]:
     # Common migrations in the gened package + app migrations + registered component migrations
-    component_migrations = current_app.extensions.get('gen_ed_migrations', [])
     migration_dirs = [
         ('gened', 'migrations'),
         (current_app.name, 'migrations'),
-        *component_migrations,
     ]
+    # add component migrations
+    migration_dirs.extend(
+        (c.package, c.migrations_dir) for c in get_registered_components() if c.migrations_dir
+    )
 
     migration_paths = [
         resources.files(package_name).joinpath(folder)

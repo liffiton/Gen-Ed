@@ -25,7 +25,7 @@ def test_get_close_db(app: Flask) -> None:
 
 def test_init_db_command(runner: FlaskCliRunner, monkeypatch: pytest.MonkeyPatch) -> None:
     mock_init_db = Mock()
-    monkeypatch.setattr('gened.db.init_db', mock_init_db)
+    monkeypatch.setattr('gened.db_admin.init_db', mock_init_db)
     result = runner.invoke(args=['initdb'])
     assert 'Initialized' in result.output
     mock_init_db.assert_called_once()

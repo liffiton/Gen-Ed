@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from gened.base import GenEdComponent
+from gened.components import GenEdComponent
 
 from .data import QueriesDeletionHandler, gen_query_charts, queries_data_source
 from .helper import bp

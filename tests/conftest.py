@@ -16,7 +16,8 @@ from flask.testing import FlaskClient, FlaskCliRunner
 from werkzeug.test import TestResponse
 
 import codehelp
-from gened.db import get_db, init_db
+from gened.db import get_db
+from gened.db_admin import init_db
 from gened.lti import reload_consumers
 from gened.testing.mocks import mock_async_completion, mock_completion
 

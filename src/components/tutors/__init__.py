@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from gened.base import GenEdComponent
+from gened.components import GenEdComponent
 
 from .chat import bp as bp
 from .data import TutorsDeletionHandler, chats_data_source, gen_chats_chart
