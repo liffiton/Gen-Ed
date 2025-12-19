@@ -17,7 +17,7 @@ class GenEdComponent:
     # name of the package that defined this component (used to locate schema and migration resources)
     package: str
 
-    # ..all items below here are optional..
+    # ..all items below here are optionally specified..
     # register the component's own routes or use this just to register a template folder
     blueprint: Blueprint | None = None
     # add an item to the navbar by specifying a template file for it
@@ -36,14 +36,21 @@ class GenEdComponent:
     migrations_dir: str | None = None
     # only make this component available if the given experiment is active (or, if None, component is always available)
     requires_experiment: str | None = None
+    # only available to logged-in users (default True)
+    requires_auth: bool = True
 
     def is_available(self) -> bool:
         """ Returns True if this component is available in the current context.
-        Checks:
-          - If the component requires an experiment, the experiment must be active in the current class.
+        Checks (all enabled by requires_* attributes must pass):
+          - Currently logged in user
+          - Required experiment active in the current class
         """
         auth = get_auth()
-        return self.requires_experiment is None or self.requires_experiment in auth.class_experiments
+        if self.requires_auth and not auth.user:
+            return False
+        if self.requires_experiment and self.requires_experiment not in auth.class_experiments:  # noqa: SIM103 - I want this explicit
+            return False
+        return True
 
 
 def is_component_list(lst: list[object]) -> TypeGuard[list[GenEdComponent]]:
@@ -66,4 +73,7 @@ def get_component_data_source_by_name(name: str) -> app_data.DataSource | None:
 
 
 def get_component_navbar_templates() -> list[str]:
-    return [ c.navbar_item_template for c in get_registered_components() if c.navbar_item_template ]
+    return [
+        c.navbar_item_template for c in get_registered_components()
+        if c.navbar_item_template and c.is_available()
+    ]
