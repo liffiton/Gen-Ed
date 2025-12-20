@@ -52,6 +52,7 @@ class UserData:
 class ClassData:
     class_id: int
     class_name: str
+    class_enabled: bool
     role_id: int
     role: RoleType
     user_is_creator: bool
@@ -175,6 +176,7 @@ def _get_auth_from_session() -> AuthData:
         class_data = ClassData(
             class_id=row['class_id'],
             class_name=row['name'],
+            class_enabled=row['enabled'],
             role_id=row['role_id'],
             role=row['role'],
             user_is_creator=(user_id == row['creator_user_id']),
@@ -189,10 +191,11 @@ def _get_auth_from_session() -> AuthData:
 
     # admin gets instructor/creator role in all classes automatically
     if user.is_admin and cur_class is None and sess_class_id is not None:
-        class_row = db.execute("SELECT name FROM classes WHERE id=?", [sess_class_id]).fetchone()
+        class_row = db.execute("SELECT name, enabled FROM classes WHERE id=?", [sess_class_id]).fetchone()
         cur_class = ClassData(
             class_id=sess_class_id,
             class_name=class_row['name'],
+            class_enabled=class_row['enabled'],
             role_id=-1,
             role='instructor',
             user_is_creator=True,
