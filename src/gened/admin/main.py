@@ -257,7 +257,7 @@ def main() -> str:
             # but we can skip providing an ajax URL if we have less than the limit, because that must be all the data
             table_spec = replace(table_spec, ajax_url=url_for('.get_data', name=name, kind='json', offset=init_rows, limit=limit-init_rows, **request.args))  # type: ignore[arg-type]
 
-        table = DataTable(spec=source.table_spec, data=data)
+        table = DataTable(spec=table_spec, data=data)
         tables.append(table)
 
     return render_template(
