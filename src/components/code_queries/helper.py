@@ -26,14 +26,14 @@ from components.code_contexts import (
     get_context_string_by_id,
     record_context_string,
 )
-from gened.app_data import DataAccessError
-from gened.auth import (
+from gened.access import (
     admin_required,
     class_enabled_required,
-    get_auth,
     login_required,
     tester_required,
 )
+from gened.app_data import DataAccessError
+from gened.auth import get_auth
 from gened.classes import switch_class
 from gened.db import get_db
 from gened.llm import LLM, with_llm

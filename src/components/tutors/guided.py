@@ -16,7 +16,7 @@ from flask import (
 from markupsafe import Markup
 from werkzeug.datastructures import ImmutableMultiDict
 
-from gened.auth import instructor_required
+from gened.access import instructor_required
 from gened.class_config.types import (
     ConfigItem,
     ConfigShareLink,

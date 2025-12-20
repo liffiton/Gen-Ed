@@ -14,7 +14,8 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from .auth import get_auth, login_required
+from .access import login_required
+from .auth import get_auth
 from .db import get_db
 
 bp = Blueprint('models', __name__, url_prefix="/models", template_folder='templates')
@@ -33,7 +34,6 @@ def _make_unique_model_shortname(shortname: str, owner_id: int, id: int = -1) ->
     Given a shortname, current owner of the model, id of the model. Return a
     shortname that is unique within that class.
     """
-
     db = get_db()
 
     new_shortname = shortname

@@ -4,7 +4,7 @@
 
 from flask import Blueprint
 
-from gened.auth import admin_required
+from gened.access import admin_required
 
 from . import (  # noqa: F401 -- Importing these modules registers routes
     consumers,

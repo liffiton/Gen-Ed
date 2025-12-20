@@ -16,8 +16,9 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
+from gened.access import class_enabled_required, login_required
 from gened.app_data import DataAccessError
-from gened.auth import class_enabled_required, get_auth, login_required
+from gened.auth import get_auth
 from gened.db import get_db
 from gened.llm import LLM, with_llm
 

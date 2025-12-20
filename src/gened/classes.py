@@ -28,7 +28,8 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from .auth import get_auth, login_required, set_session_auth_class
+from .access import login_required
+from .auth import get_auth, set_session_auth_class
 from .db import get_db
 from .redir import safe_redirect_next
 from .tz import date_is_past

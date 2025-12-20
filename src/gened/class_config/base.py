@@ -17,7 +17,8 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from gened.auth import get_auth, get_auth_class, instructor_required
+from gened.access import instructor_required
+from gened.auth import get_auth, get_auth_class
 from gened.components import get_registered_components
 from gened.db import get_db
 from gened.llm import LLM, get_models, with_llm

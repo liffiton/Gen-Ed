@@ -17,7 +17,8 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from .auth import generate_anon_username, get_auth, login_required
+from .access import login_required
+from .auth import generate_anon_username, get_auth
 from .components import get_component_data_source_by_name, get_registered_components
 from .csv import csv_response
 from .data_deletion import delete_user_data

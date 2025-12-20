@@ -26,8 +26,9 @@ from components.code_contexts import (
     get_available_contexts,
     get_context_by_name,
 )
+from gened.access import class_enabled_required, login_required
 from gened.app_data import DataAccessError
-from gened.auth import class_enabled_required, get_auth, login_required
+from gened.auth import get_auth
 from gened.classes import switch_class
 from gened.db import get_db
 from gened.experiments import experiment_required
