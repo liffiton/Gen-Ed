@@ -110,4 +110,5 @@ ignore = "T001,H021,H023,H030,H031"
 [tool.mypy]
 files = [ "src/", "tests/" ]
 strict = "True"
+enable_error_code = "unreachable, deprecated, redundant-expr, possibly-undefined, truthy-bool, truthy-iterable"
 pretty = "True"

@@ -113,11 +113,12 @@ def create_user_class(user_id: int, class_name: str, llm_api_key: str) -> int:
     db = get_db()
 
     # generate a new, unique, unguessable link identifier
-    is_unique = False
-    while not is_unique:
+    while True:
         link_ident = secrets.token_urlsafe(8)
         match_row = db.execute("SELECT 1 FROM classes_user WHERE link_ident=?", [link_ident]).fetchone()
         is_unique = not match_row
+        if is_unique:
+            break
 
     cur = db.execute("INSERT INTO classes (name) VALUES (?)", [class_name])
     class_id = cur.lastrowid

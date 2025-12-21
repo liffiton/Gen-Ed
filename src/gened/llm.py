@@ -102,7 +102,7 @@ class LLM:
             response, response_txt = await self.get_completion(messages=messages, extra_args=extra_args)
             messages.append({'role': 'assistant', 'content': response_txt})
 
-        return response, response_txt
+        return response, response_txt  # type: ignore [possibly-undefined] # these are fine as long as user_prompts is not empty
 
 
 class ClassDisabledError(Exception):

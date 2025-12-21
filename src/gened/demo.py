@@ -52,12 +52,13 @@ def demo_register_user(demo_name: str) -> str | Response:
         return render_template("error.html")
 
     # Find demo username w/ an unused number.
-    got_one = False
-    while not got_one:
+    while True:
         new_num = random.randrange(10**4, 10**5)  # a new 5-digit number
         new_username = f"demo_{demo_name}_{new_num}"
         check_user = db.execute("SELECT * FROM users WHERE auth_name=?", [new_username]).fetchone()
         got_one = not check_user
+        if got_one:
+            break
 
     # Register the new user and update the usage count for this demo link
     query_tokens = demo_row['tokens']  # default number of tokens for this demo link
