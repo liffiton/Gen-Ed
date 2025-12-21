@@ -16,13 +16,12 @@ from flask import (
 from markupsafe import Markup
 from werkzeug.datastructures import ImmutableMultiDict
 
-from gened.access import instructor_required
+from gened.access import RequireExperiment, instructor_required, route_requires
 from gened.class_config.types import (
     ConfigItem,
     ConfigShareLink,
     ConfigTable,
 )
-from gened.experiments import experiment_required
 from gened.llm import LLM, ChatMessage, with_llm
 
 from . import prompts
@@ -34,7 +33,7 @@ DEFAULT_QUESTIONS_PER_OBJECTIVE = 4
 bp = Blueprint('guided', __name__, url_prefix=None, template_folder='templates')
 
 @bp.before_request
-@experiment_required("chats_experiment")
+@route_requires(RequireExperiment("chats_experiment"))
 @instructor_required
 def before_request() -> None:
     """ Apply decorators to protect all blueprint endpoints.

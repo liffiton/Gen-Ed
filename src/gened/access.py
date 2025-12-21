@@ -3,12 +3,13 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from collections.abc import Callable
-from enum import Flag, auto
+from dataclasses import dataclass
+from enum import Enum, auto
 from functools import wraps
-from typing import ParamSpec, TypeVar
+from typing import ParamSpec, TypeVar, assert_never
 
 from flask import (
-    abort,
+    current_app,
     flash,
     make_response,
     redirect,
@@ -18,118 +19,135 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from .auth import AuthData, get_auth
+from .auth import get_auth
+
+# Access controls.
+# Any blueprint, route, or bit of functionality may require one or more of these conditions.
+# Using Enum for the simple (non-data-carrying) kinds; dataclasses for those carrying data.
+
+class Access(Enum):
+    LOGIN = auto()          # User is logged in
+    CLASS_ENABLED = auto()  # User's current class is enabled (or there is no current class)
+    INSTRUCTOR = auto()     # User has an instructor role in the current class
+    ADMIN = auto()          # User is an admin
+    TESTER = auto()         # User is a tester
+
+# User's current class is included in the named experiment
+@dataclass
+class RequireExperiment:
+    name: str
+
+# Combined access control type for use when specifying requirements
+AccessControl = Access | RequireExperiment
 
 
-# Access levels.
-# Any blueprint, route, or bit of functionality may require one or more of these.
-class Access(Flag):
-    LOGIN = auto()
-    INSTRUCTOR = auto()
-    ADMIN = auto()
-    TESTER = auto()
-    CLASS_ENABLED = auto()
-
-
-def check_login(auth: AuthData) -> Response | None:
-    '''Redirect to login if user is not logged in.'''
-    if not auth.user:
-        flash("Login required.", "warning")
-        return redirect(url_for('auth.login', next=request.full_path))
-    return  None
-
-
-def check_instructor(auth: AuthData) -> Response | None:
-    '''Redirect to login if user is not an instructor in the current class.'''
-    if auth.cur_class is None or auth.cur_class.role != "instructor":
-        flash("Instructor login required.", "warning")
-        return redirect(url_for('auth.login', next=request.full_path))
-    return None
-
-
-def check_admin(auth: AuthData) -> Response | None:
-    '''Redirect to login if user is not an admin.'''
-    if not auth.is_admin:
-        flash("Login required.", "warning")
-        return redirect(url_for('auth.login', next=request.full_path))
-    return None
-
-
-def check_tester(auth: AuthData) -> None:
-    '''Hide the route if user is not a tester.'''
-    if not auth.is_tester:
-        abort(404)
-
-
-def check_class_enabled(auth: AuthData) -> Response | None:
-    '''Display an error if there is an active class but it is not enabled.'''
-    if auth.cur_class is None:
-        # No active class, no problem
-        return None
-
-    # Otherwise, there's an active class, so we require it to be enabled.
-    if not auth.cur_class.class_enabled:
-        flash("The current class is archived or disabled.  New requests cannot be made.", "warning")
-        return make_response(render_template("error.html"))
-
-    return None
-
-
-# Checks will be made in the order they are stored in this dict
-# (relying on dicts keeping/using insertion order)
-ACCESS_CHECKS: dict[Access, Callable[[AuthData], Response | None]] = {
-    Access.LOGIN: check_login,
-    Access.INSTRUCTOR: check_instructor,
-    Access.ADMIN: check_admin,
-    Access.TESTER: check_tester,
-    Access.CLASS_ENABLED: check_class_enabled,
-}
-
-
-def check_access(required: Access) -> Response | None:
-    """
-    Check if user meets the required access levels.
-    Redirects with flash message if access denied.
-
-    Args:
-        required: Combined Access flags to check
-
-    Returns:
-        Response object if access denied, None otherwise
-    """
+def check_one_access_control(control: AccessControl) -> bool:
     auth = get_auth()
 
-    for level, check_func in ACCESS_CHECKS.items():
-        if level in required:
-            result = check_func(auth)
-            if result is not None:
-                return result
+    match control:
+        case Access.LOGIN:
+            return auth.user is not None
+        case Access.CLASS_ENABLED:
+            return auth.cur_class is None or auth.cur_class.class_enabled
+        case Access.INSTRUCTOR:
+            return auth.cur_class is not None and auth.cur_class.role == "instructor"
+        case Access.ADMIN:
+            return auth.is_admin
+        case Access.TESTER:
+            return auth.is_tester
+        case RequireExperiment(name=name):
+            return name in auth.class_experiments or auth.is_admin  # admins are allowed to access any experiment anywhere
+
+    assert_never(control)  # ensure above is exhaustive
+
+
+def _find_first_failed_access_control(*required: AccessControl) -> AccessControl | None:
+    """
+    Check a set of required access controls.
+
+    Args:
+        A variable number of AccessControl values, each specifying one control to apply.
+
+    If a specific AccessControl check fails, returns that AccessControl.
+    Returns None otherwise.
+    """
+    # currently, all checks depend on being logged in, so include that first if not present
+    required_list: list[AccessControl] = list(required)
+    if Access.LOGIN not in required_list:
+        required_list.insert(0, Access.LOGIN)
+
+    for control in required_list:
+        if not check_one_access_control(control):
+            return control
 
     return None
+
+
+def check_access(*required: AccessControl) -> bool:
+    """
+    Check a set of required access controls.
+
+    Args:
+        A variable number of AccessControl values, each specifying one control to apply.
+
+    Returns True if all pass, False otherwise.
+    Uses internal _find_first_failed... function to implement correct/consistent check logic.
+    """
+    return _find_first_failed_access_control(*required) is None
+
+
+def _handle_route_check_failure(control_type: AccessControl) -> Response:
+    """ Handle the failure of a given access control check for a route request. """
+    match control_type:
+        case Access.LOGIN | Access.INSTRUCTOR | Access.ADMIN:
+            # redirect to login if user is not logged in or has wrong role.
+            flash("Login required.", "warning")
+            return redirect(url_for('auth.login', next=request.full_path))
+        case Access.TESTER:
+            # hide the route if the user is not a tester
+            return make_response("", 404)
+        case Access.CLASS_ENABLED:
+            # display an error if there is an active class but it is not enabled.
+            flash("The current class is archived or disabled.  New requests cannot be made.", "warning")
+            return make_response(render_template("error.html"), 400)
+        case RequireExperiment():
+            flash("Cannot access the specified resource.", "warning")
+            flash(f"Make sure you log in to {current_app.config['APPLICATION_TITLE']} from the correct class before using this link.", "warning")
+            return make_response(render_template("error.html"), 400)
+
+    assert_never(control_type)  # ensure above is exhaustive
 
 
 # For decorator type hints
 P = ParamSpec('P')
 R = TypeVar('R')
 
-def require_access(required: Access) -> Callable[[Callable[P, R]], Callable[P, Response | R]]:
-    """Decorator that checks if user meets access requirements for a single route."""
+def route_requires(*required: AccessControl) -> Callable[[Callable[P, R]], Callable[P, Response | R]]:
+    """
+    Decorator that checks if user meets access requirements for a single route.
+
+    Args:
+        A variable number of AccessControl values, each specifying one control to apply.
+
+    The decorated function returns a specific check failure response if any requirement fails.
+    """
     def decorator(f: Callable[P, R]) -> Callable[P, Response | R]:
         @wraps(f)
         def decorated_function(*args: P.args, **kwargs: P.kwargs) -> Response | R:
-            result = check_access(required)
-            if result is not None:
-                return result
-            return f(*args, **kwargs)
+            failed_control = _find_first_failed_access_control(*required)
+            if failed_control is None:
+                return f(*args, **kwargs)
+            else:
+                return _handle_route_check_failure(failed_control)
         return decorated_function
     return decorator
 
 
 # Define existing decorators for backwards-compatibility
-# (TODO: phase these out, use require_access directly)
-login_required = require_access(Access.LOGIN)
-instructor_required = require_access(Access.INSTRUCTOR)
-admin_required = require_access(Access.ADMIN)
-tester_required = require_access(Access.TESTER)
-class_enabled_required = require_access(Access.CLASS_ENABLED)
+# (TODO: phase these out, use route_requires directly)
+login_required = route_requires(Access.LOGIN)
+instructor_required = route_requires(Access.INSTRUCTOR)
+admin_required = route_requires(Access.ADMIN)
+tester_required = route_requires(Access.TESTER)
+class_enabled_required = route_requires(Access.CLASS_ENABLED)
 

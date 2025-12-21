@@ -2,15 +2,9 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from collections.abc import Callable
-from functools import wraps
-from typing import ParamSpec, TypeVar
-
 from flask import (
     Blueprint,
-    current_app,
     flash,
-    make_response,
     redirect,
     render_template,
     request,
@@ -19,33 +13,8 @@ from flask import (
 from werkzeug.wrappers.response import Response
 
 from . import admin
-from .auth import get_auth
 from .db import get_db
 from .tables import Action, Col, DataTable, DataTableSpec, NumCol
-
-# Decorator for routes designated as part of an experiment
-# Controls access to experiments based on the current class
-P = ParamSpec('P')  # decorator type hint
-R = TypeVar('R')    # decorator type hint
-def experiment_required(experiment_name: str) -> Callable[[Callable[P, R]], Callable[P, Response | R]]:
-    '''400 error if the current class is not registered in the specified experiment.'''
-    def decorator(f: Callable[P, R]) -> Callable[P, Response | R]:
-        @wraps(f)
-        def decorated_function(*args: P.args, **kwargs: P.kwargs) -> Response | R:
-            auth = get_auth()
-            if not auth.user:
-                flash("Login required.", "warning")
-                return redirect(url_for('auth.login', next=request.full_path))
-            if experiment_name in auth.class_experiments or auth.is_admin:
-                return f(*args, **kwargs)
-            else:
-                config = current_app.config
-                flash("Cannot access the specified resource.", "warning")
-                flash(f"Make sure you log in to {config['APPLICATION_TITLE']} from the correct class before using this link.", "warning")
-                return make_response(render_template("error.html"), 400)
-        return decorated_function
-    return decorator
-
 
 # ### Admin routes ###
 # Auth requirements covered by admin.before_request()

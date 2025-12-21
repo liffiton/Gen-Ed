@@ -26,12 +26,16 @@ from components.code_contexts import (
     get_available_contexts,
     get_context_by_name,
 )
-from gened.access import class_enabled_required, login_required
+from gened.access import (
+    RequireExperiment,
+    class_enabled_required,
+    login_required,
+    route_requires,
+)
 from gened.app_data import DataAccessError
 from gened.auth import get_auth
 from gened.classes import switch_class
 from gened.db import get_db
-from gened.experiments import experiment_required
 from gened.llm import LLM, ChatMessage, with_llm
 
 from . import prompts
@@ -42,7 +46,7 @@ bp = Blueprint('tutors', __name__, url_prefix='/tutor', template_folder='templat
 
 
 @bp.before_request
-@experiment_required("chats_experiment")
+@route_requires(RequireExperiment("chats_experiment"))
 @login_required
 def before_request() -> None:
     """Apply decorators to protect all tutor blueprint endpoints.
