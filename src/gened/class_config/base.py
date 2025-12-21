@@ -17,7 +17,7 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from gened.access import instructor_required
+from gened.access import Access, control_blueprint_access
 from gened.auth import get_auth, get_auth_class
 from gened.components import get_registered_components
 from gened.db import get_db
@@ -40,7 +40,7 @@ def build_blueprint() -> Blueprint:
     new_bp = Blueprint('class_config', __name__, template_folder='templates')
 
     # Apply instructor_required to protect all class_config blueprint endpoints.
-    new_bp.before_request(instructor_required(lambda: None))
+    control_blueprint_access(new_bp, Access.INSTRUCTOR)
 
     new_bp.register_blueprint(bp)
 

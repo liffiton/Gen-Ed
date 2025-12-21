@@ -27,7 +27,7 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from .access import instructor_required
+from .access import Access, control_blueprint_access
 from .app_data import Filters
 from .auth import get_auth_class
 from .classes import switch_class
@@ -40,10 +40,8 @@ from .tables import BoolCol, DataTable, DataTableSpec, NumCol, UserCol
 
 bp = Blueprint('instructor', __name__, template_folder='templates')
 
-@bp.before_request
-@instructor_required
-def before_request() -> None:
-    """ Apply decorator to protect all instructor blueprint endpoints. """
+# require instructor role for all blueprint routes
+control_blueprint_access(bp, Access.INSTRUCTOR)
 
 
 def _make_class_filters(user_id: int | None = None) -> Filters:

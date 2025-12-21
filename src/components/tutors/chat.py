@@ -29,8 +29,7 @@ from components.code_contexts import (
 from gened.access import (
     RequireExperiment,
     class_enabled_required,
-    login_required,
-    route_requires,
+    control_blueprint_access,
 )
 from gened.app_data import DataAccessError
 from gened.auth import get_auth
@@ -44,15 +43,8 @@ from .guided import TutorConfig
 
 bp = Blueprint('tutors', __name__, url_prefix='/tutor', template_folder='templates')
 
-
-@bp.before_request
-@route_requires(RequireExperiment("chats_experiment"))
-@login_required
-def before_request() -> None:
-    """Apply decorators to protect all tutor blueprint endpoints.
-    Use @experiment_required first so that non-logged-in users get an error
-    rather than a redirect to login.
-    """
+# Require the chats experiment for all routes in this blueprint
+control_blueprint_access(bp, RequireExperiment("chats_experiment"))
 
 
 @bp.route("/new")

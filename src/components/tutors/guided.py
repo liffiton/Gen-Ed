@@ -16,7 +16,7 @@ from flask import (
 from markupsafe import Markup
 from werkzeug.datastructures import ImmutableMultiDict
 
-from gened.access import RequireExperiment, instructor_required, route_requires
+from gened.access import Access, RequireExperiment, control_blueprint_access
 from gened.class_config.types import (
     ConfigItem,
     ConfigShareLink,
@@ -32,13 +32,8 @@ DEFAULT_QUESTIONS_PER_OBJECTIVE = 4
 
 bp = Blueprint('guided', __name__, url_prefix=None, template_folder='templates')
 
-@bp.before_request
-@route_requires(RequireExperiment("chats_experiment"))
-@instructor_required
-def before_request() -> None:
-    """ Apply decorators to protect all blueprint endpoints.
-    Use @experiment_required first so that non-logged-in users get a 404 as well.
-    """
+# Require the chats experiment and an instructor role for all routes in this blueprint
+control_blueprint_access(bp, RequireExperiment("chats_experiment"), Access.INSTRUCTOR)
 
 
 @dataclass

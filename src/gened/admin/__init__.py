@@ -4,7 +4,7 @@
 
 from flask import Blueprint
 
-from gened.access import admin_required
+from gened.access import Access, control_blueprint_access
 
 from . import (  # noqa: F401 -- Importing these modules registers routes
     consumers,
@@ -20,10 +20,8 @@ from .component_registry import (
 
 bp = Blueprint('admin', __name__, template_folder='templates')
 
-@bp.before_request
-@admin_required
-def before_request() -> None:
-    """ Apply decorator to protect all admin blueprint endpoints. """
+# Require admin account for all routes in the blueprint
+control_blueprint_access(bp, Access.ADMIN)
 
 # Register the admin blueprint
 register_admin_blueprint(bp)

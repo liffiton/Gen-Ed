@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import pytest
 from flask import Flask
 from flask.testing import FlaskCliRunner
+from werkzeug.test import TestResponse
 
 from gened.auth import get_auth
 from tests.conftest import AppClient
@@ -161,48 +162,48 @@ def test_logout(client: AppClient) -> None:
     ('/help/', 302, 200, 200),
     ('/help/view/1', 302, (400, "Invalid id."), (200, "response01")),
     ('/help/view/999', 302, (400, "Invalid id."), (400, "Invalid id.")),
-    ('/tutor/new', 302, 200, 200),
-    ('/tutor/1', 302, (200, "user_msg_1"), (200, "user_msg_1")),
-    ('/tutor/2', 302, (200, "user_msg_2"), (200, "user_msg_2")),
-    ('/tutor/3', 302, (400, "Invalid id."), (200, "user_msg_3")),
-    ('/tutor/999', 302, (400, "Invalid id."), (400, "Invalid id.")),
+    ('/tutor/new', (400, "Cannot access the specified resource."), 200, 200),
+    ('/tutor/1', (400, "Cannot access the specified resource."), (200, "user_msg_1"), (200, "user_msg_1")),
+    ('/tutor/2', (400, "Cannot access the specified resource."), (200, "user_msg_2"), (200, "user_msg_2")),
+    ('/tutor/3', (400, "Cannot access the specified resource."), (400, "Invalid id."), (200, "user_msg_3")),
+    ('/tutor/999', (400, "Cannot access the specified resource."), (400, "Invalid id."), (400, "Invalid id.")),
     ('/admin/', 302, 302, 200),         # admin_required redirects to login
     ('/admin/get_db/', 302, 302, 200),   # admin_required redirects to login
 ])
 def test_auth_required(
         client: AppClient,
         path: str,
-        nologin: int,
+        nologin: int | tuple[int, str],
         withlogin: int | tuple[int, str],
         withadmin: int | tuple[int, str],
     ) -> None:
+
+    def check_response(response: TestResponse, expected: int | tuple[int, str]) -> None:
+        if isinstance(expected, tuple):
+            assert response.status_code == expected[0]
+            assert expected[1] in response.text
+        else:
+            assert response.status_code == expected
+            if expected == 302:
+                assert response.location.startswith('/auth/login')
+
     response = client.get(path)
-    assert response.status_code == nologin
+    check_response(response, nologin)
 
     client.login()  # defaults to testuser (id 11)
     client.get('/classes/switch/2')  # switch to class 2 (where the chats are registered)
 
     response = client.get(path)
-    if isinstance(withlogin, tuple):
-        assert response.status_code == withlogin[0]
-        assert withlogin[1] in response.text
-    else:
-        assert response.status_code == withlogin
-        if withlogin == 302:
-            assert response.location.startswith('/auth/login')
+    check_response(response, withlogin)
 
     client.logout()
     response = client.get(path)
-    assert response.status_code == nologin
+    check_response(response, nologin)
 
     client.login('testadmin', 'testadminpassword')
     response = client.get(path)
-    if isinstance(withadmin, tuple):
-        assert response.status_code == withadmin[0]
-        assert withadmin[1] in response.text
-    else:
-        assert response.status_code == withadmin
+    check_response(response, withadmin)
 
     client.logout()
     response = client.get(path)
-    assert response.status_code == nologin
+    check_response(response, nologin)

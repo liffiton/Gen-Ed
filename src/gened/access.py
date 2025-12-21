@@ -9,6 +9,7 @@ from functools import wraps
 from typing import ParamSpec, TypeVar, assert_never
 
 from flask import (
+    Blueprint,
     current_app,
     flash,
     make_response,
@@ -32,7 +33,7 @@ class Access(Enum):
     ADMIN = auto()          # User is an admin
     TESTER = auto()         # User is a tester
 
-# User's current class is included in the named experiment
+# User's current class is included in the named experiment (or user is an admin)
 @dataclass
 class RequireExperiment:
     name: str
@@ -48,7 +49,7 @@ def check_one_access_control(control: AccessControl) -> bool:
         case Access.LOGIN:
             return auth.user is not None
         case Access.CLASS_ENABLED:
-            return auth.cur_class is None or auth.cur_class.class_enabled
+            return auth.cur_class is None or auth.cur_class.class_enabled  # no current class also okay
         case Access.INSTRUCTOR:
             return auth.cur_class is not None and auth.cur_class.role == "instructor"
         case Access.ADMIN:
@@ -71,12 +72,7 @@ def _find_first_failed_access_control(*required: AccessControl) -> AccessControl
     If a specific AccessControl check fails, returns that AccessControl.
     Returns None otherwise.
     """
-    # currently, all checks depend on being logged in, so include that first if not present
-    required_list: list[AccessControl] = list(required)
-    if Access.LOGIN not in required_list:
-        required_list.insert(0, Access.LOGIN)
-
-    for control in required_list:
+    for control in required:
         if not check_one_access_control(control):
             return control
 
@@ -142,7 +138,6 @@ def route_requires(*required: AccessControl) -> Callable[[Callable[P, R]], Calla
         return decorated_function
     return decorator
 
-
 # Define existing decorators for backwards-compatibility
 # (TODO: phase these out, use route_requires directly)
 login_required = route_requires(Access.LOGIN)
@@ -150,4 +145,20 @@ instructor_required = route_requires(Access.INSTRUCTOR)
 admin_required = route_requires(Access.ADMIN)
 tester_required = route_requires(Access.TESTER)
 class_enabled_required = route_requires(Access.CLASS_ENABLED)
+
+
+def control_blueprint_access(bp: Blueprint, *required: AccessControl) -> None:
+    """
+    Applies access requirements to every route in a given blueprint.
+
+    Args:
+        bp: A Flask blueprint to which to add access controls.
+        *required: A variable number of AccessControl values, each specifying one control to apply.
+
+    Modifies the blueprint in place, updating its `before_request` to add access control to every route.
+    """
+    @bp.before_request
+    @route_requires(*required)
+    def protect_all_routes() -> None:
+        pass
 

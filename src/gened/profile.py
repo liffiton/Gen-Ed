@@ -17,7 +17,7 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from .access import login_required
+from .access import Access, control_blueprint_access
 from .auth import generate_anon_username, get_auth
 from .components import get_component_data_source_by_name, get_registered_components
 from .csv import csv_response
@@ -28,10 +28,8 @@ from .tables import Action, Col, DataTable, DataTableSpec, NumCol
 
 bp = Blueprint('profile', __name__, template_folder='templates')
 
-@bp.before_request
-@login_required
-def before_request() -> None:
-    """ Apply decorator to protect all profile blueprint endpoints. """
+# Require login for all blueprint routes
+control_blueprint_access(bp, Access.LOGIN)
 
 
 @bp.route("/")

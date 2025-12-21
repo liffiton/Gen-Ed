@@ -14,16 +14,15 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from .access import login_required
+from .access import Access, control_blueprint_access
 from .auth import get_auth
 from .db import get_db
 
 bp = Blueprint('models', __name__, url_prefix="/models", template_folder='templates')
 
-@bp.before_request
-@login_required
-def before_request() -> None:
-    """ Apply decorator to protect all models blueprint endpoints. """
+# Require login for all routes in the blueprint
+control_blueprint_access(bp, Access.LOGIN)
+
 
 @bp.route("/new")
 def new_model() -> str:
