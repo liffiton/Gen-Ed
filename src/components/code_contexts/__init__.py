@@ -22,11 +22,15 @@ bp = Blueprint('contexts', __name__, template_folder='templates')
 
 gened_component = GenEdComponent(
     package=__package__,
+    name="contexts",
+    display_name="Code Contexts",
+    description="Instructors can define multiple contexts that can be provide to LLMs along with individual queries or chats.",
     blueprint=bp,
     config_table=contexts_config_table,
     deletion_handler=ContextsDeletionHandler,
     schema_file="schema.sql",
     migrations_dir="migrations",
+    always_enabled=True,  # always on, not toggleable by instructors
 )
 
 __all__ = [

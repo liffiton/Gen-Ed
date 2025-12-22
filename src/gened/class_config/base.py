@@ -143,12 +143,15 @@ def config_form() -> str:
     else:
         link_reg_state = "date"
 
+    models = get_models(plus_id=class_row['model_id'])
+
     # Add config sections for registered components
     extra_sections_data = []
-    for component in get_registered_components():
+    components = get_registered_components()
+    for component in components:
         if not (config_table := component.config_table):
             continue
-        if not component.is_available():
+        if not (component.is_available() and component.is_enabled()):
             continue
 
         extra_section = {
@@ -157,9 +160,9 @@ def config_form() -> str:
         }
         extra_sections_data.append(extra_section)
 
-    models = get_models(plus_id=class_row['model_id'])
+    toggleable_components = [c for c in components if not c.always_enabled]
 
-    return render_template("instructor_class_config.html", class_row=class_row, link_reg_state=link_reg_state, user_is_creator=cur_class.user_is_creator, models=models, extra_sections_data=extra_sections_data)
+    return render_template("instructor_class_config.html", class_row=class_row, link_reg_state=link_reg_state, user_is_creator=cur_class.user_is_creator, models=models, components=toggleable_components, extra_sections_data=extra_sections_data)
 
 
 @bp.route("/save/access", methods=["POST"])
@@ -230,11 +233,46 @@ def test_llm(llm: LLM) -> str:
     response, response_txt = asyncio.run(llm.get_completion(prompt="Please write 'OK'"))
 
     if 'error' in response:
+        auth = get_auth()
+        current_app.logger.warning(f"LLM test failed for user {auth.user_id}. Response: {response}")
         return f"<b>Error:</b><br>{response_txt}"
     else:
         if response_txt != "OK":
             current_app.logger.error(f"LLM check had no error but responded not 'OK'?  Response: {response_txt}")
         return "ok"
+
+
+@bp.route("/save/component_enabled", methods=["POST"])
+def save_component_enabled() -> Response:
+    db = get_db()
+
+    # only trust class_id from auth, not from user
+    cur_class = get_auth_class()
+    class_id = cur_class.class_id
+
+    # get a setting for every toggleable component (unset checkboxes send nothing, so we use a default of False)
+    components = get_registered_components()
+    component_form = {
+        component.package: request.form.get(f"{component.package}_enabled", False)
+        for component in components
+        if not component.always_enabled
+    }
+
+    # update all settings in the DB
+    for name, value in component_form.items():
+        if value:
+            # Default is enabled, so store nothing.
+            db.execute("DELETE FROM class_components WHERE class_id=? AND component_name=?", [class_id, name])
+        else:
+            # Record that this component is disabled.
+            db.execute("""
+                INSERT INTO class_components(class_id, component_name, enabled)
+                VALUES(?, ?, 0)
+                ON CONFLICT DO UPDATE SET enabled=0
+            """, [class_id, name])
+    db.commit()
+
+    return safe_redirect(request.referrer, default_endpoint="profile.main")
 
 
 @bp.route("/lti_content_select")

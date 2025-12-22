@@ -2,11 +2,13 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from collections.abc import Callable
+# pre-3.14, this allows us to avoid quoting types defined in the if TYPE_CHECKING block
+from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum, auto
 from functools import wraps
-from typing import ParamSpec, TypeVar, assert_never
+from typing import TYPE_CHECKING, ParamSpec, TypeVar, assert_never
 
 from flask import (
     Blueprint,
@@ -18,9 +20,16 @@ from flask import (
     request,
     url_for,
 )
-from werkzeug.wrappers.response import Response
 
 from .auth import get_auth
+
+# avoid a circular import w/ components
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from werkzeug.wrappers.response import Response
+
+    from .components import GenEdComponent
 
 # Access controls.
 # Any blueprint, route, or bit of functionality may require one or more of these conditions.
@@ -38,11 +47,16 @@ class Access(Enum):
 class RequireExperiment:
     name: str
 
+# The given component is enabled in the user's current class
+@dataclass
+class RequireComponentEnabled:
+    component: GenEdComponent
+
 # Combined access control type for use when specifying requirements
-AccessControl = Access | RequireExperiment
+AccessControl = Access | RequireExperiment | RequireComponentEnabled
 
 
-def check_one_access_control(control: AccessControl) -> bool:
+def check_one_access_control(control: AccessControl) -> bool:  # noqa: PLR0911 - lots of return stmts needed here
     auth = get_auth()
 
     match control:
@@ -58,6 +72,8 @@ def check_one_access_control(control: AccessControl) -> bool:
             return auth.is_tester
         case RequireExperiment(name=name):
             return name in auth.class_experiments or auth.is_admin  # admins are allowed to access any experiment anywhere
+        case RequireComponentEnabled(component=component):
+            return component.is_enabled()
 
     assert_never(control)  # ensure above is exhaustive
 
@@ -106,7 +122,7 @@ def _handle_route_check_failure(control_type: AccessControl) -> Response:
             # display an error if there is an active class but it is not enabled.
             flash("The current class is archived or disabled.  New requests cannot be made.", "warning")
             return make_response(render_template("error.html"), 400)
-        case RequireExperiment():
+        case RequireExperiment() | RequireComponentEnabled():
             flash("Cannot access the specified resource.", "warning")
             flash(f"Make sure you log in to {current_app.config['APPLICATION_TITLE']} from the correct class before using this link.", "warning")
             return make_response(render_template("error.html"), 400)

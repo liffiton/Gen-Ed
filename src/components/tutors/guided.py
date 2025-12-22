@@ -17,7 +17,7 @@ from flask import (
 from markupsafe import Markup
 from werkzeug.datastructures import ImmutableMultiDict
 
-from gened.access import Access, RequireExperiment, control_blueprint_access
+from gened.access import Access, control_blueprint_access
 from gened.class_config.types import (
     ConfigItem,
     ConfigShareLink,
@@ -33,8 +33,9 @@ DEFAULT_QUESTIONS_PER_OBJECTIVE = 4
 
 bp = Blueprint('guided', __name__, url_prefix=None, template_folder='templates')
 
-# Require the chats experiment and an instructor role for all routes in this blueprint
-control_blueprint_access(bp, RequireExperiment("chats_experiment"), Access.INSTRUCTOR)
+# Blueprint default access controls set in __init__ via availability_requirements
+# Additionally require an instructor role for all routes in this blueprint
+control_blueprint_access(bp, Access.INSTRUCTOR)
 
 
 @dataclass
@@ -96,7 +97,6 @@ guided_tutor_config_table = ConfigTable(
             'Focused tutor chat',
             'tutors.new_chat_form',
             {'class_id', 'tutor_name'},
-            requires_experiment='chats_experiment',
         ),
     ],
     extra_routes=bp,

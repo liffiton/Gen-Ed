@@ -22,13 +22,9 @@ SPDX-License-Identifier: AGPL-3.0-only
           </span>
           Chat with an AI Tutor
           {% if auth.user %}
-            {% if "chats_experiment" in auth.class_experiments %}
-              <a class="button is-link ml-3 mt-1" href="{{ url_for('tutors.new_chat_form') }}">
-                Try it now
-              </a>
-            {% else %}
-              <span class="ml-4 has-text-grey is-italic is-size-5">(Not enabled for the current class)</span>
-            {% endif %}
+            <a class="button is-link ml-3 mt-1" href="{{ url_for('tutors.new_chat_form') }}">
+              Try it now
+            </a>
           {% endif %}
         </h2>
         <p>Work with focused tutors created by your instructor to help you learn and practice a particular concept.  Or have a chat with a tutor on a topic of your choice.</p>

@@ -26,11 +26,7 @@ from components.code_contexts import (
     get_available_contexts,
     get_context_by_name,
 )
-from gened.access import (
-    RequireExperiment,
-    class_enabled_required,
-    control_blueprint_access,
-)
+from gened.access import class_enabled_required
 from gened.app_data import DataAccessError
 from gened.auth import get_auth
 from gened.classes import switch_class
@@ -43,8 +39,7 @@ from .guided import TutorConfig
 
 bp = Blueprint('tutors', __name__, url_prefix='/tutor', template_folder='templates')
 
-# Require the chats experiment for all routes in this blueprint
-control_blueprint_access(bp, RequireExperiment("chats_experiment"))
+# NOTE: Blueprint default access controls set in __init__ via availability_requirements
 
 
 @bp.route("/new")

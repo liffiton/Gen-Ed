@@ -28,6 +28,10 @@ from .types import ConfigItem
 
 
 def create_blueprint() -> Blueprint:
+    """
+    Create a blueprint for all component config tables' extra routes.
+    Parent blueprint (in base.py) already adds INSTRUCTOR access control.
+    """
     bp = create_base_blueprint()
     bp.register_blueprint(crud_bp)
 

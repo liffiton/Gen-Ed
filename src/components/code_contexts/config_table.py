@@ -37,7 +37,6 @@ contexts_config_table = ConfigTable(
             'Inquiry chat',
             'tutors.new_chat_form',
             {'class_id', 'ctx_name'},
-            requires_experiment='chats_experiment',
         ),
     ]
 )

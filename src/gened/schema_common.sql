@@ -188,3 +188,15 @@ CREATE TABLE experiment_class (
 CREATE INDEX exp_crs_experiment_idx ON experiment_class(experiment_id);
 CREATE INDEX exp_crs_class_idx ON experiment_class(class_id);
 
+
+-- Enable/disable components per-class (if no row here, use default state for the component)
+CREATE TABLE class_components (
+    class_id INTEGER NOT NULL,
+    component_name TEXT NOT NULL,
+    enabled BOOLEAN NOT NULL CHECK (enabled IN (0, 1)),
+    created DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (class_id, component_name),
+    FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE
+);
+

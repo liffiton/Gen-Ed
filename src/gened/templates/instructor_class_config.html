@@ -264,6 +264,42 @@ input[type='radio'] {
 
       {% endif %}{# end if class['link_ident'] -- i.e., end of user-created class config #}
 
+
+      {% if components %}
+      <div class="item_sep"></div>
+
+      <h2 class="title is-size-4 mt-5">Class Tools</h2>
+
+      <form action="{{ url_for('.save_component_enabled') }}" method="post">
+        <p class="help-text mb-3">You can toggle whether each tool is available in this class.</p>
+        {% for component in components %}
+        <div class="field is-horizontal">
+          <div class="field-label is-normal">
+            <label class="label" for="{{ component.package }}_enabled">{{ component.display_name }}</label>
+          </div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <input name="{{ component.package }}_enabled" id="{{ component_package }}_enabled" type="checkbox" {% if component.is_enabled() %}checked{% endif %}>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="help-text mt-0 mb-4 px-6">{{ component.description }}</p>
+        {% endfor %}
+        <div class="field is-horizontal">
+          <div class="field-label is-normal"><!-- spacing --></div>
+          <div class="field-body">
+            <div class="field">
+              <div class="control">
+                <button class="button is-link" type="submit">Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+
+      {% endif %}{# end if components #}
     </div>
 
     {% if extra_sections_data %}

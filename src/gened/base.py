@@ -36,7 +36,12 @@ from . import (
     tz,
 )
 from .class_config import base as class_config
-from .components import GenEdComponent, get_component_navbar_templates
+from .components import (
+    GenEdComponent,
+    get_component_navbar_templates,
+    get_registered_components,
+    register_component,
+)
 from .db import get_db
 
 
@@ -91,10 +96,6 @@ class GenEdAppBuilder:
 
         # build the app's complete configuration
         self._config_app(app_config)
-
-        # registry of installed components for this application, stored on the Flask instance
-        # list[GenEdComponent]
-        app.extensions['gen_ed_components'] = []
 
         # set up middleware to fix headers from a proxy if configured as such
         if os.environ.get("FLASK_APP_BEHIND_PROXY", "").lower() in ("yes", "true", "1"):
@@ -252,8 +253,8 @@ class GenEdAppBuilder:
 
     def add_component(self, component: GenEdComponent) -> None:
         # Register component identity/metadata
-        components: list[GenEdComponent] = self._app.extensions['gen_ed_components']
-        components.append(component)
+        with self._app.app_context():
+            register_component(component)
 
     def _register_core_blueprints(self) -> None:
         app = self._app
@@ -267,7 +268,7 @@ class GenEdAppBuilder:
         app.register_blueprint(profile.bp, url_prefix='/profile')
         app.register_blueprint(models.bp, url_prefix="/models")
         # class_config blueprints require a build step using registered components
-        with app.app_context():  # so current_app works when getting registerd components
+        with app.app_context():  # so current_app works when getting registered components
             class_config_bp = class_config.build_blueprint()
         app.register_blueprint(class_config_bp, url_prefix='/instructor/config')
 
@@ -290,7 +291,9 @@ class GenEdAppBuilder:
     def build(self) -> Flask:
         """ Finalize the app with all registered components and return a complete Flask app. """
         app = self._app
-        components: list[GenEdComponent] = app.extensions['gen_ed_components']
+
+        with app.app_context():
+            components = get_registered_components()
 
         # register blueprints (core + any component blueprints)
         self._register_core_blueprints()

@@ -10,6 +10,9 @@ from .guided import guided_tutor_config_table
 
 gened_component = GenEdComponent(
     package=__package__,
+    name="tutors",
+    display_name="Tutors",
+    description="Students can chat with an LLM designed to interact as a tutor focused on teaching and learning.  Instructors can design Focused Tutors with pre-defined learning objectives and assessment questions (useful as low-stakes assessments following a reading or video).",
     blueprint=bp,
     navbar_item_template="tutor_nav_item.html",
     data_source=chats_data_source,
@@ -18,7 +21,6 @@ gened_component = GenEdComponent(
     deletion_handler=TutorsDeletionHandler,
     schema_file="schema.sql",
     migrations_dir="migrations",
-    requires_experiment="chats_experiment",
 )
 
 __all__ = [
