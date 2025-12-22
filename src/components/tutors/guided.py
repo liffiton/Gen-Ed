@@ -11,6 +11,7 @@ from typing import Any, Self
 
 from flask import (
     Blueprint,
+    current_app,
     request,
 )
 from markupsafe import Markup
@@ -128,10 +129,15 @@ def generate_objectives(llm: LLM) -> list[LearningObjective]:
         )
     )
 
-    objectives = json.loads(response_txt)['objectives']
-    assert isinstance(objectives, list)
-    assert all(isinstance(val, str) for val in objectives)
-    objectives = [LearningObjective(obj, []) for obj in objectives]
+    try:
+        objectives_data = json.loads(response_txt)['objectives']
+        assert isinstance(objectives_data, list)
+        assert all(isinstance(val, str) for val in objectives_data)
+    except (json.JSONDecodeError, KeyError, AssertionError) as e:
+        current_app.logger.error(f"Failed to parse objectives from LLM. Error: {e}. Response: {response_txt}")
+        raise
+
+    objectives = [LearningObjective(obj, []) for obj in objectives_data]
 
     return objectives
 
@@ -155,9 +161,13 @@ async def generate_questions_for_objective(config: TutorConfig, index: int, llm:
         },
     )
 
-    data = json.loads(response_txt)['questions']
-    assert isinstance(data, list)
-    assert all(isinstance(val, str) for val in data)
+    try:
+        data = json.loads(response_txt)['questions']
+        assert isinstance(data, list)
+        assert all(isinstance(val, str) for val in data)
+    except (json.JSONDecodeError, KeyError, AssertionError) as e:
+        current_app.logger.error(f"Failed to parse questions from LLM for objective '{objective}'. Error: {e}. Response: {response_txt}")
+        raise
 
     config.objectives[index].questions = data
 

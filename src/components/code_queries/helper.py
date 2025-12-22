@@ -10,6 +10,7 @@ from unittest.mock import patch
 from flask import (
     Blueprint,
     abort,
+    current_app,
     flash,
     make_response,
     redirect,
@@ -58,6 +59,7 @@ def help_form(llm: LLM, query_id: int | None = None, class_id: int | None = None
     if class_id is not None:
         success = switch_class(class_id)
         if not success:
+            current_app.logger.warning(f"User {auth.user_id} failed to switch to class {class_id}.")
             # Can't access the specified context
             flash("Cannot access class and context.  Make sure you are logged in correctly before using this link.", "danger")
             return make_response(render_template("error.html"), 400)

@@ -56,6 +56,7 @@ def new_chat_form(class_id: int | None = None) -> Response | str:
     if class_id is not None:
         success = switch_class(class_id)
         if not success:
+            current_app.logger.warning(f"User {auth.user_id} failed to switch to class {class_id}.")
             # Can't access the specified class
             flash("Cannot access specified class.  Make sure you are logged in correctly before using this link.", "danger")
             return make_response(render_template("error.html"), 400)
@@ -119,6 +120,7 @@ def create_inquiry_chat(llm: LLM) -> Response:
     try:
         run_chat_round(llm, chat)
     except RuntimeError as e:
+        current_app.logger.error(f"Error running inquiry chat round: {e}")
         # On error, erase the nascent chat and tell the user what happened.
         erase_chat(chat)
         flash(str(e), 'danger')
@@ -148,6 +150,7 @@ def create_guided_chat(llm: LLM) -> Response:
     try:
         run_chat_round(llm, chat)
     except RuntimeError as e:
+        current_app.logger.error(f"Error running guided chat round: {e}")
         # On error, erase the nascent chat and tell the user what happened.
         erase_chat(chat)
         flash(str(e), 'danger')
@@ -364,6 +367,7 @@ def new_message(llm: LLM) -> Response:
         # and abort first if needed.
         first_chunk = runner.run(anext(async_stream))
     except RuntimeError as e:
+        current_app.logger.error(f"Error getting chat response: {e}")
         return Response(str(e), 502, mimetype='text/plain')
 
     # only save the user's new message if the response succeeds
@@ -384,4 +388,3 @@ def new_message(llm: LLM) -> Response:
         stream_with_context(stream_response()),
         mimetype="text/event-stream",
     )
-

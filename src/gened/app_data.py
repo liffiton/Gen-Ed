@@ -8,7 +8,7 @@ from sqlite3 import Cursor, Row
 from typing import Final, Protocol, Self
 from urllib.parse import urlencode
 
-from flask import request
+from flask import current_app, request
 
 from gened.tables import DataTable, DataTableSpec
 
@@ -215,6 +215,7 @@ def _get_data_row(data_source: DataSource, row_id: int) -> Row:
     access_permitted = is_owner or is_instructor_in_class or auth.is_admin
 
     if not access_permitted:
+        current_app.logger.warning(f"Access denied: user {auth.user_id} attempted to access {data_source.table_name} row {row_id}.")
         raise AccessDeniedError
 
     assert isinstance(row, Row)

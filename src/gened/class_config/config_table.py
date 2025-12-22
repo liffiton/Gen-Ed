@@ -261,7 +261,9 @@ def update_order() -> str:
     class_id = cur_class.class_id  # Get the current class to ensure we don't change another class.
 
     ordered_ids = request.json
-    assert isinstance(ordered_ids, list)
+    if not isinstance(ordered_ids, list):
+        current_app.logger.error(f"update_order received non-list JSON: {ordered_ids}")
+        abort(400)
     sql_tuples = [(i, item_id, class_id) for i, item_id in enumerate(ordered_ids)]
 
     # Check class_id in the WHERE to prevent changing items in another class
@@ -279,7 +281,9 @@ def update_available() -> str:
     class_id = cur_class.class_id  # Get the current class to ensure we don't change another class.
 
     data = request.json
-    assert isinstance(data, dict)
+    if not isinstance(data, dict):
+        current_app.logger.error(f"update_available received non-dict JSON: {data}")
+        abort(400)
 
     # Check class_id in the WHERE to prevent changing items in another class
     db.execute(f"UPDATE {g.config_table.db_table_name} SET available=? WHERE id=? AND class_id=?", [data['available'], data['item_id'], class_id])
