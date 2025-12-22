@@ -322,16 +322,11 @@ async def _analyze_guided_chat(chat_data: ChatData, llm: LLM) -> ChatData:
 
 
 @bp.route("/progress/<int:chat_id>")
-@with_llm()
-def get_progress(chat_id: int, llm: LLM) -> str:
+def get_progress(chat_id: int) -> str:
     try:
         chat_data = get_chat(chat_id)
     except DataAccessError:
         abort(400, "Invalid id.")
-
-    if request.args.get('retry'):
-        # re-run the analysis
-        chat_data = asyncio.run(_analyze_guided_chat(chat_data, llm))
 
     return render_template("progress_widget.html", chat=chat_data)
 
