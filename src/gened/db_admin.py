@@ -114,7 +114,7 @@ def rebuild_views() -> None:
     """ Populate the database with views built for/from registered components. """
     db = get_db()
 
-    components = current_app.extensions['gen_ed_components']
+    components = get_registered_components()
     data_sources = (component.data_source for component in components if component.data_source is not None)
     union_parts = []
     for ds in data_sources:
