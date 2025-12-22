@@ -309,22 +309,24 @@ class GenEdAppBuilder:
 
         # run setup and checks that depend on the database (iff it is initialized)
         # must come after db.init_app(app) to ensure db is closed at end of context manager
-        with app.app_context():
-            db_conn = get_db()
-            try:
-                db_conn.execute("SELECT 1 FROM consumers LIMIT 1")
-                db_conn.execute("SELECT 1 FROM models LIMIT 1")
-                # check any registered component data sources
-                for component in components:
-                    if ds := component.data_source:
-                        db_conn.execute(f"SELECT 1 FROM {ds.table_name}")
-                db_admin.rebuild_views()
-            except sqlite3.OperationalError:
-                # database is not initialized, but we may be running initdb or a migration now, so that's okay
-                pass
-            else:
-                # database has been initialized (no errors reading from those two tables)
-                self._check_db()
-                lti.reload_consumers()
+        if Path(app.config['DATABASE']).exists():
+            with app.app_context():
+                db_conn = get_db()
+                try:
+                    db_conn.execute("SELECT 1 FROM consumers LIMIT 1")
+                    db_conn.execute("SELECT 1 FROM models LIMIT 1")
+                    # check any registered component data sources
+                    for component in components:
+                        if ds := component.data_source:
+                            db_conn.execute(f"SELECT 1 FROM {ds.table_name}")
+                    # only rebuild views if everything checks out so far, but also accept that this might fail if the database isn't migrated
+                    db_admin.rebuild_views()
+                except sqlite3.OperationalError:
+                    # database is not initialized, but we may be running a migration now, so that's okay
+                    pass
+                else:
+                    # database has been initialized (no errors reading from those tables)
+                    self._check_db()
+                    lti.reload_consumers()
 
         return app

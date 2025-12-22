@@ -2,25 +2,7 @@
 --
 -- SPDX-License-Identifier: AGPL-3.0-only
 
-PRAGMA foreign_keys = OFF;  -- just for not worrying about table deletion order
-
-DROP TABLE IF EXISTS consumers;
-DROP TABLE IF EXISTS auth_providers;
-DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS auth_local;
-DROP TABLE IF EXISTS auth_external;
-DROP TABLE IF EXISTS roles;
-DROP TABLE IF EXISTS classes;
-DROP TABLE IF EXISTS classes_lti;
-DROP TABLE IF EXISTS classes_user;
-DROP TABLE IF EXISTS demo_links;
-DROP TABLE IF EXISTS migrations;
-DROP TABLE IF EXISTS llm_providers;
-DROP TABLE IF EXISTS models;
-DROP TABLE IF EXISTS experiments;
-DROP TABLE IF EXISTS experiment_class;
-
-PRAGMA foreign_keys = ON;  -- back on for good
+PRAGMA foreign_keys = ON;
 
 
 CREATE TABLE consumers (
@@ -32,8 +14,6 @@ CREATE TABLE consumers (
     created       DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(model_id) REFERENCES models(id)
 );
-
-DROP INDEX IF EXISTS consumers_idx;
 CREATE UNIQUE INDEX consumers_idx ON consumers(lti_consumer);
 
 CREATE TABLE auth_providers (
@@ -86,7 +66,6 @@ CREATE TABLE auth_external (
     FOREIGN KEY(user_id) REFERENCES users(id),
     FOREIGN KEY(auth_provider) REFERENCES auth_providers(id)
 );
-DROP INDEX IF EXISTS auth_external_by_ext_id;
 CREATE UNIQUE INDEX auth_external_by_ext_id ON auth_external(auth_provider, ext_id);
 
 
@@ -108,7 +87,6 @@ CREATE TABLE classes_lti (
     FOREIGN KEY(class_id) REFERENCES classes(id),
     FOREIGN KEY(lti_consumer_id) REFERENCES consumers(id)
 );
-DROP INDEX IF EXISTS classes_lti_by_consumer_context;
 CREATE UNIQUE INDEX  classes_lti_by_consumer_context ON classes_lti(lti_consumer_id, lti_context_id);
 
 -- Classes created by a user, accessed via class link
@@ -125,7 +103,6 @@ CREATE TABLE classes_user (
     FOREIGN KEY(model_id) REFERENCES models(id),
     FOREIGN KEY(creator_user_id) REFERENCES users(id)
 );
-DROP INDEX IF EXISTS classes_user_by_link_ident;
 CREATE UNIQUE INDEX  classes_user_by_link_ident ON classes_user(link_ident);
 
 -- Roles for users in classes
@@ -139,9 +116,7 @@ CREATE TABLE roles (
     FOREIGN KEY(user_id) REFERENCES users(id),
     FOREIGN KEY(class_id) REFERENCES classes(id)
 );
-DROP INDEX IF EXISTS roles_user_class_unique;
 CREATE UNIQUE INDEX  roles_user_class_unique ON roles(user_id, class_id) WHERE user_id != -1;  -- not unique for deleted users
-DROP INDEX IF EXISTS roles_by_class_id;
 CREATE INDEX roles_by_class_id ON roles(class_id);
 
 -- Store/manage demonstration links
@@ -183,7 +158,6 @@ CREATE TABLE models (
     FOREIGN KEY(provider_id) REFERENCES llm_providers(id),
     FOREIGN KEY(owner_id) REFERENCES users(id) ON DELETE CASCADE
 );
-DROP INDEX IF EXISTS models_by_shortname_owner;
 CREATE UNIQUE INDEX models_by_shortname_owner ON models(shortname, owner_id);
 
 INSERT INTO llm_providers(name) VALUES ("Custom");
@@ -211,8 +185,6 @@ CREATE TABLE experiment_class (
     FOREIGN KEY (experiment_id) REFERENCES experiments (id),
     FOREIGN KEY (class_id) REFERENCES classes (id)
 );
-DROP INDEX IF EXISTS exp_crs_experiment_idx;
 CREATE INDEX exp_crs_experiment_idx ON experiment_class(experiment_id);
-DROP INDEX IF EXISTS exp_crs_class_idx;
 CREATE INDEX exp_crs_class_idx ON experiment_class(class_id);
 

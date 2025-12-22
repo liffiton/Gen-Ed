@@ -75,7 +75,15 @@ def on_init_db(func: Callable[[], None]) -> Callable[[], None]:
     return func
 
 
+class DatabaseExistsError(Exception):
+    def __init__(self, path: str) -> None:
+        super().__init__(f"Database file {path} already exists. Delete it before initializing or use migrations to update.")
+
 def init_db() -> None:
+    """Create new database (fails if the file already exists)."""
+    if Path(current_app.config['DATABASE']).exists():
+        raise DatabaseExistsError(current_app.config['DATABASE'])
+
     db = get_db()
 
     # Common schema in the gened package + registered component schemas
@@ -181,9 +189,13 @@ def rebuild_views() -> None:
 
 @click.command('initdb')
 def init_db_command() -> None:
-    """Clear the existing data and create new tables."""
-    init_db()
-    click.echo('Initialized the database.')
+    """Create new database (fails if the file already exists)."""
+    try:
+        init_db()
+    except DatabaseExistsError as e:
+        click.secho(f"Error: {e}", fg='red', bold=True)
+    else:
+        click.echo('Initialized the database.')
 
 
 @click.command('newuser')
