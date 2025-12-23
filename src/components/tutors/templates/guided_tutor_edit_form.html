@@ -2,7 +2,7 @@
 
 {% block extrahead %}
   <script type="module">
-    // For rendering questions
+    // For rendering names and questions
     import markdownIt from 'https://cdn.jsdelivr.net/npm/markdown-it@14/+esm';
     const md = markdownIt();
 
@@ -11,28 +11,27 @@
       Alpine.data('tutor_editor', () => ({
         tutor: null,
         loading: null,
-        objectiveNames: "",
 
-        // Modal state for editing questions
-        editingObject: null,
+        // Modal state for editing lists of items
+        editItems: null,
+        editingObjectives: false,
         tempItems: null,
         drag_index: null,
+        objectiveTemplate: {name: '', questions: []},  // to copy for objectives added in the UI
 
         init() {
-          // Do one-way model updates *to* objectiveNames, so user can still edit the list (for regenerating questions)
-          this.$watch('tutor', newVal => this.objectiveNames = newVal.objectives.map(obj => obj.name).join('\n'));
           this.reset_form();
         },
         reset_form() {
           this.tutor = structuredClone(orig_tutor);
         },
 
-        render(question) {
-          return md.render(question);
+        render(markdown) {
+          return md.render(markdown);
         },
 
         get hasObjectives() {
-          return this.objectiveNames;
+          return this.tutor.objectives.length;
         },
         get hasQuestions() {
           return this.hasObjectives && this.tutor.objectives.some(obj => obj.questions.length);
@@ -106,27 +105,30 @@
           }
         },
 
-        // Question editor modal methods
-        openQuestionEditor(index) {
-          this.editingObject = this.tutor.objectives[index];
+        // Item editor modal methods
+        openItemEditor(editItems, editTitle, editingObjectives) {
+          this.editItems = editItems;
+          this.editingObjectives = editingObjectives;
+          this.editTitle = editTitle;
           // Get raw / unproxied data for cloning
-          const rawItems = Alpine.raw(this.editingObject.questions);
+          const rawItems = Alpine.raw(editItems);
           // Clone so we can cancel the edit without updating the original
           this.tempItems = structuredClone(rawItems);
-          this.$refs.questionModal.showModal();
+          this.$refs.itemEditorModal.showModal();
         },
-        saveQuestions() {
-          this.editingObject.questions = this.tempItems;
-          this.$refs.questionModal.close();
+        saveItems() {
+          // replace contents of array being edited with results of dialog
+          this.editItems.splice(0, this.editItems.length, ...this.tempItems);
+          this.$refs.itemEditorModal.close();
         },
-        resetQuestionEditor() {
+        resetItemEditor() {
           // triggered by @close on the dialog element
-          console.log("Closed.");
-          this.editingObject = null;
+          this.editItems = null;
+          this.editTitle = null;
           this.tempItems = null;
         },
 
-        // Drag and drop methods for question editor
+        // Drag and drop methods for item editor
         dragstart(index, event) {
           // only allow drag if over the drag handle
           const dragElement = event.target.querySelector("[data-drag-handle]");
@@ -391,7 +393,7 @@
         <input type="hidden" name="document_filename" x-model="tutor.document_filename">
         <input type="hidden" name="document_text" x-model="tutor.document_text">
         <div class="field-label is-normal">
-          <label class="label">Document (optional)</label>
+          <label class="label">Context document (optional)</label>
           <p class="help-text">You may upload a PDF or DOCX file or paste text with additional context for generating objectives and questions (e.g., lecture notes, a book chapter, or an assignment).<br>Text will be extracted in your browser.<br>Max extracted text: 50,000 words.</p>
         </div>
 
@@ -519,8 +521,21 @@
           <label class="label" for="objectives"><h2 class="title is-size-5">Learning Objectives</h2></label>
         </div>
         <div class="field-body">
-          <div class="field">
-            <textarea class="textarea" name="objectives" id="objectives" x-model="objectiveNames"></textarea>
+          <div class="content">
+            <p class="pt-2" x-show="!hasObjectives"><i>Nothing yet.</i></p>
+            <div class="box" x-show="hasObjectives">
+              <ol>
+                <template x-for="obj in tutor.objectives">
+                  <div>
+                    <input type="hidden" name="objectives" x-model="obj.name">
+                    <li class="mt-3" x-html="render(obj.name)"></li>
+                  </div>
+                </template>
+              </ol>
+              <button class="button is-link is-outlined ml-4" type="button" @click="openItemEditor(tutor.objectives, 'Learning Objectives', true)">
+                Edit objectives
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -573,7 +588,7 @@
                     </div>
                   </template>
                 </ol>
-                <button class="button is-link is-light ml-4" type="button" @click="openQuestionEditor(index)">
+                <button class="button is-link is-outlined ml-4" type="button" @click="openItemEditor(obj.questions, obj.name, false)">
                   Edit questions
                 </button>
               </div>
@@ -602,36 +617,40 @@
 
     </form>
 
-    <!-- Question Editor Modal -->
-    <dialog x-ref="questionModal" style="min-height: 75vh; width: 60%; max-width: 80em; min-width: min(50em, 100vw);" @close="resetQuestionEditor">
-      <template x-if="editingObject !== null">
+    <!-- Item Editor Modal -->
+    <dialog x-ref="itemEditorModal" style="min-height: 75vh; width: 60%; max-width: 80em; min-width: min(50em, 100vw);" @close="resetItemEditor">
+      <template x-if="tempItems !== null">
         <div class="content box">
-          <h3 x-text="editingObject.name"></h3>
+          <h3 x-text="editTitle"></h3>
           <div class="field">
-            <div class="label">Questions</div>
-            <template x-for="(question, index) in tempItems">
+            <template x-for="(item, index) in tempItems">
               <div x-bind:draggable="drag_index === index" @dragstart="dragstart(index, $event)" @dragend="dragend" @dragenter="dragenter(index)" class="mt-2" style="display: flex; gap: 0.5em; align-items: center;">
                 <span data-drag-handle @mousedown="drag_index = index" @mouseup="drag_index = null" style="cursor: move; vertical-align: middle; text-align: center;" title="drag to reorder">
                   <svg aria-hidden="true" class="icon is-small mt-1"><use href="#svg_grip" /></svg>
                 </span>
-                <button type="button" class="delete" title="delete question" @click="tempItems.splice(index, 1)"></button>
+                <button type="button" class="delete" title="delete item" @click="tempItems.splice(index, 1)"></button>
                 <div class="control is-flex-grow-1">
-                  <textarea class="textarea" x-model="tempItems[index]" rows=3 ></textarea>
+                  <template x-if="editingObjectives">
+                    <input class="input" x-model="tempItems[index].name">
+                  </template>
+                  <template x-if="!editingObjectives">
+                    <textarea class="textarea" x-model="tempItems[index]" rows=3></textarea>
+                  </template>
                 </div>
               </div>
             </template>
           </div>
           <div class="field">
             <div class="control">
-              <button type="button" class="button" @click="tempItems.push('')">+ add a question</button>
+              <button type="button" class="button" @click="tempItems.push(editingObjectives ? { ...objectiveTemplate } : '')">+ add an item</button>
             </div>
           </div>
           <div class="field is-grouped">
             <div class="control">
-              <button class="button is-link" type="button" @click="saveQuestions()">Update</button>
+              <button class="button is-link" type="button" @click="saveItems()">Update</button>
             </div>
             <div class="control">
-              <button class="button" type="button" @click="$refs.questionModal.close()">Cancel</button>
+              <button class="button" type="button" @click="$refs.itemEditorModal.close()">Cancel</button>
             </div>
           </div>
         </div>

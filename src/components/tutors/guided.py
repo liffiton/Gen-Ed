@@ -77,9 +77,8 @@ class TutorConfig(ConfigItem):
         config.context = form.get('context', '').strip()
         config.document_filename = form.get('document_filename', '').strip()
         config.document_text = form.get('document_text', '').strip()
-        objectives_str = form.get('objectives', '').strip()
-        objectives_split = [obj.strip() for obj in objectives_str.split('\n')] if objectives_str else []
-        config.objectives = [LearningObjective(obj, form.getlist(f'questions[{i}]')) for i, obj in enumerate(objectives_split)]
+        objective_names = form.getlist('objectives')
+        config.objectives = [LearningObjective(obj, form.getlist(f'questions[{i}]')) for i, obj in enumerate(objective_names)]
         return config
 
 
