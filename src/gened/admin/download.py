@@ -2,9 +2,11 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+# ruff: noqa: FBT003 - positional Boolean arguments are fine for EncryptionStatus
+
+import datetime as dt
 import platform
 from dataclasses import dataclass
-from datetime import date
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -73,7 +75,8 @@ register_navbar_item("admin_download.get_db_file", render_link, right=True)
 def get_db_file() -> Response:
     db_name = current_app.config['DATABASE_NAME']
     db_basename = Path(db_name).stem
-    dl_name = f"{db_basename}_{date.today().strftime('%Y%m%d')}.db"
+    timestamp = dt.datetime.now().strftime("%Y%m%d")  # noqa: DTZ005 - a timezone-unaware object is fine here
+    dl_name = f"{db_basename}_{timestamp}.db"
 
     if platform.system() == "Windows":
         # Slightly unsafe way to do it, because the file may be written while
@@ -86,7 +89,7 @@ def get_db_file() -> Response:
                         mimetype='application/vnd.sqlite3',
                         as_attachment=True, download_name=dl_name)
     else:
-        db_backup_file = NamedTemporaryFile()
+        db_backup_file = NamedTemporaryFile()  # noqa: SIM115 - can't use a context manager here b/c file object is needed after return and closed later
         backup_db(Path(db_backup_file.name))
         if current_app.config.get('AGE_PUBLIC_KEY'):
             dl_name += '.age'

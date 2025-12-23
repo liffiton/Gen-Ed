@@ -28,7 +28,7 @@ control_blueprint_access(bp, Access.LOGIN)
 def new_model() -> str:
     return render_template("models.html", model=None)
 
-def _make_unique_model_shortname(shortname: str, owner_id: int, id: int = -1) -> str:
+def _make_unique_model_shortname(shortname: str, owner_id: int, model_id: int = -1) -> str:
     """
     Given a shortname, current owner of the model, id of the model. Return a
     shortname that is unique within that class.
@@ -38,7 +38,7 @@ def _make_unique_model_shortname(shortname: str, owner_id: int, id: int = -1) ->
     new_shortname = shortname
     i = 0
 
-    while db.execute(" SELECT id FROM models WHERE shortname = ? AND owner_id = ? AND id != ? ", [new_shortname, owner_id, id]).fetchone():
+    while db.execute(" SELECT id FROM models WHERE shortname = ? AND owner_id = ? AND id != ? ", [new_shortname, owner_id, model_id]).fetchone():
         i += 1
         new_shortname = f"{shortname} ({i})"
     return new_shortname

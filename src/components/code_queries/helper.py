@@ -324,7 +324,7 @@ def get_topics(llm: LLM, query_id: int) -> list[str]:
         responses['main']
     )
 
-    response, response_txt = asyncio.run(llm.get_completion(messages=messages))
+    _response, response_txt = asyncio.run(llm.get_completion(messages=messages))
 
     # Verify it is actually JSON
     # May be "Error (..." if an API error occurs, or every now and then may get "Here is the JSON: ..." or similar.

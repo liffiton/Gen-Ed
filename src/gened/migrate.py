@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import itertools
+import sqlite3
 from collections.abc import Iterable
 from datetime import datetime
 from importlib import resources
@@ -49,12 +50,13 @@ def _do_migration(name: str, script: str) -> tuple[bool, str]:
         db.commit()
         db.execute("UPDATE migrations SET applied_on=CURRENT_TIMESTAMP, succeeded=True WHERE filename=?", [name])
         db.commit()
-        return True, ''
-    except Exception as e:
+    except sqlite3.Error as e:
         db.rollback()
         db.execute("UPDATE migrations SET applied_on=CURRENT_TIMESTAMP, succeeded=False WHERE filename=?", [name])
         db.commit()
         return False, str(e)
+    else:
+        return True, ''
 
 
 def _apply_migrations(migrations: Iterable[MigrationDict]) -> None:
@@ -64,7 +66,7 @@ def _apply_migrations(migrations: Iterable[MigrationDict]) -> None:
     migrations: an iterable of dictionaries, each defined as in migrate_command() below.
     """
     # Make a backup of the old database
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")   # noqa: DTZ005 - a timezone-unaware object is fine here
     backup_dir = Path(current_app.instance_path) / "backups"
     backup_dir.mkdir(mode=0o770, exist_ok=True)
     backup_dest = backup_dir / f"{current_app.config['DATABASE_NAME']}.{timestamp}.bak"

@@ -311,7 +311,7 @@ async def _analyze_guided_chat(chat_data: ChatData, llm: LLM) -> ChatData:
         *chat_data.messages,
         {'role': 'user', 'content': prompts.guided_analyze_tpl.render(chat=chat_data)},
     ]
-    analyze_response, analyze_response_txt = await llm.get_completion(
+    _analyze_response, analyze_response_txt = await llm.get_completion(
         messages=analyze_messages,
         extra_args={
             'response_format': {'type': 'json_object'},

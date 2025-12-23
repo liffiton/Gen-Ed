@@ -118,7 +118,7 @@ def generate_objectives(llm: LLM) -> list[LearningObjective]:
         prompts.tutor_setup_objectives_prompt2.render(num_items=num_items_final),
     ]
 
-    response, response_txt = asyncio.run(
+    _response, response_txt = asyncio.run(
         llm.get_multi_completion(
             sys_prompt=sys_prompt,
             user_prompts=user_prompts,
@@ -153,7 +153,7 @@ async def generate_questions_for_objective(config: TutorConfig, index: int, llm:
         {'role': 'system', 'content': prompts.tutor_setup_questions_sys_prompt.render(learning_context=context, document=document_text)},
         {'role': 'user', 'content': prompts.tutor_setup_questions_prompt.render(objective=objective, previous=previous, following=following, num_items=num_questions)},
     ]
-    response, response_txt = await llm.get_completion(
+    _response, response_txt = await llm.get_completion(
         messages=messages,
         extra_args={
             #'reasoning_effort': 'none',  # for thinking models: o3/o4/gemini-2.5

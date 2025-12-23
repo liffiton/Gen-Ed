@@ -23,7 +23,7 @@ def csv_response(file_name: str, kind: str, table: list[Row]) -> str | Response:
 
     output = make_response(stringio.getvalue())
     file_name = file_name.replace(" ","-")
-    timestamp = dt.datetime.now().strftime("%Y%m%d")
+    timestamp = dt.datetime.now().strftime("%Y%m%d")  # noqa: DTZ005 - a timezone-unaware object is fine here
     output.headers["Content-Disposition"] = f"attachment; filename={timestamp}_{file_name}_{kind}.csv"
     output.headers["Content-type"] = "text/csv"
 
