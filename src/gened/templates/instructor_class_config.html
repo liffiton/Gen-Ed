@@ -270,31 +270,34 @@ input[type='radio'] {
 
       <h2 class="title is-size-4 mt-5">Class Tools</h2>
 
-      <form action="{{ url_for('.save_component_enabled') }}" method="post">
-        <p class="help-text mb-3">You can toggle whether each tool is available in this class.</p>
+      <p class="help-text mb-3">You can toggle whether each tool is available in this class.</p>
+      <form class="ml-5" x-data="{
+        {%- for component in components -%}
+          {{ component.name }}: {{ 'true' if component.is_enabled() else 'false' }},
+        {%- endfor -%}
+        }" action="{{ url_for('.save_component_enabled') }}" method="post">
         {% for component in components %}
-        <div class="field is-horizontal">
-          <div class="field-label is-normal">
-            <label class="label" for="{{ component.package }}_enabled">{{ component.display_name }}</label>
+          <div class="field">
+            <label class="checkbox" for="{{ component.name }}_enabled">
+              <input name="{{ component.name }}_enabled" id="{{ component.name }}_enabled" x-model="{{ component.name }}" type="checkbox" {% if component.is_enabled() %}checked{% endif %}>
+              <strong>{{ component.display_name }}</strong>
+              <p class="help-text mt-1 px-6">{{ component.description }}</p>
+            </label>
           </div>
-          <div class="field-body">
+          {% for feature in component.features %}
+            {% set feature_name %}{{component.name}}:{{feature.name}}{% endset %}
             <div class="field">
-              <div class="control">
-                <input name="{{ component.package }}_enabled" id="{{ component_package }}_enabled" type="checkbox" {% if component.is_enabled() %}checked{% endif %}>
-              </div>
+              <label class="checkbox ml-6" for="{{ feature_name }}_enabled" x-bind:disabled="!{{ component.name }}">
+                <input name="{{ feature_name }}_enabled" id="{{ feature_name }}_enabled" type="checkbox" x-bind:disabled="!{{ component.name }}" {% if component.is_enabled(feature=feature.name) %}checked{% endif %}>
+                {{ component.display_name }} : <strong>{{ feature.display_name }}</strong>
+                <p class="help-text mt-1 px-6">{{ feature.description }}</p>
+              </label>
             </div>
-          </div>
-        </div>
-        <p class="help-text mt-0 mb-4 px-6">{{ component.description }}</p>
+          {% endfor %}
         {% endfor %}
-        <div class="field is-horizontal">
-          <div class="field-label is-normal"><!-- spacing --></div>
-          <div class="field-body">
-            <div class="field">
-              <div class="control">
-                <button class="button is-link" type="submit">Save</button>
-              </div>
-            </div>
+        <div class="field">
+          <div class="control">
+            <button class="button is-link ml-1" type="submit">Save</button>
           </div>
         </div>
       </form>

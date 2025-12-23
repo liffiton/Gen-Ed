@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from flask import Blueprint
@@ -20,6 +21,16 @@ from .db import get_db
 
 
 @dataclass(frozen=True, kw_only=True)
+class ComponentFeature:
+    # name/slug for referencing this feature -- will be in a namespace, referenced as "component:feature"
+    name: str
+
+    # name/description to be shown to users
+    display_name: str
+    description: str
+
+
+@dataclass(frozen=True, kw_only=True)
 class GenEdComponent:
     # name of the package that defined this component (used to locate schema and migration resources)
     # should be set to __package__ when initializing the component
@@ -34,6 +45,8 @@ class GenEdComponent:
     description: str
 
     # ..all items below here are optionally specified..
+    # "subcomponents" or "features" that can be enabled/disabled independently
+    features: Iterable[ComponentFeature] = ()
     # register the component's own routes or use this just to register a template folder
     blueprint: Blueprint | None = None
     # add an item to the navbar by specifying a template file for it
@@ -73,24 +86,39 @@ class GenEdComponent:
         if self.config_table is not None and self.config_table.extra_routes is not None:
             control_blueprint_access(self.config_table.extra_routes, RequireComponent(self.name))
 
-    def is_enabled(self) -> bool:
-        """ Returns True if this component is enabled in the current class. """
+    def is_enabled(self, feature: str | None = None) -> bool:
+        """
+        Returns True if this component (and optionally a specific feature) is enabled in the current class.
+        """
         if self.always_enabled:
             return True
 
-        db = get_db()
         auth = get_auth()
         class_id = auth.cur_class.class_id if auth.cur_class else None
-        check_row = db.execute(
-            "SELECT enabled FROM class_components WHERE class_id=? AND component_name=?",
-            [class_id, self.package]
-        ).fetchone()
 
-        if check_row:
-            return bool(check_row['enabled'])
-        else:
-            # No entry in the database: use the default.
+        if class_id is None:
+            # Not in any class: use the default
             return True
+
+        db = get_db()
+
+        # Check the component itself and, if specified, the feature (namespaced)
+        names_to_check = [self.name]
+        if feature:
+            names_to_check.append(f"{self.name}:{feature}")
+
+        for name in names_to_check:
+            check_row = db.execute(
+                "SELECT enabled FROM class_components WHERE class_id=? AND component_name=?",
+                [class_id, name]
+            ).fetchone()
+
+            # If either the component or (if specified) the feature are disabled, return False
+            if check_row and not check_row['enabled']:
+                return False
+
+        # No entry in the database: use the default.
+        return True
 
     def is_available(self) -> bool:
         """

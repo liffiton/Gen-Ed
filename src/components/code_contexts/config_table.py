@@ -39,7 +39,7 @@ contexts_config_table = ConfigTable(
             'Inquiry chat',
             'tutors.new_chat_form',
             {'class_id', 'ctx_name'},
-            extra_requirements=(RequireComponent('tutors'), ),
+            extra_requirements=(RequireComponent('tutors', feature='inquiry'), ),
         ),
     ]
 )

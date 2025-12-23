@@ -41,7 +41,8 @@ class RequireExperiment:
 # The given component is enabled in the user's current class
 @dataclass
 class RequireComponent:
-    name: str   # the name of a component that must be registered (under that name), available, and enabled
+    name: str  # the name of a component that must be registered (under that name), available, and enabled
+    feature: str | None = None  # (optional) the name of a feature of the component that must also be enabled
 
 # Combined access control type for use when specifying requirements
 AccessControl = Access | RequireExperiment | RequireComponent
@@ -63,10 +64,10 @@ def check_one_access_control(control: AccessControl) -> bool:  # noqa: PLR0911 -
             return auth.is_tester
         case RequireExperiment(name=name):
             return name in auth.class_experiments or auth.is_admin  # admins are allowed to access any experiment anywhere
-        case RequireComponent(name=name):
+        case RequireComponent(name=name, feature=feature):
             from .component_registry import get_component_registry  # noqa: PLC0415, I001 - import moved here to avoid a messy circular import issue
             component = get_component_registry().get(name)
-            return component is not None and component.is_available() and component.is_enabled()
+            return component is not None and component.is_available() and component.is_enabled(feature=feature)
 
     assert_never(control)  # ensure above is exhaustive
 

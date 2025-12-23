@@ -26,7 +26,13 @@ from components.code_contexts import (
     get_available_contexts,
     get_context_by_name,
 )
-from gened.access import class_enabled_required
+from gened.access import (
+    Access,
+    RequireComponent,
+    check_access,
+    class_enabled_required,
+    route_requires,
+)
 from gened.app_data import DataAccessError
 from gened.auth import get_auth
 from gened.classes import switch_class
@@ -86,13 +92,19 @@ def new_chat_form(class_id: int | None = None) -> Response | str:
         class_id = auth.cur_class.class_id if auth.cur_class else None
         tutor_rows = db.execute("SELECT id, name FROM tutors WHERE class_id=? AND available <= date('now', '+12 hours') ORDER BY class_order ASC", [class_id]).fetchall()
 
+    # check if each feature is enabled
+    if not check_access(RequireComponent("tutors", "inquiry")):
+        contexts = None    # don't dislay the form
+    if not check_access(RequireComponent("tutors", "guided")):
+        tutor_rows = None  # don't dislay the form
+
     recent_chats = chats_data_source.get_user_data(limit=10)
 
     return render_template("tutor_new_form.html", contexts=contexts, tutors=tutor_rows, recent_chats=recent_chats)
 
 
 @bp.route("/create_inquiry", methods=["POST"])
-@class_enabled_required
+@route_requires(Access.CLASS_ENABLED, RequireComponent("tutors", feature="inquiry"))
 @with_llm()
 def create_inquiry_chat(llm: LLM) -> Response:
     topic = request.form['topic']
@@ -125,7 +137,7 @@ def create_inquiry_chat(llm: LLM) -> Response:
 
 
 @bp.route("/create_guided", methods=["POST"])
-@class_enabled_required
+@route_requires(Access.CLASS_ENABLED, RequireComponent("tutors", feature="guided"))
 @with_llm()
 def create_guided_chat(llm: LLM) -> Response:
     db = get_db()

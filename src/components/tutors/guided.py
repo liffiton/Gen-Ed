@@ -17,7 +17,7 @@ from flask import (
 from markupsafe import Markup
 from werkzeug.datastructures import ImmutableMultiDict
 
-from gened.access import Access, control_blueprint_access
+from gened.access import Access, RequireComponent, control_blueprint_access
 from gened.class_config.types import (
     ConfigItem,
     ConfigShareLink,
@@ -34,8 +34,8 @@ DEFAULT_QUESTIONS_PER_OBJECTIVE = 4
 bp = Blueprint('guided', __name__, url_prefix=None, template_folder='templates')
 
 # Blueprint default access controls set in __init__ via availability_requirements
-# Additionally require an instructor role for all routes in this blueprint
-control_blueprint_access(bp, Access.INSTRUCTOR)
+# Additionally require an instructor role and that the subfeature is enabled for all routes in this blueprint
+control_blueprint_access(bp, Access.INSTRUCTOR, RequireComponent('tutors', feature='guided'))
 
 
 @dataclass
@@ -100,6 +100,7 @@ guided_tutor_config_table = ConfigTable(
         ),
     ],
     extra_routes=bp,
+    availability_requirements=(RequireComponent('tutors', feature='guided'), ),
 )
 
 

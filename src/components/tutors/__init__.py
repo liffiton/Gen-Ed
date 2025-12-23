@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from gened.components import GenEdComponent
+from gened.components import ComponentFeature, GenEdComponent
 
 from .chat import bp as bp
 from .data import TutorsDeletionHandler, chats_data_source, gen_chats_chart
@@ -12,7 +12,7 @@ gened_component = GenEdComponent(
     package=__package__,
     name="tutors",
     display_name="Tutors",
-    description="Students can chat with an LLM designed to interact as a tutor focused on teaching and learning.  Students can initiate Inquiry Chats on topics or questions of their own.  Instructors can design Focused Tutors for students with pre-defined learning objectives and assessment questions (e.g., to be used as reinforcement and/or low-stakes assessments following a reading or video).",
+    description="Students can chat with an LLM designed to interact as a tutor focused on teaching and learning.",
     blueprint=bp,
     navbar_item_template="tutor_nav_item.html",
     data_source=chats_data_source,
@@ -21,6 +21,10 @@ gened_component = GenEdComponent(
     deletion_handler=TutorsDeletionHandler,
     schema_file="schema.sql",
     migrations_dir="migrations",
+    features=[
+        ComponentFeature(name="inquiry", display_name="Inquiry Chats", description="Students can initiate Inquiry Chats about any topic of question of interest to them."),
+        ComponentFeature(name="guided", display_name="Focused Tutors", description="Instructors can design Focused Tutors for students with pre-defined learning objectives and assessment questions (e.g., to be used as reinforcement and/or low-stakes assessments following a reading or video)."),
+    ],
 )
 
 __all__ = [

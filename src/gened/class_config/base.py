@@ -151,7 +151,7 @@ def config_form() -> str:
     for component in components:
         if not (config_table := component.config_table):
             continue
-        if not (component.is_available() and component.is_enabled()):
+        if not check_access(*config_table.availability_requirements):
             continue
 
         extra_section = {
@@ -252,11 +252,16 @@ def save_component_enabled() -> Response:
 
     # get a setting for every toggleable component (unset checkboxes send nothing, so we use a default of False)
     components = get_registered_components()
-    component_form = {
-        component.package: request.form.get(f"{component.package}_enabled", False)
-        for component in components
-        if not component.always_enabled
-    }
+    component_form = {}
+    for component in components:
+        if component.always_enabled:
+            continue
+
+        component_form[component.name] = request.form.get(f"{component.name}_enabled", False)
+
+        for feature in component.features:
+            feature_name = f"{component.name}:{feature.name}"
+            component_form[feature_name] = request.form.get(f"{feature_name}_enabled", False)
 
     # update all settings in the DB
     for name, value in component_form.items():

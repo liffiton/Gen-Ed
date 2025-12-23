@@ -95,6 +95,7 @@ class ConfigTable:
     edit_form_template: str
     share_links: Iterable[ConfigShareLink] = ()
     extra_routes: Blueprint | None = None
+    availability_requirements: Iterable[AccessControl] = ()
 
     @property
     def new_url(self) -> str:
