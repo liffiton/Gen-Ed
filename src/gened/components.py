@@ -69,9 +69,9 @@ class GenEdComponent:
         that this component be registered + available + enabled.
         """
         if self.blueprint is not None:
-            control_blueprint_access(self.blueprint, RequireComponent(self.package))
+            control_blueprint_access(self.blueprint, RequireComponent(self.name))
         if self.config_table is not None and self.config_table.extra_routes is not None:
-            control_blueprint_access(self.config_table.extra_routes, RequireComponent(self.package))
+            control_blueprint_access(self.config_table.extra_routes, RequireComponent(self.name))
 
     def is_enabled(self) -> bool:
         """ Returns True if this component is enabled in the current class. """
