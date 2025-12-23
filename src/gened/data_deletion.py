@@ -10,7 +10,7 @@ for those handlers.
 """
 
 
-from .components import get_registered_components
+from .component_registry import get_registered_components
 from .db import get_db
 
 

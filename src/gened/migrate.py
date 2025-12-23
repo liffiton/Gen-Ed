@@ -14,7 +14,7 @@ import click
 from flask import current_app
 from flask.app import Flask
 
-from .components import get_registered_components
+from .component_registry import get_registered_components
 from .db import get_db
 from .db_admin import backup_db, on_init_db
 

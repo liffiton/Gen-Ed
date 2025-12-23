@@ -36,12 +36,12 @@ from . import (
     tz,
 )
 from .class_config import base as class_config
-from .components import (
-    GenEdComponent,
+from .component_registry import (
     get_component_navbar_templates,
     get_registered_components,
     register_component,
 )
+from .components import GenEdComponent
 from .db import get_db
 
 

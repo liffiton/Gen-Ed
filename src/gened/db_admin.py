@@ -17,7 +17,7 @@ from flask import current_app
 from flask.app import Flask
 from werkzeug.security import generate_password_hash
 
-from .components import get_registered_components
+from .component_registry import get_registered_components
 from .db import get_db
 
 AUTH_PROVIDER_LOCAL = 1

@@ -16,7 +16,7 @@ from flask import (
 from werkzeug.wrappers.response import Response
 
 from gened.app_data import DataSource, Filters
-from gened.components import get_registered_components
+from gened.component_registry import get_registered_components
 from gened.csv import csv_response
 from gened.db import get_db
 from gened.tables import Action, Col, DataTable, DataTableSpec, NumCol, UserCol

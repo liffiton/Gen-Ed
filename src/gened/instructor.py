@@ -31,7 +31,7 @@ from .access import Access, control_blueprint_access
 from .app_data import Filters
 from .auth import get_auth_class
 from .classes import switch_class
-from .components import get_component_data_source_by_name, get_registered_components
+from .component_registry import get_component_data_source_by_name, get_registered_components
 from .csv import csv_response
 from .data_deletion import delete_class_data
 from .db import get_db

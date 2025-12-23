@@ -18,7 +18,7 @@ from flask import (
 from werkzeug.wrappers.response import Response
 
 from gened.auth import get_auth, get_auth_class
-from gened.components import (
+from gened.component_registry import (
     get_component_config_table_by_name,
     get_registered_components,
 )

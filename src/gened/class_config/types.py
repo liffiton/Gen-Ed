@@ -4,7 +4,8 @@
 
 import json
 from abc import ABC, abstractmethod
-from dataclasses import asdict, dataclass, field
+from collections.abc import Iterable
+from dataclasses import asdict, dataclass
 from sqlite3 import Row
 from typing import Any, Literal, Self
 
@@ -12,6 +13,7 @@ from flask import Blueprint, url_for
 from jinja2 import Template
 from werkzeug.datastructures import ImmutableMultiDict
 
+from gened.access import AccessControl
 from gened.auth import get_auth_class
 
 # This module provides the basis for application-specific configuration tables,
@@ -70,7 +72,7 @@ class ConfigShareLink:
     label: str
     endpoint: str
     args: set[Literal['class_id', 'ctx_name', 'tutor_name']]
-    requires_experiment: str | None = None
+    extra_requirements: Iterable[AccessControl] = ()
 
     def render_url(self, item: dict[str, Any]) -> str:
         kwargs: dict[str, str] = dict()
@@ -91,7 +93,7 @@ class ConfigTable:
     display_name_plural: str
     help_text: Template | str | None = None
     edit_form_template: str
-    share_links: list[ConfigShareLink] = field(default_factory=list)
+    share_links: Iterable[ConfigShareLink] = ()
     extra_routes: Blueprint | None = None
 
     @property

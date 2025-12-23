@@ -17,9 +17,9 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from gened.access import Access, control_blueprint_access
+from gened.access import Access, check_access, control_blueprint_access
 from gened.auth import get_auth, get_auth_class
-from gened.components import get_registered_components
+from gened.component_registry import get_registered_components
 from gened.db import get_db
 from gened.llm import LLM, get_models, with_llm
 from gened.redir import safe_redirect
@@ -101,7 +101,7 @@ def get_table_template_context(table: ConfigTable) -> dict[str, Any]:
         item['url_delete'] = url_for('class_config.table.crud.delete_item', table_name=table.name, item_id=item['id'])
         item['share_links'] = []
         for share_link in table.share_links:
-            if share_link.requires_experiment is None or share_link.requires_experiment in auth.class_experiments:
+            if check_access(*share_link.extra_requirements):
                 item['share_links'].append({
                     'url': share_link.render_url(item),
                     'label': share_link.label}
