@@ -44,9 +44,9 @@ def register_component(component: GenEdComponent) -> None:
     registry = get_component_registry()
 
     # raise an exception if duplicate package added
-    assert component.package not in registry
+    assert component.name not in registry
 
-    registry[component.package] = component
+    registry[component.name] = component
 
 
 def get_component_data_source_by_name(name: str) -> app_data.DataSource | None:
