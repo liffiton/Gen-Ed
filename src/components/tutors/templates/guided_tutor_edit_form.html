@@ -37,7 +37,7 @@
           return this.hasObjectives && this.tutor.objectives.some(obj => obj.questions.length);
         },
 
-        async generateObjectives() {
+        async _fetchGeneratedObjectives(url, loadingKey) {
           const form = this.$refs.tutor_form;
 
           // validate and report issues in form (if any) before proceeding
@@ -45,16 +45,13 @@
             return;
           }
 
-          this.loading = 'objectives';
+          this.loading = loadingKey;
           try {
             // build formdata to send via fetch
             const formData = new URLSearchParams(new FormData(form));
 
             // start the request
-            const response = await fetch('{{ url_for('class_config.table.guided.generate_objectives') }}', {
-              method: 'POST',
-              body: formData,
-            });
+            const response = await fetch(url, { method: 'POST', body: formData });
 
             if (!response.ok) {
               const text = await response.text();
@@ -71,38 +68,11 @@
           }
         },
 
+        async generateObjectives() {
+          await this._fetchGeneratedObjectives('{{ url_for('class_config.table.guided.generate_objectives') }}', 'objectives');
+        },
         async generateQuestions() {
-          const form = this.$refs.tutor_form;
-
-          // validate and report issues in form (if any) before proceeding
-          if (!form.reportValidity()) {
-            return;
-          }
-
-          this.loading = 'questions';
-          try {
-            // build formdata to send via fetch
-            const formData = new URLSearchParams(new FormData(form));
-
-            // start the request
-            const response = await fetch('{{ url_for('class_config.table.guided.generate_questions') }}', {
-              method: 'POST',
-              body: formData,
-            });
-
-            if (!response.ok) {
-              const text = await response.text();
-              alert(`An error occurred: ${text}`);
-              return;
-            }
-
-            const newQuestions = await response.json();
-            this.tutor.objectives = newQuestions;
-          } catch (error) {
-            alert(`An error occurred: ${error}`);
-          } finally {
-            this.loading = null;
-          }
+          await this._fetchGeneratedObjectives('{{ url_for('class_config.table.guided.generate_questions') }}', 'questions');
         },
 
         // Item editor modal methods
