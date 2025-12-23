@@ -10,7 +10,7 @@ from . import app_data
 from .access import (
     Access,
     AccessControl,
-    RequireComponentEnabled,
+    RequireComponent,
     check_access,
     control_blueprint_access,
 )
@@ -66,15 +66,12 @@ class GenEdComponent:
     def __post_init__(self) -> None:
         """
         Automatically add access control to any stored blueprints requiring
-        that this component be available+enabled.
+        that this component be registered + available + enabled.
         """
-        # Delegate to stored availablity requirements (so we get their connected responses),
-        # and add a requirement that this component be enabled as well.
-        access_controls = (*self.availability_requirements, RequireComponentEnabled(self))
         if self.blueprint is not None:
-            control_blueprint_access(self.blueprint, *access_controls)
+            control_blueprint_access(self.blueprint, RequireComponent(self.package))
         if self.config_table is not None and self.config_table.extra_routes is not None:
-            control_blueprint_access(self.config_table.extra_routes, *access_controls)
+            control_blueprint_access(self.config_table.extra_routes, RequireComponent(self.package))
 
     def is_enabled(self) -> bool:
         """ Returns True if this component is enabled in the current class. """

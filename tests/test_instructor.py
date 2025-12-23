@@ -83,8 +83,8 @@ def test_set_role_active(app: Flask, instructor: AppClient) -> None:
     client = AppClient(app.test_client())
     client.login('testuser2', 'testuser2password')
     response = client.post('/instructor/role/set_active/5/0')
-    assert response.status_code == 302  # Redirect to login
-    assert response.location.startswith('/auth/login?')
+    assert response.status_code == 403
+    assert "Access denied." in response.text
 
 
 def test_set_role_instructor(app: Flask, instructor: AppClient) -> None:
@@ -129,8 +129,8 @@ def test_set_role_instructor(app: Flask, instructor: AppClient) -> None:
     client = AppClient(app.test_client())
     client.login('testuser2', 'testuser2password')
     response = client.post('/instructor/role/set_instructor/5/1')
-    assert response.status_code == 302  # Redirect to login
-    assert response.location.startswith('/auth/login?')
+    assert response.status_code == 403
+    assert "Access denied." in response.text
 
 def test_user_in_instructor_class_or_not(instructor: AppClient) -> None:
     # Current tested class is a class with id 2

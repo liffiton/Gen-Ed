@@ -167,8 +167,8 @@ def test_logout(client: AppClient) -> None:
     ('/tutor/2', 302, (200, "user_msg_2"), (200, "user_msg_2")),
     ('/tutor/3', 302, (400, "Invalid id."), (200, "user_msg_3")),
     ('/tutor/999', 302, (400, "Invalid id."), (400, "Invalid id.")),
-    ('/admin/', 302, 302, 200),         # admin_required redirects to login
-    ('/admin/get_db/', 302, 302, 200),   # admin_required redirects to login
+    ('/admin/', 302, (403, "Access denied."), 200),          # admin_required gives 403 Forbidden for non-admin user
+    ('/admin/get_db/', 302, (403, "Access denied."), 200),   # admin_required gives 403 Forbidden for non-admin user
 ])
 def test_auth_required(
         client: AppClient,

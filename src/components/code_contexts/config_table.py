@@ -4,6 +4,7 @@
 
 from jinja2 import Environment
 
+from gened.access import RequireComponent
 from gened.class_config.types import ConfigShareLink, ConfigTable
 
 from .model import ContextConfig
@@ -32,11 +33,13 @@ contexts_config_table = ConfigTable(
             'Help form',
             'helper.help_form',
             {'class_id', 'ctx_name'},
+            extra_requirements=(RequireComponent('code_queries'), ),
         ),
         ConfigShareLink(
             'Inquiry chat',
             'tutors.new_chat_form',
             {'class_id', 'ctx_name'},
+            extra_requirements=(RequireComponent('tutors'), ),
         ),
     ]
 )

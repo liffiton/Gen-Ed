@@ -2,13 +2,11 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-# pre-3.14, this allows us to avoid quoting types defined in the if TYPE_CHECKING block
-from __future__ import annotations
-
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum, auto
 from functools import wraps
-from typing import TYPE_CHECKING, ParamSpec, TypeVar, assert_never
+from typing import ParamSpec, TypeVar, assert_never
 
 from flask import (
     Blueprint,
@@ -20,16 +18,9 @@ from flask import (
     request,
     url_for,
 )
+from werkzeug.wrappers.response import Response
 
 from .auth import get_auth
-
-# avoid a circular import w/ components
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
-    from werkzeug.wrappers.response import Response
-
-    from .components import GenEdComponent
 
 # Access controls.
 # Any blueprint, route, or bit of functionality may require one or more of these conditions.
@@ -49,11 +40,11 @@ class RequireExperiment:
 
 # The given component is enabled in the user's current class
 @dataclass
-class RequireComponentEnabled:
-    component: GenEdComponent
+class RequireComponent:
+    name: str   # the name of a component that must be registered (under that name), available, and enabled
 
 # Combined access control type for use when specifying requirements
-AccessControl = Access | RequireExperiment | RequireComponentEnabled
+AccessControl = Access | RequireExperiment | RequireComponent
 
 
 def check_one_access_control(control: AccessControl) -> bool:  # noqa: PLR0911 - lots of return stmts needed here
@@ -72,8 +63,10 @@ def check_one_access_control(control: AccessControl) -> bool:  # noqa: PLR0911 -
             return auth.is_tester
         case RequireExperiment(name=name):
             return name in auth.class_experiments or auth.is_admin  # admins are allowed to access any experiment anywhere
-        case RequireComponentEnabled(component=component):
-            return component.is_enabled()
+        case RequireComponent(name=name):
+            from .component_registry import get_component_registry  # noqa: PLC0415, I001 - import moved here to avoid a messy circular import issue
+            component = get_component_registry().get(name)
+            return component is not None and component.is_available() and component.is_enabled()
 
     assert_never(control)  # ensure above is exhaustive
 
@@ -110,22 +103,29 @@ def check_access(*required: AccessControl) -> bool:
 
 def _handle_route_check_failure(control_type: AccessControl) -> Response:
     """ Handle the failure of a given access control check for a route request. """
+    auth = get_auth()
+    if auth.user is None or control_type == Access.LOGIN:
+        # all checks redirect to login if the user is not logged in already
+        # (included redundant Access.LOGIN in condition for type checker to know it's covered)
+        flash("Login required.", "warning")
+        return redirect(url_for('auth.login', next=request.full_path))
+
+    current_app.logger.warning(f"Access check failed: {control_type=} {auth=}")
+
     match control_type:
-        case Access.LOGIN | Access.INSTRUCTOR | Access.ADMIN:
-            # redirect to login if user is not logged in or has wrong role.
-            flash("Login required.", "warning")
-            return redirect(url_for('auth.login', next=request.full_path))
-        case Access.TESTER:
-            # hide the route if the user is not a tester
-            return make_response("", 404)
+        case Access.INSTRUCTOR | Access.ADMIN | Access.TESTER:
+            # error 403 Forbidden if user has wrong role.
+            flash("Access denied.  You do not have permission to perform this action.", "warning")
+            return make_response(render_template("error.html"), 403)
         case Access.CLASS_ENABLED:
-            # display an error if there is an active class but it is not enabled.
+            # error 403 Forbidden with a specific error message if there is an active class but it is not enabled.
             flash("The current class is archived or disabled.  New requests cannot be made.", "warning")
-            return make_response(render_template("error.html"), 400)
-        case RequireExperiment() | RequireComponentEnabled():
+            return make_response(render_template("error.html"), 403)
+        case RequireExperiment() | RequireComponent():
+            # error 403 Forbidden with a specific error message if the required experiment or component is not active/enabled
             flash("Cannot access the specified resource.", "warning")
             flash(f"Make sure you log in to {current_app.config['APPLICATION_TITLE']} from the correct class before using this link.", "warning")
-            return make_response(render_template("error.html"), 400)
+            return make_response(render_template("error.html"), 403)
 
     assert_never(control_type)  # ensure above is exhaustive
 

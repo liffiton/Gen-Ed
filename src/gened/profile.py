@@ -19,7 +19,10 @@ from werkzeug.wrappers.response import Response
 
 from .access import Access, control_blueprint_access
 from .auth import generate_anon_username, get_auth
-from .component_registry import get_component_data_source_by_name, get_registered_components
+from .component_registry import (
+    get_component_data_source_by_name,
+    get_registered_components,
+)
 from .csv import csv_response
 from .data_deletion import delete_user_data
 from .db import get_db

@@ -100,7 +100,8 @@ def test_lti_auth_success(client: AppClient, role: str, internal_role: str) -> N
     if internal_role == 'instructor':
         assert result.status_code == 200
     else:
-        assert result.status_code == 302  # redirect to login (as non-instructor)
+        assert result.status_code == 403
+        assert "Access denied" in result.text
 
     # check the profile for correct name, class name and role
     result = client.get('/profile/')

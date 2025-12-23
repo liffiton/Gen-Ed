@@ -242,12 +242,17 @@ def test_delete_class_full_process(app: Flask, instructor: AppClient) -> None:
 def test_delete_class_unauthorized(app: Flask, client: AppClient) -> None:
     class_id = 2  # class id 2 does not have testuser2 as instructor role
 
+    # Test without login
+    response = client.post('/instructor/class/delete', data={'class_id': class_id, 'confirm_delete': 'DELETE'})
+    assert response.status_code == 302
+    assert response.location.startswith('/auth/login?')
+
     # Test as non-instructor
     client.login('testuser2', 'testuser2password')
 
     response = client.post('/instructor/class/delete', data={'class_id': class_id, 'confirm_delete': 'DELETE'})
-    assert response.status_code == 302
-    assert response.location.startswith('/auth/login?')
+    assert response.status_code == 403
+    assert "Access denied." in response.text
 
     # Verify nothing was deleted
     with app.app_context():

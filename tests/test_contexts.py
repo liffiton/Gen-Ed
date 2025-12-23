@@ -91,8 +91,8 @@ def test_context_pages_require_instructor_role(client: AppClient) -> None:
 
     response = client.get('/instructor/config/table/context/new')
 
-    assert response.status_code == 302
-    assert response.headers['Location'].startswith('/auth/login')
+    assert response.status_code == 403
+    assert "Access denied." in response.text
 
 
 def test_newly_created_contexts_appear_on_config_page(instructor: AppClient) -> None:
