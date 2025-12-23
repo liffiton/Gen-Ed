@@ -7,11 +7,16 @@
     const md = markdownIt();
 
     document.addEventListener('alpine:init', () => {
-      const orig_tutor = {{ item | tojson }};
+      const orig_tutor = {{ item | tojson }};  // store so we can reset the entire form
       Alpine.data('tutor_editor', () => ({
         tutor: null,
         loading: null,
         objectiveNames: "",
+
+        // Modal state for editing questions
+        editingObject: null,
+        tempItems: null,
+        drag_index: null,
 
         init() {
           // Do one-way model updates *to* objectiveNames, so user can still edit the list (for regenerating questions)
@@ -100,25 +105,30 @@
             this.loading = null;
           }
         },
-      }));
 
-      Alpine.data('question_editor', (objective_index) => ({
-        questions: null,
-        drag_index: null,
+        // Question editor modal methods
+        openQuestionEditor(index) {
+          this.editingObject = this.tutor.objectives[index];
+          // Get raw / unproxied data for cloning
+          const rawItems = Alpine.raw(this.editingObject.questions);
+          // Clone so we can cancel the edit without updating the original
+          this.tempItems = structuredClone(rawItems);
+          this.$refs.questionModal.showModal();
+        },
+        saveQuestions() {
+          this.editingObject.questions = this.tempItems;
+          this.$refs.questionModal.close();
+        },
+        resetQuestionEditor() {
+          // triggered by @close on the dialog element
+          console.log("Closed.");
+          this.editingObject = null;
+          this.tempItems = null;
+        },
 
-        init() {
-          this.reset();
-        },
-        reset() {
-          // get unlinked/unaliased copy of the parent objective's questions
-          this.questions = Alpine.raw(this.tutor.objectives[objective_index].questions.slice());
-        },
-        updateParent() {
-          // copy the edited questions back to the parent objective
-          this.tutor.objectives[objective_index].questions = this.questions.slice();
-        },
+        // Drag and drop methods for question editor
         dragstart(index, event) {
-          // only allow drag if over the drag handle td
+          // only allow drag if over the drag handle
           const dragElement = event.target.querySelector("[data-drag-handle]");
           // use :hover match to detect if cursor is within the element
           if (dragElement === null || !dragElement.matches(":hover")) { event.preventDefault(); return; }
@@ -126,17 +136,16 @@
         },
         dragenter(index) {
           if (this.drag_index === null || index === this.drag_index) { return; }
-          const draggedItem = this.questions.splice(this.drag_index, 1)[0];
-          this.questions.splice(index, 0, draggedItem);
+          const draggedItem = this.tempItems.splice(this.drag_index, 1)[0];
+          this.tempItems.splice(index, 0, draggedItem);
           this.drag_index = index;
         },
         dragend() {
-          if (this.drag_index === null) { return; }
           this.drag_index = null;
         },
       }));
 
-      Alpine.data('pdfUploader', () => ({
+      Alpine.data('docUploader', () => ({
         processing: false,
         progress: 0,
         statusText: '',
@@ -181,7 +190,7 @@
             extract: async (file, progressCallback) => {
               // Dynamically import PDF.js
               progressCallback(5, 'Loading PDF library...');
-              pdfjsLib = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4/+esm');
+              const pdfjsLib = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4/+esm');
               pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4/build/pdf.worker.min.mjs';
 
               const arrayBuffer = await file.arrayBuffer();
@@ -378,7 +387,7 @@
         </div>
       </div>
 
-      <div class="field is-horizontal" x-data="pdfUploader()">
+      <div class="field is-horizontal" x-data="docUploader()">
         <input type="hidden" name="document_filename" x-model="tutor.document_filename">
         <input type="hidden" name="document_text" x-model="tutor.document_text">
         <div class="field-label is-normal">
@@ -564,45 +573,9 @@
                     </div>
                   </template>
                 </ol>
-                <button class="button is-link is-light ml-4" type="button" @click="$dispatch('opendialog'); document.getElementById(`q_dialog_${index}`).showModal()">
+                <button class="button is-link is-light ml-4" type="button" @click="openQuestionEditor(index)">
                   Edit questions
                 </button>
-
-                <template x-data='question_editor(index)' x-teleport="body" @opendialog.window="reset">
-                  <dialog x-bind:id="`q_dialog_${index}`" style="min-height: 75vh; width: 60%; max-width: 80em; min-width: min(50em, 100vw);" @click="dialogCloseIfOutside" @close="reset">
-                    <div class="content box">
-                      <h3 x-text="obj.name"></h3>
-                      <div class="field">
-                        <div class="label">Questions</div>
-                        <template x-for="(question, index) in questions">
-                          <div x-bind:draggable="drag_index === index" @dragstart="dragstart(index, $event)" @dragend="dragend" @dragenter="dragenter(index)" class="mt-2" style="display: flex; gap: 0.5em; align-items: center;">
-                            <span data-drag-handle @mousedown="drag_index = index" @mouseup="drag_index = null" style="cursor: move; vertical-align: middle; text-align: center;" title="drag to reorder">
-                              <svg aria-hidden="true" class="icon is-small mt-1"><use href="#svg_grip" /></svg>
-                            </span>
-                            <button type="button" class="delete" title="delete question" @click="questions.splice(index, 1)"></button>
-                            <div class="control is-flex-grow-1">
-                              <textarea class="textarea" name="questions[]" x-model="questions[index]" rows=3 ></textarea>
-                            </div>
-                          </div>
-                        </template>
-                      </div>
-                      <div class="field">
-                        <div class="control">
-                          <button type="button" class="button" @click="questions.push('')">+ add a question</button>
-                        </div>
-                      </div>
-                      <div class="field is-grouped">
-                        <div class="control">
-                          <button class="button is-link" type="button" @click="updateParent(); $event.target.closest('dialog').close()">Update</button>
-                        </div>
-                        <div class="control">
-                          <button class="button" type="button" @click="reset(); $event.target.closest('dialog').close()">Cancel</button>
-                        </div>
-                      </div>
-                    </div>
-                  </dialog>
-                </template>
-
               </div>
             </template>
           </div>
@@ -628,6 +601,42 @@
       </div>
 
     </form>
+
+    <!-- Question Editor Modal -->
+    <dialog x-ref="questionModal" style="min-height: 75vh; width: 60%; max-width: 80em; min-width: min(50em, 100vw);" @close="resetQuestionEditor">
+      <template x-if="editingObject !== null">
+        <div class="content box">
+          <h3 x-text="editingObject.name"></h3>
+          <div class="field">
+            <div class="label">Questions</div>
+            <template x-for="(question, index) in tempItems">
+              <div x-bind:draggable="drag_index === index" @dragstart="dragstart(index, $event)" @dragend="dragend" @dragenter="dragenter(index)" class="mt-2" style="display: flex; gap: 0.5em; align-items: center;">
+                <span data-drag-handle @mousedown="drag_index = index" @mouseup="drag_index = null" style="cursor: move; vertical-align: middle; text-align: center;" title="drag to reorder">
+                  <svg aria-hidden="true" class="icon is-small mt-1"><use href="#svg_grip" /></svg>
+                </span>
+                <button type="button" class="delete" title="delete question" @click="tempItems.splice(index, 1)"></button>
+                <div class="control is-flex-grow-1">
+                  <textarea class="textarea" x-model="tempItems[index]" rows=3 ></textarea>
+                </div>
+              </div>
+            </template>
+          </div>
+          <div class="field">
+            <div class="control">
+              <button type="button" class="button" @click="tempItems.push('')">+ add a question</button>
+            </div>
+          </div>
+          <div class="field is-grouped">
+            <div class="control">
+              <button class="button is-link" type="button" @click="saveQuestions()">Update</button>
+            </div>
+            <div class="control">
+              <button class="button" type="button" @click="$refs.questionModal.close()">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </template>
+    </dialog>
 
   </div>
 </section>
