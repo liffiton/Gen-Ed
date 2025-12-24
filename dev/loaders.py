@@ -39,8 +39,8 @@ def test_and_report_model(model: str, reasoning_effort: str | None = None, verbo
     print(f"Using model: \x1B[32m{model_str}\x1B[m")
 
 
-def load_queries(file_path: Path) -> tuple[list[dict[str, Any]], Sequence[str]]:
-    """ Load query data from a spreadsheet (.csv, .ods, or .xlsx).
+def load_data(file_path: Path) -> tuple[list[dict[str, Any]], Sequence[str]]:
+    """ Load rows of data from a spreadsheet (.csv, .ods, or .xlsx).
     Assumes the first row contains column headers.
     """
     if file_path.suffix == ".csv":

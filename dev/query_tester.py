@@ -13,8 +13,8 @@ import pyperclip
 import urwid
 from loaders import (
     get_available_prompts,
+    load_data,
     load_prompt,
-    load_queries,
     make_prompt,
     reload_prompt,
     test_and_report_model,
@@ -158,7 +158,7 @@ def main() -> None:
     test_and_report_model(args.model)
 
     # Load data
-    queries, headers = load_queries(args.file_path)
+    queries, headers = load_data(args.file_path)
 
     # Initialize the prompt
     prompts = list(get_available_prompts(args.app).keys())

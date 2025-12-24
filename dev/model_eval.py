@@ -15,8 +15,8 @@ from sqlite3 import Row
 import litellm
 from loaders import (
     get_available_prompts,
+    load_data,
     load_prompt,
-    load_queries,
     make_prompt,
     model_string,
     test_and_report_model,
@@ -49,12 +49,12 @@ def cli_load_data(args: argparse.Namespace) -> None:
     file_path = args.file_path
     app = args.app
     prompt_name = choose_prompt(app)
-    load_data(db, file_path, app, prompt_name)
+    load_prompt_data(db, file_path, app, prompt_name)
 
 
-def load_data(db: sqlite3.Connection, file_path: Path, app: str, prompt_name: str) -> None:
+def load_prompt_data(db: sqlite3.Connection, file_path: Path, app: str, prompt_name: str) -> None:
     # Load data
-    queries, headers = load_queries(file_path)
+    queries, headers = load_data(file_path)
 
     prompt_func, fields = load_prompt(app, prompt_name, headers)
 
@@ -203,7 +203,7 @@ def eval_sufficient(model: str, row: Row) -> dict[str, bool]:
     elif "OK." in response:
         # And if the model response is *not* "OK." but the real response includes it,
         # we immediately know that's incorrect.
-        return {x: False for x in model_response.splitlines()}
+        return dict.fromkeys(model_response.splitlines(), False)
 
     msgs = [
         {"role": "system", "content": _SUFFICIENT_SYS_PROMPT},
@@ -240,6 +240,8 @@ def gen_evals(db: sqlite3.Connection, model: str, response_set_id: int, prompt_f
             sys_prompt = _SUFFICIENT_SYS_PROMPT
             eval_func = eval_sufficient
             summarize_func = summarize_eval_insufficient
+        case _:
+            raise Exception(f"Invalid prompt_func: {prompt_func}")
 
     # Add system prompt if not used previously, get its ID
     # SET id=id is no-op, but we need to do an update so we can get the id using RETURNING
