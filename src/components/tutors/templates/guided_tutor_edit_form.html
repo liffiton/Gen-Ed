@@ -253,16 +253,11 @@
 
           let fullText = await handler.extract(file, progressCallback);
 
-          progressCallback(80, 'Processing extracted text...');
-
-          // Process the extracted text (count words, truncate)
-          const processedText = this.processDocumentText(fullText);
-
           progressCallback(100, 'Text extraction complete!');
           this.processing = false;
 
           const fileName = file.name.toLowerCase();
-          this.openDocumentModal(fileName, processedText);
+          this.openDocumentModal(fileName, fullText);
         },
 
         clearFile() {
@@ -284,7 +279,11 @@
 
         openDocumentModal(fileName, textToEdit) {
           this.editingFilename = fileName;
-          this.$refs.document_text_editor.textContent = textToEdit;
+
+          // Process the extracted text (count words, truncate)
+          const processedText = this.processDocumentText(textToEdit);
+
+          this.$refs.document_text_editor.textContent = processedText;
           this.$refs.document_text_modal.showModal();
         },
 
