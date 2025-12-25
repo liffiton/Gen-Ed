@@ -241,7 +241,7 @@ def gen_evals(db: sqlite3.Connection, model: str, response_set_id: int, prompt_f
             eval_func = eval_sufficient
             summarize_func = summarize_eval_insufficient
         case _:
-            raise Exception(f"Invalid prompt_func: {prompt_func}")
+            raise ValueError(f"Invalid prompt_func: {prompt_func}")
 
     # Add system prompt if not used previously, get its ID
     # SET id=id is no-op, but we need to do an update so we can get the id using RETURNING
