@@ -79,7 +79,7 @@ class GenEdAppBuilder:
             try:
                 instance_path = Path(os.environ["FLASK_INSTANCE_PATH"])
             except KeyError:
-                print("Instance path not set and FLASK_INSTANCE_PATH environment variable not found.")
+                print("Instance path not set and FLASK_INSTANCE_PATH environment variable not found.")  # noqa: T201 - print() is okay here, pre-logging-setup
                 sys.exit(1)
         # Flask() requires an absolute instance path
         instance_path = instance_path.resolve()

@@ -79,7 +79,6 @@ ignore = [
     "RET505", # unnecessary else after return
     "S101",   # assert statements
     "S311",   # pseudo-random number generators
-    "T20",    # Flake8-print (print statements)
     "TRY400", # logger.error() inside except block
     "G004",   # f-string in logging statement
     "EM",     # Exceptions with string literals
