@@ -27,8 +27,8 @@ This will bring up a dialog asking for a class name and an LLM API key.
 
 The LLM API key will be used for your students' queries in CodeHelp.
 If you don't have an API key yet, you can leave it blank for now, but it will be required for anyone to submit queries in your class.
-You can create an API key using an account at <a href="https://openai.com/">openai.com</a>.
-The LLM provider (e.g., OpenAI) will charge you directly for your students' usage, so you will need to purchase usage credits using a credit card.
+You can create an API key using an account at <a href="https://platform.openai.com/">platform.openai.com</a> or <a href="https://aistudio.google.com/">aistudio.google.com</a>.
+The LLM provider (e.g., OpenAI or Google) will charge you directly for your students' usage, so you will need to purchase usage credits using a credit card.
 The cost is low.  See the [Models](models) documentation for details.
 
 ## Configuration

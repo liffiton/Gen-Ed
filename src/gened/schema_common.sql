@@ -162,12 +162,14 @@ CREATE UNIQUE INDEX models_by_shortname_owner ON models(shortname, owner_id);
 
 INSERT INTO llm_providers(name) VALUES ("Custom");
 INSERT INTO llm_providers(name, endpoint) VALUES ('OpenAI', 'https://api.openai.com/v1');
+INSERT INTO llm_providers(name, endpoint) VALUES ('Google', 'https://generativelanguage.googleapis.com/v1beta/openai/');
 
 -- See also: DEFAULT_CLASS_MODEL_SHORTNAME in base.create_app_base()
 INSERT INTO models(provider_id, shortname, model, default_params, active, owner_id) VALUES
     ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1', 'gpt-4.1', '{}', true, NULL),
     ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1 mini', 'gpt-4.1-mini', '{}', true, NULL),
-    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1 nano', 'gpt-4.1-nano', '{}', true, NULL)
+    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1 nano', 'gpt-4.1-nano', '{}', true, NULL),
+    ((SELECT id FROM llm_providers WHERE name='Google'), 'Gemini 3 Flash Preview', 'gemini-3-flash-preview', '{}', true, NULL)
 ;
 
 

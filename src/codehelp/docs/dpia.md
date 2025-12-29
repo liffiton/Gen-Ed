@@ -47,8 +47,10 @@ authentication and educational processing.
     * Passwords are not collected or stored for regular users.
 2. **Educational Processing:**
     * Students submit coding questions through the application.
-    * These queries are processed via the OpenAI API, which retains data for a
-      maximum of 30 days and does not use it for training its models.
+    * These queries are processed via OpenAI's API or Google's API, which
+      retain data for a maximum of 30 days (OpenAI) or 55 days (Google).
+      Neither provider uses data submitted to their paid APIs for training
+      their models.
     * The responses generated are stored along with user identification
       information. This allows users to reference their interactions and
       enables instructor oversight.
