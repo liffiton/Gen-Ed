@@ -104,7 +104,7 @@ def generate_responses() -> Response:
     if matches := re.match(r"^(.+) +\((.+)\) +\(verbosity (.+)\)$", model):
         model = matches[1]
         reasoning_effort = matches[2]
-        verbosity = matches[2]
+        verbosity = matches[3]
     elif matches := re.match(r"^(.+) +\((.+)\)$", model):
         model = matches[1]
         reasoning_effort = matches[2]
