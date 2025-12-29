@@ -186,7 +186,7 @@
                           </div>
                           <div class="control">
                             <button type="button" class="button icon-text" x-bind:class="copied ? 'is-success' : 'is-link'" @click="copy_url">
-                              <svg aria-hidden="true" class="icon is-right"><use href="#svg_copy" /></svg>
+                              <svg aria-hidden="true" class="icon"><use href="#svg_copy" /></svg>
                               <span x-text="copied ? 'copied' : 'copy'"></span>
                             </button>
                           </div>
@@ -230,9 +230,7 @@
   </table>
   <div class="mt-2 has-text-centered">
     <a class="button is-light is-link is-small" href="{{ table.new_url }}">
-      <span class="icon">
-        <svg aria-hidden="true"><use href="#svg_plus" /></svg>
-      </span>
+      <svg class="icon" aria-hidden="true"><use href="#svg_plus" /></svg>
       <span>Create new {{ table.display_name }}</span>
     </a>
 
@@ -249,9 +247,7 @@
       <button class="button is-light is-link is-small ml-2"
               @click="showCopyModal = true; selected_course_id = '';"
               title="Copy all items from another course you teach into this one">
-        <span class="icon">
-          <svg aria-hidden="true"><use href="#svg_copy" /></svg>
-        </span>
+        <svg class="icon" aria-hidden="true"><use href="#svg_copy" /></svg>
         <span>Copy from another course...</span>
       </button>
 

@@ -52,9 +52,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           {{ table.spec.name }}
           {% if table.spec.create_endpoint %}
             <a class="button is-light is-link is-small m-2" href="{{ url_for(table.spec.create_endpoint) }}">
-              <span class="icon">
-                <svg aria-hidden="true"><use href="#svg_plus" /></svg>
-              </span>
+              <svg class="icon" aria-hidden="true"><use href="#svg_plus" /></svg>
               <span>Create new</span>
             </a>
           {% endif %}

@@ -44,23 +44,19 @@ def render_link() -> Markup:
         return Markup("""
             Download DB
             <span class="ml-2 icon-text px-1 has-text-success-dark" title="Download will be encrypted">
-              <span class="icon">
-                <svg aria-hidden="true" style="height: 80%;">
-                  <use href="#svg_admin_check" />
-                </svg>
-              </span>
+              <svg class="icon" aria-hidden="true">
+                <use href="#svg_admin_check" />
+              </svg>
             </span>
         """)
     else:
         return Markup("""
             Download DB
-            <span class="ml-2 icon-text px-1 tag is-warning" title="{}">
-              <span class="icon">
-                <svg aria-hidden="true" style="height: 80%;">
-                  <use href="#svg_admin_alert" />
-                </svg>
-              </span>
-              <span class="text" style="margin-left: -0.5em;">&nbsp;&nbsp;unencrypted</span>
+            <span class="ml-2 icon-text px-2 tag is-warning" title="{}">
+              <svg class="icon is-small" aria-hidden="true">
+                <use href="#svg_admin_alert" />
+              </svg>
+              <span class="text" style="margin-left: -0.4em;">&nbsp;&nbsp;unencrypted</span>
             </span>
         """).format(status.reason)
 

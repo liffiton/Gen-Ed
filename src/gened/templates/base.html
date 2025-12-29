@@ -21,7 +21,6 @@ SPDX-License-Identifier: AGPL-3.0-only
         to   { opacity: 1; transform: translateY(0) scale(100%); }
       }
       .icon-text { align-items: center; }
-      svg { height: 100%; }
       .button .icon:first-child:not(:last-child) { margin-right: 0.5em; }
       a.button-inline { display: inline-block; padding: 0.2em 0.5em; vertical-align: baseline; height: auto; }
       a.hover-show-icon svg { opacity: 25%; }
@@ -76,9 +75,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             {% set has_dropdown=(auth.cur_class and auth.is_admin) or (auth.other_classes) %}
             <a class="navbar-item dropdown dropdown-trigger is-hoverable is-size-6" {% if has_dropdown %}aria-haspopup="true" aria-controls="classes-menu"{% endif %} style="flex-direction: column; justify-content: center;" href="{{ url_for('profile.main') }}">
               <div class="icon-text">
-                <span class="icon">
-                  <svg aria-hidden="true"><use href="#svg_user" /></svg>
-                </span>
+                <svg class="icon" aria-hidden="true"><use href="#svg_user" /></svg>
                 <span class="is-italic">{{ auth.user.display_name }}</span>
               </div>
               {% if auth.cur_class %}
@@ -113,17 +110,13 @@ SPDX-License-Identifier: AGPL-3.0-only
             {% if auth.cur_class.role == 'instructor' %}
               <a class="navbar-item is-size-6 has-text-success" href="{{ url_for('class_config.base.config_form') }}">
                 <div class="icon-text">
-                  <span class="icon" title="Configure Class">
-                    <svg aria-hidden="true"><use href="#svg_config" /></svg>
-                  </span>
+                  <svg class="icon" aria-hidden="true"><use href="#svg_config" /></svg>
                   <span class="is-hidden-desktop-only">Configure Class</span>
                 </div>
               </a>
               <a class="navbar-item is-size-6 has-text-warning" href="{{ url_for('instructor.main') }}">
                 <div class="icon-text">
-                  <span class="icon" title="Instructor View">
-                    <svg aria-hidden="true"><use href="#svg_table_grid" /></svg>
-                  </span>
+                  <svg class="icon" aria-hidden="true"><use href="#svg_table_grid" /></svg>
                   <span class="is-hidden-desktop-only">Instructor View</span>
                 </div>
               </a>
@@ -131,9 +124,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             {% if auth.is_admin %}
               <a class="navbar-item is-size-6 has-text-danger" href="{{ url_for('admin.admin_main.main') }}">
                 <div class="icon-text">
-                  <span class="icon" title="Admin">
-                    <svg aria-hidden="true"><use href="#svg_admin" /></svg>
-                  </span>
+                  <svg class="icon" aria-hidden="true"><use href="#svg_admin" /></svg>
                   <span class="is-hidden-desktop-only">Admin</span>
                 </div>
               </a>
@@ -141,9 +132,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             <div class="navbar-item">
               <form action="{{ url_for("auth.logout") }}" method="post">
                 <button class="button icon-text is-link" type="submit">
-                  <span class="icon">
-                    <svg aria-hidden="true"><use href="#svg_logout" /></svg>
-                  </span>
+                  <svg class="icon" aria-hidden="true"><use href="#svg_logout" /></svg>
                   <span>Logout</span>
                 </button>
               </form>
@@ -151,9 +140,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           {% elif not hide_login_button %}
             <div class="navbar-item">
               <a href="{{ url_for("auth.login") }}" class="button icon-text is-link">
-                <span class="icon">
-                  <svg aria-hidden="true"><use href="#svg_login" /></svg>
-                </span>
+                <svg class="icon" aria-hidden="true"><use href="#svg_login" /></svg>
                 <span>Login</span>
               </a>
             </div>
@@ -165,10 +152,8 @@ SPDX-License-Identifier: AGPL-3.0-only
     {% if auth.is_admin and auth.cur_class and auth.cur_class.role_id == -1 %}
     <div class="has-background-link has-text-light has-text-centered p-2">
       <span class="icon-text">
-        <span class="icon">
-          <svg aria-hidden="true"><use href="#svg_admin" /></svg>
-        </span>
-        Admin in '{{ auth.cur_class.class_name }}' as instructor role.
+        <svg class="icon" aria-hidden="true"><use href="#svg_admin" /></svg>
+        <span>Admin in '{{ auth.cur_class.class_name }}' as instructor role.</span>
         <button class="button is-rounded is-light is-outlined is-small ml-3" type="button" onclick="location.assign('{{ url_for("classes.leave_class_handler") }}'); return false;">Leave class</button>
       </span>
     </div>

@@ -15,9 +15,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <nav class="navbar is-light is-size-5" role="navigation" aria-label="admin navigation" x-data="{admin_menu_open: false}">
   <div class="navbar-brand">
     <a class="navbar-item has-text-danger is-tab {{ 'is-active' if request.endpoint == 'admin.admin_main.main' else ''}}" href="{{url_for('admin.admin_main.main')}}">
-      <span class="icon">
-        <svg aria-hidden="true"><use href="#svg_admin" /></svg>
-      </span>
+      <svg class="icon" aria-hidden="true"><use href="#svg_admin" /></svg>
       <span>Admin</span>
     </a>
     <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" x-bind:class="admin_menu_open ? 'is-active' : ''" x-on:click="admin_menu_open = ! admin_menu_open">

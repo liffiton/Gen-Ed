@@ -139,9 +139,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             <div class="level-item is-italic">Was this helpful?</div>
             <div class="level-item">
               <button class="button is-success" x-bind:class="helpful===1 ? '' : 'is-light'" x-on:click="helpful=1; post_helpful(1);">
-                <span class="icon">
-                  <svg aria-hidden="true"><use href="#svg_thumbsup" /></svg>
-                </span>
+                <svg class="icon" aria-hidden="true"><use href="#svg_thumbsup" /></svg>
                 <span>
                   Yes
                 </span>
@@ -149,9 +147,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             </div>
             <div class="level-item">
               <button class="button is-danger " x-bind:class="helpful===0 ? '' : 'is-light'" x-on:click="helpful=0; post_helpful(0);">
-                <span class="icon">
-                  <svg aria-hidden="true"><use href="#svg_thumbsdown" /></svg>
-                </span>
+                <svg class="icon" aria-hidden="true"><use href="#svg_thumbsdown" /></svg>
                 <span>
                   No
                 </span>

@@ -38,18 +38,14 @@ dl.profile dd { margin: 0; }
       {% if user.is_admin %}
         <dt></dt>
         <dd class="icon-text has-text-danger">
-          <span class="icon">
-            <svg aria-hidden="true"><use href="#svg_admin" /></svg>
-          </span>
+          <svg class="icon" aria-hidden="true"><use href="#svg_admin" /></svg>
           <span>Admin</span>
         </dd>
       {% endif %}
       {% if user.is_tester %}
         <dt></dt>
         <dd class="icon-text has-text-success">
-          <span class="icon">
-            <svg aria-hidden="true"><use href="#svg_flask" /></svg>
-          </span>
+          <svg class="icon" aria-hidden="true"><use href="#svg_flask" /></svg>
           <span>Tester</span>
         </dd>
       {% endif %}
@@ -71,10 +67,8 @@ dl.profile dd { margin: 0; }
     <h2 class="title is-size-3">
       Classes
       {% if user.provider_name not in ['lti', 'demo'] %}
-        <button class="button ml-5 icon-text is-light is-link is-outlined" onclick="document.querySelector('#new_class_dialog').showModal()">
-            <span class="icon">
-                <svg aria-hidden="true"><use href="#svg_plus" /></svg>
-            </span>
+        <button class="button ml-5 is-light is-link is-outlined" onclick="document.querySelector('#new_class_dialog').showModal()">
+            <svg class="icon" aria-hidden="true"><use href="#svg_plus" /></svg>
             <span>Create new class</span>
         </button>
       {% endif %}
@@ -119,10 +113,8 @@ dl.profile dd { margin: 0; }
     {% if created_classes %}
       <h2 class="is-size-3">
         Additional Models
-        <a class="has-text-weight-normal button ml-5 icon-text is-light is-link is-outlined" href="{{url_for("models.new_model")}}">
-          <span class="icon">
-            <svg aria-hidden="true"><use href="#svg_plus" /></svg>
-          </span>
+        <a class="has-text-weight-normal button ml-5 is-light is-link is-outlined" href="{{url_for("models.new_model")}}">
+          <svg class="icon" aria-hidden="true"><use href="#svg_plus" /></svg>
           <span>Add custom model</span>
         </a>
       </h2>
@@ -140,17 +132,13 @@ dl.profile dd { margin: 0; }
         View &amp; export your data
       </a>
       {% if user.provider_name not in ['lti', 'demo', 'local'] %}
-        <button class="button ml-5 icon-text is-info" onclick="document.querySelector('#anonymize_dialog').showModal()">
-          <span class="icon">
-            <svg aria-hidden="true"><use href="#svg_user" /></svg>
-          </span>
+        <button class="button ml-5 is-info" onclick="document.querySelector('#anonymize_dialog').showModal()">
+          <svg class="icon" aria-hidden="true"><use href="#svg_user" /></svg>
           <span>Anonymize account</span>
         </button>
       {% endif %}
-      <button class="button ml-5 icon-text is-danger" onclick="document.querySelector('#delete_dialog').showModal()">
-        <span class="icon">
-          <svg aria-hidden="true"><use href="#svg_trash" /></svg>
-        </span>
+      <button class="button ml-5 is-danger" onclick="document.querySelector('#delete_dialog').showModal()">
+        <svg class="icon" aria-hidden="true"><use href="#svg_trash" /></svg>
         <span>Delete your account ...</span>
       </button>
     </div>

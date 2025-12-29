@@ -104,11 +104,12 @@ SPDX-License-Identifier: AGPL-3.0-only
         for (const action of actions) {
           const id = table.data.data[rowIndex].cells[action.id_col].text;
           const el = document.createElement('a');
-          el.classList.add('has-text-grey', 'icon', 'icon-text');
+          el.classList.add('has-text-grey', 'icon-text');
           el.title = action.text;
           el.href = action.url + id;
           const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
           svg.aria_hidden = true;
+          svg.classList.add('icon');
           const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
           use.setAttribute('href', `#svg_${action.icon}`);
           svg.appendChild(use);

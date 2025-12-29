@@ -17,9 +17,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div class="message-body content is-size-3">
 
         <h2 class="is-size-2">
-          <span class="icon is-medium">
-            <svg aria-hidden="true"><use href="#svg_messages_square"></use></svg>
-          </span>
+          <svg class="icon is-medium" aria-hidden="true"><use href="#svg_messages_square"></use></svg>
           Chat with an AI Tutor
           {% if auth.user %}
             <a class="button is-link ml-3 mt-1" href="{{ url_for('tutors.new_chat_form') }}">
@@ -30,9 +28,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <p>Work with focused tutors created by your instructor to help you learn and practice a particular concept.  Or have a chat with a tutor on a topic of your choice.</p>
 
         <h2 class="is-size-2">
-          <span class="icon is-medium">
-            <svg aria-hidden="true"><use href="#svg_qmark_circle"></use></svg>
-          </span>
+          <svg class="icon is-medium" aria-hidden="true"><use href="#svg_qmark_circle"></use></svg>
           Generate Paper Ideas
           {% if auth.user %}
             <a class="button is-link ml-3 mt-1" href="{{ url_for('paper_ideas.help_form') }}">
@@ -43,9 +39,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <p>Explore writing topics.  It's like a brainstorming partner, suggesting keywords, concepts, and connections related to the seeds you provide.</p>
 
         <h2 class="is-size-2">
-          <span class="icon is-medium">
-            <svg aria-hidden="true"><use href="#svg_pencil"></use></svg>
-          </span>
+          <svg class="icon is-medium" aria-hidden="true"><use href="#svg_pencil"></use></svg>
           Check Writing
           {% if auth.user %}
             <a class="button is-link ml-3 mt-1" href="{{ url_for('language_helper.help_form') }}">
