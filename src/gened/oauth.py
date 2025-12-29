@@ -13,6 +13,7 @@ from flask import (
     Flask,
     abort,
     current_app,
+    flash,
     redirect,
     request,
     session,
@@ -134,7 +135,9 @@ def auth(provider_name: AuthProviderExt) -> Response:
             token = client.authorize_access_token(claims_options={'iss': {}})
         else:
             token = client.authorize_access_token()
-    except OAuthError:
+    except OAuthError as e:
+        current_app.logger.error(f"OAuthError: {e}")
+        flash("Authentication error.  It has been logged, and we'll look into it.  For now, you could try to log in with a different service.", "danger")
         return redirect(url_for("auth.login"))
 
     user = token.get('userinfo') or client.userinfo()
