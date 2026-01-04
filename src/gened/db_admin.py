@@ -135,15 +135,16 @@ def rebuild_views() -> None:
                 '{table_name}' AS component,
                 t.user_id AS user_id,
                 t.role_id AS role_id,
+                r.class_id AS class_id,  -- including this allows some queries to get more efficient query plans
                 t.{time_col} AS entry_time
             FROM {table_name} t
+            LEFT JOIN roles r ON r.id=t.role_id
         """)
 
     db.execute("DROP VIEW IF EXISTS v_user_items")
     db.execute(f"""
         CREATE VIEW v_user_items AS
         {' UNION ALL '.join(union_parts)}
-        ORDER BY user_id
     """)
     # validate view immediately
     try:
