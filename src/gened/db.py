@@ -60,8 +60,8 @@ class TimingConnection(sqlite3.Connection):
 
 def get_db() -> sqlite3.Connection:
     if 'db' not in g:
-        connection_class = TimingConnection if current_app.debug else sqlite3.Connection
-        #connection_class = sqlite3.Connection
+        #connection_class = TimingConnection if current_app.debug else sqlite3.Connection
+        connection_class = sqlite3.Connection
         db = sqlite3.connect(
             current_app.config['DATABASE'],
             detect_types=sqlite3.PARSE_DECLTYPES,
