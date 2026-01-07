@@ -28,9 +28,9 @@ Cost per million: $0.25 in, $2.00 out
 
 | Model | Avg cost per 100 queries | Average response time | Notes |
 | ----- | ------------------------ | ----------------- | ----- |
-| **OpenAI GPT-4.1 nano** | US$0.05 | 2 seconds | The lowest-cost and fastest of these options.  It can provide accurate, helpful responses in a wide variety of cases, but it will be noticeably less accurate in less common programming languages and may exhibit less fluency writing in languages other than English. |
+| **OpenAI GPT-4.1 nano** | US$0.05 | 2 seconds | The lowest-cost and fastest of these options.  It can provide accurate, helpful responses in a wide variety of cases, but it will be noticeably less accurate in less common programming languages and may exhibit less fluency in languages other than English. |
 | **OpenAI GPT-4.1 mini** | US$0.20 | 6 seconds | **(Recommended)**  The best OpenAI model for most cases.  It is generally as capable as GPT-4.1 but at a lower cost. |
-| **OpenAI GPT-4.1** | US$1 | 8 seconds | The most capable model of these options.  It is recommended for classes using uncommon programming languages, students asking questions in less widely-spoken languages, and/or queries with subtle or complex issues.  Most CS classes and students are unlikely to see a major difference in responses between this and GPT-4.1 mini. |
+| **OpenAI GPT-4.1** | US$1 | 8 seconds | The most capable model of these OpenAI models.  It is recommended for classes using uncommon programming languages, students asking questions in less widely-spoken languages, and/or queries with subtle or complex issues.  Most CS classes and students are unlikely to see a major difference in responses between this and GPT-4.1 mini. |
 | **Google Gemini 3 Flash Preview** | US$0.50 | 8 seconds | **(Recommended)**  The best Google model for most cases.  Is likely to give the most accurate and correct responses of all models listed here. |
 
 
@@ -43,8 +43,8 @@ These models will produce some of the highest quality responses available, but
 the improvement over the recommended models above will be relatively small,
 especially relative to their substantially slower generation and higher costs.
 
-They are not provided as options by default, but you can always set up one of
-these as a custom model for your own classes if you want to try one.
+They are not provided as options by default, but you can always configure one
+as a custom model for your own classes if you want to try it.
 
 | Model | Avg cost per 100 queries | Average response time |
 | ----- | ------------------------ | ----------------- |

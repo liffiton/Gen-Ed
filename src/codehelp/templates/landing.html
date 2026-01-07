@@ -49,7 +49,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   <div class="container" style="max-width: 50em;">
         <div class="box content is-size-5">
           <h2>For Instructors</h2>
-          <p>CodeHelp helps your students <strong>without writing code</strong> for them.  It is made specifically to guide and explain but not provide solution code.</p>
+          <p><strong>1. Q&amp;A Queries</strong> &mdash; CodeHelp helps your students <strong>without writing code</strong> for them.  It is made specifically to guide and explain but not provide solution code.</p>
           <ul>
             <li><strong>Accessible Support</strong> &mdash; It is always available, whenever your students are working, with immediate responses.</li>
             <li><strong>Tailored Responses</strong> &mdash; You can provide context to tailor responses to your class or even individual assignments, matching your students' needs and exactly what they are working on.</li>
@@ -57,26 +57,50 @@ SPDX-License-Identifier: AGPL-3.0-only
             <li><strong>Low Cost</strong> &mdash; Each student query costs roughly US$0.01 (see <a href="#costs">costs</a> below).</li>
             <li><strong>Simple Integration</strong> &mdash; CodeHelp easily fits into any existing course as a complement to existing support systems.</li>
           </ul>
+          <p><strong>2. Focused Tutors<span class="tag is-primary is-medium mx-1">NEW</span></strong> &mdash; You can quickly design and deploy tutors (chatbots) that follow a plan of topics, learning objectives, and assessment questions specified by you.</p>
+          <ul>
+            <li><strong>Highly-relevant</strong> &mdash; Encode <strong>your expertise</strong> and knowledge of <strong>your students and learning context</strong> into the plan.</li>
+            <li><strong>Consistent</strong> &mdash; Every student's chat follows the same structure, while still adapting to their specific responses.</li>
+            <li><strong>Assessable</strong> &mdash; Easily assessed for the students' engagement and demonstration of understanding with quick skims of their responses.</li>
+            <li><strong>Potential uses:</strong></li>
+            <ul>
+              <li>Low-stakes assessments following a reading to incentivize completing the reading and to reinforce the material before coming to class.</li>
+              <li>Reinforce topics and material that you want your students to practice more than you have time for in class.</li>
+              <li>Provide custom tutors on the fly to individual students as you see specific needs arise.</li>
+            </ul>
+          </ul>
+        </div>
+
+        <div class="box content">
+          <h2 id="costs">Access and Sharing</h2>
           <p>CodeHelp is shared with everyone in your class with a simple link.  There are two options:</p>
           <div class="pl-5">
             <a class="button button-inline is-link is-size-5" href="https://docs.google.com/forms/d/e/1FAIpQLSfsOZteMbIlIN5_MPZF-_Z-f9LwfZpfrhPOVfqcGjeJCtxHHQ/viewform?usp=sf_link">
               Request an LMS Connection
             </a> to connect from an LMS like Canvas, Moodle, etc.
             <ul class="mt-1 mb-4">
-              <li>Everyone will sign in <b>automatically</b> (no separate login) via a link from your course page.</li>
+              <li>Students and instructors sign in <b>automatically</b> (no separate login) via a link from your course page.</li>
               <li>Takes some time to set up, and may require support from your LMS administrator.</li>
             </ul>
             {% if auth.user and auth.user.auth_provider != 'demo' %}
-              <a class="button button-inline is-link is-size-5" href="{{ url_for("profile.main") }}">Go to your Profile page</a> to manually create a class.
+              <a class="button button-inline is-link is-size-5" href="{{ url_for("profile.main") }}">Go to your Profile page</a> to create a class.
             {% else %}
-              <a class="button button-inline is-link is-size-5" href="{{ url_for("auth.login", next=url_for("profile.main")) }}">Sign in using Google, GitHub, or Microsoft</a> and manually create a class from your profile page.
+              <a class="button button-inline is-link is-size-5" href="{{ url_for("auth.login", next=url_for("profile.main")) }}">Sign in using Google, GitHub, or Microsoft</a> and create a class.
             {% endif %}
             <ul class="mt-1 mb-4">
-              <li>You will share an access link, and everyone will sign in using a Google, GitHub, or Microsoft account.</li>
+              <li>You share an access link to join the class.</li>
+              <li>Students sign in using a Google, GitHub, or Microsoft account.</li>
               <li>Can be set up in less than ten minutes.</li>
             </ul>
           </div>
           <p><a href="{{ url_for("docs.main") }}">The documentation</a> provides more details.</p>
+        </div>
+
+        <div class="box content">
+          <h2 id="costs">Costs</h2>
+          <p>CodeHelp itself does not take payment, but the large language models it uses are not free.  We will ask you to provide an LLM provider API key to be used for your students' queries.</p>
+          <p>Costs are low: For example, the OpenAI and Google models that are most appropriate for use in CodeHelp will cost roughly US$0.01 or less for each Q&amp;A query.  If your students use CodeHelp regularly and average 50 queries each over a semester (higher than the average we've observed), your total costs would be roughly $0.50 per student or less.  See <a href="{{ url_for('docs.page', name='models') }}">the models documentation</a> for more details.</p>
+          <p>The costs of tutor chats are highly variable, depending on the length of the chat.  A half-hour chat may be very roughly five to ten times the cost of one Q&amp;A query.</p>
         </div>
 
         <script type="text/Javascript">
@@ -111,7 +135,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           <div class="content">
             <div style="display: flex; flex-wrap: wrap;">
               <h1 class="title mb-0 mr-6">
-                Examples:
+                Q&amp;A Examples:
               </h1>
               <div>
                 <a role="button" class="button is-link is-light" @click="cur = (cur === 0) ? examples.length-1 : cur-1">&lt;</a>
@@ -156,12 +180,6 @@ SPDX-License-Identifier: AGPL-3.0-only
               </div>
             </div>
           </div>
-        </div>
-
-        <div class="box content">
-          <h2 id="costs">Costs</h2>
-          <p>CodeHelp itself does not take payment, but the large language models it uses are not free.  We will ask you to provide an LLM provider API key to be used for your students' queries.</p>
-          <p>Costs are low: For example, the OpenAI and Google models that are most appropriate for use in CodeHelp will cost roughly US$0.01 or less for each query.  If your students use CodeHelp regularly and average 50 queries each over a semester (higher than the average we've observed), your total costs would be roughly $0.50 per student or less.  See <a href="{{ url_for('docs.page', name='models') }}">the models documentation</a> for more details.</p>
         </div>
 
         <div class="box content">
