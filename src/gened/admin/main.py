@@ -29,20 +29,22 @@ register_blueprint(bp)
 
 
 def count_activity() -> None:
-    """ Count user activity per-user and per-role, and store in a temporary
-    table to be used in various queries for the admin screen. """
+    """
+    Count user activity per-user and per-role, and store in a temporary table
+    to be used in various queries for the admin screen.  The table will persist
+    for this db session (the duration of the request).
+    """
     db = get_db()
 
     db.execute("""
-        CREATE TEMPORARY TABLE __activity_counts AS
+        CREATE TEMPORARY VIEW __activity_counts AS
         SELECT
-            users.id AS user_id,
-            v_user_items.role_id AS role_id,  -- may be NULL due to LEFT JOIN
+            v_user_items.user_id AS user_id,
+            v_user_items.role_id AS role_id,
             COUNT(v_user_items.entry_time) AS uses,
             SUM(CASE WHEN v_user_items.entry_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS uses_1wk
-        FROM users
-        LEFT JOIN v_user_items ON v_user_items.user_id = users.id
-        GROUP BY users.id, v_user_items.role_id
+        FROM v_user_items
+        GROUP BY user_id, role_id
     """)
 
 
@@ -116,7 +118,6 @@ def get_users(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
         LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
         LEFT JOIN __activity_counts ON __activity_counts.user_id=users.id
         WHERE {where_clause}
-          AND (roles.id IS NULL OR __activity_counts.role_id=roles.id)
         GROUP BY users.id
         ORDER BY "1wk" DESC, users.id DESC
         LIMIT ?

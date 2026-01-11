@@ -78,8 +78,8 @@ def _get_class_users(*, for_export: bool = False) -> list[Row]:
         FROM roles
         JOIN users ON roles.user_id=users.id
         LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
-        LEFT JOIN v_user_items ON v_user_items.role_id=roles.id
-        WHERE roles.class_id=? AND v_user_items.class_id=?  -- redundant filter on v_user_items helps SQLite's query planner
+        LEFT JOIN (SELECT role_id, entry_time FROM v_user_items where class_id=?) AS v_user_items ON v_user_items.role_id=roles.id  -- redundant filter on v_user_items helps SQLite's query planner
+        WHERE roles.class_id=?
         GROUP BY users.id
         ORDER BY users.display_name
     """, [class_id, class_id]).fetchall()
