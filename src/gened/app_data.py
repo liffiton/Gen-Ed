@@ -55,7 +55,8 @@ class Filter:
 class Filters:
     _available_filter_specs: Final = {
         'consumer': FilterSpec('consumer', 'consumers.id', 'SELECT lti_consumer FROM consumers WHERE id=?'),
-        'class': FilterSpec('class', 'classes.id', 'SELECT name FROM classes WHERE id=?'),
+        #'class': FilterSpec('class', 'classes.id', 'SELECT name FROM classes WHERE id=?'),
+        'class': FilterSpec('class', 'roles.class_id', 'SELECT name FROM classes WHERE id=?'),  # helps query planner, compared to direct classes_id comparison in WHERE clauses
         'user': FilterSpec('user', 'users.id', 'SELECT display_name FROM users WHERE id=?'),
         'role': FilterSpec('role', 'roles.id', """
             SELECT printf("%s (%s:%s)", users.display_name, role_class.name, roles.role)
