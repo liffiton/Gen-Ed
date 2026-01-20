@@ -17,7 +17,7 @@ from flask.app import Flask
 
 from .component_registry import get_registered_components
 from .db import get_db
-from .db_admin import backup_db, on_init_db
+from .db_admin import backup_db, drop_views, on_init_db, rebuild_views
 
 
 class MigrationDict(TypedDict):
@@ -46,10 +46,17 @@ def _do_migration(name: str, script: str) -> tuple[bool, str]:
     db.commit()
 
     try:
+        # Drop all views before migration to avoid errors
+        drop_views()
+
         db.executescript(script)
         db.commit()
         db.execute("UPDATE migrations SET applied_on=CURRENT_TIMESTAMP, succeeded=True WHERE filename=?", [name])
         db.commit()
+
+        # Rebuild views post-migration
+        rebuild_views()
+
     except sqlite3.Error as e:
         db.rollback()
         db.execute("UPDATE migrations SET applied_on=CURRENT_TIMESTAMP, succeeded=False WHERE filename=?", [name])
@@ -74,7 +81,6 @@ def _apply_migrations(migrations: Iterable[MigrationDict]) -> None:
         backup_dest = backup_dest.with_suffix('.age')
 
     backup_db(backup_dest)
-
     click.echo(f"Database backup saved in \x1B[33m{backup_dest}\x1B[m.")
 
     # Run the scripts

@@ -118,6 +118,14 @@ def init_db() -> None:
     db.commit()
 
 
+def drop_views() -> None:
+    """ Remove all views created in rebuild_views to provide a clean slate for migrations. """
+    db = get_db()
+    db.execute("DROP VIEW IF EXISTS v_user_items")
+    db.execute("DROP VIEW IF EXISTS v_user_activity")
+    db.commit()
+
+
 def rebuild_views() -> None:
     """ Populate the database with views built for/from registered components. """
     db = get_db()
