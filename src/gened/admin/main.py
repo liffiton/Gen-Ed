@@ -30,7 +30,7 @@ register_blueprint(bp)
 
 def count_activity() -> None:
     """
-    Count user activity per-user and per-role, and store in a temporary table
+    Count user activity per-role, and store in a temporary table
     to be used in various queries for the admin screen.  The table will persist
     for this db session (the duration of the request).
     """
@@ -39,12 +39,11 @@ def count_activity() -> None:
     db.execute("""
         CREATE TEMPORARY VIEW __activity_counts AS
         SELECT
-            v_user_items.user_id AS user_id,
             v_user_items.role_id AS role_id,
             COUNT(v_user_items.entry_time) AS uses,
             SUM(CASE WHEN v_user_items.entry_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS uses_1wk
         FROM v_user_items
-        GROUP BY user_id, role_id
+        GROUP BY role_id
     """)
 
 
@@ -116,7 +115,7 @@ def get_users(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
         LEFT JOIN classes ON roles.class_id=classes.id
         LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
         LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
-        LEFT JOIN __activity_counts ON __activity_counts.user_id=users.id
+        LEFT JOIN __activity_counts ON __activity_counts.role_id=roles.id
         WHERE {where_clause}
         GROUP BY users.id
         ORDER BY "1wk" DESC, users.id DESC
