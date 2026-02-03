@@ -6,6 +6,7 @@ import random
 
 from flask import (
     Blueprint,
+    abort,
     current_app,
     flash,
     redirect,
@@ -87,11 +88,11 @@ admin.register_navbar_item("admin_demo.demo_link_view", "Demo Links")
 @bp_admin.route("/")
 def demo_link_view() -> str:
     db = get_db()
-    demo_links = db.execute("SELECT id, name, expiration, tokens, enabled, uses FROM demo_links").fetchall()
+    demo_links = db.execute("SELECT id, name, expiration, tokens, is_instructor, enabled, uses FROM demo_links").fetchall()
 
     table_spec = DataTableSpec(
         name='demo_links',
-        columns=[NumCol('id'), Col('name'), DateCol('expiration'), NumCol('tokens'), BoolCol('enabled'), NumCol('uses')],
+        columns=[NumCol('id'), Col('name'), DateCol('expiration'), NumCol('tokens'), BoolCol('is_instructor'), BoolCol('enabled'), NumCol('uses')],
         actions=[Action("Edit link", icon='pencil', url=url_for('.demo_link_form'), id_col=0)],
         link_col=0,
         link_template=url_for('.demo_link_form') + '${value}',
@@ -121,20 +122,27 @@ def demo_link_update() -> Response:
     db = get_db()
 
     demo_link_id = request.form.get("demo_link_id", type=int)
+    demo_link_name = request.form.get("name", None)
+
+    if demo_link_name is None:
+        abort(400, "Demo link name is required.")
+
+    is_instructor = 1 if 'is_instructor' in request.form else 0
     enabled = 1 if 'enabled' in request.form else 0
 
     if demo_link_id is None:
         # Adding a new demo_link
-        cur = db.execute("INSERT INTO demo_links (name, expiration, tokens, enabled) VALUES (?, ?, ?, ?)",
-                         [request.form['name'], request.form['expiration'], request.form['tokens'], enabled])
+        cur = db.execute("INSERT INTO demo_links (name, expiration, tokens, is_instructor, enabled) VALUES (?, ?, ?, ?, ?)",
+                         [demo_link_name, request.form['expiration'], request.form['tokens'], is_instructor, enabled])
         demo_link_id = cur.lastrowid
         db.commit()
+        flash(f"Demo link '{demo_link_name}' created.")
 
     else:
         # Updating
-        cur = db.execute("UPDATE demo_links SET expiration=?, tokens=?, enabled=? WHERE id=?",
-                         [request.form['expiration'], request.form['tokens'], enabled, demo_link_id])
+        cur = db.execute("UPDATE demo_links SET expiration=?, tokens=?, is_instructor=?, enabled=? WHERE id=?",
+                         [request.form['expiration'], request.form['tokens'], is_instructor, enabled, demo_link_id])
         db.commit()
-        flash("Demo link updated.")
+        flash(f"Demo link '{demo_link_name}' updated.")
 
-    return redirect(url_for(".demo_link_form", demo_id=demo_link_id))
+    return redirect(url_for(".demo_link_view"))

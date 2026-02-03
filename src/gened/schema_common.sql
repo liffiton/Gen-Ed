@@ -123,6 +123,7 @@ CREATE INDEX roles_by_class_id ON roles(class_id);
 CREATE TABLE demo_links (
     id      INTEGER PRIMARY KEY AUTOINCREMENT,
     name    TEXT NOT NULL UNIQUE,
+    is_instructor BOOLEAN NOT NULL CHECK (is_instructor IN (0,1)) DEFAULT 0,
     enabled BOOLEAN NOT NULL CHECK (enabled IN (0,1)) DEFAULT 0,
     expiration DATE NOT NULL,
     tokens  INTEGER NOT NULL,  -- default number of query tokens to give newly-created users
