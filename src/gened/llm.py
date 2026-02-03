@@ -7,7 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import wraps
 from sqlite3 import Row
-from typing import Any, ParamSpec, TypeAlias, TypeVar
+from typing import Any, ParamSpec, TypeAlias, TypeVar, overload
 
 from flask import current_app, flash, render_template
 
@@ -253,6 +253,13 @@ def with_llm(*, use_system_key: bool = False, spend_token: bool = False) -> Call
         return decorated_function
     return decorator
 
+# get_model takes *either* by_id or by_shortname, not both
+# enforce that with @overloads
+@overload
+def get_model(*, by_id: int) -> LLM | None: ...
+
+@overload
+def get_model(*, by_shortname: str) -> LLM | None: ...
 
 def get_model(*, by_id: int | None = None, by_shortname: str | None = None) -> LLM | None:
     """Get a model from the database either by id (if by_id is set) or by
