@@ -182,7 +182,7 @@ def test_decorator_class_disabled(test_route_app: Flask, client: AppClient) -> N
         db.commit()
 
     response = client.get('/test/llm_decorator')
-    assert response.status_code == 200
+    assert response.status_code == 400
     assert "archived or disabled" in response.text
 
 def test_decorator_no_key(test_route_app: Flask, client: AppClient) -> None:
@@ -197,7 +197,7 @@ def test_decorator_no_key(test_route_app: Flask, client: AppClient) -> None:
         db.commit()
 
     response = client.get('/test/llm_decorator')
-    assert response.status_code == 200
+    assert response.status_code == 400
     assert "No API key set" in response.text
 
 

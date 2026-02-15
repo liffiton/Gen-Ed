@@ -211,9 +211,10 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLM:
 # For decorator type hints
 P = ParamSpec('P')
 R = TypeVar('R')
+ErrorResponse = tuple[str | dict[str, str], int]  # error will be a rendered template or JSON with an error status code
 
 
-def with_llm(*, use_system_key: bool = False, spend_token: bool) -> Callable[[Callable[P, R]], Callable[P, str | R]]:
+def with_llm(*, spend_token: bool, is_api: bool = False, use_system_key: bool = False) -> Callable[[Callable[P, R]], Callable[P, R | ErrorResponse]]:
     '''Decorate a view function that requires an LLM and API key.
 
     Assigns an 'llm' named argument.
@@ -223,26 +224,32 @@ def with_llm(*, use_system_key: bool = False, spend_token: bool) -> Callable[[Ca
     LLM config to the wrapped view function, if granted.
 
     Arguments:
-      use_system_key: If True, all users can access this, and they use the
-                      system API key and model.
       spend_token:    If True *and* the user is using tokens, then check
                       that they have tokens remaining and decrement their
                       tokens.
+      is_api:         Specify if this request is for an API endpoint (to
+                      return errors in JSON rather than redirecting)
+      use_system_key: If True, all users can access this, and they use the
+                      system API key and model.
     '''
-    def decorator(f: Callable[P, R]) -> Callable[P, str | R]:
+    def decorator(f: Callable[P, R]) -> Callable[P, R | ErrorResponse]:
+        def handle_error(msg: str) -> ErrorResponse:
+            if is_api:
+                return {"error": msg}, 400
+            else:
+                flash(msg, "warning")
+                return render_template("error.html"), 400
+
         @wraps(f)
-        def decorated_function(*args: P.args, **kwargs: P.kwargs) -> str | R:
+        def decorated_function(*args: P.args, **kwargs: P.kwargs) -> R | ErrorResponse:
             try:
                 llm = _get_llm(use_system_key=use_system_key, spend_token=spend_token)
             except ClassDisabledError:
-                flash("Error: The current class is archived or disabled.")
-                return render_template("error.html")
+                return handle_error("Error: The current class is archived or disabled.")
             except NoKeyFoundError:
-                flash("Error: No API key set.  An API key must be set by the instructor before this page can be used.")
-                return render_template("error.html")
+                return handle_error("Error: No API key set.  An API key must be set by the instructor before this page can be used.")
             except NoTokensError:
-                flash("You have used all of your free queries.  If you are using this application in a class, please connect using the link from your class for continued access.  Otherwise, you can create a class and add an API key or contact us if you want to continue using this application.", "warning")
-                return render_template("error.html")
+                return handle_error("You have used all of your free queries.  If you are using this application in a class, please connect using the link from your class for continued access.  Otherwise, you can create a class and add an API key or contact us if you want to continue using this application.")
 
             kwargs['llm'] = llm
             return f(*args, **kwargs)

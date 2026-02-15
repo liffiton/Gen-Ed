@@ -54,7 +54,7 @@
             const response = await fetch(url, { method: 'POST', body: formData });
 
             if (!response.ok) {
-              const text = await response.text();
+              const text = (await response.json()).error || await response.text();
               alert(`An error occurred: ${text}`);
               return;
             }

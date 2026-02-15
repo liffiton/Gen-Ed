@@ -50,10 +50,10 @@ def test_valid_demo_link(client: AppClient) -> None:
             assert f'_test_error_{i}_' in response3.text
             assert f'_test_issue_{i}_' in response3.text
         else:
-            assert response1.status_code == 200   # unauthorized in all of these cases
+            assert response1.status_code == 400   # unauthorized in all of these cases
             assert "You have used all of your free queries." in response1.text
             # those without tokens remaining return an error page directly
-            assert response2.status_code == 200
+            assert response2.status_code == 400
             assert "You have used all of your free queries." in response2.text
             assert test_code not in response2.text
             assert '_test_error_' not in response2.text

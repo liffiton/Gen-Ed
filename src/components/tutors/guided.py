@@ -104,7 +104,7 @@ guided_tutor_config_table = ConfigTable(
 
 
 @bp.route('/objectives/generate', methods=['POST'])
-@with_llm(spend_token=True)
+@with_llm(spend_token=True, is_api=True)
 def generate_objectives(llm: LLM) -> list[LearningObjective]:
     """Generate learning objectives for the given topic."""
     config = TutorConfig.from_request_form(request.form)
@@ -186,7 +186,7 @@ async def populate_questions(config: TutorConfig, llm: LLM, num_questions: int) 
 
 
 @bp.route('/questions/generate', methods=['POST'])
-@with_llm(spend_token=True)
+@with_llm(spend_token=True, is_api=True)
 def generate_questions(llm: LLM) -> list[LearningObjective]:
     """Generate questions based on topic and objectives."""
     config = TutorConfig.from_request_form(request.form)
