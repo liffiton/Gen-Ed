@@ -197,7 +197,7 @@ def record_response(query_id: int, responses: list[dict[str, str]], texts: dict[
 @bp.route("/request", methods=["POST"])
 @login_required
 @class_enabled_required
-@with_llm()
+@with_llm(spend_token=True)
 def help_request(llm: LLM) -> Response:
     writing = request.form["writing"]
 

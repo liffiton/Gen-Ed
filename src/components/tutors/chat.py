@@ -105,7 +105,7 @@ def new_chat_form(class_id: int | None = None) -> Response | str:
 
 @bp.route("/create_inquiry", methods=["POST"])
 @route_requires(Access.CLASS_ENABLED, RequireComponent("tutors", feature="inquiry"))
-@with_llm()
+@with_llm(spend_token=True)
 def create_inquiry_chat(llm: LLM) -> Response:
     topic = request.form['topic']
     context: ContextConfig | None = None
@@ -138,7 +138,7 @@ def create_inquiry_chat(llm: LLM) -> Response:
 
 @bp.route("/create_guided", methods=["POST"])
 @route_requires(Access.CLASS_ENABLED, RequireComponent("tutors", feature="guided"))
-@with_llm()
+@with_llm(spend_token=True)
 def create_guided_chat(llm: LLM) -> Response:
     db = get_db()
     auth = get_auth()
@@ -340,7 +340,7 @@ def get_progress(chat_id: int) -> str:
 
 @bp.route("/post_message.sse", methods=["POST"])  # '.sse' extension needed for reverse proxy config to disable buffering / allow streaming
 @class_enabled_required
-@with_llm()
+@with_llm(spend_token=True)
 def new_message(llm: LLM) -> Response:
     chat_id = int(request.form["id"])
     new_msg = request.form["message"]

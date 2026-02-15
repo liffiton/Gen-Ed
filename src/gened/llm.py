@@ -213,7 +213,7 @@ P = ParamSpec('P')
 R = TypeVar('R')
 
 
-def with_llm(*, use_system_key: bool = False, spend_token: bool = False) -> Callable[[Callable[P, R]], Callable[P, str | R]]:
+def with_llm(*, use_system_key: bool = False, spend_token: bool) -> Callable[[Callable[P, R]], Callable[P, str | R]]:
     '''Decorate a view function that requires an LLM and API key.
 
     Assigns an 'llm' named argument.

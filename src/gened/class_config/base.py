@@ -228,7 +228,7 @@ def save_llm_config() -> Response:
 
 
 @bp.route("/test_llm")
-@with_llm()
+@with_llm(spend_token=False)
 def test_llm(llm: LLM) -> str:
     response, response_txt = asyncio.run(llm.get_completion(prompt="Please write 'OK'"))
 

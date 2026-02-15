@@ -252,7 +252,7 @@ def help_request(llm: LLM) -> Response:
 
 @bp.route("/load_test", methods=["POST"])
 @admin_required
-@with_llm(use_system_key=True)  # get a populated LLM; not actually used (API is mocked)
+@with_llm(use_system_key=True, spend_token=False)  # get a populated LLM; not actually used (API is mocked)
 def load_test(llm: LLM) -> Response:
     # Require that we're logged in as the load_test admin user
     auth = get_auth()
