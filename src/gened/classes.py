@@ -91,7 +91,7 @@ def get_or_create_lti_class(lti_consumer_id: int, lti_context_id: str, class_nam
         return class_id
 
 
-def create_user_class(user_id: int, class_name: str, llm_api_key: str) -> int:
+def create_user_class(user_id: int, class_name: str, llm_api_key: str | None = None) -> int:
     """
     Create a user class.  Assign the given user an 'instructor' role in it.
 
@@ -101,7 +101,7 @@ def create_user_class(user_id: int, class_name: str, llm_api_key: str) -> int:
       id of the user creating the course -- will be given the instructor role
     class_name : str
       class name from the user
-    llm_api_key : str
+    llm_api_key : str | None
       LLM API key from the user.  This is not strictly required, as a class can
       exist with no key assigned, but it is clearer for the user if we require
       an API key up front.

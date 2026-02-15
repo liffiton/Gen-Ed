@@ -4,6 +4,7 @@
 
 import pytest
 
+from gened.db import get_db
 from tests.conftest import AppClient
 
 
@@ -64,3 +65,37 @@ def test_logged_in(client: AppClient) -> None:
     response = client.get("/demo/test_valid")
     assert "Invalid demo link." not in response.text
     assert "You are already logged in." in response.text
+
+
+def test_instructor_demo_link(client: AppClient) -> None:
+    """Test that instructor demo links create a class and allow LLM access via tokens."""
+    app = client.application
+
+    # Access the link
+    response = client.get("/demo/test_instructor", follow_redirects=True)
+    assert response.status_code == 200
+
+    # Verify the class and role are correctly set up in the database
+    with app.app_context():
+        db = get_db()
+        # Find the newly created demo user
+        user_row = db.execute("SELECT id, last_class_id FROM users WHERE auth_provider=3 ORDER BY created DESC LIMIT 1").fetchone()
+        user_id = user_row['id']
+        class_id = user_row['last_class_id']
+        assert class_id is not None
+
+        # Verify the class has no key but the user is an instructor
+        class_user_row = db.execute("SELECT llm_api_key FROM classes_user WHERE class_id=?", [class_id]).fetchone()
+        assert class_user_row['llm_api_key'] is None
+
+        role_row = db.execute("SELECT role FROM roles WHERE user_id=? AND class_id=?", [user_id, class_id]).fetchone()
+        assert role_row['role'] == 'instructor'
+
+    # Try an LLM action that spends a token (e.g. /help/request)
+    # The user should have 5 tokens initially.
+    client.post('/help/request', data={'code': 'c', 'error': 'e', 'issue': 'i'})
+
+    with app.app_context():
+        db = get_db()
+        tokens = db.execute("SELECT query_tokens FROM users WHERE id=?", [user_id]).fetchone()['query_tokens']
+        assert tokens == 4

@@ -160,7 +160,8 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLM:
             SELECT
                 classes.enabled,
                 COALESCE(consumers.llm_api_key, classes_user.llm_api_key) AS llm_api_key,
-                COALESCE(consumers.model_id, classes_user.model_id) AS model_id
+                COALESCE(consumers.model_id, classes_user.model_id) AS model_id,
+                classes_user.creator_user_id
             FROM classes
             LEFT JOIN classes_lti
               ON classes.id = classes_lti.class_id
@@ -174,29 +175,24 @@ def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLM:
         if not class_row['enabled']:
             raise ClassDisabledError
 
-        if not class_row['llm_api_key']:
+        if class_row['llm_api_key']:
+            model = get_model(by_id=class_row['model_id'])
+            assert model is not None
+            model.api_key = class_row['llm_api_key']
+            return model
+
+        # here, we have an active class with no API key:
+        # only the creator/owner of the class can proceed (using tokens if they have any)
+        if auth.user_id != class_row['creator_user_id']:
+            # everyone else gets a No API Key error
             raise NoKeyFoundError
 
-        model = get_model(by_id=class_row['model_id'])
-        assert model is not None
-        model.api_key = class_row['llm_api_key']
-        return model
+    assert auth.user is not None
 
-    # Get user data for tokens, auth_provider
-    user_row = db.execute("""
-        SELECT
-            users.query_tokens,
-            auth_providers.name AS auth_provider_name
-        FROM users
-        JOIN auth_providers
-          ON users.auth_provider = auth_providers.id
-        WHERE users.id = ?
-    """, [auth.user_id]).fetchone()
-
-    if user_row['auth_provider_name'] == "local":
+    if auth.user.auth_provider == "local":
         return make_system_client()
 
-    tokens = user_row['query_tokens']
+    tokens = auth.user.query_tokens
 
     if tokens == 0:
         raise NoTokensError

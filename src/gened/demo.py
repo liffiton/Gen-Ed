@@ -17,7 +17,8 @@ from flask import (
 from werkzeug.wrappers.response import Response
 
 from . import admin
-from .auth import get_auth, set_session_auth_user
+from .auth import get_auth, set_session_auth_class, set_session_auth_user
+from .classes import create_user_class
 from .db import get_db
 from .tables import Action, BoolCol, Col, DataTable, DataTableSpec, DateCol, NumCol
 from .tz import date_is_past
@@ -72,6 +73,13 @@ def demo_register_user(demo_name: str) -> str | Response:
     set_session_auth_user(user_id)
 
     current_app.logger.info(f"Demo login: {demo_name=} {user_id=} {new_username=}")
+
+    if demo_row['is_instructor']:
+        class_id = create_user_class(user_id, f"Demo: {demo_name}", None)
+        # manually switch class
+        set_session_auth_class(class_id)
+        db.execute("UPDATE users SET last_class_id=? WHERE users.id=?", [class_id, user_id])
+        db.commit()
 
     # Redirect to the app
     return redirect(url_for("landing"))

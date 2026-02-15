@@ -97,11 +97,12 @@ VALUES
     -- high ID so new query IDs are known (regardless of number of rows made for testing above
     (100, 'ctx1', 1, 'code101', 'error101', 'issue101', '{}', '{"main": "response101"}', 0, 21, 1);
 
-INSERT INTO demo_links (id, name, enabled, expiration, tokens, uses)
+INSERT INTO demo_links (id, name, is_instructor, enabled, expiration, tokens, uses)
 VALUES
-    (1, 'test_valid', 1, '2199-12-31', 3, 0),
-    (2, 'test_disabled', 0, '2199-12-31', 10, 0),
-    (3, 'test_expired', 1, '2000-01-01', 10, 0);
+    (1, 'test_valid', 0, 1, '2199-12-31', 3, 0),
+    (2, 'test_disabled', 0, 0, '2199-12-31', 10, 0),
+    (3, 'test_expired', 0, 1, '2000-01-01', 10, 0),
+    (4, 'test_instructor', 1, 1, '2199-12-31', 5, 0);
 
 INSERT INTO chats (id, chat_json, user_id, role_id)
 VALUES

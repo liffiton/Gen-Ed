@@ -44,6 +44,7 @@ class LoginData:
 class UserData:
     id: int
     display_name: str
+    query_tokens: int
     auth_provider: AuthProvider
     is_admin: bool = False
     is_tester: bool = False
@@ -127,6 +128,7 @@ def _get_auth_from_session() -> AuthData:
     user_row = db.execute("""
         SELECT
             users.display_name,
+            users.query_tokens,
             users.is_admin,
             users.is_tester,
             auth_providers.name AS auth_provider
@@ -143,6 +145,7 @@ def _get_auth_from_session() -> AuthData:
     user = UserData(
         id=user_id,
         display_name=user_row['display_name'],
+        query_tokens=user_row['query_tokens'],
         auth_provider=user_row['auth_provider'],
         is_admin=user_row['is_admin'],
         is_tester=user_row['is_tester'],
