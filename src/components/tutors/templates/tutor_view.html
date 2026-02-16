@@ -245,7 +245,7 @@ window.md.inline.ruler.disable(['escape']);
   <div class="column is-three-quarters-desktop">
     <section class="section">
       <div class="container content" id="chat_view" x-data="{ show_tutor: true, show_student: true }">
-        {% if auth.cur_class.role == 'admin' or auth.cur_class.role == 'instructor' %}
+        {% if ( auth.cur_class.role == 'admin' or auth.cur_class.role == 'instructor' ) and auth.user_id != chat.user_id %}
           <p><strong>User:</strong> {{ chat.user_json | fmt_user }}</p>
           <p class="buttons are-small">
             <strong>Show/Hide messages:</strong>
