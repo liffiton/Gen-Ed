@@ -24,7 +24,7 @@ dl.profile dd { margin: 0; }
 
     <dl class="profile is-size-5">
       {% if user.full_name %}
-        <dt>Full Name:</dt>
+        <dt>Full name:</dt>
         <dd>{{ user.full_name }}</dd>
       {% endif %}
       {% if user.email %}
@@ -55,11 +55,11 @@ dl.profile dd { margin: 0; }
           <dd><a href="{{ url_for('profile.view_data') }}">{{ counts.num_total }} total</a>, {{ counts.num_1wk }} in the past week.</dd>
         {% endif %}
       {% endfor %}
-      {% if not auth.cur_class %}
-      <dt>Free Usage Tokens:</dt>
+      {% if usage_tokens != None %}
+      <dt>Free usage tokens:</dt>
       <dd>
-        {{ user.query_tokens }} remaining.
-        <button class="button is-small is-rounded p-2 ml-3" type="button" onclick="document.getElementById('free_query_dialog').showModal();">what's this?</button>
+        {{ usage_tokens }} remaining.
+        <button class="button is-small is-rounded p-2 ml-3" type="button" onclick="document.getElementById('usage_token_dialog').showModal();">what's this?</button>
       </dd>
       {% endif %}
     </dl>
@@ -234,8 +234,8 @@ dl.profile dd { margin: 0; }
     </dialog>
   {% endif %}
 
-  {% if not auth.cur_class %}
-    {% include "free_query_dialog.html" %}
+  {% if usage_tokens != None %}
+    {% include "usage_token_dialog.html" %}
   {% endif %}
 
   {% if user.provider_name not in ['lti', 'demo', 'local'] %}

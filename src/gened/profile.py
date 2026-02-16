@@ -26,6 +26,7 @@ from .component_registry import (
 from .csv import csv_response
 from .data_deletion import delete_user_data
 from .db import get_db
+from .llm import LLMConfigError, get_llm
 from .redir import safe_redirect
 from .tables import Action, Col, DataTable, DataTableSpec, NumCol
 
@@ -122,6 +123,14 @@ def main() -> str:
     )
     models_table = DataTable(spec=table_spec, data=models)
 
+    # determine whether tokens are in use and if so, how many remain
+    # usage_tokens = None when not currently in use (e.g., if in a class w/ provided API key)
+    try:
+        llm = get_llm(use_system_key=False, spend_token=False)
+        usage_tokens = llm.tokens_remaining
+    except LLMConfigError:
+        usage_tokens = None
+
     return render_template(
         "profile_view.html",
         user=user_row,
@@ -129,7 +138,8 @@ def main() -> str:
         other_classes=other_classes,
         archived_classes=archived_classes,
         created_classes=created_classes,
-        models_table=models_table
+        models_table=models_table,
+        usage_tokens=usage_tokens,
     )
 
 

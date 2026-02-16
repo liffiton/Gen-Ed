@@ -10,7 +10,7 @@ from gened.llm import (
     ClassDisabledError,
     NoKeyFoundError,
     NoTokensError,
-    _get_llm,
+    get_llm,
     with_llm,
 )
 from tests.conftest import AppClient
@@ -31,7 +31,7 @@ def test_get_llm_system_override(app: Flask, mock_auth: MagicMock) -> None:
         mock_auth.cur_class.class_id = 1
 
         # Even in a class, use_system_key should return system config
-        llm = _get_llm(use_system_key=True, spend_token=False)
+        llm = get_llm(use_system_key=True, spend_token=False)
         assert llm.shortname == app.config['SYSTEM_MODEL_SHORTNAME']
         assert llm.api_key == app.config['SYSTEM_API_KEY']
 
@@ -43,7 +43,7 @@ def test_get_llm_local_user(app: Flask, mock_auth: MagicMock) -> None:
         mock_auth.cur_class = None
         mock_auth.user.auth_provider = "local"
 
-        llm = _get_llm(use_system_key=False, spend_token=False)
+        llm = get_llm(use_system_key=False, spend_token=False)
         assert llm.shortname == app.config['SYSTEM_MODEL_SHORTNAME']
         assert llm.api_key == app.config['SYSTEM_API_KEY']
 
@@ -57,7 +57,7 @@ def test_get_llm_class_success(app: Flask, mock_auth: MagicMock, class_id: int, 
         mock_auth.user_id = 21 # lti user
         mock_auth.cur_class.class_id = class_id
 
-        llm = _get_llm(use_system_key=False, spend_token=False)
+        llm = get_llm(use_system_key=False, spend_token=False)
         assert llm.api_key == expected_key
 
 def test_get_llm_class_disabled(app: Flask, mock_auth: MagicMock) -> None:
@@ -70,7 +70,7 @@ def test_get_llm_class_disabled(app: Flask, mock_auth: MagicMock) -> None:
         mock_auth.cur_class.class_id = 1
 
         with pytest.raises(ClassDisabledError):
-            _get_llm(use_system_key=False, spend_token=False)
+            get_llm(use_system_key=False, spend_token=False)
 
 
 def test_get_llm_no_key_found_lti(app: Flask, mock_auth: MagicMock) -> None:
@@ -85,7 +85,7 @@ def test_get_llm_no_key_found_lti(app: Flask, mock_auth: MagicMock) -> None:
         mock_auth.cur_class.class_id = 1
 
         with pytest.raises(NoKeyFoundError):
-            _get_llm(use_system_key=False, spend_token=False)
+            get_llm(use_system_key=False, spend_token=False)
 
 
 def test_get_llm_no_key_found_student(app: Flask, mock_auth: MagicMock) -> None:
@@ -101,7 +101,7 @@ def test_get_llm_no_key_found_student(app: Flask, mock_auth: MagicMock) -> None:
         mock_auth.cur_class.class_id = 2
 
         with pytest.raises(NoKeyFoundError):
-            _get_llm(use_system_key=False, spend_token=False)
+            get_llm(use_system_key=False, spend_token=False)
 
 
 def test_get_llm_creator_fallthrough(app: Flask, mock_auth: MagicMock) -> None:
@@ -119,7 +119,7 @@ def test_get_llm_creator_fallthrough(app: Flask, mock_auth: MagicMock) -> None:
         mock_auth.user.query_tokens = 5
 
         # Should not raise NoKeyFoundError, but fall through to tokens
-        llm = _get_llm(use_system_key=False, spend_token=True)
+        llm = get_llm(use_system_key=False, spend_token=True)
         assert llm.api_key == app.config['SYSTEM_API_KEY']
         assert llm.tokens_remaining == 4
 
@@ -137,7 +137,7 @@ def test_get_llm_no_tokens(app: Flask, mock_auth: MagicMock) -> None:
         mock_auth.user.query_tokens = 0
 
         with pytest.raises(NoTokensError):
-            _get_llm(use_system_key=False, spend_token=False)
+            get_llm(use_system_key=False, spend_token=False)
 
 
 @pytest.mark.parametrize(("spend_token", "expected_tokens"), [
@@ -155,7 +155,7 @@ def test_get_llm_token_decrement(app: Flask, mock_auth: MagicMock, spend_token: 
         mock_auth.user.auth_provider = "demo"
         mock_auth.user.query_tokens = 10
 
-        llm = _get_llm(use_system_key=False, spend_token=spend_token)
+        llm = get_llm(use_system_key=False, spend_token=spend_token)
         assert llm.tokens_remaining == expected_tokens
         tokens_in_db = db.execute("SELECT query_tokens FROM users WHERE id=21").fetchone()[0]
         assert tokens_in_db == expected_tokens

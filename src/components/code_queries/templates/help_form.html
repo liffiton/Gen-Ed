@@ -29,9 +29,9 @@ SPDX-License-Identifier: AGPL-3.0-only
       <div class="notification is-size-5">
         <strong>Using free queries:</strong>
         {{ llm.tokens_remaining }} queries remaining.
-        <button class="button is-small is-rounded p-2 ml-3" type="button" onClick="document.getElementById('free_query_dialog').showModal();">what's this?</button>
+        <button class="button is-small is-rounded p-2 ml-3" type="button" onClick="document.getElementById('usage_token_dialog').showModal();">what's this?</button>
       </div>
-      {% include "free_query_dialog.html" %}
+      {% include "usage_token_dialog.html" %}
       {% endif %}
 
       {% if contexts %}

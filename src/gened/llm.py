@@ -105,30 +105,29 @@ class LLM:
         return response, response_txt  # type: ignore [possibly-undefined] # these are fine as long as user_prompts is not empty
 
 
-class ClassDisabledError(Exception):
+class LLMConfigError(Exception):
     pass
 
-class NoKeyFoundError(Exception):
+class ClassDisabledError(LLMConfigError):
     pass
 
-class NoTokensError(Exception):
+class NoKeyFoundError(LLMConfigError):
     pass
 
-def _get_llm(*, use_system_key: bool, spend_token: bool) -> LLM:
+class NoTokensError(LLMConfigError):
+    pass
+
+def get_llm(*, use_system_key: bool, spend_token: bool) -> LLM:
     ''' Get an LLM object configured based on the arguments and the current
     context (user and class).
 
-    Procedure, depending on arguments, user, and class:
-      1) If use_system_key is True, the system API key is always used with no checks.
-      2) If there is a current class, and it is enabled, then its model+API key is used:
-         a) LTI class config is in the linked LTI consumer.
-         b) User class config is in the user class.
-         c) If there is a current class but it is disabled or has no key, raise an error.
-      3) If the user is a local-auth user, the system API key and model is used.
-      4) Otherwise, we use tokens and the system API key / model.
-           If spend_token is True, the user must have 1 or more tokens remaining.
-             If they have 0 tokens, raise an error.
-             Otherwise, their token count is decremented.
+    Arguments:
+      use_system_key:  If True, will return the system model along with the
+                       system API key.
+
+      spend_token:     If not using a system key and not in a class with some
+                       other model/key provision, require >0 tokens and spend one
+                       if available (else throw an error).
 
     Returns:
       LLM object.
@@ -243,7 +242,7 @@ def with_llm(*, spend_token: bool, is_api: bool = False, use_system_key: bool = 
         @wraps(f)
         def decorated_function(*args: P.args, **kwargs: P.kwargs) -> R | ErrorResponse:
             try:
-                llm = _get_llm(use_system_key=use_system_key, spend_token=spend_token)
+                llm = get_llm(use_system_key=use_system_key, spend_token=spend_token)
             except ClassDisabledError:
                 return handle_error("Error: The current class is archived or disabled.")
             except NoKeyFoundError:
