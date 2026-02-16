@@ -75,17 +75,17 @@ def demo_register_user(demo_name: str) -> str | Response:
     current_app.logger.info(f"Demo login: {demo_name=} {user_id=} {new_username=}")
 
     if demo_row['is_instructor']:
-        class_id = create_user_class(user_id, f"Demo: {demo_name}", None)
+        class_id = create_user_class(user_id, class_name=new_username, llm_api_key=None)
         # manually switch class
         set_session_auth_class(class_id)
         db.execute("UPDATE users SET last_class_id=? WHERE users.id=?", [class_id, user_id])
         db.commit()
         # Redirect to the class config page
-        flash(f"Welcome to {current_app.config['APPLICATION_TITLE']}!\n\nYou have {query_tokens} free tokens to explore and try out features within this course.")
+        flash(f"Welcome to {current_app.config['APPLICATION_TITLE']}!\n\nYou have {query_tokens} free usage tokens to explore and try out features within this course.")
         return redirect(url_for("class_config.base.config_form"))
 
     # Redirect to the app
-    flash(f"Welcome to {current_app.config['APPLICATION_TITLE']}!\n\nYou have {query_tokens} free tokens to explore and try out features.")
+    flash(f"Welcome to {current_app.config['APPLICATION_TITLE']}!\n\nYou have {query_tokens} free usage tokens to explore and try out features.")
     return redirect(url_for("landing"))
 
 

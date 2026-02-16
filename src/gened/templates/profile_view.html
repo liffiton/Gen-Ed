@@ -56,7 +56,7 @@ dl.profile dd { margin: 0; }
         {% endif %}
       {% endfor %}
       {% if not auth.cur_class %}
-      <dt>Free Queries:</dt>
+      <dt>Free Usage Tokens:</dt>
       <dd>
         {{ user.query_tokens }} remaining.
         <button class="button is-small is-rounded p-2 ml-3" type="button" onclick="document.getElementById('free_query_dialog').showModal();">what's this?</button>
