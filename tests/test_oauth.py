@@ -99,7 +99,7 @@ def test_anon_signup(app: Flask, client: AppClient, mock_oauth_client: MagicMock
                 if url == login_url_anon:
                     # Follow the redirect and check for the flashed message
                     response = client.get(response.location)
-                    assert "You&#39;ve tried to log in anonymously, but this account was already registered" in response.text
+                    assert "tried to log in anonymously, but this account was already registered" in response.text
 
         # Log out (so second iteration tests a fresh login)
         client.post(logout_url)

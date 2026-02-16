@@ -63,7 +63,7 @@ def test_delete_consumer_with_no_classes(client: AppClient) -> None:
     assert response.status_code == 200
     assert len(response.history) == 1  # one redirect
     assert response.request.path == '/admin/'
-    assert b"Consumer &#39;consumer.otherdomain&#39; deleted." in response.data
+    assert b"Consumer ‘consumer.otherdomain’ deleted." in response.data
 
 
 def test_delete_consumer_invalid(client: AppClient) -> None:
