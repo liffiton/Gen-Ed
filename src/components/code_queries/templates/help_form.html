@@ -25,7 +25,9 @@ SPDX-License-Identifier: AGPL-3.0-only
           {{ auth.cur_class.class_name }}
         </div>
       </div>
-      {% elif llm.tokens_remaining != None %}
+      {% endif %}
+
+      {% if llm.tokens_remaining != None %}
       <div class="notification is-size-5">
         <strong>Using free queries:</strong>
         {{ llm.tokens_remaining }} queries remaining.
