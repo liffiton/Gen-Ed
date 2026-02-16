@@ -81,11 +81,11 @@ def demo_register_user(demo_name: str) -> str | Response:
         db.execute("UPDATE users SET last_class_id=? WHERE users.id=?", [class_id, user_id])
         db.commit()
         # Redirect to the class config page
-        flash(f"Welcome to {current_app.config['APPLICATION_TITLE']}!  You have {query_tokens} free tokens to explore and try out features within this course.")
+        flash(f"Welcome to {current_app.config['APPLICATION_TITLE']}!\n\nYou have {query_tokens} free tokens to explore and try out features within this course.")
         return redirect(url_for("class_config.base.config_form"))
 
     # Redirect to the app
-    flash(f"Welcome to {current_app.config['APPLICATION_TITLE']}!  You have {query_tokens} free tokens to explore and try out features.")
+    flash(f"Welcome to {current_app.config['APPLICATION_TITLE']}!\n\nYou have {query_tokens} free tokens to explore and try out features.")
     return redirect(url_for("landing"))
 
 

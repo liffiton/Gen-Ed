@@ -167,7 +167,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <section class="section p-3" style="margin-bottom: -2em">
           {% for category, message in messages %}
             <div class="flash_message notification container is-max-desktop is-size-4 py-3 mb-1 {% if category == "message" %}is-info{% else %}is-{{category}}{% endif %}">
-              {{ message }}
+              {{ message | markdown }}
             </div>
           {% endfor %}
         </section>
