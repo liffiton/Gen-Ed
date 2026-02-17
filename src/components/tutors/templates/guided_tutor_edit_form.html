@@ -611,7 +611,7 @@
           </div>
           <div class="field">
             <div class="control">
-              <button type="button" class="button" @click="tempItems.push(editingObjectives ? { ...objectiveTemplate } : '')">+ add an item</button>
+              <button type="button" class="button" @click="tempItems.push(editingObjectives ? structuredClone(Alpine.raw(objectiveTemplate)) : '')">+ add an item</button>
             </div>
           </div>
           <div class="field is-grouped">
