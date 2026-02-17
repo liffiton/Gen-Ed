@@ -493,9 +493,9 @@
         </div>
         <div class="field-body">
           <div class="content">
-            <p class="pt-2" x-show="!hasObjectives"><i>Nothing yet.</i></p>
-            <div class="box pt-1" x-show="hasObjectives">
-              <ol>
+            <div class="box pt-1 pl-1">
+              <p class="px-4 py-2" x-show="!hasObjectives"><i>Nothing yet.</i></p>
+              <ol x-show="hasObjectives">
                 <template x-for="obj in tutor.objectives">
                   <div>
                     <input type="hidden" name="objectives" x-model="obj.name">
