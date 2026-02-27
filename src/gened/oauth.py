@@ -143,7 +143,7 @@ def auth(provider_name: AuthProviderExt) -> Response:
     user = token.get('userinfo') or client.userinfo()
 
     # anonymous login requests get anonymized user info (other than the external ID)
-    anonymize = bool(session.get(ANON_LOGIN_SESSION_KEY))
+    anonymize = bool(session.pop(ANON_LOGIN_SESSION_KEY, None))
 
     if not user.get('email') and not anonymize:
         # On Github, email will be null if user does not share email publicly, but we can enumerate
