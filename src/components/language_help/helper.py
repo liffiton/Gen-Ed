@@ -139,7 +139,6 @@ async def run_query_prompts(llm: LLM, writing: str) -> tuple[list[dict[str, str]
         llm.get_completion(
             messages=prompts.make_main_prompt(writing),
             extra_args={
-                'max_tokens': 4000,
                 'response_format': {'type': 'json_object'},
             },
         )
