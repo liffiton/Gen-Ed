@@ -111,7 +111,7 @@ def _handle_route_check_failure(control_type: AccessControl) -> Response:
         flash("Login required.", "warning")
         return redirect(url_for('auth.login', next=request.full_path))
 
-    current_app.logger.warning(f"Access check failed: {control_type=} {auth=}")
+    current_app.logger.warning(f"Access check failed: {control_type=} url={request.url} {auth=}")
 
     match control_type:
         case Access.INSTRUCTOR | Access.ADMIN | Access.TESTER:
