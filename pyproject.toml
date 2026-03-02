@@ -96,9 +96,7 @@ ignore = [
     "FBT001",   # boolean positional arguments (used for parameterized tests)
     "PLR0913",  # too many arguments (fixtures push us in that direction)
     "PLR2004",  # magic numbers
-    "S106",     # hardcoded passwords
-    "S107",     # hardcoded passwords
-    "S608",     # possible sql injection
+    "S",        # all security lints (not important in test code)
 ]
 
 [tool.djlint]
