@@ -54,16 +54,19 @@ def _do_migration(name: str, script: str) -> tuple[bool, str]:
         db.execute("UPDATE migrations SET applied_on=CURRENT_TIMESTAMP, succeeded=True WHERE filename=?", [name])
         db.commit()
 
-        # Rebuild views post-migration
-        rebuild_views()
-
     except sqlite3.Error as e:
         db.rollback()
         db.execute("UPDATE migrations SET applied_on=CURRENT_TIMESTAMP, succeeded=False WHERE filename=?", [name])
         db.commit()
         return False, str(e)
-    else:
-        return True, ''
+
+    try:
+        # Rebuild views post-migration
+        rebuild_views()
+    except sqlite3.Error as e:
+        current_app.logger.warning(f"DB error while rebuilding views after migration.  Check this carefully.  It may be okay (handled by a later migration) or it may be a problem.\nError: {e}")
+
+    return True, ''
 
 
 def _apply_migrations(migrations: Iterable[MigrationDict]) -> None:
