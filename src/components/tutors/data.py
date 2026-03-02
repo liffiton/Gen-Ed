@@ -69,7 +69,7 @@ def gen_chats_chart(filters: Filters) -> list[ChartData]:
             GROUP BY days_since
         ) ON days_since = val
         ORDER BY days_since DESC
-    """, where_params).fetchall()
+    """, where_params).fetchall()  # noqa: S608 -- where_clause is generated safely
     days_since = [row['days_since'] for row in usage_data]
     data_chats = [row['chats'] for row in usage_data]
     charts: list[ChartData] = [
@@ -112,7 +112,7 @@ def get_chats(filters: Filters, /, limit: int=-1, offset: int=0) -> Cursor:
         ORDER BY t.id DESC
         LIMIT ?
         OFFSET ?
-    """
+    """  # noqa: S608 -- where_clause is generated safely
     cur = db.execute(sql, [*where_params, limit, offset])
     return cur
 

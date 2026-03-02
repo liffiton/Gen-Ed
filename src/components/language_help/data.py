@@ -37,7 +37,7 @@ def get_queries(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
         ORDER BY t.id DESC
         LIMIT ?
         OFFSET ?
-    """
+    """ # noqa: S608 -- where_clause is generated safely
     cur = db.execute(sql, [*where_params, limit, offset])
     return cur
 

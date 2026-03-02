@@ -96,7 +96,7 @@ def get_classes(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
         ORDER BY "1wk" DESC, classes.id DESC
         LIMIT ?
         OFFSET ?
-    """, [*where_params, limit, offset])
+    """, [*where_params, limit, offset])  # noqa: S608 -- where_clause is generated safely
 
 
 def get_users(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
@@ -121,7 +121,7 @@ def get_users(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
         ORDER BY "1wk" DESC, users.id DESC
         LIMIT ?
         OFFSET ?
-    """, [*where_params, limit, offset])
+    """, [*where_params, limit, offset])  # noqa: S608 -- where_clause is generated safely
 
 def get_roles(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
     db = get_db()
@@ -145,7 +145,7 @@ def get_roles(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
         ORDER BY roles.id DESC
         LIMIT ?
         OFFSET ?
-    """, [*where_params, limit, offset])
+    """, [*where_params, limit, offset])  # noqa: S608 -- where_clause is generated safely
 
 
 def get_data_sources(filters: Filters) -> dict[str, DataSource]:
