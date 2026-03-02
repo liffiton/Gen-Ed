@@ -1,0 +1,53 @@
+---
+title:  Manual Class Creation
+summary:  How to create a class "manually," logging in with a Google account.
+category:  Connecting Students
+---
+
+# Manual Class Creation
+
+<p class="notification is-info"><b>Note:</b> We recommend using an LTI connection from your LMS over this manual approach.  Creating and sharing a class manually from Starburst has some drawbacks compared to LTI.  However, manual creation is faster, and it is an alternative for cases where LTI is not an option.</p>
+
+These instructions explain how to create and share a class manually.
+Compared to connecting via LTI, this has the following drawbacks:
+
+1. Every user (student and instructor) must log in to Starburst with a Google account.  <i>[LTI handles authentication automatically.]</i>
+2. Additional instructors (beyond the user who creates the class) must be manually assigned after they have joined the class.  <i>[An LTI connection automatically gives any instructor or TA instructor-level access in Starburst.]</i>
+3. Students will be identified by their login account and the name registered to it.  This may not correspond to their school email or the name they use in class.  <i>[LTI provides institution email addresses and names from your LMS.]</i>
+
+## Creation
+
+First, log in to Starburst using a Google account.
+Whatever account you use will be registered as an "instructor" for the new class.
+
+Once logged in, go to your <a href="/profile/">profile page</a> (also accessible by clicking on your user info in the navigation bar at the top of the page).
+
+In the "Classes" section, press "Create new class."
+This will bring up a dialog asking for a class name and an LLM API key.
+
+The LLM API key will be used for your students' LLM usage in Starburst.
+If you don't have an API key yet, you can leave it blank for now, but it will be required for anyone to use LLM features in your class.
+You can create an API key using an account at <a href="https://platform.openai.com/">platform.openai.com</a> or <a href="https://aistudio.google.com/">aistudio.google.com</a>.
+The LLM provider (e.g., OpenAI or Google) will charge you directly for your students' usage, so you will need to purchase usage credits using a credit card.
+The cost is low.  See the [Models](models) documentation for details.
+
+## Configuration
+
+After submitting the new class form, you will be brought to the configuration screen for the class you created.
+Here, you will see an <b>access/join link</b> that can be shared with your students.
+Anyone using the link will register as a student in the class if "Registration via Link" is enabled.
+You can control whether registration is allowed by manually enabling and disabling it or by setting a date up through which registration will be enabled.
+Once students have registered, they can use the same link to access Starburst and use LLM features in your class.
+
+In the configuration screen, you can also archive the class (so students can see their past usage but not initiate any) and change or delete the API key you have connected to it.
+
+## Adding Instructors
+
+To add instructors to the course, you can give other users the "instructor" role in your class.
+First, have them join the class via the "Access/Join Link" found in the class configuration screen.
+Then, to give them the instructor role, go to the instructor view and check the box in the "Instructor?" column for their user in the Users table.
+
+## Switching Between Classes
+
+If you have multiple classes in Starburst, you can switch between them using a drop-down menu under the profile link in the navigation bar or from your user profile page.
+When you have selected a class in which you are an instructor, the navigation bar will contain links to its class configuration and instructor view pages.

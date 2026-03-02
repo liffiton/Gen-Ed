@@ -1,6 +1,7 @@
 ---
 title:  Canvas LTI Setup for Starburst
 summary:  Step-by-step instructions for creating an LTI connection to Starburst from a Canvas course.
+category:  Connecting Students
 ---
 
 # Canvas LTI Setup for Starburst

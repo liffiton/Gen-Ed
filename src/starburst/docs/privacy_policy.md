@@ -1,6 +1,7 @@
 ---
 title:  Privacy Policy
 summary:  Privacy Policy for Starburst
+category:  Privacy
 ---
 
 # Privacy Policy
