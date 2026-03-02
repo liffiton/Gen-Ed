@@ -4,9 +4,9 @@
 
 BEGIN;
 
-INSERT INTO llm_providers(name, endpoint) VALUES ('Google', 'https://generativelanguage.googleapis.com/v1beta/openai/');
+INSERT OR IGNORE INTO llm_providers(name, endpoint) VALUES ('Google', 'https://generativelanguage.googleapis.com/v1beta/openai/');
 
-INSERT INTO models(provider_id, shortname, model, default_params, active, owner_id) VALUES
+INSERT OR IGNORE INTO models(provider_id, shortname, model, default_params, active, owner_id) VALUES
     ((SELECT id FROM llm_providers WHERE name='Google'), 'Gemini 3 Flash Preview', 'gemini-3-flash-preview', '{}', true, NULL)
 ;
 
