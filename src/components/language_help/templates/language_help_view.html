@@ -10,7 +10,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 {% block body %}
 <style type="text/css">
 .writing_error {
-  text-decoration: #fc7 wavy underline;
+  text-decoration: #fc0 wavy underline;
   padding-left: 0.1em;
   padding-right: 0.1em;
   position: relative;
@@ -18,9 +18,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 .writing_error .writing_error_details {
   position: absolute;
   top: 120%;
-  left: 1em;
+  left: 0.5em;
   z-index: 100;
   width: max-content;
+  max-width: 80vw;
   border: 2px solid #ec9;
   background: #fec;
   box-shadow: 3px 4px 8px 2px #0003;
@@ -34,7 +35,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 }
 .writing_error:hover, .writing_error:focus {
   background: #fda5;
-  border-radius: 5px;
+  border-radius: 8px;
 }
 .writing_error:hover .writing_error_details, .writing_error:focus .writing_error_details {
   display: block;
