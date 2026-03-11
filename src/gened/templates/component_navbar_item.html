@@ -1,0 +1,12 @@
+{#
+SPDX-FileCopyrightText: 2026 Mark Liffiton <liffiton@gmail.com>
+
+SPDX-License-Identifier: AGPL-3.0-only
+#}
+
+<a class="navbar-item has-text-success" href="{{ url_for(component.main_endpoint) }}">
+  <div class="icon-text">
+    <svg class="icon" aria-hidden="true"><use href="#{{ component.icon }}" /></svg>
+    <span>{{ component.navbar_title }}</span>
+  </div>
+</a>

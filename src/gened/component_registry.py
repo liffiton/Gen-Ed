@@ -65,9 +65,8 @@ def get_component_config_table_by_name(name: str) -> class_config_types.ConfigTa
     return None
 
 
-def get_component_navbar_templates() -> list[str]:
+def get_navbar_components() -> list[GenEdComponent]:
     return [
-        c.navbar_item_template
-        for c in get_registered_components()
-        if c.navbar_item_template and c.is_available() and c.is_enabled()
+        c for c in get_registered_components()
+        if c.is_available() and c.is_enabled() and c.main_endpoint
     ]

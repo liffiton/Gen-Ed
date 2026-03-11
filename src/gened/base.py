@@ -37,7 +37,7 @@ from . import (
 )
 from .class_config import base as class_config
 from .component_registry import (
-    get_component_navbar_templates,
+    get_navbar_components,
     get_registered_components,
     register_component,
 )
@@ -120,12 +120,12 @@ class GenEdAppBuilder:
 
         # Inject into template contexts:
         #  - auth data
-        #  - navbar item templates from components
+        #  - components available for the navbar
         @app.context_processor
         def inject_auth_data() -> dict[str, Any]:
             return {
                 'auth': auth.get_auth(),
-                'navbar_items': get_component_navbar_templates(),
+                'navbar_components': get_navbar_components(),
             }
 
         @app.route('/')
