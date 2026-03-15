@@ -42,8 +42,13 @@ bp = Blueprint('classes', __name__, template_folder='templates')
 @bp.route("/home")
 @login_required
 @with_llm(spend_token=False)  # get information on the selected LLM, tokens remaining
-def class_home(llm: LLM) -> str:
+def class_home(llm: LLM) -> Response | str:
     components = get_navbar_components()
+
+    if len(components) == 1 and (endpoint := components[0].main_endpoint) is not None:
+        # only one component; redirect straight to it
+        return redirect(url_for(endpoint))
+
     return render_template("class_home.html", llm=llm, components=components)
 
 
