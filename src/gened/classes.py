@@ -204,7 +204,16 @@ def switch_class(class_id: int | None) -> bool:
 @login_required
 def switch_class_handler(class_id: int) -> Response:
     switch_class(class_id)
-    return safe_redirect_next(default_endpoint="profile.main")
+
+    auth = get_auth()
+    if auth.cur_class is None:
+        redir_endpoint = "profile.main"
+    elif auth.cur_class.role == "instructor":
+        redir_endpoint = "class_config.base.config_form"
+    else:
+        redir_endpoint = "classes.class_home"
+
+    return safe_redirect_next(default_endpoint=redir_endpoint)
 
 
 @bp.route("/leave/")

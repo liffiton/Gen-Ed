@@ -124,7 +124,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                     </div>
                     {% for class in auth.other_classes %}
                     <div class="dropdown-item">
-                      <button class="button is-rounded is-link is-outlined is-small" type="button" onclick="location.assign('{{ url_for("classes.switch_class_handler", class_id=class.class_id, next=request.path) }}'); return false;">{{ class.class_name }} ({{ class.role }})</button>
+                      <button class="button is-rounded is-link is-outlined is-small" type="button" onclick="location.assign('{{ url_for("classes.switch_class_handler", class_id=class.class_id) }}'); return false;">{{ class.class_name }} ({{ class.role }})</button>
                     </div>
                     {% endfor %}
                     {% if auth.is_admin and auth.cur_class %}

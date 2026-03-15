@@ -16,6 +16,7 @@ from flask.testing import FlaskClient, FlaskCliRunner
 from werkzeug.test import TestResponse
 
 import codehelp
+from gened.auth import get_auth
 from gened.db import get_db
 from gened.db_admin import init_db
 from gened.lti import reload_consumers
@@ -104,10 +105,14 @@ def client(app: Flask) -> AppClient:
 
 @pytest.fixture
 def instructor(client: AppClient) -> AppClient:
-    client.login('testuser', 'testpassword')    # log in as a user that has an instructor role in a class
-    response = client.get('/classes/switch/2')  # switch to a class in which this user is an instructor
-    assert response.status_code == 302
-    assert response.location == "/profile/"
+    with client:
+        client.login('testuser', 'testpassword')    # log in as a user that has an instructor role in a class
+        response = client.get('/classes/switch/2')  # switch to a class in which this user is an instructor
+        assert response.status_code == 302
+        auth = get_auth()
+        assert auth.cur_class is not None
+        assert auth.cur_class.class_id == 2
+
     return client
 
 

@@ -51,7 +51,7 @@ dl.profile dd { margin: 0; }
       {% endif %}
       {% for data_name, counts in data_counts | items %}
         {% if counts.num_total > 0 %}
-          <dt>{{ data_name | capitalize }}</dt>
+          <dt>{{ data_name | capitalize }}:</dt>
           <dd><a href="{{ url_for('profile.view_data') }}">{{ counts.num_total }} total</a>, {{ counts.num_1wk }} in the past week.</dd>
         {% endif %}
       {% endfor %}
@@ -64,6 +64,7 @@ dl.profile dd { margin: 0; }
       {% endif %}
     </dl>
 
+    <hr>
     <h2 class="title is-size-3">
       Classes
       {% if user.provider_name not in ['lti', 'demo'] %}
@@ -76,9 +77,9 @@ dl.profile dd { margin: 0; }
     <dl class="profile is-size-5">
       <dt>Current:</dt>
       {% if auth.cur_class %}
-        <dd>{{ auth.cur_class.class_name }} ({{ auth.cur_class.role }})</dd>
+        <dd><strong>{{ auth.cur_class.class_name }} ({{ auth.cur_class.role }})</strong></dd>
       {% else %}
-        <dd>None active.</dd>
+        <dd><em>None active.</em></dd>
       {% endif %}
 
       {% if other_classes %}
@@ -87,7 +88,7 @@ dl.profile dd { margin: 0; }
           {% for class in other_classes %}
           <p>
             {{ class.name }} ({{ class.role }})
-            <a href="{{ url_for("classes.switch_class_handler", class_id=class.id) }}" class="button is-link is-small is-rounded ml-3" style="vertical-align: center;">
+            <a href="{{ url_for("classes.switch_class_handler", class_id=class.id, next=url_for("profile.main")) }}" class="button is-link is-small is-rounded ml-3" style="vertical-align: center;">
               Switch to
             </a>
           </p>
@@ -101,7 +102,7 @@ dl.profile dd { margin: 0; }
           {% for class in archived_classes %}
           <p>
             {{ class.name }} ({{ class.role }})
-            <a href="{{ url_for("classes.switch_class_handler", class_id=class.id) }}" class="button is-link is-small is-rounded ml-3" style="vertical-align: center;">
+            <a href="{{ url_for("classes.switch_class_handler", class_id=class.id, next=url_for("profile.main")) }}" class="button is-link is-small is-rounded ml-3" style="vertical-align: center;">
               Switch to
             </a>
           </p>
@@ -111,6 +112,7 @@ dl.profile dd { margin: 0; }
     </dl>
 
     {% if created_classes %}
+      <hr>
       <h2 class="is-size-3">
         Additional Models
         <a class="has-text-weight-normal button ml-5 is-light is-link is-outlined" href="{{url_for("models.new_model")}}">
@@ -126,6 +128,7 @@ dl.profile dd { margin: 0; }
     
     {% endif %}
 
+    <hr>
     <h2 class="title is-size-3">Your Data</h2>
     <div class="buttons">
       <a class="button ml-5 is-info" href="{{ url_for('profile.view_data') }}">
