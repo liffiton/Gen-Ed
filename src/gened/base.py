@@ -183,7 +183,7 @@ class GenEdAppBuilder:
             # Cache timeout for static files (seconds)
             SEND_FILE_MAX_AGE_DEFAULT=3*60*60,  # 3 hours
             # Default redirect after login (may want to override with a tool endpoint)
-            DEFAULT_LOGIN_ENDPOINT='landing',
+            DEFAULT_LOGIN_ENDPOINT='classes.class_home',
             # Free query tokens given to new users
             DEFAULT_TOKENS=20,
             # Default data retention length (prune user data with no activity for this period of time)

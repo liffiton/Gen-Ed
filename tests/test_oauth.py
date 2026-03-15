@@ -39,7 +39,7 @@ def test_google_callback_success(app: Flask, client: AppClient, mock_oauth_patch
         response = client.get(auth_url)
 
         assert response.status_code == 302
-        assert response.location == '/help/'  # Default redirect (see codehelp app.config)
+        assert response.location == url_for(app.config['DEFAULT_LOGIN_ENDPOINT'])
 
         # Check session is set up correctly
         sessauth = get_auth()
@@ -79,7 +79,7 @@ def test_anon_signup(app: Flask, client: AppClient, mock_oauth_client: MagicMock
             response = client.get(auth_url)
 
             assert response.status_code == 302
-            assert response.location == '/help/'  # Default redirect (see codehelp app.config)
+            assert response.location == url_for(app.config['DEFAULT_LOGIN_ENDPOINT'])
 
             sessauth = get_auth()
             assert sessauth.user
@@ -125,7 +125,7 @@ def test_github_callback_success(app: Flask, client: AppClient, mock_oauth_patch
         response = client.get(auth_url)
 
         assert response.status_code == 302
-        assert response.location == '/help/'  # Default redirect (see codehelp app.config)
+        assert response.location == url_for(app.config['DEFAULT_LOGIN_ENDPOINT'])
 
         # Verify the email API was called
         mock_oauth_patch.get.assert_called_once_with('user/emails')
@@ -148,11 +148,12 @@ def test_microsoft_callback_success(app: Flask, client: AppClient, mock_oauth_pa
     """Test successful Microsoft OAuth callback with special claims handling"""
     with app.test_request_context():
         auth_url = url_for('oauth.auth', provider_name='microsoft')
+        redir_url = url_for(app.config['DEFAULT_LOGIN_ENDPOINT'])
 
     response = client.get(auth_url)
 
     assert response.status_code == 302
-    assert response.location == '/help/'  # Default redirect (see codehelp app.config)
+    assert response.location == redir_url
 
     # Verify the special claims_options were used
     mock_oauth_patch.authorize_access_token.assert_called_once_with(claims_options={'iss': {}})
@@ -183,6 +184,7 @@ def test_oauth_open_redirect(app: Flask, client: AppClient, mock_oauth_client: M
     with app.test_request_context():
         login_url = url_for('oauth.login', provider_name='google', next=external_url)
         auth_url = url_for('oauth.auth', provider_name='google')
+        redir_url = url_for(app.config['DEFAULT_LOGIN_ENDPOINT'])
 
     # Initiate login with malicious next URL
     client.get(login_url)
@@ -193,7 +195,7 @@ def test_oauth_open_redirect(app: Flask, client: AppClient, mock_oauth_client: M
 
     assert response.status_code == 302
     assert response.location != external_url
-    assert response.location == '/help/'  # Default redirect
+    assert response.location == redir_url
 
 def test_callback_failure(app: Flask, client: AppClient, mock_oauth_patch: MagicMock) -> None:
     """Test OAuth callback when authentication fails"""

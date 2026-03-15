@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import pytest
+from flask import Flask, url_for
 from oauthlib import oauth1
 
 from tests.conftest import AppClient
@@ -77,7 +78,7 @@ def test_lti_auth_failure(client: AppClient, consumer_key: str, consumer_secret:
     ('urn:lti:role:ims/lis/TeachingAssistant', 'instructor'),  # canvas TA
     ('Student', 'student'),
 ])
-def test_lti_auth_success(client: AppClient, role: str, internal_role: str) -> None:
+def test_lti_auth_success(app: Flask, client: AppClient, role: str, internal_role: str) -> None:
     # key and secret match 'consumer.domain' consumer in test_data.sql
     lti = LTIConsumer('consumer.domain', 'seecrits1')
 
@@ -85,12 +86,13 @@ def test_lti_auth_success(client: AppClient, role: str, internal_role: str) -> N
 
     result = client.post(uri, headers=headers, data=body)
     assert "LTI communication error" not in result.text
-    # success == redirect to help page...
+    # success == redirect to configured post-login page...
     assert result.status_code == 302
-    if internal_role == 'instructor':
-        assert result.location == '/instructor/config/'
-    else:
-        assert result.location == '/help/'
+    with app.test_request_context():
+        if internal_role == 'instructor':
+            assert result.location == url_for("class_config.base.config_form")
+        else:
+            assert result.location == url_for(app.config['DEFAULT_LOGIN_ENDPOINT'])
 
     result = client.get('/help/')
     assert result.status_code == 200
@@ -111,7 +113,7 @@ def test_lti_auth_success(client: AppClient, role: str, internal_role: str) -> N
     assert f"{CLASS['label']} ({internal_role})" in result.text
 
 
-def test_lti_class_name_change(client: AppClient) -> None:
+def test_lti_class_name_change(app: Flask, client: AppClient) -> None:
     # key and secret match 'consumer.domain' consumer in test_data.sql
     lti = LTIConsumer('consumer.domain', 'seecrits1')
 
@@ -122,9 +124,10 @@ def test_lti_class_name_change(client: AppClient) -> None:
 
     result = client.post(uri, headers=headers, data=body)
     assert "LTI communication error" not in result.text
-    # success == redirect to help page...
+    # success == redirect to configured page...
     assert result.status_code == 302
-    assert result.location == '/help/'
+    with app.test_request_context():
+        assert result.location == url_for(app.config['DEFAULT_LOGIN_ENDPOINT'])
 
     result = client.get('/help/')
     assert result.status_code == 200
@@ -145,9 +148,10 @@ def test_lti_class_name_change(client: AppClient) -> None:
 
     result = client.post(uri, headers=headers, data=body)
     assert "LTI communication error" not in result.text
-    # success == redirect to help page...
+    # success == redirect to configured page...
     assert result.status_code == 302
-    assert result.location == '/help/'
+    with app.test_request_context():
+        assert result.location == url_for(app.config['DEFAULT_LOGIN_ENDPOINT'])
 
     # check the profile for correct name, class name and role
     result = client.get('/profile/')

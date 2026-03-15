@@ -66,9 +66,39 @@ SPDX-License-Identifier: AGPL-3.0-only
       </div>
       <div class="navbar-menu" x-bind:class="menu_open ? 'is-active' : ''">
         <div class="navbar-start">
-        {% for component in navbar_components %}
-          {% include "component_navbar_item.html" %}
-        {% endfor %}
+          {% with has_dropdown=(navbar_components | length > 1) %}
+            {% if has_dropdown %}
+              <a class="navbar-item has-text-success dropdown dropdown-trigger is-hoverable" aria-haspopup="true" aria-controls="tools-menu" style="flex-direction: column; justify-content: center;" href="{{ url_for('classes.class_home') }}">
+                <div class="icon-text">
+                  <svg class="icon" aria-hidden="true"><use href="#svg_sparkle" /></svg>
+                  <span>Class Tools</span>
+                </div>
+                <div class="dropdown-menu" style="width: max-content; z-index: 999;" id="tools-menu" role="menu">
+                  <div class="dropdown-content">
+                    {% for component in navbar_components %}
+                      <div class="dropdown-item">
+                        <button role="link" class="button is-large is-link" onclick="location.assign('{{ url_for(component.main_endpoint) }}'); return false;">
+                          <div class="icon-text">
+                            <svg class="icon" aria-hidden="true"><use href="#{{ component.icon }}" /></svg>
+                            <span>{{ component.navbar_title }}</span>
+                          </div>
+                        </button>
+                      </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              </a>
+            {% else %}{# just one component (or none); no link to class home, no dropdown #}
+              {% for component in navbar_components %}
+                <a class="navbar-item has-text-success" href="{{ url_for(component.main_endpoint) }}">
+                  <div class="icon-text">
+                    <svg class="icon" aria-hidden="true"><use href="#{{ component.icon }}" /></svg>
+                    <span>{{ component.navbar_title }}</span>
+                  </div>
+                </a>
+              {% endfor %}
+            {% endif %}
+          {% endwith %}
         </div>
         <div class="navbar-end">
           {% if auth.user %}

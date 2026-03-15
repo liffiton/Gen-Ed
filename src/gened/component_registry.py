@@ -36,9 +36,6 @@ def get_component_registry() -> dict[str, GenEdComponent]:
     assert is_component_registry(components)
     return components
 
-def get_registered_components() -> Iterable[GenEdComponent]:
-    return get_component_registry().values()
-
 
 def register_component(component: GenEdComponent) -> None:
     registry = get_component_registry()
@@ -63,6 +60,10 @@ def get_component_config_table_by_name(name: str) -> class_config_types.ConfigTa
         if (ct := c.config_table) and ct.name == name:
             return ct
     return None
+
+
+def get_registered_components() -> Iterable[GenEdComponent]:
+    return get_component_registry().values()
 
 
 def get_navbar_components() -> list[GenEdComponent]:

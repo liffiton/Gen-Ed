@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 
 import pytest
-from flask import Flask
+from flask import Flask, url_for
 from flask.testing import FlaskCliRunner
 from werkzeug.test import TestResponse
 
@@ -84,7 +84,10 @@ def test_newuser_command(app: Flask, runner: FlaskCliRunner, client: AppClient) 
         assert password_match
         password = password_match.group(1)
 
-    check_login(client, username, password, expect=LoginResult(target="/help/", content="_newuser_", is_authed=True))
+    with app.test_request_context():
+        redir_url = url_for(app.config["DEFAULT_LOGIN_ENDPOINT"])
+
+    check_login(client, username, password, expect=LoginResult(target=redir_url, content="_newuser_", is_authed=True))
     client.logout()
     check_login(client, 'x', password, expect=invalid_login_result)
     client.logout()
@@ -108,12 +111,16 @@ def test_invalid_login(client: AppClient, username: str, password: str) -> None:
     ('testadmin', 'testadminpassword', '/admin/', True),
 ])
 def test_valid_login(
+        app: Flask,
         client: AppClient,
         username: str,
         password: str,
         next_url: str,
         is_admin: bool,
     ) -> None:
+    with app.test_request_context():
+        redir_url = url_for(app.config["DEFAULT_LOGIN_ENDPOINT"])
+
     # Test with the next URL specified
     check_login(
         client, username, password, next_url=next_url,
@@ -123,13 +130,13 @@ def test_valid_login(
     # Test with no next URL specified: should redirect to /help
     check_login(
         client, username, password, next_url=None,
-        expect=LoginResult(target="/help/", content=username, is_authed=True, is_admin=is_admin)
+        expect=LoginResult(target=redir_url, content=username, is_authed=True, is_admin=is_admin)
     )
     client.logout()
     # Test with an unsafe next URL specified: should redirect to /help
     check_login(
         client, username, password, next_url="https://malicious.site/",
-        expect=LoginResult(target="/help/", content=username, is_authed=True, is_admin=is_admin)
+        expect=LoginResult(target=redir_url, content=username, is_authed=True, is_admin=is_admin)
     )
     client.logout()
 

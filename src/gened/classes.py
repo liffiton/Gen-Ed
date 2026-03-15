@@ -30,11 +30,21 @@ from werkzeug.wrappers.response import Response
 
 from .access import login_required
 from .auth import get_auth, set_session_auth_class
+from .component_registry import get_navbar_components
 from .db import get_db
+from .llm import LLM, with_llm
 from .redir import safe_redirect_next
 from .tz import date_is_past
 
 bp = Blueprint('classes', __name__, template_folder='templates')
+
+
+@bp.route("/home")
+@login_required
+@with_llm(spend_token=False)  # get information on the selected LLM, tokens remaining
+def class_home(llm: LLM) -> str:
+    components = get_navbar_components()
+    return render_template("class_home.html", llm=llm, components=components)
 
 
 def get_or_create_lti_class(lti_consumer_id: int, lti_context_id: str, class_name: str) -> int:

@@ -18,8 +18,9 @@ def create_app(test_config: dict[str, str] | None = None, instance_path: Path | 
     app_config = dict(
         APPLICATION_TITLE='Starburst',
         APPLICATION_AUTHOR='Mark Liffiton',
-        SUPPORT_EMAIL='mliffito@iwu.edu',
         FAVICON='icon.png',
+        DEFAULT_LOGIN_ENDPOINT='classes.class_home',
+        SUPPORT_EMAIL='mliffito@iwu.edu',
         DATABASE_NAME='starburst.db',
         DOCS_DIR=module_dir / 'docs',
         # Free query tokens given to new users

@@ -1,0 +1,73 @@
+{#
+SPDX-FileCopyrightText: 2026 Mark Liffiton <liffiton@gmail.com>
+
+SPDX-License-Identifier: AGPL-3.0-only
+#}
+
+{% extends "base.html" %}
+
+{% block body %}
+<section class="section">
+  <div class="container">
+    {% if llm.tokens_remaining != None %}
+      <div class="notification is-size-5 mb-6">
+        <strong>Using free queries:</strong>
+        {{ llm.tokens_remaining }} queries remaining.
+        <button class="button is-small is-rounded p-2 ml-3" type="button" onClick="document.getElementById('usage_token_dialog').showModal();">what's this?</button>
+      </div>
+      {% include "usage_token_dialog.html" %}
+    {% endif %}
+
+    {% if auth.cur_class %}
+      <div class="box has-background-grey-dark mb-6">
+        <h1 class="title is-2 has-text-light has-text-centered">
+          {{ auth.cur_class.class_name }}
+        </h1>
+        <p class="subtitle is-4 has-text-grey-light has-text-centered mt-2">
+          Select a tool below to get started.
+        </p>
+      </div>
+    {% endif %}
+
+    <div class="columns is-multiline is-centered">
+      {% for component in components %}
+        <div class="column is-12-mobile is-6-tablet is-4-desktop">
+          <div class="card" style="height: 100%; border-radius: 1rem; display: flex; flex-direction: column;">
+            <div class="card-header has-background-link-light">
+              <h2 class="card-header-title icon-text title">
+                <svg class="icon is-large has-text-link" aria-hidden="true" style="width: 48px; height: 48px;">
+                  <use href="#{{ component.icon or 'svg_qmark_circle' }}" />
+                </svg>
+                <span>{{ component.display_name }}</span>
+              </h2>
+            </div>
+            <div class="card-content" style="flex-grow: 1;">
+              <div class="content">
+                {{ component.description }}
+              </div>
+            </div>
+            <footer class="card-footer" style="border: none;">
+              <a href="{{ url_for(component.main_endpoint) }}" class="card-footer-item mx-2 mb-2 mt-0 is-size-4 has-background-link has-text-white" style="border-radius: 0.75rem;">
+                Open {{ component.display_name }}
+              </a>
+            </footer>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if not components %}
+      <div class="notification is-warning has-text-centered">
+        <p class="is-size-5">There are no tools currently enabled for this class.</p>
+        {% if auth.cur_class.role == 'instructor' %}
+          <p class="mt-2">
+            <a href="{{ url_for('class_config.base.config_form') }}" class="button is-warning is-light">
+              Configure Class Tools
+            </a>
+          </p>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock body %}
