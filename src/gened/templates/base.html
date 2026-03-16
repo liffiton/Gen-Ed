@@ -70,17 +70,18 @@ SPDX-License-Identifier: AGPL-3.0-only
             {% if has_dropdown %}
               <a class="navbar-item has-text-success dropdown dropdown-trigger is-hoverable" aria-haspopup="true" aria-controls="tools-menu" style="flex-direction: column; justify-content: center;" href="{{ url_for('classes.class_home') }}">
                 <div class="icon-text">
-                  <svg class="icon" aria-hidden="true"><use href="#svg_sparkle" /></svg>
-                  <span>Class Tools</span>
+                  <svg class="icon" aria-hidden="true"><use href="#svg_tool_case" /></svg>
+                  <span>Study Tools</span>
+                  <svg class="icon" aria-hidden="true" style="color: #fffb;"><use href="#svg_chevron_down" /></svg>
                 </div>
                 <div class="dropdown-menu" style="width: max-content; z-index: 999;" id="tools-menu" role="menu">
                   <div class="dropdown-content">
                     {% for component in navbar_components %}
                       <div class="dropdown-item">
-                        <button role="link" class="button is-large is-link" onclick="location.assign('{{ url_for(component.main_endpoint) }}'); return false;">
+                        <button role="link" class="button is-size-5 is-link" onclick="location.assign('{{ url_for(component.main_endpoint) }}'); return false;">
                           <div class="icon-text">
                             <svg class="icon" aria-hidden="true"><use href="#{{ component.icon }}" /></svg>
-                            <span>{{ component.navbar_title }}</span>
+                            <span>{{ component.display_name }}</span>
                           </div>
                         </button>
                       </div>
@@ -93,7 +94,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <a class="navbar-item has-text-success" href="{{ url_for(component.main_endpoint) }}">
                   <div class="icon-text">
                     <svg class="icon" aria-hidden="true"><use href="#{{ component.icon }}" /></svg>
-                    <span>{{ component.navbar_title }}</span>
+                    <span>{{ component.display_name }}</span>
                   </div>
                 </a>
               {% endfor %}

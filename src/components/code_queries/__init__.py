@@ -10,11 +10,10 @@ from .helper import bp
 gened_component = GenEdComponent(
     package=__package__,
     name="code_queries",
-    display_name="Code Queries",
-    description="Students can ask the LLM for help with CS/programming issues like planning, debugging, and understanding.  The LLM's response includes guardrails to avoid providing solution code.",
+    display_name="CS Q&A",
+    description="Ask an LLM for help with computer science and programming issues like planning, debugging, and understanding.  The response includes guardrails to avoid providing solution code.",
     blueprint=bp,
     icon="svg_qmark_circle",
-    navbar_title="Get Help",
     main_endpoint="helper.help_form",
     data_source=queries_data_source,
     admin_chart=gen_query_charts,

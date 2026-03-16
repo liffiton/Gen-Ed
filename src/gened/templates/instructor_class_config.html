@@ -270,7 +270,7 @@ input[type='radio'] {
 
       <h2 class="title is-size-4 mt-5">Class Tools</h2>
 
-      <p class="help-text mb-3">You can toggle whether each tool is available in this class.</p>
+      <p class="help-text mb-3">Control which tools are available in this class.</p>
       <form class="ml-5" x-data="{
         {%- for component in components -%}
           {{ component.name }}: {{ 'true' if component.is_enabled() else 'false' }},

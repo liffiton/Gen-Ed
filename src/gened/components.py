@@ -49,9 +49,8 @@ class GenEdComponent:
     features: Iterable[ComponentFeature] = ()
     # register the component's own routes or use this just to register a template folder
     blueprint: Blueprint | None = None
-    # configuration for an item in the navbar
+    # configuration for links to the component
     icon: str | None = None
-    navbar_title: str | None = None
     main_endpoint: str | None = None
     # configure a DataSource, used primarily to present data from this component to users, instructors, and admins
     data_source: app_data.DataSource | None = None

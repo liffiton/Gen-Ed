@@ -10,11 +10,10 @@ from .helper import bp
 gened_component = GenEdComponent(
     package=__package__,
     name="language_help",
-    display_name="Language Help",
-    description="Students can provide some writing in just about any language, and the LLM will point out errors in their use of the language, noting the location and type of each error but not providing a correction.",
+    display_name="Writing Check",
+    description="Provide some writing in just about any language, and an LLM will point out errors in the use of the language, showing the location and type of each error but not providing a correction.",
     blueprint=bp,
     icon="svg_pencil",
-    navbar_title="Check Writing",
     main_endpoint="language_helper.help_form",
     data_source=queries_data_source,
     deletion_handler=DeletionHandler,
