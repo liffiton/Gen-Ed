@@ -67,10 +67,10 @@ Set Up an Application
    - `SYSTEM_API_KEY`: Your LLM API key to be used for queries outside of a
      class context (e.g. for free queries).
    - `SYSTEM_MODEL_SHORTNAME`: Name from the application databse of the model
-     to be used outside of a class context.  `GPT-4.1 mini` is a good default.
+     to be used outside of a class context.  `GPT-5.4 mini` is a good default.
    - `DEFAULT_CLASS_MODEL_SHORTNAME`: Name from the application database for
      the default model to be used in new classes (can be configured after
-     creating the class).  `GPT-4.1 mini` is a good default.
+     creating the class).  `GPT-5.4 mini` is a good default.
 
 *Optionally*, if you want to allow logins from 3rd party authentication
 providers, set any of the following pairs with IDs/secrets obtained from
