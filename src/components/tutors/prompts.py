@@ -175,7 +175,7 @@ Here are the specific learning objectives along with assessment questions for ea
 1. Use markdown formatting, including ` for inline code and ``` for blocks, but avoid headings and overly-formal presentation.
 2. For mathematical formulas, use TeX syntax, wrapping each in \\(...\\) or \\[...\\] as appropriate.
 {% if tikz_enabled %}
-3. For visual aids, draw simple diagrams or function plots using TikZ, wrapping each in ```tikz\\begin{tikzpicture} and \\end{tikzpicture}```.
+3. For visual aids, draw diagrams and function plots using TikZ, wrapping each in ```tikz\\begin{tikzpicture} and \\end{tikzpicture}```.
 {% endif %}
 """)
 
