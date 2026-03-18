@@ -184,5 +184,5 @@ Respond with a JSON object containing analysis items:
  - 'summary': a string summarizing the entire conversation so far with a focus on the learning objectives and the progress the student has made in each
  - 'progress': a list with an item for every learning objective, each of which is a dictionary containing:
    - 'objective': the learning objective text (do not number them)
-   - 'status': a string from the set: "in progress" (if the tutor's most recent message involves this objective), "completed" (if the tutor has finished working through the objective), "moved on" (if the tutor moved on from the objective before completing it because of the student's responses), or "not started"
+   - 'status': a string from the set: "completed" (if the student has finished working through the objective), "in progress" (if the tutor's most recent message involves this objective), "moved on" (if the tutor moved on from the objective before completing it because of the student's responses), or "not started"
 """)
