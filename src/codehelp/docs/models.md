@@ -6,7 +6,8 @@ category:  Using CodeHelp
 
 # Large Language Models
 
-CodeHelp can use several different large language models to generate responses to queries.  By default, the following models are available in CodeHelp:
+CodeHelp can use several different large language models to generate responses
+to queries.  By default, the following models are available in CodeHelp:
 
 <!--
 April, 2025:
@@ -24,15 +25,23 @@ Costs per million tokens: $0.50 in, $3.00 out
 OpenAI GPT-5-mini
 Avg tokens per query goes to 2000 out (substantial reasoning by default)
 Cost per million: $0.25 in, $2.00 out
+
+March, 2026:
+OpenAI GPT-5.4 (none): $2.50 in, $15.00 out
+OpenAI GPT-5.4-mini:   $0.75 in, $4.50 out
+OpenAI GPT-5.4-nano:   $0.20 in, $1.25 out
+Retired:
+  | **OpenAI GPT-4.1 mini** | US$0.20 | 6 seconds |
+  | **OpenAI GPT-4.1** | US$1 | 8 seconds |
+
 -->
 
 | Model | Avg cost per 100 queries | Average response time | Notes |
 | ----- | ------------------------ | ----------------- | ----- |
-| **OpenAI GPT-4.1 nano** | US$0.05 | 2 seconds | The lowest-cost and fastest of these options.  It can provide accurate, helpful responses in a wide variety of cases, but it will be noticeably less accurate in less common programming languages and may exhibit less fluency in languages other than English. |
-| **OpenAI GPT-4.1 mini** | US$0.20 | 6 seconds | **(Recommended)**  The best OpenAI model for most cases.  It is generally as capable as GPT-4.1 but at a lower cost. |
-| **OpenAI GPT-4.1** | US$1 | 8 seconds | The most capable model of these OpenAI models.  It is recommended for classes using uncommon programming languages, students asking questions in less widely-spoken languages, and/or queries with subtle or complex issues.  Most CS classes and students are unlikely to see a major difference in responses between this and GPT-4.1 mini. |
-| **Google Gemini 3 Flash Preview** | US$0.50 | 8 seconds | **(Recommended)**  The best Google model for most cases.  Is likely to give the most accurate and correct responses of all models listed here. |
-
+| **Google Gemini 3 Flash Preview** | US$0.50 | 8 seconds | **(Recommended)**  The best Google model for most cases.  It compares well on cost, speed, and response quality to the recommended OpenAI model. |
+| **OpenAI GPT-5.4 mini** | US$0.70 | 5 seconds | **(Recommended)**  The best OpenAI model for most cases.  High quality responses at a high speed. |
+| **OpenAI GPT-5.4 nano** | US$0.20 | 7 seconds | A step down in quality from GPT-5.4 mini, but it will still provide reasonable, useful responses in most cases. |
+| **OpenAI GPT-4.1 nano** | US$0.05 | 2 seconds | The lowest-cost and fastest of these options.  It can provide accurate, helpful responses in a wide variety of cases, but it will be noticeably less accurate at times, including for less common programming languages, and it may exhibit less fluency in languages other than English.  A good choice only if cost is the most important factor. |
 
 ## Not recommended
 
@@ -42,13 +51,16 @@ but whose cost and/or speed make them poor choices.
 These models will produce some of the highest quality responses available, but
 the improvement over the recommended models above will be relatively small,
 especially relative to their substantially slower generation and higher costs.
+They're probably not worth the cost and latency except for graduate-level
+classes, niche topics, and uncommon programming languages.  Most CS classes and
+students are unlikely to see a useful difference in responses between these and
+the above models.
 
 They are not provided as options by default, but you can always configure one
 as a custom model for your own classes if you want to try it.
 
 | Model | Avg cost per 100 queries | Average response time |
 | ----- | ------------------------ | ----------------- |
-| **OpenAI GPT 5 Mini** | US$0.50 |  20 seconds |
-| **OpenAI GPT 5.2** | US$2 | *very slow* |
-| **Google Gemini 3 Pro Preview** | US$2 | *very slow* |
-
+| **Google Gemini 3.1 Pro Preview** | US$2 | *very slow* |
+| **OpenAI GPT-5.4** (no reasoning) | US$2 | 14 seconds |
+| **OpenAI GPT-5.4** (reasoning enabled) | US$3+ | *very slow* |
