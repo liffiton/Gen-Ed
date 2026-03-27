@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from sqlite3 import Cursor
 from typing import Any, Final, Literal, TypeAlias
 
+from flask import current_app
 from markupsafe import Markup
 
 from gened.app_data import (
@@ -122,10 +123,14 @@ def fmt_analysis(value: str) -> Markup:
     if not value:
         return Markup()
 
-    obj = json.loads(value)
-    #summary = obj['summary']
-    progress = obj['progress']
-    counts = Counter(objective['status'] for objective in progress)
+    try:
+        obj = json.loads(value)
+        #summary = obj['summary']
+        progress = obj['progress']
+        counts = Counter(objective['status'] for objective in progress)
+    except (TypeError, KeyError) as e:
+        current_app.logger.error(e)
+        return Markup("parse error")
 
     statuses = [
         ('not started', '#ebb'),
