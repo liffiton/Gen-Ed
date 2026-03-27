@@ -2,7 +2,9 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import time
 from sqlite3 import Row
+from typing import cast
 
 from flask import (
     Blueprint,
@@ -24,11 +26,33 @@ from gened.tables import BoolCol, Col, DataTable, DataTableSpec, NumCol, UserCol
 
 from .component_registry import register_blueprint, register_navbar_item
 
+PRUNING_COUNT_TTL = 3600  # 1 hour
+
+
+def _invalidate_cached_pruning_count() -> None:
+    if hasattr(current_app, "pruning_count"):
+        delattr(current_app, "pruning_count")
+
+
+def get_pruning_count() -> int:
+    now = time.time()
+    cached_count = getattr(current_app, "pruning_count", None)
+    cached_timestamp = getattr(current_app, "pruning_timestamp", 0)
+
+    if cached_count is not None and now - cached_timestamp < PRUNING_COUNT_TTL:
+        return cast("int", cached_count)
+
+    _candidates, num_candidates = get_candidates()
+
+    current_app.pruning_count = num_candidates  # type: ignore[attr-defined]
+    current_app.pruning_timestamp = now         # type: ignore[attr-defined]
+    return num_candidates
+
 
 def get_candidates() -> tuple[list[Row], int]:
-    if 'pruning_candidates' not in g:
+    if "pruning_candidates" not in g:
         db = get_db()
-        retention_time_days = current_app.config['RETENTION_TIME_DAYS']
+        retention_time_days = current_app.config["RETENTION_TIME_DAYS"]
         g.pruning_candidates = db.execute("""
             SELECT
                 id,
@@ -42,14 +66,21 @@ def get_candidates() -> tuple[list[Row], int]:
                 delete_status = 'whitelisted' AS "whitelist?"
             FROM v_user_activity
             WHERE "last activity" < DATE('now', ?)
-        """, [f"-{retention_time_days} days"]).fetchall()
+        """,
+            [f"-{retention_time_days} days"],
+        ).fetchall()
 
-    num_candidates = sum(not row['whitelist?'] for row in g.pruning_candidates)
+    num_candidates = sum(not row["whitelist?"] for row in g.pruning_candidates)
+
+    # Update cache since we have a fresh count
+    current_app.pruning_count = num_candidates  # type: ignore[attr-defined]
+    current_app.pruning_timestamp = time.time()  # type: ignore[attr-defined]
+
     return g.pruning_candidates, num_candidates
 
 
 def render_link() -> Markup:
-    _, num_candidates = get_candidates()
+    num_candidates = get_pruning_count()
     if num_candidates:
         return Markup("Pruning <span style='font-size: 50%;' class='tag is-rounded is-danger px-1 py-0 ml-1'>{}</span>").format(num_candidates)
     else:
@@ -84,19 +115,20 @@ def set_whitelist(user_id: int, bool_whitelist: int) -> str:
     current = db.execute("SELECT delete_status FROM users WHERE id=?", [user_id]).fetchone()
     assert current['delete_status'] in ('', 'whitelisted')
 
-    new_status = 'whitelisted' if bool_whitelist else ''
+    new_status = "whitelisted" if bool_whitelist else ""
     db.execute("UPDATE users SET delete_status=? WHERE id=?", [new_status, user_id])
     db.commit()
+    _invalidate_cached_pruning_count()
     return "okay"
 
 
-@bp.route("/delete/", methods=['POST'])
+@bp.route("/delete/", methods=["POST"])
 def prune_users() -> Response:
-    if request.form.get('confirm_delete') != 'DELETE':
+    if request.form.get("confirm_delete") != "DELETE":
         flash("Data deletion requires confirmation. Please type DELETE to confirm.", "warning")
         return safe_redirect(request.referrer, default_endpoint=".pruning_view")
 
-    user_ids = [int(x) for x in request.form.getlist('user_ids')]
+    user_ids = [int(x) for x in request.form.getlist("user_ids")]
 
     db = get_db()
 
@@ -110,7 +142,7 @@ def prune_users() -> Response:
             current_app.logger.warning(f"Skipped pruning of non-existent user {user_id}")
             continue
 
-        if user['delete_status'] == 'whitelisted':
+        if user["delete_status"] == "whitelisted":
             current_app.logger.warning(f"Skipped pruning of whitelisted user {user_id}")
             continue
 
@@ -121,5 +153,6 @@ def prune_users() -> Response:
             current_app.logger.warning(f"Skipped pruning of class-owner user {user_id}")
             continue
 
-    flash(f'Successfully deleted {count} user(s)', 'success')
-    return redirect(url_for('.pruning_view'))
+    _invalidate_cached_pruning_count()
+    flash(f"Successfully deleted {count} user(s)", "success")
+    return redirect(url_for(".pruning_view"))
