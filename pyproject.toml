@@ -109,3 +109,6 @@ files = [ "src/", "tests/" ]
 strict = "True"
 enable_error_code = "unreachable, deprecated, redundant-expr, possibly-undefined, truthy-bool, truthy-iterable"
 pretty = "True"
+
+[tool.uv]
+exclude-newer = "1 week"
