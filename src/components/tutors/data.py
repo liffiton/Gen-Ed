@@ -128,7 +128,7 @@ def fmt_analysis(value: str) -> Markup:
         #summary = obj['summary']
         progress = obj['progress']
         counts = Counter(objective['status'] for objective in progress)
-    except (TypeError, KeyError) as e:
+    except (json.JSONDecodeError, TypeError, KeyError) as e:
         current_app.logger.error(e)
         return Markup("parse error")
 

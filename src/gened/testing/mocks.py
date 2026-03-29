@@ -30,6 +30,7 @@ def _create_dummy_completion() -> ChatCompletion:
         created=int(datetime.datetime.now(tz=datetime.UTC).timestamp()),
     )
 
+
 def mock_completion(delay: float = 0.0) -> Callable[..., ChatCompletion]:
     def mock(*_args: Any, **_kwargs: Any) -> ChatCompletion:
         time.sleep(delay)
