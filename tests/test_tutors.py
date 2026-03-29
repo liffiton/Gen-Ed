@@ -4,13 +4,18 @@
 
 """Tests for tutors component serialization and data models."""
 
-import json
-from dataclasses import asdict
+from typing import Any
 
+import msgspec
 from flask import Flask
 from werkzeug.datastructures import ImmutableMultiDict
 
-from components.tutors.data import ChatData, fmt_analysis
+from components.tutors.data import (
+    ChatData,
+    GuidedAnalysis,
+    GuidedObjectiveProgress,
+    fmt_analysis,
+)
 from components.tutors.guided import LearningObjective, TutorConfig
 from gened.db import get_db
 from tests.conftest import AppClient
@@ -33,13 +38,15 @@ def test_chat_data_roundtrip() -> None:
         ],
         usages=[{'prompt_tokens': 10, 'completion_tokens': 20}, {'prompt_tokens': 15, 'completion_tokens': 25}],
         mode="guided",
-        analysis={'summary': 'test', 'progress': [{'objective': 'Vars', 'status': 'completed'}]}
+        analysis=GuidedAnalysis(
+            summary='test',
+            progress=[GuidedObjectiveProgress(objective='Vars', status='completed')]
+        )
     )
     # Serialize
-    json_str = json.dumps(asdict(original))
+    json_bytes = msgspec.json.encode(original)
     # Deserialize
-    data = json.loads(json_str)
-    restored = ChatData(**data)
+    restored = msgspec.json.decode(json_bytes, type=ChatData)
     # Verify all fields match
     assert restored == original
     assert restored.topic == original.topic
@@ -55,9 +62,8 @@ def test_chat_data_roundtrip() -> None:
         messages=[],
         mode="inquiry"
     )
-    json_str2 = json.dumps(asdict(minimal))
-    data2 = json.loads(json_str2)
-    restored2 = ChatData(**data2)
+    json_bytes2 = msgspec.json.encode(minimal)
+    restored2 = msgspec.json.decode(json_bytes2, type=ChatData)
     assert restored2 == minimal
     assert restored2.topic == ""
     assert restored2.messages == []
@@ -79,12 +85,12 @@ def test_tutor_config_roundtrip() -> None:
     # Serialize using to_json (from ConfigItem)
     json_str = original.to_json()
     # Deserialize
-    data = json.loads(json_str)
+    data = msgspec.json.decode(json_str)
     data['name'] = "Python Basics"
     # Convert dict objectives to LearningObjective objects (as from_row does)
     if data.get('objectives'):
-        data['objectives'] = [LearningObjective(**obj) for obj in data['objectives']]
-    restored = TutorConfig(**data)
+        data['objectives'] = [msgspec.convert(obj, LearningObjective) for obj in data['objectives']]
+    restored = msgspec.convert(data, TutorConfig)
     # Verify all fields match
     assert restored == original
     assert restored.document_filename == original.document_filename
@@ -93,16 +99,16 @@ def test_tutor_config_roundtrip() -> None:
     # Test with empty objectives
     minimal = TutorConfig(name="Minimal", topic="Test", objectives=[])
     json_str2 = minimal.to_json()
-    data2 = json.loads(json_str2)
+    data2 = msgspec.json.decode(json_str2)
     data2['name'] = "Minimal"
     data2['objectives'] = []
-    restored2 = TutorConfig(**data2)
+    restored2 = msgspec.convert(data2, TutorConfig)
     assert restored2 == minimal
 
 
 def test_tutor_config_from_request_form() -> None:
     """Test creating TutorConfig from request form."""
-    form = ImmutableMultiDict([
+    form: ImmutableMultiDict[str, Any] = ImmutableMultiDict([
         ('name', 'Python Basics'),
         ('topic', 'Introduction to Python'),
         ('context', 'Learning context'),
@@ -161,7 +167,7 @@ def test_read_chat_with_analysis_from_database(app: Flask, client: AppClient) ->
         }
         db.execute(
             "INSERT INTO chats (chat_json, user_id, role_id) VALUES (?, ?, ?)",
-            [json.dumps(chat_json), 11, 4]
+            [msgspec.json.encode(chat_json).decode(), 11, 4]
         )
         db.commit()
         new_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
@@ -228,7 +234,7 @@ def test_chat_save_and_retrieve(app: Flask, client: AppClient) -> None:
         db = get_db()
         db.execute(
             "INSERT INTO chats (chat_json, user_id, role_id) VALUES (?, ?, ?)",
-            [json.dumps(asdict(original)), 11, 4]
+            [msgspec.json.encode(original).decode(), 11, 4]
         )
         db.commit()
         new_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]

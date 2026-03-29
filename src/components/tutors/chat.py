@@ -3,10 +3,9 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import asyncio
-import json
 from collections.abc import AsyncGenerator, Iterator
-from dataclasses import asdict
 
+import msgspec
 from flask import (
     Blueprint,
     abort,
@@ -40,7 +39,7 @@ from gened.db import get_db
 from gened.llm import LLM, ChatMessage, with_llm
 
 from . import prompts
-from .data import ChatData, ChatMode, chats_data_source
+from .data import ChatData, ChatMode, GuidedAnalysis, chats_data_source
 from .guided import TutorConfig
 
 bp = Blueprint('tutors', __name__, url_prefix='/tutor', template_folder='templates')
@@ -173,30 +172,26 @@ def _create_chat(topic: str, context_name: str | None, sys_prompt: str, mode: Ch
     class_id = auth.cur_class.class_id if auth.cur_class else None
     role_id = auth.cur_class.role_id if auth.cur_class else None
 
-    messages : list[ChatMessage] = [
-        {'role': 'system', 'content': sys_prompt},
-    ]
     chat_data = ChatData(
         user_id=user_id,
         class_id=class_id,
         topic=topic,
         context_name=context_name,
-        messages=messages,
+        messages=[{"role": "system", "content": sys_prompt}],
         usages=[],
         mode=mode,
     )
 
     cur = db.execute(
         "INSERT INTO chats (user_id, role_id, chat_json) VALUES (?, ?, ?)",
-        [user_id, role_id, json.dumps(asdict(chat_data))]
+        [user_id, role_id, msgspec.json.encode(chat_data).decode()]
     )
     new_row_id = cur.lastrowid
 
     db.commit()
 
     assert new_row_id is not None
-    chat_data.id = new_row_id
-    return chat_data
+    return msgspec.structs.replace(chat_data, id=new_row_id)
 
 
 @bp.route("/<int:chat_id>")
@@ -221,24 +216,33 @@ def get_chat(chat_id: int) -> ChatData:
     chat_row = chats_data_source.get_row(chat_id)
 
     chat_json = chat_row['chat_json']
-    chat_data = json.loads(chat_json)
 
-    chat_data['id'] = chat_id
-    chat_data['user_id'] = chat_row['user_id']
-    chat_data['user_json'] = chat_row['user']
-    chat_data['class_id'] = chat_row['class_id']
+    chat_data = msgspec.json.decode(chat_json, type=ChatData)
 
-    return ChatData(**chat_data)
+    return msgspec.structs.replace(
+        chat_data,
+        id=chat_id,
+        user_id=chat_row['user_id'],
+        user_json=chat_row['user'],
+        class_id=chat_row['class_id']
+    )
 
 
 def save_chat(chat_data: ChatData) -> None:
     # remove redundant items (already stored elsewhere in db)
-    data_filtered = {k: v for k, v in asdict(chat_data).items() if k not in ('id', 'user_id', 'user_json', 'class_id')}
+    # the Struct's omit_default=True will keep them from being encoded
+    filtered = msgspec.structs.replace(
+        chat_data,
+        id=None,
+        user_id=None,
+        user_json=None,
+        class_id=None
+    )
 
     db = get_db()
     db.execute(
         "UPDATE chats SET chat_json=? WHERE id=?",
-        [json.dumps(data_filtered), chat_data.id]
+        [msgspec.json.encode(filtered).decode(), chat_data.id]
     )
     db.commit()
 
@@ -265,7 +269,7 @@ async def stream_chat_round(llm: LLM, chat: ChatData) -> AsyncGenerator[str, Non
     """ Run a single round of the given chat with the given LLM, streaming
     response chunks and potentially conversation analysis via yield.
     """
-    msgs = chat.messages[:]
+    msgs = chat.openai_messages[:]
 
     if len(msgs) == 0 or (len(msgs) == 1 and msgs[0]['role'] == 'system'):
         # Gemini, at least, requires a user message to start, but we don't need
@@ -308,7 +312,7 @@ async def stream_chat_round(llm: LLM, chat: ChatData) -> AsyncGenerator[str, Non
 
 async def _analyze_guided_chat(chat_data: ChatData, llm: LLM) -> ChatData:
     analyze_messages: list[ChatMessage] = [
-        *chat_data.messages,
+        *chat_data.openai_messages,
         {'role': 'user', 'content': prompts.guided_analyze_tpl.render(chat=chat_data)},
     ]
     _analyze_response, analyze_response_txt = await llm.get_completion(
@@ -318,8 +322,8 @@ async def _analyze_guided_chat(chat_data: ChatData, llm: LLM) -> ChatData:
         },
     )
     try:
-        analysis = json.loads(analyze_response_txt)
-    except json.JSONDecodeError:
+        analysis = msgspec.json.decode(analyze_response_txt, type=GuidedAnalysis)
+    except msgspec.DecodeError:
         current_app.logger.warning(f"Invalid JSON response in _analyze_guided_chat: {analyze_response_txt}")
     else:
         chat_data.analysis = analysis

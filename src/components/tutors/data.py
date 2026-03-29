@@ -2,13 +2,13 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import json
 from collections import Counter
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from sqlite3 import Cursor
-from typing import Any, Final, Literal, TypeAlias
+from typing import Final, Literal, TypeAlias, TypedDict, cast
 
+import msgspec
 from flask import current_app
 from markupsafe import Markup
 
@@ -22,19 +22,57 @@ from gened.llm import ChatMessage
 from gened.tables import Col, DataTableSpec, NumCol, TimeCol, UserCol
 
 ChatMode: TypeAlias = Literal["inquiry", "guided"]
+ObjectiveStatus: TypeAlias = Literal["not started", "moved on", "in progress", "completed"]
 
-@dataclass(kw_only=True)
-class ChatData:
+
+class GuidedObjectiveProgress(msgspec.Struct):
+    """Progress on a single learning objective."""
+    objective: str
+    status: ObjectiveStatus
+
+
+class GuidedAnalysis(msgspec.Struct):
+    """Analysis of a guided tutor chat."""
+    summary: str
+    progress: list[GuidedObjectiveProgress]
+
+
+# We use this in place of ChatMessage (an alias for
+# openai.types.chat.ChatCompletionMessageParam), because msgspec won't decode
+# into a union of typeddicts (which is what ChatMessage is), but it will into
+# this.  And this encodes all of the type constraints we actually need, anyway.
+class ChatMessageX(TypedDict):
+    role: Literal["system", "assistant", "user"]
+    content: str
+
+
+class ChatData(msgspec.Struct, kw_only=True, omit_defaults=True):
+    topic: str
+    messages: list[ChatMessageX]
+    mode: ChatMode
     id: int | None = None
     user_id: int | None = None
     user_json: str | None = None
     class_id: int | None = None
-    topic: str
     context_name: str | None = None
-    messages: list[ChatMessage]
-    usages: list[dict[str, Any]] = field(default_factory=list)
-    mode: ChatMode
-    analysis: dict[str, Any] | None = None
+    usages: list[dict[str, int | dict[str, int]]] = []
+    analysis: GuidedAnalysis | None = None
+
+    # We have to cast to list[ChatMessage] before passing these into OpenAI API
+    # functions, because MyPy can't tell our custom ChatMessageX is a valid
+    # substitute.
+    @property
+    def openai_messages(self) -> list[ChatMessage]:
+        return cast("list[ChatMessage]", self.messages)
+
+class ObjectivesResponse(msgspec.Struct):
+    """LLM response for objective generation."""
+    objectives: list[str]
+
+
+class QuestionsResponse(msgspec.Struct):
+    """LLM response for question generation."""
+    questions: list[str]
 
 
 def gen_chats_chart(filters: Filters) -> list[ChartData]:
@@ -124,15 +162,15 @@ def fmt_analysis(value: str) -> Markup:
         return Markup()
 
     try:
-        obj = json.loads(value)
-        #summary = obj['summary']
-        progress = obj['progress']
-        counts = Counter(objective['status'] for objective in progress)
-    except (json.JSONDecodeError, TypeError, KeyError) as e:
+        analysis = msgspec.json.decode(value, type=GuidedAnalysis)
+        #summary = analysis.summary
+        progress = analysis.progress
+        counts = Counter(objective.status for objective in progress)
+    except (msgspec.DecodeError, TypeError) as e:
         current_app.logger.error(e)
         return Markup("parse error")
 
-    statuses = [
+    statuses: list[tuple[ObjectiveStatus, str]] = [
         ('not started', '#ebb'),
         ('moved on', '#dca'),
         ('in progress', '#add'),

@@ -13,7 +13,11 @@ from flask import current_app, flash, render_template
 
 from .auth import get_auth
 from .db import get_db
-from .openai_client import ChatStream, OpenAIChatMessage, OpenAIClient
+from .openai_client import (
+    ChatStream,
+    OpenAIChatMessage,
+    OpenAIClient,
+)
 
 ChatMessage: TypeAlias = OpenAIChatMessage
 

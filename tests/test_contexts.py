@@ -26,7 +26,7 @@ def test_create_context_saves_to_db(app: Flask, instructor: AppClient) -> None:
 
     assert response.status_code == 302  # Redirect after successful creation
     context = _get_context_by_name(app, 'Test Context')
-    assert context['config'] == '{"tools": "ABC", "details": "XYZ", "avoid": "123"}'
+    assert context['config'] == '{"tools":"ABC","details":"XYZ","avoid":"123"}'
 
 
 def test_update_context_saves_changes_to_db(app: Flask, instructor: AppClient) -> None:
@@ -51,7 +51,7 @@ def test_update_context_saves_changes_to_db(app: Flask, instructor: AppClient) -
         updated_context = db.execute("SELECT * FROM contexts WHERE id = ?", (context_id,)).fetchone()
         assert updated_context is not None
         assert updated_context['name'] == 'Updated Context'
-        assert updated_context['config'] == '{"tools": "ABC", "details": "XYZ", "avoid": "123"}'
+        assert updated_context['config'] == '{"tools":"ABC","details":"XYZ","avoid":"123"}'
 
 
 def test_delete_context_removes_from_db(app: Flask, instructor: AppClient) -> None:

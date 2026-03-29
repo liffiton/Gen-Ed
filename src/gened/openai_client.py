@@ -2,11 +2,9 @@ from typing import Any, TypeAlias
 
 import openai
 from flask import current_app
-from openai import AsyncStream
-from openai.types.chat import ChatCompletionChunk
 
 OpenAIChatMessage: TypeAlias = openai.types.chat.ChatCompletionMessageParam
-ChatStream: TypeAlias = AsyncStream[ChatCompletionChunk]
+ChatStream: TypeAlias = openai.AsyncStream[openai.types.chat.ChatCompletionChunk]
 
 
 class OpenAIClient:
@@ -106,7 +104,7 @@ class OpenAIClient:
             user-suitable error message.
         """
         try:
-            stream: AsyncStream[ChatCompletionChunk] = await self._client.chat.completions.create(
+            stream: ChatStream = await self._client.chat.completions.create(
                 model=self._model,
                 messages=messages,
                 stream=True,

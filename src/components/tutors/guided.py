@@ -3,12 +3,9 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import asyncio
-import dataclasses
-import json
-from dataclasses import dataclass
-from sqlite3 import Row
 from typing import Any, Self
 
+import msgspec
 from flask import (
     Blueprint,
     current_app,
@@ -26,6 +23,7 @@ from gened.class_config.types import (
 from gened.llm import LLM, ChatMessage, with_llm
 
 from . import prompts
+from .data import ObjectivesResponse, QuestionsResponse
 
 DEFAULT_OBJECTIVES = 5
 DEFAULT_QUESTIONS_PER_OBJECTIVE = 4
@@ -38,31 +36,17 @@ bp = Blueprint('guided', __name__, url_prefix=None, template_folder='templates')
 control_blueprint_access(bp, Access.INSTRUCTOR, RequireComponent('tutors', feature='guided'))
 
 
-@dataclass
-class LearningObjective:
+class LearningObjective(msgspec.Struct):
     name: str
-    questions: list[str]
+    questions: list[str] = []
 
-@dataclass
+
 class TutorConfig(ConfigItem):
     topic: str = ""
     context: str = ""
     document_filename: str = ""
     document_text: str = ""
-    objectives: list[LearningObjective] = dataclasses.field(default_factory=list)
-
-    @classmethod
-    def initial(cls) -> Self:
-        return cls(name='')
-
-    # Override from_row, because we need to convert nested dicts
-    @classmethod
-    def from_row(cls, row: Row) -> Self:
-        item = super().from_row(row)
-        # may need to convert dictionary-stored learning objectives to LearningObjective objects
-        if item.objectives and isinstance(item.objectives[0], dict):
-            item.objectives = [LearningObjective(**obj) for obj in item.objectives]  # type: ignore[arg-type]
-        return item
+    objectives: list[LearningObjective] = []  # noqa: RUF012 - ConfigItem is a msgspec.Struct, so this is okay
 
     @classmethod
     def from_request_form(cls, form: ImmutableMultiDict[str, Any]) -> Self:
@@ -130,10 +114,9 @@ def generate_objectives(llm: LLM) -> list[LearningObjective]:
     )
 
     try:
-        objectives_data = json.loads(response_txt)['objectives']
-        assert isinstance(objectives_data, list)
-        assert all(isinstance(val, str) for val in objectives_data)
-    except (json.JSONDecodeError, KeyError, AssertionError) as e:
+        response = msgspec.json.decode(response_txt, type=ObjectivesResponse)
+        objectives_data = response.objectives
+    except msgspec.DecodeError as e:
         current_app.logger.error(f"Failed to parse objectives from LLM. Error: {e}. Response: {response_txt}")
         raise
 
@@ -162,10 +145,9 @@ async def generate_questions_for_objective(config: TutorConfig, index: int, llm:
     )
 
     try:
-        data = json.loads(response_txt)['questions']
-        assert isinstance(data, list)
-        assert all(isinstance(val, str) for val in data)
-    except (json.JSONDecodeError, KeyError, AssertionError) as e:
+        response = msgspec.json.decode(response_txt, type=QuestionsResponse)
+        data = response.questions
+    except msgspec.DecodeError as e:
         current_app.logger.error(f"Failed to parse questions from LLM for objective '{objective}'. Error: {e}. Response: {response_txt}")
         raise
 

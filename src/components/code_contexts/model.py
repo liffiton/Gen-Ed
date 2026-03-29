@@ -2,7 +2,6 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from dataclasses import dataclass
 from typing import Self
 
 from flask import current_app
@@ -17,9 +16,7 @@ _jinja_env_prompt = Environment(
     autoescape=False,  # noqa: S701 - no need to escape for the LLM
 )
 
-@dataclass
 class ContextConfig(ConfigItem):
-    name: str
     tools: str = ''
     details: str = ''
     avoid: str = ''
