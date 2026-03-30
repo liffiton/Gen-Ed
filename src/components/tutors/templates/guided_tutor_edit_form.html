@@ -7,7 +7,7 @@
     const md = markdownIt();
 
     document.addEventListener('alpine:init', () => {
-      const orig_tutor = {{ item | tojson }};  // store so we can reset the entire form
+      const orig_tutor = {{ item.to_json() | safe }};  // store so we can reset the entire form
       Alpine.data('tutor_editor', () => ({
         tutor: null,
         loading: null,

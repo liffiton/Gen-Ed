@@ -15,15 +15,10 @@ from markupsafe import Markup
 from werkzeug.datastructures import ImmutableMultiDict
 
 from gened.access import Access, RequireComponent, control_blueprint_access
-from gened.class_config.types import (
-    ConfigItem,
-    ConfigShareLink,
-    ConfigTable,
-)
+from gened.class_config.types import ConfigItem, ConfigShareLink, ConfigTable
 from gened.llm import LLM, ChatMessage, with_llm
 
 from . import prompts
-from .data import ObjectivesResponse, QuestionsResponse
 
 DEFAULT_OBJECTIVES = 5
 DEFAULT_QUESTIONS_PER_OBJECTIVE = 4
@@ -34,6 +29,16 @@ bp = Blueprint('guided', __name__, url_prefix=None, template_folder='templates')
 # Blueprint default access controls set in __init__ via availability_requirements
 # Additionally require an instructor role and that the subfeature is enabled for all routes in this blueprint
 control_blueprint_access(bp, Access.INSTRUCTOR, RequireComponent('tutors', feature='guided'))
+
+
+class ObjectivesResponse(msgspec.Struct):
+    """LLM response for objective generation."""
+    objectives: list[str]
+
+
+class QuestionsResponse(msgspec.Struct):
+    """LLM response for question generation."""
+    questions: list[str]
 
 
 class LearningObjective(msgspec.Struct):
@@ -89,7 +94,7 @@ guided_tutor_config_table = ConfigTable(
 
 @bp.route('/objectives/generate', methods=['POST'])
 @with_llm(spend_token=True, is_api=True)
-def generate_objectives(llm: LLM) -> list[LearningObjective]:
+def generate_objectives(llm: LLM) -> bytes:
     """Generate learning objectives for the given topic."""
     config = TutorConfig.from_request_form(request.form)
 
@@ -107,7 +112,6 @@ def generate_objectives(llm: LLM) -> list[LearningObjective]:
             sys_prompt=sys_prompt,
             user_prompts=user_prompts,
             extra_args={
-                #'reasoning_effort': 'none',  # for thinking models: o3/o4/gemini-2.5
                 'response_format': {'type': 'json_object'},
             },
         )
@@ -122,7 +126,7 @@ def generate_objectives(llm: LLM) -> list[LearningObjective]:
 
     objectives = [LearningObjective(obj, []) for obj in objectives_data]
 
-    return objectives
+    return msgspec.json.encode(objectives)
 
 
 async def generate_questions_for_objective(config: TutorConfig, index: int, llm: LLM, num_questions: int) -> None:
@@ -139,7 +143,6 @@ async def generate_questions_for_objective(config: TutorConfig, index: int, llm:
     _response, response_txt = await llm.get_completion(
         messages=messages,
         extra_args={
-            #'reasoning_effort': 'none',  # for thinking models: o3/o4/gemini-2.5
             'response_format': {'type': 'json_object'},
         },
     )
@@ -169,7 +172,7 @@ async def populate_questions(config: TutorConfig, llm: LLM, num_questions: int) 
 
 @bp.route('/questions/generate', methods=['POST'])
 @with_llm(spend_token=True, is_api=True)
-def generate_questions(llm: LLM) -> list[LearningObjective]:
+def generate_questions(llm: LLM) -> bytes:
     """Generate questions based on topic and objectives."""
     config = TutorConfig.from_request_form(request.form)
 
@@ -178,4 +181,4 @@ def generate_questions(llm: LLM) -> list[LearningObjective]:
     task = populate_questions(config, llm, num_questions)
     asyncio.run(task)
 
-    return config.objectives
+    return msgspec.json.encode(config.objectives)

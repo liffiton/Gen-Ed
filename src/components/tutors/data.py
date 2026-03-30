@@ -65,15 +65,6 @@ class ChatData(msgspec.Struct, kw_only=True, omit_defaults=True):
     def openai_messages(self) -> list[ChatMessage]:
         return cast("list[ChatMessage]", self.messages)
 
-class ObjectivesResponse(msgspec.Struct):
-    """LLM response for objective generation."""
-    objectives: list[str]
-
-
-class QuestionsResponse(msgspec.Struct):
-    """LLM response for question generation."""
-    questions: list[str]
-
 
 def gen_chats_chart(filters: Filters) -> list[ChartData]:
     """ Generate chart data for CodeHelp tutor chat charts.
