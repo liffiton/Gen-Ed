@@ -30,7 +30,7 @@ from gened.auth import get_auth_class
 # Related routes are defined in config_table.py.
 
 
-class ConfigItem(msgspec.Struct, omit_defaults=True):
+class ConfigItem(msgspec.Struct):
     """ Base class for defining types of configuration items to be
     managed in a ConfigTable.
     """
@@ -59,8 +59,9 @@ class ConfigItem(msgspec.Struct, omit_defaults=True):
         return msgspec.convert(attrs, cls)
 
     def to_json(self) -> str:
-        """ Dump config data (all but row_id (see omit_defaults=True)) to JSON """
-        return msgspec.json.encode(self).decode()
+        """ Dump config data (all but row_id) to JSON """
+        filtered = msgspec.structs.replace(self, row_id=None)
+        return msgspec.json.encode(filtered).decode()
 
 
 class ConfigShareLink(msgspec.Struct, frozen=True):
