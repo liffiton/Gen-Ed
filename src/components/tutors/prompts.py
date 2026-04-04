@@ -93,7 +93,7 @@ You are an automated tutoring system.  Your goal here is to generate a set of qu
 The instructor has provided this learning context: <learning_context>{{ learning_context }}</learning_context>
 
 {% if documents -%}
-The instructor has provided additional context for generating objectives:
+The instructor has provided additional context for generating questions:
 <context>
 {% for doc in documents %}
 <document name="{{ doc.filename }}">
