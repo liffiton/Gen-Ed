@@ -60,8 +60,9 @@ class ConfigItem(msgspec.Struct):
 
     def to_json(self) -> str:
         """ Dump config data (all but row_id) to JSON """
-        filtered = msgspec.structs.replace(self, row_id=None)
-        return msgspec.json.encode(filtered).decode()
+        d = msgspec.structs.asdict(self)
+        d.pop("row_id")
+        return msgspec.json.encode(d).decode()
 
 
 class ConfigShareLink(msgspec.Struct, frozen=True):
