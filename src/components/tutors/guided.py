@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import asyncio
-from typing import Any, Self
+from typing import Any, Literal, Self
 
 import msgspec
 from flask import (
@@ -41,6 +41,12 @@ class QuestionsResponse(msgspec.Struct):
     questions: list[str]
 
 
+class ContextDocument(msgspec.Struct, kw_only=True):
+    filename: str
+    text: str
+    use_in: set[Literal["setup", "chat"]] = set()
+
+
 class LearningObjective(msgspec.Struct):
     name: str
     questions: list[str] = []
@@ -49,8 +55,7 @@ class LearningObjective(msgspec.Struct):
 class TutorConfig(ConfigItem):
     topic: str = ""
     context: str = ""
-    document_filename: str = ""
-    document_text: str = ""
+    documents: list[ContextDocument] = []     # noqa: RUF012 - ConfigItem is a msgspec.Struct, so this is okay
     objectives: list[LearningObjective] = []  # noqa: RUF012 - ConfigItem is a msgspec.Struct, so this is okay
 
     @classmethod
@@ -64,8 +69,31 @@ class TutorConfig(ConfigItem):
         config.name = form.get('name', '').strip()
         config.topic = form.get('topic', '').strip()
         config.context = form.get('context', '').strip()
-        config.document_filename = form.get('document_filename', '').strip()
-        config.document_text = form.get('document_text', '').strip()
+
+        # Parse documents from array-style form fields
+        filenames = form.getlist('document_filename[]')
+        texts = form.getlist('document_text[]')
+        use_ins = form.getlist('document_use_in[]')
+
+        # Build documents list, filtering out empty ones
+        documents = []
+        for fn_raw, txt_raw, use_in_str in zip(filenames, texts, use_ins, strict=True):
+            fn = fn_raw.strip()
+            txt = txt_raw.strip()
+            if not txt:
+                continue
+
+            # Parse use_in - it comes as comma-separated string from form
+            if use_in_str:
+                use_in_list = [u.strip() for u in use_in_str.split(',') if u.strip()]
+            else:
+                use_in_list = ['setup']  # default
+            # Validate correct literals - we control the input values via radio buttons
+            assert all(u in ('setup', 'chat') for u in use_in_list), f"Invalid use_in values: {use_in_list}"
+            documents.append(ContextDocument(filename=fn, text=txt, use_in=set(use_in_list)))
+
+        config.documents = documents
+
         objective_names = form.getlist('objectives')
         config.objectives = [LearningObjective(obj, form.getlist(f'questions[{i}]')) for i, obj in enumerate(objective_names)]
         return config
@@ -101,7 +129,14 @@ def generate_objectives(llm: LLM) -> bytes:
     num_items_final = int(request.form.get('num_objectives', DEFAULT_OBJECTIVES))
     num_items_initial = max(20, num_items_final + 10)
 
-    sys_prompt = prompts.tutor_setup_objectives_sys_prompt.render(topic=config.topic, learning_context=config.context, document=config.document_text)
+    # Get documents marked for setup use
+    setup_docs = [doc for doc in config.documents if 'setup' in doc.use_in]
+
+    sys_prompt = prompts.tutor_setup_objectives_sys_prompt.render(
+        topic=config.topic,
+        learning_context=config.context,
+        documents=setup_docs,
+    )
     user_prompts = [
         prompts.tutor_setup_objectives_prompt1.render(num_items=num_items_initial),
         prompts.tutor_setup_objectives_prompt2.render(num_items=num_items_final),
@@ -131,13 +166,16 @@ def generate_objectives(llm: LLM) -> bytes:
 
 async def generate_questions_for_objective(config: TutorConfig, index: int, llm: LLM, num_questions: int) -> None:
     context = config.context
-    document_text = config.document_text
+
+    # Get documents marked for setup use
+    setup_docs = [doc for doc in config.documents if 'setup' in doc.use_in]
+
     objective = config.objectives[index].name
     previous  = [obj.name for obj in config.objectives[:index]]
     following = [obj.name for obj in config.objectives[index+1:]]
 
     messages: list[ChatMessage] = [
-        {'role': 'system', 'content': prompts.tutor_setup_questions_sys_prompt.render(learning_context=context, document=document_text)},
+        {'role': 'system', 'content': prompts.tutor_setup_questions_sys_prompt.render(learning_context=context, documents=setup_docs)},
         {'role': 'user', 'content': prompts.tutor_setup_questions_prompt.render(objective=objective, previous=previous, following=following, num_items=num_questions)},
     ]
     _response, response_txt = await llm.get_completion(

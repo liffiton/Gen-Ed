@@ -10,6 +10,7 @@
       const orig_tutor = {{ item.to_json() | safe }};  // store so we can reset the entire form
       Alpine.data('tutor_editor', () => ({
         tutor: null,
+        docCounter: 0,  // unique keys for template for loop
         loading: null,
 
         // Modal state for editing lists of items
@@ -24,6 +25,10 @@
         },
         reset_form() {
           this.tutor = structuredClone(orig_tutor);
+          // assign unique keys for template for loop
+          for (let doc of this.tutor.documents) {
+            doc.id = this.docCounter++;
+          }
         },
 
         render(markdown) {
@@ -35,6 +40,13 @@
         },
         get hasQuestions() {
           return this.hasObjectives && this.tutor.objectives.some(obj => obj.questions.length);
+        },
+
+        addDocument() {
+          this.tutor.documents.push({id: this.docCounter++, filename: '', text: '', use_in: ['setup'] });
+        },
+        removeDocument(index) {
+          this.tutor.documents.splice(index, 1);
         },
 
         async _fetchGeneratedObjectives(url, loadingKey) {
@@ -117,13 +129,17 @@
         },
       }));
 
-      Alpine.data('docUploader', () => ({
+      Alpine.data('docUploader', (document) => ({
+        document: document,
         processing: false,
         progress: 0,
         statusText: '',
         error: '',
         origWordCount: 0,
-        wordCount: 0,
+
+        get wordCount() {
+          return document.text.split(/\s+/).filter(word => word.length > 0).length;
+        },
 
         // state for the editing modal
         editingFilename: null,
@@ -230,10 +246,6 @@
           if (this.origWordCount > 50000) {
             const matches = text.match(/((?:\S+\s+){1,50000})/);
             text = matches[0];
-            this.wordCount = 50000;
-          }
-          else {
-            this.wordCount = this.origWordCount;
           }
 
           return text;
@@ -261,8 +273,8 @@
         },
 
         clearFile() {
-          this.tutor.document_filename = '';
-          this.tutor.document_text = '';
+          this.document.filename = '';
+          this.document.text = '';
           this.clearState();
 
           // Clear the file input
@@ -294,8 +306,8 @@
           const editedText = this.$refs.document_text_editor.textContent;
           const processedText = this.processDocumentText(editedText);
           // Save it into the tutor state
-          this.tutor.document_text = processedText;
-          this.tutor.document_filename = this.editingFilename;
+          this.document.text = processedText;
+          this.document.filename = this.editingFilename;
         },
       }));
     });
@@ -362,55 +374,55 @@
         </div>
       </div>
 
-      <div class="field is-horizontal" x-data="docUploader()">
-        <input type="hidden" name="document_filename" x-model="tutor.document_filename">
-        <input type="hidden" name="document_text" x-model="tutor.document_text">
+      <div class="field is-horizontal">
         <div class="field-label is-normal">
-          <label class="label">Context document (optional)</label>
-          <p class="help-text">You may upload a PDF or DOCX file or paste text with additional context for generating objectives and questions (e.g., lecture notes, a book chapter, or an assignment).<br>Text will be extracted in your browser.<br>Max extracted text: 50,000 words.</p>
+          <label class="label">Context documents (optional)</label>
+          <p class="help-text">You may upload PDF or DOCX files or paste text with additional context for generating objectives and questions (e.g., lecture notes, a book chapter, or an assignment).<br>Text will be extracted in your browser.<br>Max extracted text: 50,000 words.</p>
         </div>
 
-        <div class="field-body">
+        <div class="field-body"><div style="display: flex; flex-direction: column; gap: 1em;">
+        <template x-for="(doc, index) in tutor.documents" :key="doc.id">
+        <div x-data="docUploader(doc)" style="border-left: 3px solid #369; padding-left: 1em;">
+          <input type="hidden" name="document_filename[]" x-model="document.filename">
+          <input type="hidden" name="document_text[]" x-model="document.text">
+          <input type="hidden" name="document_use_in[]" :value="document.use_in.join(',')">
           <!-- Show existing document if there is one -->
-          <div class="field is-grouped" x-show="tutor.document_filename" x-cloak>
-            <div class="control">
-              <p class="mt-2">
-              Using: <strong x-text="tutor.document_filename"></strong> <em class="mx-2" x-text="`(${wordCount} words)`"></em>
-              </p>
-            </div>
-            <div class="control">
-              <button class="button is-rounded is-info is-outlined is-small mt-1" type="button" @click="openDocumentModal(tutor.document_filename, tutor.document_text)">
-                View/edit text
-              </button>
-            </div>
+          <div class="field is-grouped" x-cloak>
             <div class="control">
               <button
                   class="button is-rounded is-danger is-outlined is-small mt-1"
                   type="button"
-                  @click="clearFile()"
+                  @click="removeDocument(index)"
                   x-bind:disabled="loading"
                   >
                   <span class="delete mr-2"></span>
-                  Remove document
+                  Remove
               </button>
             </div>
-          </div>
+            <div class="control" x-show="document.filename">
+              <button class="button is-rounded is-info is-outlined is-small mt-1" type="button" @click="openDocumentModal(document.filename, document.text)">
+                View/edit text
+              </button>
+            </div>
 
-          <!-- Show file upload when no document -->
-          <div class="field" x-show="!tutor.document_filename" x-cloak>
-            <div class="control file has-name">
+            <div class="control" x-show="document.filename">
+              <p class="mt-2">
+                <strong x-text="document.filename"></strong> <em class="mx-2" x-text="`(${wordCount} words)`"></em>
+              </p>
+            </div>
+
+            <!-- Show file upload when no document -->
+            <div class="control file has-name" x-show="!document.filename && !processing">
               <label class="file-label">
                 <input class="file-input" type="file" accept=".pdf,.docx" x-bind:disabled="loading || processing" @change="handleFileSelect($event)">
                 <span class="file-cta">
                   Choose a PDF or DOCX…
                 </span>
-                <span class="file-name" x-text="tutor.document_filename || 'No file chosen'">
+                <span class="file-name" x-text="document.filename || 'No file chosen'">
                   No file chosen
                 </span>
               </label>
-            </div>
-            <p class="m-2"><em>or</em></p>
-            <div class="control">
+              <span class="mx-4 my-2"><em>- or -</em></span>
               <button type="button" class="button" @click="openDocumentModal('Pasted text', '');">Paste text</button>
             </div>
 
@@ -431,14 +443,12 @@
             </div>
 
           </div>
-        </div>
 
         <dialog x-ref="document_text_modal" style="width: 60%; max-width: 80em; min-width: min(50em, 100vw);">
           <div class="content box">
             <h3 x-text="editingFilename"></h3>
-            <p x-show="origWordCount > 0" class="help">
-              <span x-text="wordCount"></span> words
-              <span x-show="origWordCount > 50000" class="has-text-danger ml-1">(<span x-text="origWordCount"></span> extracted words exceeded 50000 word limit &mdash; text was truncated)</span>
+            <p x-show="origWordCount > 50000" class="has-text-danger ml-1">
+              (<span x-text="origWordCount"></span> extracted words exceeded 50000 word limit &mdash; text was truncated)
             </p>
             <pre
               style="white-space: pre-wrap; height: 60vh; overflow-y: auto;"
@@ -455,8 +465,12 @@
             </div>
           </div>
         </dialog>
+        </div>
+        </template>
+        <button type="button" class="button is-link is-outlined" @click="addDocument()">+ Add Document</button>
+        </div>
+        </div>
       </div>
-
       <hr>
 
       <div class="field is-horizontal">

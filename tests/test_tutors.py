@@ -16,7 +16,7 @@ from components.tutors.data import (
     GuidedObjectiveProgress,
     fmt_analysis,
 )
-from components.tutors.guided import LearningObjective, TutorConfig
+from components.tutors.guided import ContextDocument, LearningObjective, TutorConfig
 from gened.db import get_db
 from tests.conftest import AppClient
 
@@ -75,8 +75,7 @@ def test_tutor_config_roundtrip() -> None:
         name="Python Basics",
         topic="Introduction to Python",
         context="Learning context",
-        document_filename="notes.txt",
-        document_text="Some notes",
+        documents=[ContextDocument(filename="notes.txt", text="Some notes", use_in={"setup", "chat"})],
         objectives=[
             LearningObjective(name="Variables", questions=["What is a variable?", "How to use variables?"]),
             LearningObjective(name="Functions", questions=["How do you define a function?"])
@@ -93,8 +92,10 @@ def test_tutor_config_roundtrip() -> None:
     restored = msgspec.convert(data, TutorConfig)
     # Verify all fields match
     assert restored == original
-    assert restored.document_filename == original.document_filename
-    assert restored.document_text == original.document_text
+    assert len(restored.documents) == len(original.documents)
+    assert restored.documents[0].filename == original.documents[0].filename
+    assert restored.documents[0].text == original.documents[0].text
+    assert restored.documents[0].use_in == original.documents[0].use_in
 
     # Test with empty objectives
     minimal = TutorConfig(name="Minimal", topic="Test", objectives=[])
@@ -112,6 +113,9 @@ def test_tutor_config_from_request_form() -> None:
         ('name', 'Python Basics'),
         ('topic', 'Introduction to Python'),
         ('context', 'Learning context'),
+        ('document_filename[]', 'notes.txt'),
+        ('document_text[]', 'Some notes about Python'),
+        ('document_use_in[]', 'setup,chat'),
         ('objectives', 'Variables'),
         ('objectives', 'Functions'),
         ('questions[0]', 'What is a variable?'),
@@ -123,6 +127,10 @@ def test_tutor_config_from_request_form() -> None:
 
     assert config.name == "Python Basics"
     assert config.topic == "Introduction to Python"
+    assert len(config.documents) == 1
+    assert config.documents[0].filename == "notes.txt"
+    assert config.documents[0].text == "Some notes about Python"
+    assert config.documents[0].use_in == {'setup', 'chat'}
     assert len(config.objectives) == 2
     assert config.objectives[0].name == "Variables"
     assert config.objectives[0].questions == ['What is a variable?', 'How do you use variables?']

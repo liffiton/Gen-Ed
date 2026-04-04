@@ -68,11 +68,15 @@ You are an automated tutoring system.  Your goal here is to generate a set of le
 
 The instructor has provided this learning context: <learning_context>{{ learning_context }}</learning_context>
 
-{% if document -%}
-The instructor has provided this document as additional context:
-<document>
-{{ document }}
+{% if documents -%}
+The instructor has provided additional context for generating objectives:
+<context>
+{% for doc in documents %}
+<document name="{{ doc.filename }}">
+{{ doc.text }}
 </document>
+{% endfor %}
+</context>
 
 {% endif -%}
 
@@ -86,16 +90,17 @@ tutor_setup_objectives_prompt2 = jinja_env.from_string("Narrow that down to {{ n
 tutor_setup_questions_sys_prompt = jinja_env.from_string("""\
 You are an automated tutoring system.  Your goal here is to generate a set of questions, based on a learning objective, that you might use to assess a student's understanding and mastery of that learning objective.
 
-The instructor has provided this learning context:
-<learning_context>
-{{ learning_context }}
-</learning_context>
+The instructor has provided this learning context: <learning_context>{{ learning_context }}</learning_context>
 
-{% if document -%}
-The instructor has provided this document as additional context:
-<document>
-{{ document }}
+{% if documents -%}
+The instructor has provided additional context for generating objectives:
+<context>
+{% for doc in documents %}
+<document name="{{ doc.filename }}">
+{{ doc.text }}
 </document>
+{% endfor %}
+</context>
 
 {% endif -%}
 
