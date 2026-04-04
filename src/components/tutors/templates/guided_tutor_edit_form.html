@@ -138,7 +138,7 @@
         origWordCount: 0,
 
         get wordCount() {
-          return document.text.split(/\s+/).filter(word => word.length > 0).length;
+          return this.document.text.split(/\s+/).filter(word => word.length > 0).length;
         },
 
         // state for the editing modal
