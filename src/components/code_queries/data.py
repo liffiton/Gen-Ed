@@ -12,6 +12,8 @@ from gened.app_data import (
 from gened.db import get_db
 from gened.tables import Col, DataTableSpec, NumCol, ResponseCol, TimeCol, UserCol
 
+TABLE_NAME = 'code_queries'
+DISPLAY_NAME = 'queries'
 
 def gen_query_charts(filters: Filters) -> list[ChartData]:
     """ Generate chart data for CodeHelp query charts.
@@ -108,15 +110,15 @@ def get_queries(filters: Filters, /, limit: int=-1, offset: int=0) -> Cursor:
     return cur
 
 queries_table = DataTableSpec(
-    name='queries',
+    name=TABLE_NAME,
     columns=[NumCol('id'), UserCol('user'), TimeCol('time'), Col('context'), Col('code'), Col('error'), Col('issue'), ResponseCol('response'), Col('rating', align='center')],
     link_col=0,
     link_template="/help/view/${value}",
 )
 
 queries_data_source = DataSource(
-    table_name='code_queries',
-    display_name='queries',
+    table_name=TABLE_NAME,
+    display_name=DISPLAY_NAME,
     get_data=get_queries,
     table_spec=queries_table,
     time_col='query_time',
