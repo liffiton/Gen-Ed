@@ -159,7 +159,7 @@ class DataSource:
 
     def get_populated_table(self, filters: Filters, * , limit: int=-1, offset: int=0) -> DataTable:
         data = self.get_data(filters, limit=limit, offset=offset).fetchall()
-        return DataTable(spec=self.table_spec, data=data)
+        return DataTable(name=self.table_name, label=self.display_name, spec=self.table_spec, data=data)
 
     def get_user_data(self, limit: int) -> list[Row]:
         '''Fetch current user's history.'''

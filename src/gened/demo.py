@@ -103,14 +103,13 @@ def demo_link_view() -> str:
     demo_links = db.execute("SELECT id, name, expiration, tokens, is_instructor, enabled, uses FROM demo_links").fetchall()
 
     table_spec = DataTableSpec(
-        name='demo_links',
         columns=[NumCol('id'), Col('name'), DateCol('expiration'), NumCol('tokens'), BoolCol('is_instructor'), BoolCol('enabled'), NumCol('uses')],
         actions=[Action("Edit link", icon='pencil', url=url_for('.demo_link_form'), id_col=0)],
         link_col=0,
         link_template=url_for('.demo_link_form') + '${value}',
         create_endpoint='.demo_link_new',
     )
-    table = DataTable(spec=table_spec, data=demo_links)
+    table = DataTable(name='demo_links', spec=table_spec, data=demo_links)
 
     return render_template("admin_demo_link.html", demo_links=table)
 

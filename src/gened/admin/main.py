@@ -162,7 +162,6 @@ def get_data_sources(filters: Filters) -> dict[str, DataSource]:
     datatables = {}
 
     datatables['consumers'] = DataTableSpec(
-        name='consumers',
         columns=[NumCol('id'), Col('consumer'), Col('model'), NumCol('#classes'), NumCol('#users'), NumCol('#uses'), NumCol('1wk')],
         link_col=0,
         link_template=filters.template_string('consumer'),
@@ -171,7 +170,6 @@ def get_data_sources(filters: Filters) -> dict[str, DataSource]:
     )
 
     datatables['classes'] = DataTableSpec(
-        name='classes',
         columns=[NumCol('id'), Col('name'), Col('owner'), Col('model'), NumCol('#users'), NumCol('#uses'), NumCol('1wk')],
         link_col=0,
         link_template=filters.template_string('class'),
@@ -179,14 +177,12 @@ def get_data_sources(filters: Filters) -> dict[str, DataSource]:
     )
 
     datatables['users'] = DataTableSpec(
-        name='users',
         columns=[NumCol('id'), UserCol('user'), NumCol('tokens'), NumCol('#uses'), NumCol('1wk')],
         link_col=0,
         link_template=filters.template_string('user'),
     )
 
     datatables['roles'] = DataTableSpec(
-        name='roles',
         columns=[NumCol('id'), UserCol('user'), Col('role'), Col('class'), Col('class owner')],
         link_col=0,
         link_template=filters.template_string('role'),
@@ -223,7 +219,7 @@ def get_data(name: str, kind: str='json') -> str | Response:
     source = all_data_sources[name]
     table_spec = source.table_spec
     data = source.get_data(filters, limit=limit, offset=offset).fetchall()
-    table = DataTable(spec=table_spec, data=data)
+    table = DataTable(name=source.table_name, label=source.display_name, spec=table_spec, data=data)
 
     if kind == 'json':
         return jsonify(table.data_for_json)
@@ -257,7 +253,7 @@ def main() -> str:
             # but we can skip providing an ajax URL if we have less than the limit, because that must be all the data
             table_spec = replace(table_spec, ajax_url=url_for('.get_data', name=name, kind='json', offset=init_rows, limit=limit-init_rows, **request.args))  # type: ignore[arg-type]
 
-        table = DataTable(spec=table_spec, data=data)
+        table = DataTable(name=source.table_name, label=source.display_name, spec=table_spec, data=data)
         tables.append(table)
 
     return render_template(

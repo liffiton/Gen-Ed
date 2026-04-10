@@ -90,13 +90,13 @@ def _get_class_users(*, for_export: bool = False) -> list[Row]:
 @bp.route("/")
 def main() -> str | Response:
     users_table_spec = DataTableSpec(
-        name='users',
         columns=[NumCol('role_id', hidden=True), NumCol('id', hidden=True), UserCol('user'), NumCol('#uses'), NumCol('1wk'), BoolCol('active?', url=url_for('.set_role_active')), BoolCol('instructor?', url=url_for('.set_role_instructor'))],
         link_col=1,
         link_template='?user=${value}',
         csv_link=url_for('instructor.get_csv', kind='users'),
     )
     users_table = DataTable(
+        name='users',
         spec=users_table_spec,
         data=_get_class_users(),
     )
@@ -128,6 +128,7 @@ def main() -> str | Response:
         tables.append((ds.display_name, table))
 
     return render_template("instructor_view.html", users=users_table, tables=tables, user=sel_user_name)
+
 
 
 @bp.route("/csv/<string:kind>")

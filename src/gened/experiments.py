@@ -33,14 +33,13 @@ def experiments_view() -> str:
     """).fetchall()
 
     table_spec = DataTableSpec(
-        name='experiments',
         columns=[NumCol('id'), Col('name'), Col('description'), NumCol('#classes')],
         actions=[Action("Edit experiment", icon='pencil', url=url_for('.experiment_form'), id_col=0)],
         link_col=0,
         link_template=url_for('.experiment_form') + '${value}',
         create_endpoint='.experiment_new',
     )
-    table = DataTable(spec=table_spec, data=experiments)
+    table = DataTable(name='experiments', spec=table_spec, data=experiments)
 
     return render_template("admin_experiments.html", experiments=table)
 

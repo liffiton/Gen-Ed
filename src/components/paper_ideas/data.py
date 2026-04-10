@@ -44,7 +44,6 @@ def get_queries(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
 
 
 queries_table = DataTableSpec(
-    name=TABLE_NAME,
     columns=[NumCol('id'), UserCol('user'), TimeCol('time'), Col('assignment'), Col('topics'), ResponseCol('response')],
     link_col=0,
     link_template="/ideas/view/${value}",

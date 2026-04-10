@@ -110,7 +110,6 @@ def get_queries(filters: Filters, /, limit: int=-1, offset: int=0) -> Cursor:
     return cur
 
 queries_table = DataTableSpec(
-    name=TABLE_NAME,
     columns=[NumCol('id'), UserCol('user'), TimeCol('time'), Col('context'), Col('code'), Col('error'), Col('issue'), ResponseCol('response'), Col('rating', align='center')],
     link_col=0,
     link_template="/help/view/${value}",

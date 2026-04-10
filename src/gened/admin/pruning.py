@@ -99,10 +99,9 @@ def pruning_view() -> str:
     num_whitelisted = len(pruning_candidates) - num_candidates
 
     table_spec = DataTableSpec(
-        name='candidates',
         columns=[NumCol('id'), UserCol('user'), Col('user created'), Col('last query'), Col('last role created'), Col('last class created'), Col('last activity'), NumCol('days since'), BoolCol('whitelist?', url=url_for('.set_whitelist'), reload=True)],
     )
-    candidates = DataTable(spec=table_spec, data=pruning_candidates)
+    candidates = DataTable(name='candidates', spec=table_spec, data=pruning_candidates)
 
     return render_template("admin_pruning.html", candidates=candidates, num_candidates=num_candidates, num_whitelisted=num_whitelisted)
 

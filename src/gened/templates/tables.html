@@ -249,7 +249,7 @@ ${ options.searchable ?
 
 {% macro datatable(table) -%}
   {% set spec = table.spec %}
-  {% set name = spec.name %}
+  {% set name = table.name %}
   {% if table.data %}
     <style type="text/css">
     {% set css_sel = 'table#' + name %}

@@ -65,7 +65,6 @@ class Action:
 
 @dataclass(frozen=True, kw_only=True)
 class DataTableSpec:
-    name: str
     columns: list[Col]
     link_col: int | None = None
     link_template: str | None = None
@@ -88,6 +87,8 @@ class DataTableSpec:
 
 @dataclass(kw_only=True)
 class DataTable:
+    name: str
+    label: str | None = None
     spec: DataTableSpec
     data: list[Row]
 
