@@ -38,7 +38,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = [
+dev = [
+    "build~=1.5.0",
     "oauthlib~=3.3.0",
     "pytest~=9.0",
     "pytest-cov~=7.0",
@@ -112,3 +113,11 @@ pretty = "True"
 
 [tool.uv]
 exclude-newer = "1 week"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-data]
+"*" = ["py.typed", "*.sql", "static/**/*", "templates/*.html", "migrations/*.sql", "docs/*.md"]
+"components" = ["*/static/**/*", "*/templates/*.html", "*/migrations/*.sql"]
