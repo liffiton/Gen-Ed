@@ -5,11 +5,11 @@
 import itertools
 import sqlite3
 from collections.abc import Iterable
+from dataclasses import dataclass
 from datetime import datetime
 from importlib import resources
 from importlib.resources.abc import Traversable
 from pathlib import Path
-from typing import TypedDict
 
 import click
 from flask import current_app
@@ -20,7 +20,8 @@ from .db import get_db
 from .db_admin import backup_db, drop_views, on_init_db, rebuild_views
 
 
-class MigrationDict(TypedDict):
+@dataclass(frozen=True)
+class Migration:
     name: str
     contents: str
     mtime: float
@@ -70,11 +71,11 @@ def _do_migration(name: str, script: str) -> tuple[bool, str]:
     return True, ''
 
 
-def _apply_migrations(migrations: Iterable[MigrationDict]) -> None:
+def _apply_migrations(migrations: Iterable[Migration]) -> None:
     """
     Apply a list of migrations in the order provided.
 
-    migrations: an iterable of dictionaries, each defined as in migrate_command() below.
+    migrations: an iterable of Migration objects.
     """
     # Make a backup of the old database
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")   # noqa: DTZ005 - a timezone-unaware object is fine here
@@ -89,8 +90,8 @@ def _apply_migrations(migrations: Iterable[MigrationDict]) -> None:
 
     # Run the scripts
     for migration in migrations:
-        name = migration['name']
-        script = migration['contents']
+        name = migration.name
+        script = migration.contents
         click.secho(f"═╦═Applying {name}═══", fg="magenta", bold=True)
         indented = '\n'.join(f" ║ {x}" for x in script.split('\n'))
         click.echo(indented)
@@ -103,29 +104,34 @@ def _apply_migrations(migrations: Iterable[MigrationDict]) -> None:
             return  # End here
 
 
-def _migration_info(resource: Traversable) -> MigrationDict:
+def _migration_info(resource: Traversable) -> Migration:
     """Get info on a migration, provided as an importlib.resources resource."""
     db = get_db()
     with resources.as_file(resource) as path, path.open(encoding="utf-8") as f:
         name = path.name
-        info: MigrationDict = {
-            'name': name,
-            'contents': f.read(),
-            'mtime': path.stat().st_mtime,
-            'applied_on': None,
-            'skipped': None,
-            'succeeded': None,
-        }
+        contents = f.read()
+        mtime = path.stat().st_mtime
+        applied_on = None
+        skipped = None
+        succeeded = None
+
         row = db.execute("SELECT * FROM migrations WHERE filename=?", [name]).fetchone()
         if row:
-            info['applied_on'] = row['applied_on']
-            info['skipped'] = row['skipped']
-            info['succeeded'] = row['succeeded']
+            applied_on = row['applied_on']
+            skipped = row['skipped']
+            succeeded = row['succeeded']
 
-        return info
+        return Migration(
+            name=name,
+            contents=contents,
+            mtime=mtime,
+            applied_on=applied_on,
+            skipped=skipped,
+            succeeded=succeeded,
+        )
 
 
-def _get_migrations() -> list[MigrationDict]:
+def _get_migrations() -> list[Migration]:
     # Common migrations in the gened package + app migrations + registered component migrations
     migration_dirs = [
         ('gened', 'migrations'),
@@ -152,7 +158,7 @@ def _get_migrations() -> list[MigrationDict]:
         if not res.name.startswith('.') and res.name.endswith('.sql')
     ]
     # Sort by name and modified time (to apply migrations in order)
-    migrations.sort(key=lambda x: (x['name'], x['mtime']))
+    migrations.sort(key=lambda x: (x.name, x.mtime))
 
     return migrations
 
@@ -161,8 +167,8 @@ def _get_migrations() -> list[MigrationDict]:
 def _mark_all_as_applied() -> None:
     db = get_db()
     for migration in _get_migrations():
-        db.execute("INSERT OR IGNORE INTO migrations (filename) VALUES (?)", [migration['name']])
-        db.execute("UPDATE migrations SET succeeded=True WHERE filename=?", [migration['name']])
+        db.execute("INSERT OR IGNORE INTO migrations (filename) VALUES (?)", [migration.name])
+        db.execute("UPDATE migrations SET succeeded=True WHERE filename=?", [migration.name])
     db.commit()
 
 
@@ -179,13 +185,13 @@ def migrate_command() -> None:
     status_failed = click.style("☒", fg="red")
     for i, migration in enumerate(migrations):
         status = status_new
-        if migration['succeeded']:
+        if migration.succeeded:
             status = status_success
-        if migration['skipped']:
+        if migration.skipped:
             status = status_skipped
-        if migration['succeeded'] is False:
+        if migration.succeeded is False:
             status = status_failed
-        click.echo(f"{i+1:3}   {status}     {migration['name']}")
+        click.echo(f"{i+1:3}   {status}     {migration.name}")
 
     click.echo()
     click.echo(f"Key:  {status_new}  = new  {status_success}  = applied successfully  {status_skipped}  = skipped  {status_failed}  = failed to apply")
@@ -200,10 +206,10 @@ def migrate_command() -> None:
             _mark_all_as_applied()
             click.echo("Done.")
     elif choice.lower() == 'a':
-        if all(m['succeeded'] for m in migrations):
+        if all(m.succeeded for m in migrations):
             click.echo("No new or failed migrations to apply.")
         else:
-            _apply_migrations(m for m in migrations if not m['succeeded'] and not m['skipped'])
+            _apply_migrations(m for m in migrations if not m.succeeded and not m.skipped)
 
 
 def init_app(app: Flask) -> None:
