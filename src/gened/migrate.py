@@ -51,6 +51,7 @@ def _do_migration(name: str, script: str) -> tuple[bool, str]:
 
         db.executescript(script)
         db.commit()
+
         db.execute("UPDATE migrations SET applied_on=CURRENT_TIMESTAMP, succeeded=True WHERE filename=?", [name])
         db.commit()
 
@@ -64,7 +65,7 @@ def _do_migration(name: str, script: str) -> tuple[bool, str]:
         # Rebuild views post-migration
         rebuild_views()
     except sqlite3.Error as e:
-        current_app.logger.warning(f"DB error while rebuilding views after migration.  Check this carefully.  It may be okay (handled by a later migration) or it may be a problem.\nError: {e}")
+        current_app.logger.warning(f"DB error while rebuilding views after migration {name}.  Check this carefully.  It may be okay (handled by a later migration) or it may be a problem.\nError: {e}")
 
     return True, ''
 
@@ -84,20 +85,21 @@ def _apply_migrations(migrations: Iterable[MigrationDict]) -> None:
         backup_dest = backup_dest.with_suffix('.age')
 
     backup_db(backup_dest)
-    click.echo(f"Database backup saved in \x1B[33m{backup_dest}\x1B[m.")
+    click.echo(f"Database backup saved in {click.style(str(backup_dest), fg='yellow')}.")
 
     # Run the scripts
     for migration in migrations:
         name = migration['name']
         script = migration['contents']
-        click.echo(f"\x1B[35;1m═╦═Applying {name}═══\x1B[m")
+        click.secho(f"═╦═Applying {name}═══", fg="magenta", bold=True)
         indented = '\n'.join(f" ║ {x}" for x in script.split('\n'))
         click.echo(indented)
         success, err = _do_migration(name, script)
         if success:
-            click.echo("\x1B[32;1m═╩═Migration succeeded═══\x1B[m")
+            click.secho("═╩═Migration succeeded═══", fg="green", bold=True)
         else:
-            click.echo(f"\x1B[31;1m═╩═Migration failed═══\x1B[m  \x1B[31m{err}\x1B[m")
+            click.secho("═╩═Migration failed═══", fg="red", bold=True, nl=False)
+            click.secho(f"  {err}", fg="red")
             return  # End here
 
 
@@ -172,9 +174,9 @@ def migrate_command() -> None:
     click.echo("  # status  script file")
     click.echo("--- ------  --------------------")
     status_new = "☐"
-    status_success = "\x1B[32m☑\x1B[m"
-    status_skipped = "\x1B[33m☑\x1B[m"
-    status_failed = "\x1B[31m☒\x1B[m"
+    status_success = click.style("☑", fg="green")
+    status_skipped = click.style("☑", fg="yellow")
+    status_failed = click.style("☒", fg="red")
     for i, migration in enumerate(migrations):
         status = status_new
         if migration['succeeded']:
@@ -188,12 +190,13 @@ def migrate_command() -> None:
     click.echo()
     click.echo(f"Key:  {status_new}  = new  {status_success}  = applied successfully  {status_skipped}  = skipped  {status_failed}  = failed to apply")
     click.echo()
-    choice = input("[A]pply all new or failed migrations  [M]ark all as successfully applied  [Q]uit   Choice? ")
+
+    click.echo("[A]pply all new or failed migrations  [M]ark all as successfully applied  [Q]uit")
+    choice = click.prompt("Choice", type=click.Choice(['a', 'm', 'q'], case_sensitive=False), default='q', show_choices=True)
     click.echo()
 
     if choice.lower() == 'm':
-        sure = input("Are you sure?  This should pretty much never be used... [yN] ")
-        if sure.lower() == 'y':
+        if click.confirm("Are you sure? This should pretty much never be used...", default=False):
             _mark_all_as_applied()
             click.echo("Done.")
     elif choice.lower() == 'a':
