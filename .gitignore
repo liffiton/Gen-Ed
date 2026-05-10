@@ -2,12 +2,15 @@
 
 instance/
 
+.*_cache/
+
 __pycache__/
 *.py[cod]
 *$py.class
 
 venv/
 
+build/
 dist/
 
 .*.swp
