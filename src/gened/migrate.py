@@ -77,12 +77,16 @@ def _do_migration(migration: Migration) -> tuple[bool, str]:
     return True, ''
 
 
-def _apply_migrations(migrations: Iterable[Migration]) -> None:
+def _apply_migrations(migrations: list[Migration], *, verbose: bool = False) -> None:
     """
     Apply a list of migrations in the order provided.
 
-    migrations: an iterable of Migration objects.
+    migrations: a list of Migration objects.
     """
+    if not migrations:
+        current_app.logger.info("_apply_migrations() called with an empty list of migrations.  No migrations applied.")
+        return
+
     # Make a backup of the old database
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")   # noqa: DTZ005 - a timezone-unaware object is fine here
     backup_dir = Path(current_app.instance_path) / "backups"
@@ -97,16 +101,18 @@ def _apply_migrations(migrations: Iterable[Migration]) -> None:
     # Run the scripts
     for migration in migrations:
         click.secho(f"═╦═Applying {migration.filename}═══", fg="magenta", bold=True)
-        script = migration.contents
-        indented = '\n'.join(f" ║ {x}" for x in script.split('\n'))
-        click.echo(indented)
+        if verbose:
+            script = migration.contents
+            indented = '\n'.join(f" ║ {x}" for x in script.split('\n'))
+            click.echo(indented)
+
         success, err = _do_migration(migration)
         if success:
             click.secho("═╩═Migration succeeded═══", fg="green", bold=True)
         else:
             click.secho("═╩═Migration failed═══", fg="red", bold=True, nl=False)
             click.secho(f"  {err}", fg="red")
-            return  # End here
+            raise click.Abort  # end here, and ensure exit code is non-zero
 
 
 def _migration_info(package: str, resource: Traversable) -> Migration:
@@ -167,7 +173,7 @@ def _get_migrations() -> list[Migration]:
         if migrations[i].filename == migrations[i+1].filename
     }
     if duplicates:
-        raise DuplicateMigrationError(filename for filename in duplicates)
+        raise DuplicateMigrationError(duplicates)
 
     return migrations
 
@@ -182,10 +188,20 @@ def _mark_all_as_applied() -> None:
 
 
 @click.command('migrate')
-def migrate_command() -> None:
-    """ Launch a simple text interface for managing migration scripts. """
+@click.option('--auto', is_flag=True, help='Automatically run all pending migrations.')
+def migrate_command(*, auto: bool) -> None:
+    """ Apply (if --auto) or manage migration scripts. """
     migrations = _get_migrations()
+    pending = [m for m in migrations if not m.succeeded and not m.skipped]
 
+    if auto:
+        _apply_migrations(pending, verbose=False)
+    else:
+        _migrate_ui(migrations, pending)
+
+
+def _migrate_ui(migrations: list[Migration], pending: list[Migration]) -> None:
+    """ Launch a simple text interface for managing migration scripts. """
     click.echo("  # status  script file")
     click.echo("--- ------  --------------------")
     status_new = "☐"
@@ -215,11 +231,10 @@ def migrate_command() -> None:
             _mark_all_as_applied()
             click.echo("Done.")
     elif choice.lower() == 'a':
-        pending = [m for m in migrations if not m.succeeded and not m.skipped]
         if not pending:
             click.echo("No new or failed migrations to apply.")
         else:
-            _apply_migrations(pending)
+            _apply_migrations(pending, verbose=True)
 
 
 def init_app(app: Flask) -> None:
