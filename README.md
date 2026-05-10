@@ -60,13 +60,16 @@ Set Up an Application
 1. In the root of the repository, create `.env` and populate it with
    environment variables to configure the application.  See `.env.test` for a
    list of all available variables.  The required variables are:
+   - `FLASK_APP`: Which application to run (e.g., `codehelp` or `starburst`).
+     (Alternatively, this can be specified or overridden in `flask` commands
+     using `flask --app [appname]`.)
    - `FLASK_INSTANCE_PATH`: Path to an instance folder for storing the database
      and other persistent files.  Commonly set to `instance`.
    - `SECRET_KEY`: Used to sign session cookies.  Generate a secure random
      string for this.
    - `SYSTEM_API_KEY`: Your LLM API key to be used for queries outside of a
      class context (e.g. for free queries).
-   - `SYSTEM_MODEL_SHORTNAME`: Name from the application databse of the model
+   - `SYSTEM_MODEL_SHORTNAME`: Name from the application database of the model
      to be used outside of a class context.  `GPT-5.4 mini` is a good default.
    - `DEFAULT_CLASS_MODEL_SHORTNAME`: Name from the application database for
      the default model to be used in new classes (can be configured after
@@ -90,20 +93,21 @@ Then, to set up an application (CodeHelp, for example):
 2. Initialize database:
 
 ```sh
-flask --app codehelp initdb
+flask initdb
 ```
 
 3. Create at least one admin user:
 
 ```sh
-flask --app codehelp newuser --admin [username]
+flask newuser --admin [username]
 ```
 
-This will create and display a randomly-generated password.
-To change the password:
+This will create and display a secure, randomly-generated password.
+It is best to use this secure password (e.g., add it to your password manager),
+but if you want to change the password:
 
 ```sh
-flask --app codehelp setpassword [username]
+flask setpassword [username]
 ```
 
 4. (Optional) To serve files from `/.well-known` (for domain verification,
@@ -145,10 +149,10 @@ Running an Application
 For example, to run the CodeHelp app:
 
 ```sh
-flask --app codehelp run
+flask run
 
 # or, during development:
-flask --app codehelp --debug run
+flask --debug run
 ```
 
 When deploying an application in production, do not use the development server
