@@ -161,6 +161,14 @@ documentation](https://flask.palletsprojects.com/en/stable/deploying/) for
 production server options.
 
 
+Deploying in a Container
+------------------------
+
+See `CONTAINER.md` for instructions on running and deploying a Gen-Ed
+application in a container.  Reference `Dockerfile` and
+`container_entrypoint.sh` for more technical details.
+
+
 Developing
 ----------
 
