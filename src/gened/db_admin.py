@@ -221,7 +221,7 @@ def newuser_command(username: str, *, admin: bool = False, tester: bool = False)
         click.secho(f"Error: username {username} already exists.", fg='red')
         return
 
-    new_password = ''.join(secrets.choice(string.ascii_letters) for _ in range(6))
+    new_password = ''.join(secrets.choice(string.ascii_letters) for _ in range(12))
     cur = db.execute("INSERT INTO users(auth_provider, auth_name, is_admin, is_tester, query_tokens) VALUES(?, ?, ?, ?, 0)",
                      [AUTH_PROVIDER_LOCAL, username, admin, tester])
     db.execute("INSERT INTO auth_local(user_id, username, password) VALUES(?, ?, ?)",
