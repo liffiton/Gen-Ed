@@ -30,13 +30,14 @@ Run the container to verify it starts correctly:
 podman run --rm \
     --env-file .env \
     -p 127.0.0.1:8080:8080 \
-    -v ./instance:/var/instance:U,Z \
+    -v ./instance:/var/instance:Z \
+    --userns keep-id:uid=65534,gid=65534 \
     gen-ed
 ```
 
-> The `:U` flag is necessary for the volume to be writable by the unprivileged user in the container.  The `:Z` flag handles SELinux relabeling on Fedora/RHEL; it is unneeded but harmless on other systems.
+> The `:Z` flag handles SELinux relabeling on Fedora/RHEL; on other systems, it is unneeded but harmless.
 
-> **Docker users:** The `:U` flag is podman-specific.  If using docker, you must first manually set the permissions of the instance directory on the host so the container's nobody user (UID 65534) can write to it: `sudo chown -R 65534:65534 ./instance`.
+> **Docker users:** The `--userns` option is podman-specific.  If using docker, you might instead just run the application in the container as root with `-u 0`.  This has a small, hypothetical impact on security.
 
 On first run, the container will initialize the database. On every run, it applies any pending migrations before starting the server. You should be able to reach the application at http://127.0.0.1:8080/ in your browser.
 
@@ -46,7 +47,8 @@ Create an admin user by passing a Flask command through the entrypoint:
 
 ```bash
 podman run --rm --env-file .env \
-    -v ./instance:/var/instance:U,Z \
+    -v ./instance:/var/instance:Z \
+    --userns keep-id:uid=65534,gid=65534 \
     gen-ed flask newuser --admin username
 ```
 
@@ -73,7 +75,8 @@ After=network-online.target
 Image=localhost/gen-ed
 ReadOnly=True
 EnvironmentFile=/absolute/path/to/.env
-Volume=/absolute/path/to/instance:/var/instance:U,Z
+Volume=/absolute/path/to/instance:/var/instance:Z
+UserNS=keep-id:uid=65534,gid=65534 \
 PublishPort=127.0.0.1:8080:8080
 
 [Service]

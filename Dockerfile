@@ -1,4 +1,4 @@
-FROM python:3.14-slim-trixie AS builder
+FROM python:3.14-slim AS builder
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
@@ -23,7 +23,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install --prefix=/install .
 
 
-FROM python:3.14-slim-trixie
+FROM python:3.14-slim
 COPY --from=builder /install /usr/local
 COPY container_entrypoint.sh /usr/local/bin
 
@@ -32,7 +32,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 
 EXPOSE 8080
 
-# Run as an unprivileged user
+# Run as an unprivileged user; can be overridden when running the container
 USER nobody
 
 ENTRYPOINT ["sh", "/usr/local/bin/container_entrypoint.sh"]
