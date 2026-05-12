@@ -25,7 +25,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 FROM python:3.14-slim
 COPY --from=builder /install /usr/local
-COPY container_entrypoint.sh /usr/local/bin
+COPY --chmod=0755 container_entrypoint.sh /usr/local/bin
 
 # Ideally will run image read-only anyway, and will never re-run app in the same container.
 ENV PYTHONDONTWRITEBYTECODE=1
