@@ -113,9 +113,6 @@ systemctl --user start gen-ed
 
 # Check status
 systemctl --user status gen-ed
-
-# Enable on boot
-systemctl --user enable gen-ed
 ```
 
 ### Updating
@@ -125,4 +122,23 @@ To deploy a new version, rebuild the image and restart the service:
 ```bash
 podman build -t gen-ed .
 systemctl --user restart gen-ed
+systemctl --user status gen-ed
 ```
+
+### Work in the Container
+
+To run commands inside the container (usually not necessary, but could be useful on a failed migration, for example):
+
+Find the running container's name.  It is probably something like `systemd-gen-ed`:
+
+```bash
+podman ps
+```
+
+Then launch an interactive shell inside the container:
+
+```bash
+podman exec -it <container-name> /bin/bash
+```
+
+Flask commands like `flask migrate` should work in that shell:
