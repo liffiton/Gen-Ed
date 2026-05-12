@@ -32,9 +32,6 @@ ENV PYTHONDONTWRITEBYTECODE=1
 
 EXPOSE 8080
 
-# Run as an unprivileged user; can be overridden when running the container
-USER nobody
-
 ENTRYPOINT ["sh", "/usr/local/bin/container_entrypoint.sh"]
 # Default to serve; see container_entrypoint.sh
 CMD ["serve"]

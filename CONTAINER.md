@@ -1,8 +1,8 @@
 # Container Deployment
 
-This project can be deployed in a container using Podman or Docker. The instructions below focus on running the **CodeHelp** application, but any Gen-Ed application (such as `starburst`) can be run by setting `FLASK_APP` accordingly.
+This project can be deployed in a container using Podman or Docker. The instructions below focus on running the **CodeHelp** application, but any Gen-Ed application (such as Starburst) can be run by setting `FLASK_APP` accordingly.
 
-The instructions below use `podman` in examples, but `docker` can be used as a drop-in replacement for almost all commands.
+The instructions below are for rootless Podman and use `podman` in examples, but `docker` can be used as a drop-in replacement for almost all commands.
 
 ## Build the Image
 
@@ -29,15 +29,12 @@ Run the container to verify it starts correctly:
 ```bash
 podman run --rm \
     --env-file .env \
-    -p 127.0.0.1:8080:8080 \
     -v ./instance:/var/instance:Z \
-    --userns keep-id:uid=65534,gid=65534 \
+    -p 127.0.0.1:8080:8080 \
     gen-ed
 ```
 
 > The `:Z` flag handles SELinux relabeling on Fedora/RHEL; on other systems, it is unneeded but harmless.
-
-> **Docker users:** The `--userns` option is podman-specific.  If using docker, you might instead just run the application in the container as root with `-u 0`.  This has a small, hypothetical impact on security.
 
 On first run, the container will initialize the database. On every run, it applies any pending migrations before starting the server. You should be able to reach the application at http://127.0.0.1:8080/ in your browser.
 
@@ -46,9 +43,9 @@ On first run, the container will initialize the database. On every run, it appli
 Create an admin user by passing a Flask command through the entrypoint:
 
 ```bash
-podman run --rm --env-file .env \
+podman run --rm \
+    --env-file .env \
     -v ./instance:/var/instance:Z \
-    --userns keep-id:uid=65534,gid=65534 \
     gen-ed flask newuser --admin username
 ```
 
@@ -58,11 +55,16 @@ Other flask commands can be executed in a similar way.  See `README.md` and the 
 
 ## Run in Production with a Systemd Quadlet
 
-Quadlets are the recommended way to manage Podman containers with systemd. These instructions use a user-level service.
+Quadlets are the recommended way to manage Podman containers with systemd. These instructions create a rootless user-level service.
 
 > You'll also want a reverse proxy (Caddy, Traefik, etc.) handling HTTPS and forwarding to `127.0.0.1:8080`. If you do, set `FLASK_APP_BEHIND_PROXY=1` in `.env` so forwarded headers are respected.
 
 ### Create the Unit File
+
+We will create a systemd container service to launch and manage the
+application.  For a few simple (optional) layers of security, we'll set it to
+mount container filesystems read-only, and we'll run the application inside the
+container with an unprivileged user.
 
 Create `~/.config/containers/systemd/codehelp.container`:
 
@@ -73,11 +75,15 @@ After=network-online.target
 
 [Container]
 Image=localhost/gen-ed
-ReadOnly=True
 EnvironmentFile=/absolute/path/to/.env
 Volume=/absolute/path/to/instance:/var/instance:Z
-UserNS=keep-id:uid=65534,gid=65534 \
 PublishPort=127.0.0.1:8080:8080
+# security: mount container filesystems read-only
+ReadOnly=True
+# security: run as unprivileged user (nobody) inside container
+User=65534
+# map uids so 'nobody' user can read/write mounted instance data
+UserNS=keep-id:uid=65534,gid=65534
 
 [Service]
 Restart=on-failure
@@ -90,7 +96,7 @@ Update the `EnvironmentFile` and `Volume` paths to match your actual `.env` and 
 
 ### Enable User Linger
 
-This allows the service to run on boot rather than only on user login:
+This allows the user-level service to run on boot rather than only on user login:
 
 ```bash
 sudo loginctl enable-linger $USER
