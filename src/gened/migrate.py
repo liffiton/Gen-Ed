@@ -110,8 +110,8 @@ def _apply_migrations(migrations: list[Migration], *, verbose: bool = False) -> 
         if success:
             click.secho("═╩═Migration succeeded═══", fg="green", bold=True)
         else:
-            click.secho("═╩═Migration failed═══", fg="red", bold=True, nl=False)
-            click.secho(f"  {err}", fg="red")
+            click.secho("═╩═Migration failed═══  ", fg="red", bold=True, nl=False)
+            click.secho(err, fg="red")
             raise click.Abort  # end here, and ensure exit code is non-zero
 
 
@@ -232,7 +232,7 @@ def _migrate_ui(migrations: list[Migration], pending: list[Migration]) -> None:
             click.echo("Done.")
     elif choice.lower() == 'a':
         if not pending:
-            click.echo("No new or failed migrations to apply.")
+            click.echo("No pending migrations to apply.")
         else:
             _apply_migrations(pending, verbose=True)
 

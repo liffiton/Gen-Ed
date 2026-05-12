@@ -203,6 +203,7 @@ def init_db_command() -> None:
         init_db()
     except DatabaseExistsError as e:
         click.secho(f"Error: {e}", fg='red', bold=True)
+        raise click.Abort from e
     else:
         click.echo('Initialized the database.')
 
@@ -219,7 +220,7 @@ def newuser_command(username: str, *, admin: bool = False, tester: bool = False)
     existing = db.execute("SELECT username FROM auth_local WHERE username=?", [username]).fetchone()
     if existing:
         click.secho(f"Error: username {username} already exists.", fg='red')
-        return
+        raise click.Abort
 
     new_password = ''.join(secrets.choice(string.ascii_letters) for _ in range(12))
     cur = db.execute("INSERT INTO users(auth_provider, auth_name, is_admin, is_tester, query_tokens) VALUES(?, ?, ?, ?, 0)",
@@ -242,17 +243,17 @@ def setpassword_command(username: str) -> None:
     existing = db.execute("SELECT username FROM auth_local WHERE username=?", [username]).fetchone()
     if not existing:
         click.secho(f"Error: username {username} does not exist as a local user.", fg='red')
-        return
+        raise click.Abort
 
     password1 = getpass("New password: ")
     if len(password1) < 3:
         click.secho("Error: password must be at least 3 characters long.", fg='red')
-        return
+        raise click.Abort
 
     password2 = getpass("      Repeat: ")
     if password1 != password2:
         click.secho("Error: passwords do not match.", fg='red')
-        return
+        raise click.Abort
 
     db.execute("UPDATE auth_local SET password=? WHERE username=?", [generate_password_hash(password1), username])
     db.commit()
