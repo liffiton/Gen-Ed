@@ -3,6 +3,10 @@
 
 set -e   # fail/exit on any command error
 
+# These can be set as env vars on the container; otherwise, we'll use these defaults.
+THREADS="${THREADS:-10}"
+CONNECTION_LIMIT="${CONNECTION_LIMIT:-100}"
+
 if [ -z "$FLASK_APP" ]; then
     echo "FLASK_APP must be set (usually in .env)" >&2
     exit 1
@@ -27,7 +31,8 @@ case "$1" in
         flask migrate --auto
         # launch server
         echo "Starting server..."
-        exec waitress-serve --trusted-proxy 127.0.0.1 --trusted-proxy-headers "x-forwarded-proto x-forwarded-host" --call "${FLASK_APP}:create_app"
+        # trusting any IP as a proxy ("*") is acceptable *if* running in a container and publishing the port to localhost only
+        exec waitress-serve --listen 0.0.0.0:8080 --trusted-proxy "*" --trusted-proxy-headers "x-forwarded-proto x-forwarded-host" --threads $THREADS --connection-limit $CONNECTION_LIMIT --call "${FLASK_APP}:create_app"
         ;;
     *)
         # pass through anything else; useful for manual "flask cmd" and other commands
