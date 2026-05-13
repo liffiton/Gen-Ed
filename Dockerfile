@@ -10,11 +10,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends git
 ENV UV_COMPILE_BYTECODE=1
 # Silence warnings due to mounted cache
 ENV UV_LINK_MODE=copy
-# Install dependencies, including waitress as a production server
+# Install dependencies, including waitress as a production server and dumb-init for container signal-handling
 COPY pyproject.toml pyproject.toml
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --prefix=/install -r pyproject.toml \
-    && uv pip install --prefix=/install waitress~=3.0
+    uv pip install --prefix=/install -r pyproject.toml waitress~=3.0 dumb-init~=1.0
 
 # Bring in the rest of the code
 COPY src/ src/
@@ -32,6 +31,6 @@ ENV PYTHONDONTWRITEBYTECODE=1
 
 EXPOSE 8080
 
-ENTRYPOINT ["sh", "/usr/local/bin/container_entrypoint.sh"]
+ENTRYPOINT ["dumb-init", "--", "sh", "/usr/local/bin/container_entrypoint.sh"]
 # Default to serve; see container_entrypoint.sh
 CMD ["serve"]
