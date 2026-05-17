@@ -24,14 +24,12 @@ from components.code_contexts import (
     ContextConfig,
     get_available_contexts,
     get_context_by_name,
-    get_context_string_by_id,
     record_context_string,
 )
 from gened.access import (
     admin_required,
     class_enabled_required,
     login_required,
-    tester_required,
 )
 from gened.app_data import DataAccessError
 from gened.auth import get_auth
