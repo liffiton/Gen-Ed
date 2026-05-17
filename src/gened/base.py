@@ -13,6 +13,7 @@ from typing import Any
 import pyrage
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, send_from_directory
+from flask.sessions import SecureCookieSessionInterface
 from flask.wrappers import Response
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -60,6 +61,18 @@ class DBMissingModelError(Exception):
         super().__init__(f"Configured model shortname not found in active models: {model_name}")
 
 
+class GenEdSessionInterface(SecureCookieSessionInterface):
+    """ A custom session interface that dynamically sets the SameSite
+    attribute.  This is required to allow LTI launches in iframes
+    (SameSite=None) while maintaining standard protections for other requests
+    (SameSite=Lax if not configured in app config).
+    """
+    def get_cookie_samesite(self, app: Flask) -> str | None:
+        if request.headers.get("Sec-Fetch-Dest") == "iframe":
+            return "None"
+        return app.config.get("SESSION_COOKIE_SAMESITE", "Lax")  # type: ignore[no-any-return]
+
+
 class GenEdAppBuilder:
     ''' A class to incrementally set up and finally build a complete Gen-Ed application. '''
 
@@ -101,18 +114,8 @@ class GenEdAppBuilder:
         if os.environ.get("FLASK_APP_BEHIND_PROXY", "").lower() in ("yes", "true", "1"):
             app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)  # type: ignore[method-assign]
 
-        #from werkzeug.middleware.profiler import ProfilerMiddleware
-        #app.wsgi_app = ProfilerMiddleware(app.wsgi_app)
-
-        # enable iframe LTI loads (SameSite=Lax will break those)
-        @app.before_request
-        def set_cookie_policy() -> None:
-            if request.headers.get('Sec-Fetch-Dest') == 'iframe':
-                app.config['SESSION_COOKIE_SAMESITE'] = 'None'
-                # and SESSION_COOKIE_SECURE should still be set from base config
-            else:
-                # needs to be set/reset on every request, since app.config persists
-                app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+        # Use a custom session interface to dynamically handle SameSite policies (thread-safely)
+        app.session_interface = GenEdSessionInterface()
 
         # strip whitespace before and after {% ... %} template statements
         app.jinja_env.lstrip_blocks = True
@@ -179,7 +182,7 @@ class GenEdAppBuilder:
             # Some simple/weak XSS/CSRF protection
             SESSION_COOKIE_SECURE=True,
             SESSION_COOKIE_HTTPONLY=True,
-            #SESSION_COOKIE_SAMESITE='Lax',  # will be set in before_request handler above
+            SESSION_COOKIE_SAMESITE='Lax',
             # Cache timeout for static files (seconds)
             SEND_FILE_MAX_AGE_DEFAULT=3*60*60,  # 3 hours
             # Default redirect after login (may want to override with a tool endpoint)
