@@ -124,12 +124,7 @@ def help_view(query_id: int) -> str | Response:
 
     history = queries_data_source.get_user_data(limit=10)
 
-    if query_row and query_row['topics_json']:
-        topics = json.loads(query_row['topics_json'])
-    else:
-        topics = []
-
-    return render_template("help_view.html", query=query_row, responses=responses, history=history, topics=topics)
+    return render_template("help_view.html", query=query_row, responses=responses, history=history)
 
 
 async def run_query_prompts(llm: LLM, context: ContextConfig | None, code: str, error: str, issue: str) -> tuple[list[dict[str, str]], dict[str, str]]:
@@ -285,56 +280,3 @@ def post_helpful() -> str:
     db.execute("UPDATE code_queries SET helpful=? WHERE id=? AND user_id=?", [value, query_id, auth.user_id])
     db.commit()
     return ""
-
-
-@bp.route("/topics/html/<int:query_id>", methods=["GET", "POST"])
-@login_required
-@tester_required
-@with_llm(spend_token=False)
-def get_topics_html(llm: LLM, query_id: int) -> str:
-    topics = get_topics(llm, query_id)
-    if not topics:
-        return render_template("topics_fragment.html", error=True)
-    else:
-        db = get_db()
-        context_name = db.execute("SELECT context_name FROM code_queries WHERE id=?", [query_id]).fetchone()[0]
-        return render_template("topics_fragment.html", context_name=context_name, topics=topics)
-
-
-def get_topics(llm: LLM, query_id: int) -> list[str]:
-    try:
-        query_row = queries_data_source.get_row(query_id)
-    except DataAccessError:
-        return []
-
-    if not query_row['response']:
-        return []
-    else:
-        responses = json.loads(query_row['response'])
-        if 'main' not in responses:
-            return []
-
-    context = get_context_string_by_id(query_row['context_string_id'])
-
-    messages = prompts.make_topics_prompt(
-        query_row['code'],
-        query_row['error'],
-        query_row['issue'],
-        context,
-        responses['main']
-    )
-
-    _response, response_txt = asyncio.run(llm.get_completion(messages=messages))
-
-    # Verify it is actually JSON
-    # May be "Error (..." if an API error occurs, or every now and then may get "Here is the JSON: ..." or similar.
-    try:
-        topics: list[str] = json.loads(response_txt)
-    except json.decoder.JSONDecodeError:
-        return []
-
-    # Save topics into code_queries table for the given query
-    db = get_db()
-    db.execute("UPDATE code_queries SET topics_json=? WHERE id=?", [response_txt, query_id])
-    db.commit()
-    return topics

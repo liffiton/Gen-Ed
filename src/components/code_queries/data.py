@@ -92,8 +92,7 @@ def get_queries(filters: Filters, /, limit: int=-1, offset: int=0) -> Cursor:
             t.helpful_emoji AS rating,
             t.user_id AS user_id,
             t.context_string_id AS context_string_id,
-            classes.id AS class_id,
-            t.topics_json AS topics_json
+            classes.id AS class_id
         FROM code_queries AS t
         JOIN users ON t.user_id=users.id
         LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id

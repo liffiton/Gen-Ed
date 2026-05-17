@@ -13,7 +13,6 @@ CREATE TABLE code_queries (
     issue TEXT NOT NULL,
     response_json TEXT,
     response_text TEXT,
-    topics_json TEXT,
     helpful BOOLEAN CHECK (helpful in (0, 1)),
     helpful_emoji TEXT GENERATED ALWAYS AS (CASE helpful WHEN 1 THEN '✅' WHEN 0 THEN '❌' ELSE '' END) VIRTUAL,
     user_id INTEGER NOT NULL,
