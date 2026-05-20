@@ -94,7 +94,7 @@ CREATE TABLE classes_user (
     class_id         INTEGER PRIMARY KEY,  -- references classes.id
     llm_api_key      TEXT,
     model_id         INTEGER NOT NULL,
-    link_ident       TEXT NOT NULL UNIQUE,  -- random (unguessable) identifier used in access/registration link for this class
+    link_key         TEXT NOT NULL UNIQUE,  -- random (unguessable) key used in access/registration link for this class
     link_reg_expires DATE NOT NULL,  -- registration active for the class link if this date is in the future (anywhere on Earth)
     link_anon_login  BOOLEAN NOT NULL CHECK (link_anon_login IN (0,1)) DEFAULT 0,  -- access link will cause new users to register anonymously
     creator_user_id  INTEGER NOT NULL,  -- references users.id
@@ -103,7 +103,7 @@ CREATE TABLE classes_user (
     FOREIGN KEY(model_id) REFERENCES models(id),
     FOREIGN KEY(creator_user_id) REFERENCES users(id)
 );
-CREATE UNIQUE INDEX  classes_user_by_link_ident ON classes_user(link_ident);
+CREATE UNIQUE INDEX  classes_user_by_link_key ON classes_user(link_key);
 
 -- Roles for users in classes
 CREATE TABLE roles (

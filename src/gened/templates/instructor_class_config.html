@@ -51,8 +51,8 @@ input[type='radio'] {
           </div>
         </div>
 
-        {% if class_row['link_ident'] %}
-        {# link_ident only in classes_user, so will only be set for user classes. #}
+        {% if link %}
+        {# link only in user-created classes. #}
         <input type="hidden" name="is_user_class" value="true">
 
         <div class="field is-horizontal">
@@ -61,7 +61,7 @@ input[type='radio'] {
           </div>
           <div class="field-body">
             <div class="field">
-              {{ url_for("classes.access_class", class_ident=class_row['link_ident'], _external=True) }}
+              {{ link.url }}
             </div>
           </div>
         </div>
@@ -73,24 +73,24 @@ input[type='radio'] {
             <p class="help-text">When disabled, only already-registered users can access the class via its link.</p>
           </div>
           <div class="field-body">
-            <div class="field" x-data="{ link_reg_active: '{{ link_reg_state }}' }">
+            <div class="field" x-data="{ link_reg_active: '{{ link.reg_state }}' }">
               <div class="control">
                 <label class="radio">
-                  <input name="link_reg_active" x-model="link_reg_active" id="link_reg_disabled" type="radio" value="disabled" {% if link_reg_state == "disabled" %}checked{% endif %}>
+                  <input name="link_reg_active" x-model="link_reg_active" id="link_reg_disabled" type="radio" value="disabled" {% if link.reg_state == "disabled" %}checked{% endif %}>
                   Disabled
                 </label>
               </div>
               <div class="control">
                 <label class="radio">
-                  <input name="link_reg_active" x-model="link_reg_active" id="link_reg_expires" type="radio" value="date" {% if link_reg_state == "date" %}checked{% endif %}>
+                  <input name="link_reg_active" x-model="link_reg_active" id="link_reg_expires" type="radio" value="date" {% if link.reg_state == "date" %}checked{% endif %}>
                   Only until:
                 </label>
-                <input required class="input" name="link_reg_expires" x-bind:disabled="link_reg_active !== 'date'" type="date" style="width: inherit; vertical-align: baseline;" value="{{ class_row.link_reg_expires if link_reg_state == "date" else "" }}">
+                <input required class="input" name="link_reg_expires" x-bind:disabled="link_reg_active !== 'date'" type="date" style="width: inherit; vertical-align: baseline;" value="{{ link.reg_expires if link.reg_state == "date" else "" }}">
                 <em class="has-text-grey">anywhere on Earth</em>
               </div>
               <div class="control">
                 <label class="radio">
-                  <input name="link_reg_active" x-model="link_reg_active" id="link_reg_enabled" type="radio" value="enabled" {% if class_row.link_reg_state == "enabled" %}checked{% endif %}>
+                  <input name="link_reg_active" x-model="link_reg_active" id="link_reg_enabled" type="radio" value="enabled" {% if link.reg_state == "enabled" %}checked{% endif %}>
                   Enabled
                 </label>
               </div>
@@ -107,13 +107,13 @@ input[type='radio'] {
           <div class="field-body">
             <div class="field">
               <div class="control">
-                <input name="class_link_anon_login" id="class_link_anon_login" type="checkbox" {% if class_row['link_anon_login'] %}checked{% endif %}>
+                <input name="class_link_anon_login" id="class_link_anon_login" type="checkbox" {% if link.anon_login %}checked{% endif %}>
               </div>
             </div>
           </div>
         </div>
 
-        {% endif %}{# end if class_row['link_ident'] -- i.e., end of user-created class config #}
+        {% endif %}{# end if link -- i.e., end of user-created class config #}
 
         <div class="field is-horizontal">
           <div class="field-label is-normal"><!-- spacing --></div>
@@ -128,8 +128,8 @@ input[type='radio'] {
 
       </form>
 
-      {% if class_row['link_ident'] %}
-      {# link_ident only in classes_user, so will only be set for user classes. #}
+      {% if link %}
+      {# link only in user-created classes. #}
       <div class="item_sep"></div>
 
       <h2 class="title is-size-4 mt-5">Language Model</h2>
@@ -262,7 +262,7 @@ input[type='radio'] {
         </div>
       {% endif %}{# end if user_is_creator #}
 
-      {% endif %}{# end if class['link_ident'] -- i.e., end of user-created class config #}
+      {% endif %}{# end if link -- i.e., end of user-created class config #}
 
 
       {% if components %}

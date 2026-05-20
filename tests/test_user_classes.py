@@ -17,8 +17,8 @@ def test_not_logged_in(client: AppClient) -> None:
     assert response.location == "/auth/login?next=/classes/access/reg_enabled?"
 
 
-def _test_user_class_link(client: AppClient, link_name: str, status: int, result: str | None) -> None:
-    response = client.get(f"/classes/access/{link_name}")
+def _test_user_class_link(client: AppClient, link_url: str, status: int, result: str | None) -> None:
+    response = client.get(link_url)
     assert response.status_code == status
 
     if status == 302:
@@ -28,20 +28,20 @@ def _test_user_class_link(client: AppClient, link_name: str, status: int, result
         assert result in response.text
 
 
-@pytest.mark.parametrize(('link_name', 'status', 'result'), [
+@pytest.mark.parametrize(('link_ident', 'status', 'result'), [
     ('invalid_link', 404, None),
     ('reg_disabled', 200, 'Registration is not active for this class.'),
     ('reg_expired', 200, 'Registration is not active for this class.'),
-    ('reg_enabled', 302, '/'),
+    ('reg_enabled', 302, '/classes/home'),
 ])
 def test_user_class_link(
     client: AppClient,
-    link_name: str,
+    link_ident: str,
     status: int,
     result: str | None
 ) -> None:
     client.login('testuser2', 'testuser2password')  # log in as testuser2, not connected to any existing classes
-    _test_user_class_link(client, link_name, status, result)
+    _test_user_class_link(client, f"/classes/access/{link_ident}", status, result)
 
 
 def _create_user_class(client: AppClient, class_name: str) -> str:
@@ -54,18 +54,18 @@ def _create_user_class(client: AppClient, class_name: str) -> str:
     assert response.location == "/instructor/config/"
 
     response = client.get(response.location)
-    match = re.search(r"https?:\/\/\S+\/classes\/access\/(\S+)", response.text)
+    match = re.search(r"(https?:\/\/\S+\/classes\/access\/\S+)", response.text)
     assert match is not None
     assert match.group(1)
 
-    class_access_link_name = match.group(1)
-    return class_access_link_name
+    class_access_link = match.group(1)
+    return class_access_link
 
 
 def test_user_class_creation(client: AppClient) -> None:
     client.login()  # only works if logged in
-    class_access_link_name = _create_user_class(client, "Test Class")
-    _test_user_class_link(client, class_access_link_name, 302, '/')
+    class_access_link = _create_user_class(client, "Test Class")
+    _test_user_class_link(client, class_access_link, 302, '/classes/home')
 
 
 def test_user_class_usage(app: Flask) -> None:
@@ -74,12 +74,12 @@ def test_user_class_usage(app: Flask) -> None:
 
     # 1) instructor logs in, creates the course
     instructor_client.login('testinstructor', 'testinstructorpassword')
-    access_link_name = _create_user_class(instructor_client, "Instructor's Test Class")
-    assert access_link_name
+    access_link = _create_user_class(instructor_client, "Instructor's Test Class")
+    assert access_link
 
     # 2) user logs in, cannot access the course yet
     user_client.login('testuser', 'testpassword')
-    _test_user_class_link(user_client, access_link_name, 200, 'Registration is not active for this class.')
+    _test_user_class_link(user_client, access_link, 200, 'Registration is not active for this class.')
 
     # 3) instructor enables/activates the course
     result = instructor_client.post(
@@ -98,7 +98,7 @@ def test_user_class_usage(app: Flask) -> None:
     assert "Class access configuration updated." in result.text
 
     # 4) user can now access the course
-    _test_user_class_link(user_client, access_link_name, 302, '/')
+    _test_user_class_link(user_client, access_link, 302, '/classes/home')
     result = user_client.get('/help/')
     assert result.status_code == 200
 
@@ -145,11 +145,11 @@ def test_user_class_usage(app: Flask) -> None:
     # 10) another user now cannot access the course
     user_client.logout()
     user_client.login('testuser2', 'testuser2password')
-    _test_user_class_link(user_client, access_link_name, 200, 'Registration is not active for this class.')
+    _test_user_class_link(user_client, access_link, 200, 'Registration is not active for this class.')
 
     # 11) but the first user still can
     user_client.logout()
     user_client.login('testuser', 'testpassword')
-    _test_user_class_link(user_client, access_link_name, 302, '/')
+    _test_user_class_link(user_client, access_link, 302, '/classes/home')
     result = user_client.get('/help/')
     assert result.status_code == 200

@@ -42,12 +42,12 @@ VALUES
     (22, 2, null, 'ltiuser2@domain.edu', null, false, false, 0),
     (23, 2, null, 'ltiuser3@domain.edu', null, false, false, 0);
 
-INSERT INTO classes_user (class_id, llm_api_key, link_ident, link_reg_expires, creator_user_id, model_id)
+INSERT INTO classes_user (class_id, llm_api_key, link_key, link_reg_expires, creator_user_id, model_id)
 VALUES
-    (2, 'nope', 'reg_disabled', '0001-01-01', 11, 1),
-    (3, 'nope', 'reg_expired', '2023-01-01', 11, 2),
-    (4, 'nope', 'reg_enabled', '9999-12-31', 11, 2),
-    (5, 'nope', 'link_id_000', '9999-12-31', 12, 2);  -- 5 is owned/created by testadmin user
+    (2, 'nope', 'v1.reg_disabled', '0001-01-01', 11, 1),
+    (3, 'nope', 'v1.reg_expired', '2023-01-01', 11, 2),
+    (4, 'nope', 'v1.reg_enabled', '9999-12-31', 11, 2),
+    (5, 'nope', 'v1.link_id_000', '9999-12-31', 12, 2);  -- 5 is owned/created by testadmin user
 
 INSERT INTO auth_local (user_id, username, password)
 VALUES

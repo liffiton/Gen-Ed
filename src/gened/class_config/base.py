@@ -23,10 +23,9 @@ from gened.component_registry import get_registered_components
 from gened.db import get_db
 from gened.llm import LLM, get_models, with_llm
 from gened.redir import safe_redirect
-from gened.tz import date_is_past
 
 from .config_table import create_blueprint
-from .types import ConfigTable
+from .types import ConfigTable, RegistrationLink
 
 bp = Blueprint('base', __name__, template_folder='templates')
 
@@ -125,23 +124,17 @@ def config_form() -> str:
     class_id = cur_class.class_id
 
     class_row = db.execute("""
-        SELECT classes.id, classes.enabled, classes_user.link_ident, classes_user.link_reg_expires, classes_user.link_anon_login, classes_user.llm_api_key, classes_user.model_id
+        SELECT classes.id, classes.name, classes.enabled, classes_user.link_key, classes_user.link_reg_expires, classes_user.link_anon_login, classes_user.llm_api_key, classes_user.model_id
         FROM classes
         LEFT JOIN classes_user
           ON classes.id = classes_user.class_id
         WHERE classes.id=?
     """, [class_id]).fetchone()
 
-    # TODO: refactor into function for checking start/end dates
-    expiration_date = class_row['link_reg_expires']
-    if expiration_date is None:
-        link_reg_state = None  # not a user-created class
-    elif date_is_past(expiration_date):
-        link_reg_state = "disabled"
-    elif expiration_date == dt.date.max:
-        link_reg_state = "enabled"
+    if class_row['link_key'] is not None:
+        link = RegistrationLink.from_row(class_row)
     else:
-        link_reg_state = "date"
+        link = None
 
     models = get_models(plus_id=class_row['model_id'])
 
@@ -162,7 +155,7 @@ def config_form() -> str:
 
     toggleable_components = [c for c in components if not c.always_enabled]
 
-    return render_template("instructor_class_config.html", class_row=class_row, link_reg_state=link_reg_state, user_is_creator=cur_class.user_is_creator, models=models, components=toggleable_components, extra_sections_data=extra_sections_data)
+    return render_template("instructor_class_config.html", class_row=class_row, link=link, user_is_creator=cur_class.user_is_creator, models=models, components=toggleable_components, extra_sections_data=extra_sections_data)
 
 
 @bp.route("/save/access", methods=["POST"])

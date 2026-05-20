@@ -30,11 +30,11 @@ from werkzeug.wrappers.response import Response
 
 from .access import login_required
 from .auth import get_auth, set_session_auth_class
+from .class_config.types import RegistrationLink
 from .component_registry import get_navbar_components
 from .db import get_db
 from .llm import LLM, with_llm
 from .redir import safe_redirect_next
-from .tz import date_is_past
 
 bp = Blueprint('classes', __name__, template_folder='templates')
 
@@ -127,10 +127,11 @@ def create_user_class(user_id: int, class_name: str, llm_api_key: str | None = N
     """
     db = get_db()
 
-    # generate a new, unique, unguessable link identifier
+    # generate a new, unique, unguessable link key
     while True:
-        link_ident = secrets.token_urlsafe(8)
-        match_row = db.execute("SELECT 1 FROM classes_user WHERE link_ident=?", [link_ident]).fetchone()
+        link_key_secret = secrets.token_urlsafe(10)
+        link_key = f"v2.{link_key_secret}"  # currently on version 2 of this feature
+        match_row = db.execute("SELECT 1 FROM classes_user WHERE link_key=?", [link_key]).fetchone()
         is_unique = not match_row
         if is_unique:
             break
@@ -145,8 +146,8 @@ def create_user_class(user_id: int, class_name: str, llm_api_key: str | None = N
     ).fetchone()['id']
 
     db.execute(
-        "INSERT INTO classes_user (class_id, creator_user_id, link_ident, llm_api_key, link_reg_expires, model_id) VALUES (?, ?, ?, ?, ?, ?)",
-        [class_id, user_id, link_ident, llm_api_key, dt.date.min, model_id]
+        "INSERT INTO classes_user (class_id, creator_user_id, link_key, llm_api_key, link_reg_expires, model_id) VALUES (?, ?, ?, ?, ?, ?)",
+        [class_id, user_id, link_key, llm_api_key, dt.date.min, model_id]
     )
     db.execute(
         "INSERT INTO roles (user_id, class_id, role) VALUES (?, ?, ?)",
@@ -247,7 +248,56 @@ def create_class() -> Response:
 
 # Not using @login_required here because we may need to redirect to anon. login specifically
 @bp.route("/access/<string:class_ident>")
-def access_class(class_ident: str) -> str | Response:
+def access_class_v1(class_ident: str) -> str | Response:
+    db = get_db()
+
+    # Get the class info
+    key = f"v1.{class_ident}"
+    class_row = db.execute("""
+        SELECT classes.id, classes.name, classes_user.link_key, classes_user.link_reg_expires, classes_user.link_anon_login
+        FROM classes
+        JOIN classes_user
+          ON classes.id = classes_user.class_id
+        WHERE classes_user.link_key = ?
+    """, [key]).fetchone()
+
+    if not class_row:
+        abort(404)
+
+    # row exists with that ident: continue
+    link = RegistrationLink.from_row(class_row)
+    return _join_class(link)
+
+
+@bp.route("/access/<int:class_id>/<string:hash_val>")
+@bp.route("/access/<int:class_id>/<int:counter>/<string:hash_val>")
+def access_class_v2(class_id: int, hash_val: str, counter: int | None = None) -> str | Response:
+    db = get_db()
+
+    # Get the class info
+    class_row = db.execute("""
+        SELECT classes.id, classes.name, classes_user.link_key, classes_user.link_reg_expires, classes_user.link_anon_login
+        FROM classes
+        JOIN classes_user
+          ON classes.id = classes_user.class_id
+        WHERE classes_user.class_id = ?
+    """, [class_id]).fetchone()
+
+    if not class_row:
+        abort(404)
+
+    link = RegistrationLink.from_row(class_row)
+
+    # verify the hash
+    valid = link.v2_check_hash(hash_val, counter)
+    if not valid:
+        abort(404)
+
+    # hash is correct: continue
+    return _join_class(link, counter)
+
+
+def _join_class(link: RegistrationLink, counter: int | None = None) -> str | Response:
     '''Join a class or just login/access it.
 
     If the user already has a role in the class, just access it.
@@ -255,27 +305,15 @@ def access_class(class_ident: str) -> str | Response:
     add this user to the class.
     '''
     db = get_db()
-
     auth = get_auth()
 
-    # Get the class info
-    class_row = db.execute("""
-        SELECT classes.id, classes.name, classes_user.link_reg_expires, classes_user.link_anon_login
-        FROM classes
-        JOIN classes_user
-          ON classes.id = classes_user.class_id
-        WHERE classes_user.link_ident = ?
-    """, [class_ident]).fetchone()
-
-    if not class_row:
-        abort(404)
+    class_id = link.class_id
+    anon = 1 if link.anon_login else None
 
     if not auth.user:
-        flash(f"Please log in to access class '{class_row['name']}'")
-        anon = 1 if class_row['link_anon_login'] else None
+        flash(f"Please log in to access class '{link.class_name}'")
         return redirect(url_for('auth.login', anon=anon, next=request.full_path))
 
-    class_id = class_row['id']
     user_id = auth.user_id
     role_row = db.execute("SELECT * FROM roles WHERE class_id=? AND user_id=?", [class_id, user_id]).fetchone()
 
@@ -285,11 +323,13 @@ def access_class(class_ident: str) -> str | Response:
         if not success:
             abort(403)
         else:
-            return redirect(url_for("landing"))
+            return redirect(url_for(current_app.config['DEFAULT_LOGIN_ENDPOINT']))
 
     # user does not have a role
-    if date_is_past(class_row['link_reg_expires']):
+    if link.reg_state == 'disabled':
         # but registration is not currently active
+        # (can't check before login, because disabled reg links should still forward
+        #  registered users to the class...)
         flash("Registration is not active for this class.  Please contact the instructor for assistance.", "warning")
         return render_template("error.html")
 
@@ -302,4 +342,4 @@ def access_class(class_ident: str) -> str | Response:
     db.commit()
     success = switch_class(class_id)
     assert success
-    return redirect(url_for("landing"))
+    return redirect(url_for(current_app.config['DEFAULT_LOGIN_ENDPOINT']))
