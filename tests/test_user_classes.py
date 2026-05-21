@@ -23,28 +23,30 @@ def _test_user_class_link(client: AppClient, link_url: str, status: int, result:
         assert result in response.text
 
 
-@pytest.mark.parametrize(('link_ident', 'status_nologin', 'status_login', 'result'), [
-    ('invalid_link', 404, 404, None),
-    ('reg_disabled', 302, 200, 'Registration is not active for this class.'),
-    ('reg_expired', 302, 200, 'Registration is not active for this class.'),
-    ('reg_enabled', 302, 302, '/classes/home'),
+@pytest.mark.parametrize(('link_ident', 'status', 'result'), [
+    ('invalid_link', 404, None),
+    ('reg_disabled', 200, 'Registration is not active for this class.'),
+    ('reg_expired', 200, 'Registration is not active for this class.'),
+    ('reg_enabled', 302, '/classes/home'),
 ])
 def test_user_class_link_v1(
     client: AppClient,
     link_ident: str,
-    status_nologin: int,
-    status_login: int,
+    status: int,
     result: str | None
 ) -> None:
     # test v1 links
     path = f"/classes/access/{link_ident}"
 
-    # reg/access links should redirect if valid but not logged in.
-    _test_user_class_link(client, path, status_nologin, f"/auth/login?next={path}?")
+    if status == 302:
+        # reg/access links should redirect if valid but not logged in.
+        _test_user_class_link(client, path, status, f"/auth/login?next={path}?")
+    else:
+        _test_user_class_link(client, path, status, result)
 
     # if logged in, should get parameterized result
     client.login('testuser2', 'testuser2password')  # log in as testuser2, not connected to any existing classes
-    _test_user_class_link(client, path, status_login, result)
+    _test_user_class_link(client, path, status, result)
 
 
 @pytest.mark.parametrize('class_id', [-1, 1, 4], ids=['invalid_id', 'lti_class', 'v1_only_class'])
@@ -69,18 +71,17 @@ def test_user_class_link_v2_invalid(
     _test_user_class_link(client, path, 404)
 
 
-@pytest.mark.parametrize(('class_id', 'status_nologin', 'status_login', 'result'), [
-    (6, 302, 200, 'Registration is not active for this class.'),  # disabled v2 class
-    (7, 302, 200, 'Registration is not active for this class.'),  # expired v2 class
-    (8, 302, 302, '/classes/home'),  # enabled v2 class
-    (9, 302, 302, '/classes/home'),  # enabled v2 class w/ anonymous login
+@pytest.mark.parametrize(('class_id', 'status', 'result'), [
+    (6, 200, 'Registration is not active for this class.'),  # disabled v2 class
+    (7, 200, 'Registration is not active for this class.'),  # expired v2 class
+    (8, 302, '/classes/home'),  # enabled v2 class
+    (9, 302, '/classes/home'),  # enabled v2 class w/ anonymous login
 ])
 def test_user_class_link_v2(
     app: Flask,
     client: AppClient,
     class_id: int,
-    status_nologin: int,
-    status_login: int,
+    status: int,
     result: str | None
 ) -> None:
     # test v2 links
@@ -104,12 +105,15 @@ def test_user_class_link_v2(
     invalid_url = url + "X"  # one character added to the hash
     _test_user_class_link(client, invalid_url, 404)
 
-    # reg/access links should redirect if valid but not logged in.
-    _test_user_class_link(client, url, status_nologin, f"/auth/login?{'anon=1&' if link.anon_login else ''}next={path}?")
+    if status == 302:
+        # reg/access links should redirect if valid but not logged in.
+        _test_user_class_link(client, url, status, f"/auth/login?{'anon=1&' if link.anon_login else ''}next={path}?")
+    else:
+        _test_user_class_link(client, url, status, result)
 
     # if logged in, should get parameterized result
     client.login('testuser2', 'testuser2password')  # log in as testuser2, not connected to any existing classes
-    _test_user_class_link(client, url, status_login, result)
+    _test_user_class_link(client, url, status, result)
 
 
 def _create_user_class(client: AppClient, class_name: str) -> str:

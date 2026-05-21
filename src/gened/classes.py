@@ -301,36 +301,36 @@ def _join_class(link: AccessLink, counter: int | None = None) -> str | Response:
     auth = get_auth()
 
     class_id = link.class_id
-    anon = 1 if link.anon_login else None
 
-    if not auth.user:
-        flash(f"Please log in to access class '{link.class_name}'")
-        return redirect(url_for('auth.login', anon=anon, next=request.full_path))
+    # first, check if the user is logged in and already has a role in the class
+    if auth.user:
+        role_row = db.execute("SELECT * FROM roles WHERE class_id=? AND user_id=?", [class_id, auth.user_id]).fetchone()
 
-    user_id = auth.user_id
-    role_row = db.execute("SELECT * FROM roles WHERE class_id=? AND user_id=?", [class_id, user_id]).fetchone()
+        if role_row:
+            # user already has a role, but it may not be active
+            success = switch_class(class_id)
+            if not success:
+                abort(403)
+            else:
+                return redirect(url_for(current_app.config['DEFAULT_LOGIN_ENDPOINT']))
 
-    if role_row:
-        # user already has a role, but it may not be active
-        success = switch_class(class_id)
-        if not success:
-            abort(403)
-        else:
-            return redirect(url_for(current_app.config['DEFAULT_LOGIN_ENDPOINT']))
-
-    # user does not have a role
+    # no existing active role: for all other cases, we're registering, so only proceed if registration is enabled
     if link.reg_state == 'disabled':
-        # but registration is not currently active
-        # (can't check before login, because disabled reg links should still forward
-        #  registered users to the class...)
         flash("Registration is not active for this class.  Please contact the instructor for assistance.", "warning")
         return render_template("error.html")
 
-    # user does not have a role and registration is currently active for this class
-    # register them and switch to that role
+    if not auth.user:
+        flash(f"Please log in to access class '{link.class_name}'")
+        anon = 1 if link.anon_login else None
+        return redirect(url_for('auth.login', anon=anon, next=request.full_path))
+
+    # Here, the user must be logged in but not yet enrolled in the class.
+    # Proceed to enroll them and switch to the class.
+    assert auth.user is not None
+
     db.execute(
         "INSERT INTO roles (user_id, class_id, role) VALUES (?, ?, ?)",
-        [user_id, class_id, 'student']
+        [auth.user_id, class_id, 'student']
     )
     db.commit()
     success = switch_class(class_id)
