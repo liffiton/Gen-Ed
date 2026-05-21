@@ -12,7 +12,7 @@ from gened.db import get_db
 from tests.conftest import AppClient
 
 
-def _test_user_class_link(client: AppClient, link_url: str, status: int, result: str | None) -> None:
+def _test_user_class_link(client: AppClient, link_url: str, status: int, result: str | None = None) -> None:
     response = client.get(link_url)
     assert response.status_code == status
 
@@ -47,12 +47,33 @@ def test_user_class_link_v1(
     _test_user_class_link(client, path, status_login, result)
 
 
+@pytest.mark.parametrize('class_id', [-1, 1, 4], ids=['invalid_id', 'lti_class', 'v1_only_class'])
+@pytest.mark.parametrize('hash_suffix', ['', 'XXX'], ids=['no_hash', 'bad_hash'])
+@pytest.mark.parametrize('logged_in', [False, True], ids=['logged_out', 'logged_in'])
+def test_user_class_link_v2_invalid(
+    client: AppClient,
+    class_id: int,
+    hash_suffix: str,
+    logged_in: bool,
+) -> None:
+    """Invalid v2 links always return 404 regardless of login state.
+
+    -1: nonexistent class ID
+     1: valid class but LTI (no classes_user row)
+     4: valid class but uses a v1 link key
+    """
+    if logged_in:
+        client.login('testuser2', 'testuser2password')
+
+    path = f"/classes/access/{class_id}/{hash_suffix}"
+    _test_user_class_link(client, path, 404)
+
+
 @pytest.mark.parametrize(('class_id', 'status_nologin', 'status_login', 'result'), [
-    (-1, 404, 404, None),  # invalid class_id
-    (1, 404, 404, None),  # LTI class (also invalid)
     (6, 302, 200, 'Registration is not active for this class.'),  # disabled v2 class
     (7, 302, 200, 'Registration is not active for this class.'),  # expired v2 class
     (8, 302, 302, '/classes/home'),  # enabled v2 class
+    (9, 302, 302, '/classes/home'),  # enabled v2 class w/ anonymous login
 ])
 def test_user_class_link_v2(
     app: Flask,
@@ -74,19 +95,17 @@ def test_user_class_link_v2(
             JOIN classes_user ON classes.id = classes_user.class_id
             WHERE classes.id = ?
         """, [class_id]).fetchone()
-        if row is None:
-            path = url = f"/access/class/{class_id}/bad_hash"
-        else:
-            link = RegistrationLink.from_row(row)
-            url = link.get_url()
-            path = link.get_url(external=False)
+
+        link = RegistrationLink.from_row(row)
+        url = link.get_url()
+        path = link.get_url(external=False)
 
     # link with invalid hash (whether originally valid or not))
     invalid_url = url + "X"  # one character added to the hash
-    _test_user_class_link(client, invalid_url, 404, None)
+    _test_user_class_link(client, invalid_url, 404)
 
     # reg/access links should redirect if valid but not logged in.
-    _test_user_class_link(client, url, status_nologin, f"/auth/login?next={path}?")
+    _test_user_class_link(client, url, status_nologin, f"/auth/login?{'anon=1&' if link.anon_login else ''}next={path}?")
 
     # if logged in, should get parameterized result
     client.login('testuser2', 'testuser2password')  # log in as testuser2, not connected to any existing classes

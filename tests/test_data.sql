@@ -14,9 +14,10 @@ VALUES
     (3, 'USER002', 1),
     (4, 'USER003', 1),
     (5, 'ADMIN001', 1),
-    (6, 'USER001', 1),
-    (7, 'USER002', 1),
-    (8, 'USER003', 1);
+    (6, 'USER101', 1),
+    (7, 'USER102', 1),
+    (8, 'USER103', 1),
+    (9, 'USER104', 1);
 
 INSERT INTO contexts (id, name, class_id, class_order, available, config)
 VALUES
@@ -46,15 +47,16 @@ VALUES
     (22, 2, null, 'ltiuser2@domain.edu', null, false, false, 0),
     (23, 2, null, 'ltiuser3@domain.edu', null, false, false, 0);
 
-INSERT INTO classes_user (class_id, llm_api_key, link_key, link_reg_expires, creator_user_id, model_id)
+INSERT INTO classes_user (class_id, llm_api_key, link_key, link_reg_expires, link_anon_login, creator_user_id, model_id)
 VALUES
-    (2, 'nope', 'v1.reg_disabled', '0001-01-01', 11, 1),
-    (3, 'nope', 'v1.reg_expired', '2023-01-01', 11, 2),
-    (4, 'nope', 'v1.reg_enabled', '9999-12-31', 11, 2),
-    (5, 'nope', 'v1.link_id_000', '9999-12-31', 12, 2),  -- 5 is owned/created by testadmin user
-    (6, 'nope', 'v2.reg_disabled', '0001-01-01', 15, 1),
-    (7, 'nope', 'v2.reg_expired', '2023-01-01', 15, 2),
-    (8, 'nope', 'v2.reg_enabled', '9999-12-31', 15, 2);
+    (2, 'nope', 'v1.reg_disabled', '0001-01-01', 0, 11, 1),
+    (3, 'nope', 'v1.reg_expired', '2023-01-01', 0, 11, 2),
+    (4, 'nope', 'v1.reg_enabled', '9999-12-31', 0, 11, 2),
+    (5, 'nope', 'v1.link_id_000', '9999-12-31', 0, 12, 2),  -- 5 is owned/created by testadmin user
+    (6, 'nope', 'v2.reg_disabled', '0001-01-01', 0, 15, 1),
+    (7, 'nope', 'v2.reg_expired', '2023-01-01', 0, 15, 2),
+    (8, 'nope', 'v2.reg_enabled', '9999-12-31', 0, 15, 2),
+    (9, 'nope', 'v2.reg_enabled_anon', '9999-12-31', 1, 15, 2);
 
 INSERT INTO auth_local (user_id, username, password)
 VALUES
