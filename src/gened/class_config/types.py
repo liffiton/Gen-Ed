@@ -5,6 +5,7 @@
 import base64
 import datetime as dt
 import json
+import secrets
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass
@@ -19,6 +20,7 @@ from werkzeug.datastructures import ImmutableMultiDict
 
 from gened.access import AccessControl
 from gened.auth import get_auth_class
+from gened.db import get_db
 from gened.tz import date_is_past
 
 
@@ -26,6 +28,37 @@ class InvalidLinkKeyError(Exception):
     def __init__(self, key: str):
         super().__init__(f"Invalid link key: {key}")
 
+
+def v2_generate_new_key() -> str:
+    """ Generate a new, unique, unguessable link key.
+    (Currently on version 2 of this feature.)
+    """
+    db = get_db()
+    while True:
+        link_key_secret = secrets.token_urlsafe(10)
+        link_key = f"v2.{link_key_secret}"
+        match_row = db.execute("SELECT 1 FROM classes_user WHERE link_key=?", [link_key]).fetchone()
+        is_unique = not match_row
+        if is_unique:
+            break
+
+    return link_key
+
+def v2_get_hash(key: str, counter: int | None = None) -> str:
+    assert key.startswith("v2.")
+    secret = key[3:]
+    if counter is not None:
+        secret += f":{counter}"
+    # 9 bytes provides plenty of entropy and an unpadded bas64 encoding
+    hash_bytes = blake2b(secret.encode(), digest_size=9).digest()
+    return base64.urlsafe_b64encode(hash_bytes).decode()
+
+def v2_check_hash(key: str, received: str, counter: int | None = None) -> bool:
+    if not key.startswith("v2."):
+        # only v2 uses hashes; do not hash otherwise
+        return False
+    correct = v2_get_hash(key, counter)
+    return compare_digest(correct, received)
 
 # Dataclass for organizing class registration link info
 @dataclass(frozen=True, kw_only=True)
@@ -45,29 +78,13 @@ class RegistrationLink:
         else:
             return 'date'  # will expire at some set date
 
-    def v2_get_hash(self, counter: int | None = None) -> str:
-        assert self.key.startswith("v2.")
-        secret = self.key[3:]
-        if counter is not None:
-            secret += f":{counter}"
-        # 9 bytes provides plenty of entropy and an unpadded bas64 encoding
-        hash_bytes = blake2b(secret.encode(), digest_size=9).digest()
-        return base64.urlsafe_b64encode(hash_bytes).decode()
-
-    def v2_check_hash(self, received: str, counter: int | None = None) -> bool:
-        if not self.key.startswith("v2."):
-            # only v2 uses hashes; do not hash otherwise
-            return False
-        correct = self.v2_get_hash(counter)
-        return compare_digest(correct, received)
-
-    def get_url(self, *, external: bool = True) -> str:
+    def get_url(self, *, counter: int | None = None, external: bool = True) -> str:
         if self.key.startswith("v1."):
             ident = self.key[3:]
             return url_for("classes.access_class_v1", class_ident=ident, _external=external)
         elif self.key.startswith("v2."):
-            hash_val = self.v2_get_hash()
-            return url_for("classes.access_class_v2", class_id=self.class_id, hash_val=hash_val, _external=external)
+            hash_val = v2_get_hash(self.key, counter)
+            return url_for("classes.access_class_v2", counter=counter, class_id=self.class_id, hash_val=hash_val, _external=external)
         else:
             raise InvalidLinkKeyError(self.key)
 

@@ -31,6 +31,28 @@ input[type='radio'] {
   margin-top: 0.8rem;
 }
 </style>
+
+<script type="text/javascript">
+  function confirmAndPost(msg, url, data = {}) {
+    if (!confirm(msg)) return;
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+
+    for (const [key, value] of Object.entries(data)) {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = value;
+      form.appendChild(input);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+  }
+</script>
+
 <section class="section">
   <h1 class="title">Configure Class: {{ auth.cur_class.class_name }}</h1>
   <div class="flex_items" style="gap: 0;">
@@ -62,6 +84,10 @@ input[type='radio'] {
           <div class="field-body">
             <div class="field">
               {{ link.get_url() }}
+              <button class="button is-danger is-outlined is-small mt-1 ml-1" type="button" onclick="confirmAndPost('Are you sure you want to regenerate the access links and invalidate all existing links?  Any links shared previously will no longer work.', '{{ url_for(".regenerate_link_key") }}')">
+                <svg class="icon" aria-hidden="true"><use href="#svg_trash" /></svg>
+                <span>Regenerate / invalidate old links</span>
+              </button>
             </div>
           </div>
         </div>
@@ -101,13 +127,34 @@ input[type='radio'] {
         <div class="field is-horizontal">
           <div class="field-label is-normal">
             <label class="label" for="class_link_anon_login">Anonymous Registration:</label>
-            <p class="help-text">When enabled, anyone using the access link <em>without</em> an existing account will create an anonymous account.</p>
-            <p class="help-text">If they already have an account, they will join the class with that account.</p>
+            <p class="help-text">If enabled, anyone <em>without</em> an existing account who uses the access link will create a new anonymous account.</p>
+            <p class="help-text">Users <em>with</em> existing accounts will not be anonymized when they join, though.</p>
           </div>
           <div class="field-body">
             <div class="field">
               <div class="control">
                 <input name="class_link_anon_login" id="class_link_anon_login" type="checkbox" {% if link.anon_login %}checked{% endif %}>
+                {% if link.anon_login and nologin_links %}
+                  <p class="control mt-2 help-text">
+                    Alternative:
+                    <button type="button" class="button is-light is-link is-small" style="vertical-align: baseline;" onclick="document.getElementById('nologin_link_dialog').showModal()">
+                      Use no-login links
+                    </button>
+                  </p>
+
+                  <dialog id="nologin_link_dialog" style="max-width: 50em;">
+                    <div class="box content">
+                      <h2>No-login Links</h2>
+                      <p>Optionally, you may allow users to access your class <em>without</em> logging in at all by distributing these links.  Each link will create an anonymous, numbered account tied to this class, and following the same link later will connect to the same account.</p>
+                      <p>Be sure to give each individual a different link; if multiple people use the same no-login link, they will be able to access each other's queries and other usage data.</p>
+                      <textarea rows="10" readonly class="textarea is-small">
+                        {%- for nologin_link in nologin_links -%}
+                        {{ nologin_link + '\n' }}
+                        {%- endfor -%}
+                      </textarea>
+                    </div>
+                  </dialog>
+                {% endif %}
               </div>
             </div>
           </div>
@@ -194,7 +241,10 @@ input[type='radio'] {
             {% if class_row.llm_api_key %}
               <div style="margin-top: 0.375rem;" x-data="{show_confirm: false}">
                 {{ "*" * 20 + class_row.llm_api_key[-4:] }}
-                <button class="button is-danger is-small ml-3" type="button" @click="show_confirm=true" x-bind:disabled="show_confirm"><span class="delete mr-2"></span> Clear API Key</button>
+                <button class="button is-danger is-outlined is-small ml-3" type="button" @click="show_confirm=true" x-bind:disabled="show_confirm">
+                  <svg class="icon" aria-hidden="true"><use href="#svg_trash" /></svg>
+                  <span>Clear API Key</span>
+                </button>
                 <button class="button is-danger is-small" type="submit" name="clear_llm_api_key" x-show="show_confirm"><b>Confirm</b>&nbsp;clear API Key</button>
               </div>
             {% else %}
@@ -235,7 +285,7 @@ input[type='radio'] {
         </div>
 
         <dialog id="llm_test_dialog">
-          <div class="notification"
+          <div class="notification is-size-5"
                x-bind:class="llm_test_result === 'ok' ? 'is-success' : 'is-danger'"
                x-html="llm_test_result === 'ok' ? '<strong>Your API key worked with the chosen model!</strong>' : llm_test_result">
           </div>

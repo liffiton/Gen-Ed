@@ -14,7 +14,6 @@ For instructor-specific operations, see instructor.py.
 """
 
 import datetime as dt
-import secrets
 
 from flask import (
     Blueprint,
@@ -30,7 +29,7 @@ from werkzeug.wrappers.response import Response
 
 from .access import login_required
 from .auth import get_auth, set_session_auth_class
-from .class_config.types import RegistrationLink
+from .class_config.types import RegistrationLink, v2_check_hash, v2_generate_new_key
 from .component_registry import get_navbar_components
 from .db import get_db
 from .llm import LLM, with_llm
@@ -102,7 +101,6 @@ def get_or_create_lti_class(lti_consumer_id: int, lti_context_id: str, class_nam
 
         current_app.logger.info(f"New class (LTI): {class_name} ({class_id})")
 
-        assert class_id is not None
         return class_id
 
 
@@ -128,13 +126,8 @@ def create_user_class(user_id: int, class_name: str, llm_api_key: str | None = N
     db = get_db()
 
     # generate a new, unique, unguessable link key
-    while True:
-        link_key_secret = secrets.token_urlsafe(10)
-        link_key = f"v2.{link_key_secret}"  # currently on version 2 of this feature
-        match_row = db.execute("SELECT 1 FROM classes_user WHERE link_key=?", [link_key]).fetchone()
-        is_unique = not match_row
-        if is_unique:
-            break
+    # currently on version 2 of this feature
+    link_key = v2_generate_new_key()
 
     cur = db.execute("INSERT INTO classes (name) VALUES (?)", [class_name])
     class_id = cur.lastrowid
@@ -289,7 +282,7 @@ def access_class_v2(class_id: int, hash_val: str, counter: int | None = None) ->
     link = RegistrationLink.from_row(class_row)
 
     # verify the hash
-    valid = link.v2_check_hash(hash_val, counter)
+    valid = v2_check_hash(link.key, hash_val, counter)
     if not valid:
         abort(404)
 
