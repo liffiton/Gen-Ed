@@ -13,7 +13,10 @@ VALUES
     (2, 'USER001', 1),
     (3, 'USER002', 1),
     (4, 'USER003', 1),
-    (5, 'ADMIN001', 1);
+    (5, 'ADMIN001', 1),
+    (6, 'USER001', 1),
+    (7, 'USER002', 1),
+    (8, 'USER003', 1);
 
 INSERT INTO contexts (id, name, class_id, class_order, available, config)
 VALUES
@@ -37,6 +40,7 @@ VALUES
     (12, 1, null, null, 'testadmin', true, true, 0),  -- testadmin
     (13, 1, null, 'instructor@example.com', 'testinstructor', false, true, 0),  -- testinstructor
     (14, 1, null, 'user2@example.com', 'testuser2', false, false, 0),  -- testuser2
+    (15, 1, null, 'instructor2@example.com', 'testinstructor2', false, true, 0),  -- testinstructor2
     -- provider 2 = lti
     (21, 2, null, 'ltiuser1@domain.edu', null, false, false, 0),
     (22, 2, null, 'ltiuser2@domain.edu', null, false, false, 0),
@@ -47,7 +51,10 @@ VALUES
     (2, 'nope', 'v1.reg_disabled', '0001-01-01', 11, 1),
     (3, 'nope', 'v1.reg_expired', '2023-01-01', 11, 2),
     (4, 'nope', 'v1.reg_enabled', '9999-12-31', 11, 2),
-    (5, 'nope', 'v1.link_id_000', '9999-12-31', 12, 2);  -- 5 is owned/created by testadmin user
+    (5, 'nope', 'v1.link_id_000', '9999-12-31', 12, 2),  -- 5 is owned/created by testadmin user
+    (6, 'nope', 'v2.reg_disabled', '0001-01-01', 15, 1),
+    (7, 'nope', 'v2.reg_expired', '2023-01-01', 15, 2),
+    (8, 'nope', 'v2.reg_enabled', '9999-12-31', 15, 2);
 
 INSERT INTO auth_local (user_id, username, password)
 VALUES

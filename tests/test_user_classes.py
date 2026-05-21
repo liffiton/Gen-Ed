@@ -7,14 +7,9 @@ import re
 import pytest
 from flask import Flask
 
+from gened.class_config.types import RegistrationLink
+from gened.db import get_db
 from tests.conftest import AppClient
-
-
-def test_not_logged_in(client: AppClient) -> None:
-    # reg/access links should not work if not logged in.
-    response = client.get("/classes/access/reg_enabled")
-    assert response.status_code == 302
-    assert response.location == "/auth/login?next=/classes/access/reg_enabled?"
 
 
 def _test_user_class_link(client: AppClient, link_url: str, status: int, result: str | None) -> None:
@@ -28,20 +23,74 @@ def _test_user_class_link(client: AppClient, link_url: str, status: int, result:
         assert result in response.text
 
 
-@pytest.mark.parametrize(('link_ident', 'status', 'result'), [
-    ('invalid_link', 404, None),
-    ('reg_disabled', 200, 'Registration is not active for this class.'),
-    ('reg_expired', 200, 'Registration is not active for this class.'),
-    ('reg_enabled', 302, '/classes/home'),
+@pytest.mark.parametrize(('link_ident', 'status_nologin', 'status_login', 'result'), [
+    ('invalid_link', 404, 404, None),
+    ('reg_disabled', 302, 200, 'Registration is not active for this class.'),
+    ('reg_expired', 302, 200, 'Registration is not active for this class.'),
+    ('reg_enabled', 302, 302, '/classes/home'),
 ])
-def test_user_class_link(
+def test_user_class_link_v1(
     client: AppClient,
     link_ident: str,
-    status: int,
+    status_nologin: int,
+    status_login: int,
     result: str | None
 ) -> None:
+    # test v1 links
+    path = f"/classes/access/{link_ident}"
+
+    # reg/access links should redirect if valid but not logged in.
+    _test_user_class_link(client, path, status_nologin, f"/auth/login?next={path}?")
+
+    # if logged in, should get parameterized result
     client.login('testuser2', 'testuser2password')  # log in as testuser2, not connected to any existing classes
-    _test_user_class_link(client, f"/classes/access/{link_ident}", status, result)
+    _test_user_class_link(client, path, status_login, result)
+
+
+@pytest.mark.parametrize(('class_id', 'status_nologin', 'status_login', 'result'), [
+    (-1, 404, 404, None),  # invalid class_id
+    (1, 404, 404, None),  # LTI class (also invalid)
+    (6, 302, 200, 'Registration is not active for this class.'),  # disabled v2 class
+    (7, 302, 200, 'Registration is not active for this class.'),  # expired v2 class
+    (8, 302, 302, '/classes/home'),  # enabled v2 class
+])
+def test_user_class_link_v2(
+    app: Flask,
+    client: AppClient,
+    class_id: int,
+    status_nologin: int,
+    status_login: int,
+    result: str | None
+) -> None:
+    # test v2 links
+
+    # get a valid RegistrationLink to get a functioning URL
+    with app.test_request_context():
+        db = get_db()
+        row = db.execute("""
+            SELECT classes.id, classes.name, classes_user.link_key,
+                   classes_user.link_reg_expires, classes_user.link_anon_login
+            FROM classes
+            JOIN classes_user ON classes.id = classes_user.class_id
+            WHERE classes.id = ?
+        """, [class_id]).fetchone()
+        if row is None:
+            path = url = f"/access/class/{class_id}/bad_hash"
+        else:
+            link = RegistrationLink.from_row(row)
+            url = link.get_url()
+            path = link.get_url(external=False)
+
+    # link with invalid hash (whether originally valid or not))
+    invalid_url = url + "X"  # one character added to the hash
+    _test_user_class_link(client, invalid_url, 404, None)
+
+    # reg/access links should redirect if valid but not logged in.
+    _test_user_class_link(client, url, status_nologin, f"/auth/login?next={path}?")
+
+    # if logged in, should get parameterized result
+    client.login('testuser2', 'testuser2password')  # log in as testuser2, not connected to any existing classes
+    _test_user_class_link(client, url, status_login, result)
 
 
 def _create_user_class(client: AppClient, class_name: str) -> str:

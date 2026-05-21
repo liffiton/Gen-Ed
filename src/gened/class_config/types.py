@@ -61,14 +61,13 @@ class RegistrationLink:
         correct = self.v2_get_hash(counter)
         return compare_digest(correct, received)
 
-    @property
-    def url(self) -> str:
+    def get_url(self, *, external: bool = True) -> str:
         if self.key.startswith("v1."):
             ident = self.key[3:]
-            return url_for("classes.access_class_v1", class_ident=ident, _external=True)
+            return url_for("classes.access_class_v1", class_ident=ident, _external=external)
         elif self.key.startswith("v2."):
             hash_val = self.v2_get_hash()
-            return url_for("classes.access_class_v2", class_id=self.class_id, hash_val=hash_val, _external=True)
+            return url_for("classes.access_class_v2", class_id=self.class_id, hash_val=hash_val, _external=external)
         else:
             raise InvalidLinkKeyError(self.key)
 
