@@ -28,7 +28,7 @@ from .redir import safe_redirect_next
 AUTH_SESSION_KEY = "__gened_auth"
 
 AuthProviderExt = Literal['lti', 'google', 'github', 'microsoft']
-AuthProviderLocal = Literal['local', 'demo']
+AuthProviderLocal = Literal['local', 'demo', 'nologin']
 AuthProvider = AuthProviderExt | AuthProviderLocal
 RoleType = Literal['instructor', 'student']
 

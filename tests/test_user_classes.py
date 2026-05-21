@@ -23,6 +23,28 @@ def _test_user_class_link(client: AppClient, link_url: str, status: int, result:
         assert result in response.text
 
 
+def _get_access_link(*, class_id: int | None = None, class_name: str | None = None) -> AccessLink:
+    """Fetch an AccessLink from the database by class ID or name. Must be called within a request context."""
+    if class_id is not None:
+        where = "WHERE classes.id = ?"
+        params: list[int | str] = [class_id]
+    else:
+        assert class_name is not None
+        where = "WHERE classes.name = ?"
+        params = [class_name]
+
+    sql = f"""
+        SELECT classes.id, classes.name, classes_user.link_key,
+               classes_user.link_reg_expires, classes_user.link_anon_login
+        FROM classes
+        JOIN classes_user ON classes.id = classes_user.class_id
+        {where}
+    """
+    db = get_db()
+    row = db.execute(sql, params).fetchone()
+    return AccessLink.from_row(row)
+
+
 @pytest.mark.parametrize(('link_ident', 'status', 'result'), [
     ('invalid_link', 404, None),
     ('reg_disabled', 200, 'Registration is not active for this class.'),
@@ -85,19 +107,8 @@ def test_user_class_link_v2(
     result: str | None
 ) -> None:
     # test v2 links
-
-    # get a valid AccessLink to get a functioning URL
     with app.test_request_context():
-        db = get_db()
-        row = db.execute("""
-            SELECT classes.id, classes.name, classes_user.link_key,
-                   classes_user.link_reg_expires, classes_user.link_anon_login
-            FROM classes
-            JOIN classes_user ON classes.id = classes_user.class_id
-            WHERE classes.id = ?
-        """, [class_id]).fetchone()
-
-        link = AccessLink.from_row(row)
+        link = _get_access_link(class_id=class_id)
         url = link.get_url()
         path = link.get_url(external=False)
 
@@ -116,6 +127,22 @@ def test_user_class_link_v2(
     _test_user_class_link(client, url, status, result)
 
 
+def _get_latest_nologin_user_id(app: Flask) -> int:
+    with app.test_request_context():
+        db = get_db()
+        nologin_id = db.execute("SELECT id FROM auth_providers WHERE name='nologin'").fetchone()['id']
+        row = db.execute("SELECT MAX(id) FROM users WHERE auth_provider=?", [nologin_id]).fetchone()
+        assert row is not None
+        assert row[0] is not None
+        return row[0]  # type: ignore[no-any-return]
+
+
+def _get_link_path(app: Flask, class_name: str, counter: int = 0) -> str:
+    with app.test_request_context():
+        link = _get_access_link(class_name=class_name)
+        return link.get_url(counter=counter, external=False)
+
+
 def _create_user_class(client: AppClient, class_name: str) -> str:
     response = client.post(
         "/classes/create/",
@@ -128,7 +155,6 @@ def _create_user_class(client: AppClient, class_name: str) -> str:
     response = client.get(response.location)
     match = re.search(r"(https?:\/\/\S+\/classes\/access\/\S+)", response.text)
     assert match is not None
-    assert match.group(1)
 
     class_access_link = match.group(1)
     return class_access_link
@@ -225,3 +251,63 @@ def test_user_class_usage(app: Flask) -> None:
     _test_user_class_link(user_client, access_link, 302, '/classes/home')
     result = user_client.get('/help/')
     assert result.status_code == 200
+
+
+def test_nologin_key_regeneration_isolates_accounts(app: Flask) -> None:
+    """Regenerating the link key should create fresh nologin accounts,
+    not reconnect to old ones with the same counter."""
+    instructor_client = AppClient(app.test_client())
+    student_client = AppClient(app.test_client())
+
+    instructor_client.login('testinstructor', 'testinstructorpassword')
+    _create_user_class(instructor_client, "Nologin Test Class")
+
+    # Enable the class with anonymous login
+    result = instructor_client.post(
+        '/instructor/config/save/access',
+        data={
+            'class_enabled': 'on',
+            'is_user_class': 'true',
+            'link_reg_active': 'enabled',
+            'class_link_anon_login': 'on',
+            'save_access_form': '',
+        },
+        headers={'Referer': 'http://localhost/instructor/config'},
+        follow_redirects=True,
+    )
+    assert "Class access configuration updated." in result.text
+
+    # Build the first link (counter=1)
+    first_link_path = _get_link_path(app, "Nologin Test Class", counter=1)
+
+    # First student uses the link → creates a nologin user
+    resp = student_client.get(first_link_path, follow_redirects=True)
+    assert resp.status_code == 200
+    assert "Nologin Test Class" in resp.text
+
+    first_user_id = _get_latest_nologin_user_id(app)
+
+    # Regenerate the key
+    resp = instructor_client.post(
+        '/instructor/config/regenerate_key',
+        headers={'Referer': 'http://localhost/instructor/config'},
+        follow_redirects=True,
+    )
+    assert resp.status_code == 200
+
+    # Build the new link (counter=1) from the updated database
+    new_link_path = _get_link_path(app, "Nologin Test Class", counter=1)
+
+    # Old link should no longer work
+    old_student_client = AppClient(app.test_client())
+    resp = old_student_client.get(first_link_path)
+    assert resp.status_code == 404
+
+    # New student uses same counter (1) → should get a DIFFERENT user account
+    new_student_client = AppClient(app.test_client())
+    resp = new_student_client.get(new_link_path, follow_redirects=True)
+    assert resp.status_code == 200
+    assert "Nologin Test Class" in resp.text
+
+    second_user_id = _get_latest_nologin_user_id(app)
+    assert second_user_id != first_user_id, "New key should create a fresh nologin account"

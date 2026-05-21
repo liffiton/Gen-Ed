@@ -26,7 +26,8 @@ INSERT INTO auth_providers(name) VALUES
     ('demo'),
     ('google'),
     ('github'),
-    ('microsoft')
+    ('microsoft'),
+    ('nologin')
 ;
 
 CREATE TABLE users (

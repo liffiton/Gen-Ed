@@ -146,7 +146,7 @@ input[type='radio'] {
                     <div class="box content">
                       <h2>No-login Links</h2>
                       <p>Optionally, you may allow users to access your class <em>without</em> logging in at all by distributing these links.  Each link will create an anonymous, numbered account tied to this class, and following the same link later will connect to the same account.</p>
-                      <p>Be sure to give each individual a different link; if multiple people use the same no-login link, they will be able to access each other's queries and other usage data.</p>
+                      <p>Be sure to give each link to only one person; if multiple people use the same numbered account, they will be able to access each other's queries and other usage data.</p>
                       <textarea rows="10" readonly class="textarea is-small">
                         {%- for nologin_link in nologin_links -%}
                         {{ nologin_link + '\n' }}

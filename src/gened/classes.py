@@ -14,6 +14,7 @@ For instructor-specific operations, see instructor.py.
 """
 
 import datetime as dt
+from hashlib import blake2b
 
 from flask import (
     Blueprint,
@@ -28,7 +29,7 @@ from flask import (
 from werkzeug.wrappers.response import Response
 
 from .access import login_required
-from .auth import get_auth, set_session_auth_class
+from .auth import get_auth, set_session_auth_class, set_session_auth_user
 from .class_config.access_links import AccessLink, v2_check_hash, v2_generate_new_key
 from .component_registry import get_navbar_components
 from .db import get_db
@@ -314,25 +315,90 @@ def _join_class(link: AccessLink, counter: int | None = None) -> str | Response:
             else:
                 return redirect(url_for(current_app.config['DEFAULT_LOGIN_ENDPOINT']))
 
-    # no existing active role: for all other cases, we're registering, so only proceed if registration is enabled
+        # logged in (but no existing role) conflicts with no-login links
+        if counter is not None:
+            flash("No-login links cannot be used when already logged in.", "warning")
+            return render_template("error.html")
+
+    # no existing active role: for all other cases, we're registering,
+    # so only proceed if registration is enabled
     if link.reg_state == 'disabled':
         flash("Registration is not active for this class.  Please contact the instructor for assistance.", "warning")
         return render_template("error.html")
 
-    if not auth.user:
+    if auth.user:
+        # user must be logged in but not yet enrolled in the class,
+        # so enroll them and switch to the class
+        return _enroll_and_switch(class_id)
+
+    if link.anon_login and counter is not None:
+        # no-login counter-based link:
+        #  1) create new user if doesn't already exist
+        #  2) log session in as that user
+        #  3) enroll them and switch to the class
+        _activate_nologin_user(class_id, link.key, counter)
+        return _enroll_and_switch(class_id)
+    else:
+        # either normal login or normal anon registration;
+        # redir to login with the correct argument
         flash(f"Please log in to access class '{link.class_name}'")
         anon = 1 if link.anon_login else None
         return redirect(url_for('auth.login', anon=anon, next=request.full_path))
 
-    # Here, the user must be logged in but not yet enrolled in the class.
-    # Proceed to enroll them and switch to the class.
+
+def _activate_nologin_user(class_id: int, link_key: str, counter: int) -> None:
+    """ Activate a nologin user, creating it first if needed.
+
+    Derives a short hash from the link key so that regenerating the key
+    produces fresh accounts rather than reconnecting to old ones.
+
+    Parameters
+    ----------
+    class_id : int
+      id of the class in which to create them -- will be included in the username
+    link_key: str
+      the current v2 link key for the class, used to derive a key-specific hash
+    counter: int
+      counter to differentiate users within the class -- will be included in the username
+    """
+    db = get_db()
+    assert get_auth().user is None
+
+    key_secret = link_key[3:]
+    key_hash = blake2b(key_secret.encode(), digest_size=3).hexdigest()
+    username = f"user{key_hash}_{class_id}_{counter}"
+
+    provider_row = db.execute("SELECT id FROM auth_providers WHERE name='nologin'").fetchone()
+    nologin_provider_id = provider_row['id']
+
+    user_row = db.execute("SELECT * FROM users WHERE auth_name=? AND auth_provider=?", [username, nologin_provider_id]).fetchone()
+    if user_row:
+        user_id = user_row['id']
+    else:
+        cur = db.execute("INSERT INTO users(auth_provider, auth_name, query_tokens) VALUES(?, ?, 0)", [nologin_provider_id, username])
+        user_id = cur.lastrowid
+        db.commit()
+
+    assert user_id is not None
+    set_session_auth_user(user_id)
+
+
+def _enroll_and_switch(class_id: int) -> Response:
+    """ Enroll the current user in the given class, and switch into that class. """
+    db = get_db()
+    auth = get_auth()
     assert auth.user is not None
 
+    # OR IGNORE: proceed even if the role already exists (UNIQUE constraint violated)
     db.execute(
-        "INSERT INTO roles (user_id, class_id, role) VALUES (?, ?, ?)",
+        "INSERT OR IGNORE INTO roles (user_id, class_id, role) VALUES (?, ?, ?)",
         [auth.user_id, class_id, 'student']
     )
     db.commit()
+
+    # user may already has a role that is disabled; check for switch success
     success = switch_class(class_id)
-    assert success
+    if not success:
+        abort(403)
+
     return redirect(url_for(current_app.config['DEFAULT_LOGIN_ENDPOINT']))
