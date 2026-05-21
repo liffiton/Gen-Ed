@@ -7,7 +7,7 @@ import re
 import pytest
 from flask import Flask
 
-from gened.class_config.types import RegistrationLink
+from gened.class_config.access_links import AccessLink
 from gened.db import get_db
 from tests.conftest import AppClient
 
@@ -85,7 +85,7 @@ def test_user_class_link_v2(
 ) -> None:
     # test v2 links
 
-    # get a valid RegistrationLink to get a functioning URL
+    # get a valid AccessLink to get a functioning URL
     with app.test_request_context():
         db = get_db()
         row = db.execute("""
@@ -96,7 +96,7 @@ def test_user_class_link_v2(
             WHERE classes.id = ?
         """, [class_id]).fetchone()
 
-        link = RegistrationLink.from_row(row)
+        link = AccessLink.from_row(row)
         url = link.get_url()
         path = link.get_url(external=False)
 

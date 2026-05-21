@@ -24,8 +24,9 @@ from gened.db import get_db
 from gened.llm import LLM, get_models, with_llm
 from gened.redir import safe_redirect
 
+from .access_links import AccessLink, v2_generate_new_key
 from .config_table import create_blueprint
-from .types import ConfigTable, RegistrationLink, v2_generate_new_key
+from .types import ConfigTable
 
 bp = Blueprint('base', __name__, template_folder='templates')
 
@@ -136,7 +137,7 @@ def config_form() -> str:
     nologin_links = []
 
     if class_row['link_key'] is not None:
-        link = RegistrationLink.from_row(class_row)
+        link = AccessLink.from_row(class_row)
 
         if link.key.startswith("v2."):
             nologin_links = [

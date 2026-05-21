@@ -29,7 +29,7 @@ from werkzeug.wrappers.response import Response
 
 from .access import login_required
 from .auth import get_auth, set_session_auth_class
-from .class_config.types import RegistrationLink, v2_check_hash, v2_generate_new_key
+from .class_config.access_links import AccessLink, v2_check_hash, v2_generate_new_key
 from .component_registry import get_navbar_components
 from .db import get_db
 from .llm import LLM, with_llm
@@ -258,7 +258,7 @@ def access_class_v1(class_ident: str) -> str | Response:
         abort(404)
 
     # row exists with that ident: continue
-    link = RegistrationLink.from_row(class_row)
+    link = AccessLink.from_row(class_row)
     return _join_class(link)
 
 
@@ -279,7 +279,7 @@ def access_class_v2(class_id: int, hash_val: str, counter: int | None = None) ->
     if not class_row:
         abort(404)
 
-    link = RegistrationLink.from_row(class_row)
+    link = AccessLink.from_row(class_row)
 
     # verify the hash
     valid = v2_check_hash(link.key, hash_val, counter)
@@ -290,7 +290,7 @@ def access_class_v2(class_id: int, hash_val: str, counter: int | None = None) ->
     return _join_class(link, counter)
 
 
-def _join_class(link: RegistrationLink, counter: int | None = None) -> str | Response:
+def _join_class(link: AccessLink, counter: int | None = None) -> str | Response:
     '''Join a class or just login/access it.
 
     If the user already has a role in the class, just access it.
