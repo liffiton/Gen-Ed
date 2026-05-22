@@ -88,7 +88,7 @@ MICROSOFT_CLIENT_ID=[...]
 MICROSOFT_CLIENT_SECRET=[...]
 ```
 
-Then, to set up an application (CodeHelp, for example):
+Then, to set up an application:
 
 2. Initialize database:
 
@@ -145,8 +145,6 @@ optionally be encrypted using age encryption. To enable encryption:
 
 Running an Application
 ----------------------
-
-For example, to run the CodeHelp app:
 
 ```sh
 flask run
