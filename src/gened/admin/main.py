@@ -37,7 +37,7 @@ def count_activity() -> None:
     db = get_db()
 
     db.execute("""
-        CREATE TEMPORARY VIEW __activity_counts AS
+        CREATE TEMPORARY TABLE __activity_counts AS
         SELECT
             v_user_items.user_id AS user_id,
             v_user_items.role_id AS role_id,
