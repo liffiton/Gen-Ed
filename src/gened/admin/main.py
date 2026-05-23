@@ -39,11 +39,12 @@ def count_activity() -> None:
     db.execute("""
         CREATE TEMPORARY VIEW __activity_counts AS
         SELECT
+            v_user_items.user_id AS user_id,
             v_user_items.role_id AS role_id,
             COUNT(v_user_items.entry_time) AS uses,
             SUM(CASE WHEN v_user_items.entry_time > date('now', '-7 days') THEN 1 ELSE 0 END) AS uses_1wk
         FROM v_user_items
-        GROUP BY role_id
+        GROUP BY user_id, role_id
     """)
 
 
@@ -103,22 +104,30 @@ def get_users(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
     db = get_db()
     where_clause, where_params = filters.make_where(['consumer', 'class'])
     return db.execute(f"""
+        WITH matched_users AS (
         SELECT
             users.id AS id,
             json_array(users.display_name, auth_providers.name, users.display_extra) AS user,
-            users.query_tokens AS tokens,
-            SUM(__activity_counts.uses) AS "#uses",
-            SUM(__activity_counts.uses_1wk) AS "1wk"
+            users.query_tokens AS tokens
         FROM users
         LEFT JOIN auth_providers ON auth_providers.id=users.auth_provider
         LEFT JOIN roles ON roles.user_id=users.id
         LEFT JOIN classes ON roles.class_id=classes.id
         LEFT JOIN classes_lti ON classes.id=classes_lti.class_id
         LEFT JOIN consumers ON consumers.id=classes_lti.lti_consumer_id
-        LEFT JOIN __activity_counts ON __activity_counts.role_id=roles.id
         WHERE {where_clause}
         GROUP BY users.id
-        ORDER BY "1wk" DESC, users.id DESC
+        )
+        SELECT
+            m.id,
+            m.user,
+            m.tokens,
+            COALESCE(SUM(activity.uses), 0) AS "#uses",
+            COALESCE(SUM(activity.uses_1wk), 0) AS "1wk"
+        FROM matched_users m
+        LEFT JOIN __activity_counts activity ON activity.user_id=m.id
+        GROUP BY m.id
+        ORDER BY "1wk" DESC, m.id DESC
         LIMIT ?
         OFFSET ?
     """, [*where_params, limit, offset])  # noqa: S608 -- where_clause is generated safely
