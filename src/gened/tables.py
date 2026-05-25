@@ -4,6 +4,7 @@
 
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
+from re import sub
 from sqlite3 import Row
 from typing import Any, Final, Literal, Self
 
@@ -65,14 +66,11 @@ class Action:
 
 @dataclass(frozen=True, kw_only=True)
 class DataTableSpec:
-    name: str
     columns: list[Col]
     link_col: int | None = None
     link_template: str | None = None
     actions: list[Action] | None = None
     create_endpoint: str | None = None
-    csv_link: str | None = None
-    ajax_url: str | None = None
 
     def with_hidden(self, col_name: str) -> Self:
         new_columns = [
@@ -86,10 +84,18 @@ class DataTableSpec:
         return sum(1 for col in self.columns if col.hidden)
 
 
-@dataclass(kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class DataTable:
+    display_name: str
     spec: DataTableSpec
     data: list[Row]
+    csv_link: str | None = None
+    ajax_url: str | None = None
+
+    @property
+    def slug(self) -> str:
+        """Derive an HTML-safe id from display_name."""
+        return sub(r'[^a-z0-9]+', '-', self.display_name.lower().strip()).strip('-')
 
     @property
     def data_for_json(self) -> list[dict[str, Any]]:

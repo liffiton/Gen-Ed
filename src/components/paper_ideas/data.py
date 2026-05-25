@@ -12,7 +12,7 @@ from gened.db import get_db
 from gened.tables import Col, DataTableSpec, NumCol, ResponseCol, TimeCol, UserCol
 
 TABLE_NAME = 'paper_ideas_queries'
-DISPLAY_NAME = 'paper idea queries'
+DISPLAY_NAME = 'Paper Idea Queries'
 
 def get_queries(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
     db = get_db()
@@ -44,7 +44,6 @@ def get_queries(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
 
 
 queries_table = DataTableSpec(
-    name=TABLE_NAME,
     columns=[NumCol('id'), UserCol('user'), TimeCol('time'), Col('assignment'), Col('topics'), ResponseCol('response')],
     link_col=0,
     link_template="/ideas/view/${value}",

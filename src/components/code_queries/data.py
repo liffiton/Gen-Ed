@@ -108,7 +108,6 @@ def get_queries(filters: Filters, /, limit: int=-1, offset: int=0) -> Cursor:
     return cur
 
 queries_table = DataTableSpec(
-    name='queries',
     columns=[NumCol('id'), UserCol('user'), TimeCol('time'), Col('context'), Col('code'), Col('error'), Col('issue'), ResponseCol('response'), Col('rating', align='center')],
     link_col=0,
     link_template="/help/view/${value}",
@@ -116,7 +115,7 @@ queries_table = DataTableSpec(
 
 queries_data_source = DataSource(
     table_name='code_queries',
-    display_name='queries',
+    display_name='Queries',
     get_data=get_queries,
     table_spec=queries_table,
     time_col='query_time',

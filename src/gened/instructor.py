@@ -13,7 +13,6 @@ All routes in this blueprint require instructor privileges.
 For general class operations available to all users, see classes.py.
 """
 
-from dataclasses import replace
 from sqlite3 import Row
 
 from flask import (
@@ -90,15 +89,15 @@ def _get_class_users(*, for_export: bool = False) -> list[Row]:
 @bp.route("/")
 def main() -> str | Response:
     users_table_spec = DataTableSpec(
-        name='users',
         columns=[NumCol('role_id', hidden=True), NumCol('id', hidden=True), UserCol('user'), NumCol('#uses'), NumCol('1wk'), BoolCol('active?', url=url_for('.set_role_active')), BoolCol('instructor?', url=url_for('.set_role_instructor'))],
         link_col=1,
         link_template='?user=${value}',
-        csv_link=url_for('instructor.get_csv', kind='users'),
     )
     users_table = DataTable(
+        display_name='Users',
         spec=users_table_spec,
         data=_get_class_users(),
+        csv_link=url_for('instructor.get_csv', kind='users'),
     )
 
     sel_user_name = None
@@ -123,11 +122,11 @@ def main() -> str | Response:
             continue
         if not component.is_available():
             continue
-        table = ds.get_populated_table(filters)
-        table.spec = replace(table.spec, csv_link = url_for('instructor.get_csv', kind=ds.table_name))
-        tables.append((ds.display_name, table))
+        table = ds.get_populated_table(filters, csv_link=url_for('instructor.get_csv', kind=ds.table_name))
+        tables.append(table)
 
     return render_template("instructor_view.html", users=users_table, tables=tables, user=sel_user_name)
+
 
 
 @bp.route("/csv/<string:kind>")

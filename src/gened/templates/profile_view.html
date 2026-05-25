@@ -49,9 +49,9 @@ dl.profile dd { margin: 0; }
           <span>Tester</span>
         </dd>
       {% endif %}
-      {% for data_name, counts in data_counts | items %}
+      {% for display_name, counts in data_counts | items %}
         {% if counts.num_total > 0 %}
-          <dt>{{ data_name | capitalize }}:</dt>
+          <dt>{{ display_name }}:</dt>
           <dd><a href="{{ url_for('profile.view_data') }}">{{ counts.num_total }} total</a>, {{ counts.num_1wk }} in the past week.</dd>
         {% endif %}
       {% endfor %}

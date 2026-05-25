@@ -157,9 +157,9 @@ class DataSource:
     table_spec: DataTableSpec
     time_col: str | None = None
 
-    def get_populated_table(self, filters: Filters, * , limit: int=-1, offset: int=0) -> DataTable:
+    def get_populated_table(self, filters: Filters, *, limit: int=-1, offset: int=0, csv_link: str | None = None) -> DataTable:
         data = self.get_data(filters, limit=limit, offset=offset).fetchall()
-        return DataTable(spec=self.table_spec, data=data)
+        return DataTable(display_name=self.display_name, spec=self.table_spec, data=data, csv_link=csv_link)
 
     def get_user_data(self, limit: int) -> list[Row]:
         '''Fetch current user's history.'''

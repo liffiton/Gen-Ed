@@ -12,7 +12,7 @@ from gened.db import get_db
 from gened.tables import Col, DataTableSpec, NumCol, ResponseCol, TimeCol, UserCol
 
 TABLE_NAME = 'language_help_queries'
-DISPLAY_NAME = 'language help queries'
+DISPLAY_NAME = 'Language Help Queries'
 
 def get_queries(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
     db = get_db()
@@ -43,7 +43,6 @@ def get_queries(filters: Filters, limit: int=-1, offset: int=0) -> Cursor:
 
 
 queries_table = DataTableSpec(
-    name=TABLE_NAME,
     columns=[NumCol('id'), UserCol('user'), TimeCol('time'), Col('writing'), ResponseCol('response')],
     link_col=0,
     link_template="/check/view/${value}",

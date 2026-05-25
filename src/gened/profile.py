@@ -2,8 +2,6 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from dataclasses import replace
-
 from flask import (
     Blueprint,
     abort,
@@ -54,7 +52,7 @@ def main() -> str:
 
     data_sources = [ c.data_source for c in get_registered_components() if c.data_source ]
     data_counts = {
-        ds.table_spec.name: ds.get_user_counts(user_id)
+        ds.display_name: ds.get_user_counts(user_id)
         for ds in data_sources
     }
 
@@ -107,7 +105,6 @@ def main() -> str:
     """, [user_id]).fetchall()
 
     table_spec = DataTableSpec(
-        name='models',
         columns=[
             NumCol('id', hidden=True),
             Col('name'),
@@ -121,7 +118,7 @@ def main() -> str:
             Action("Edit model", icon='pencil', url=url_for('models.models_edit'), id_col=0),
         ],
     )
-    models_table = DataTable(spec=table_spec, data=models)
+    models_table = DataTable(display_name='Models', spec=table_spec, data=models)
 
     # determine whether tokens are in use and if so, how many remain
     # usage_tokens = None when not currently in use (e.g., if in a class w/ provided API key)
@@ -155,11 +152,9 @@ def view_data() -> str:
             # don't show tables with no data
             continue
 
-        table_spec = ds.table_spec
-        table_spec = replace(table_spec, csv_link = url_for(".get_csv", kind=table_spec.name))
-        table_spec = table_spec.with_hidden('user')  # it's just the current user's data; no need to list them in every row
-        table = DataTable(spec=table_spec, data=data)
-        tables.append((ds.display_name, table))
+        table_spec = ds.table_spec.with_hidden('user')  # it's just the current user's data; no need to list them in every row
+        table = DataTable(display_name=ds.display_name, spec=table_spec, data=data, csv_link=url_for(".get_csv", kind=ds.table_name))
+        tables.append(table)
 
     return render_template("profile_view_data.html", tables=tables)
 

@@ -2,7 +2,6 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from dataclasses import replace
 from sqlite3 import Cursor
 
 from flask import (
@@ -162,7 +161,6 @@ def get_data_sources(filters: Filters) -> dict[str, DataSource]:
     datatables = {}
 
     datatables['consumers'] = DataTableSpec(
-        name='consumers',
         columns=[NumCol('id'), Col('consumer'), Col('model'), NumCol('#classes'), NumCol('#users'), NumCol('#uses'), NumCol('1wk')],
         link_col=0,
         link_template=filters.template_string('consumer'),
@@ -171,7 +169,6 @@ def get_data_sources(filters: Filters) -> dict[str, DataSource]:
     )
 
     datatables['classes'] = DataTableSpec(
-        name='classes',
         columns=[NumCol('id'), Col('name'), Col('owner'), Col('model'), NumCol('#users'), NumCol('#uses'), NumCol('1wk')],
         link_col=0,
         link_template=filters.template_string('class'),
@@ -179,21 +176,19 @@ def get_data_sources(filters: Filters) -> dict[str, DataSource]:
     )
 
     datatables['users'] = DataTableSpec(
-        name='users',
         columns=[NumCol('id'), UserCol('user'), NumCol('tokens'), NumCol('#uses'), NumCol('1wk')],
         link_col=0,
         link_template=filters.template_string('user'),
     )
 
     datatables['roles'] = DataTableSpec(
-        name='roles',
         columns=[NumCol('id'), UserCol('user'), Col('role'), Col('class'), Col('class owner')],
         link_col=0,
         link_template=filters.template_string('role'),
     )
 
     built_ins = {
-        table: DataSource(table_name=table, display_name=table, get_data=data_funcs[table], table_spec=datatables[table])
+        table: DataSource(table_name=table, display_name=table.capitalize(), get_data=data_funcs[table], table_spec=datatables[table])
         for table in ('consumers', 'classes', 'users', 'roles')
     }
 
@@ -223,7 +218,7 @@ def get_data(name: str, kind: str='json') -> str | Response:
     source = all_data_sources[name]
     table_spec = source.table_spec
     data = source.get_data(filters, limit=limit, offset=offset).fetchall()
-    table = DataTable(spec=table_spec, data=data)
+    table = DataTable(display_name=source.display_name, spec=table_spec, data=data)
 
     if kind == 'json':
         return jsonify(table.data_for_json)
@@ -250,14 +245,15 @@ def main() -> str:
 
     for name, source in all_data_sources.items():
         table_spec = source.table_spec
-        table_spec = replace(table_spec, csv_link=url_for('.get_data', name=name, kind='csv', **request.args))  # type: ignore[arg-type]
         data = source.get_data(filters, limit=init_rows).fetchall()
+        csv_link = url_for('.get_data', name=name, kind='csv', **request.args)  # type: ignore[arg-type]
+        ajax_url = None
         if len(data) == init_rows:
             # we reached the limit, so there may be (is probably) more to fetch
             # but we can skip providing an ajax URL if we have less than the limit, because that must be all the data
-            table_spec = replace(table_spec, ajax_url=url_for('.get_data', name=name, kind='json', offset=init_rows, limit=limit-init_rows, **request.args))  # type: ignore[arg-type]
+            ajax_url = url_for('.get_data', name=name, kind='json', offset=init_rows, limit=limit-init_rows, **request.args)  # type: ignore[arg-type]
 
-        table = DataTable(spec=table_spec, data=data)
+        table = DataTable(display_name=source.display_name, spec=table_spec, data=data, csv_link=csv_link, ajax_url=ajax_url)
         tables.append(table)
 
     return render_template(

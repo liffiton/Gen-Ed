@@ -249,10 +249,10 @@ ${ options.searchable ?
 
 {% macro datatable(table) -%}
   {% set spec = table.spec %}
-  {% set name = spec.name %}
+  {% set slug = table.slug %}
   {% if table.data %}
     <style type="text/css">
-    {% set css_sel = 'table#' + name %}
+    {% set css_sel = 'table#' + slug %}
     {% for col in spec.columns %}
       {% set n = loop.index - spec.num_hidden %}
       {% if col.align %}
@@ -264,18 +264,18 @@ ${ options.searchable ?
     {% endfor %}
     </style>
   {% endif %}
-  <table id="{{name}}" class="{{ 'row_selectable' if spec.link_col is not none else '' }}">
+  <table id="{{slug}}" class="{{ 'row_selectable' if spec.link_col is not none else '' }}">
   </table>
   <script type="text/javascript">
     initTable(
-      {{name | tojson}},
+      {{slug | tojson}},
       {{spec.columns | tojson}},
       {{table.data_for_json | tojson}},
       {{spec.link_col | tojson}},
       value => `{{spec.link_template | safe}}`,
       {{spec.actions | tojson}},
-      {{spec.csv_link | tojson}},
-      {{spec.ajax_url | tojson}},
+      {{table.csv_link | tojson}},
+      {{table.ajax_url | tojson}},
     );
   </script>
 {%- endmacro %}

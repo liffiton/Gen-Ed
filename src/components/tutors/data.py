@@ -187,10 +187,9 @@ class AnalysisCol(Col):
 
 chats_data_source = DataSource(
     table_name='chats',
-    display_name='chats',
+    display_name='Chats',
     get_data=get_chats,
     table_spec=DataTableSpec(
-        name='chats',
         columns=[NumCol('id'), UserCol('user'), TimeCol('chat_started'), Col('topic'), NumCol('user messages'), AnalysisCol('analysis')],
         link_col=0,
         link_template='/tutor/${value}',
