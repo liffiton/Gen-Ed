@@ -380,39 +380,34 @@
           <p class="help-text">You may upload PDF or DOCX files or paste text with additional context for generating objectives and questions (e.g., lecture notes, a book chapter, or an assignment).<br>Text will be extracted in your browser.<br>Max extracted text: 50,000 words.</p>
         </div>
 
-        <div class="field-body"><div style="display: flex; flex-direction: column; gap: 1em;">
+        <div class="field-body is-flex-direction-column">
         <template x-for="(doc, index) in tutor.documents" :key="doc.id">
-        <div x-data="docUploader(doc)" style="border-left: 3px solid #369; padding-left: 1em;">
-          <input type="hidden" name="document_filename[]" x-model="document.filename">
-          <input type="hidden" name="document_text[]" x-model="document.text">
-          <input type="hidden" name="document_use_in[]" :value="document.use_in.join(',')">
-          <!-- Show existing document if there is one -->
-          <div class="field is-grouped" x-cloak>
-            <div class="control">
-              <button
-                  class="button is-rounded is-danger is-outlined is-small mt-1"
-                  type="button"
-                  @click="removeDocument(index)"
-                  x-bind:disabled="loading"
-                  >
-                  <span class="delete mr-2"></span>
-                  Remove
-              </button>
-            </div>
-            <div class="control" x-show="document.filename">
-              <button class="button is-rounded is-info is-outlined is-small mt-1" type="button" @click="openDocumentModal(document.filename, document.text)">
-                View/edit text
-              </button>
-            </div>
+          <div x-data="docUploader(doc)" class="box p-3 is-flex is-align-items-center mb-4" style="gap: 0.8em;" x-cloak>
+            <input type="hidden" name="document_filename[]" x-model="document.filename">
+            <input type="hidden" name="document_text[]" x-model="document.text">
+            <input type="hidden" name="document_use_in[]" :value="document.use_in.join(',')">
 
-            <div class="control" x-show="document.filename">
-              <p class="mt-2">
-                <strong x-text="document.filename"></strong> <em class="mx-2" x-text="`(${wordCount} words)`"></em>
-              </p>
+            <button
+                class="button is-danger is-outlined is-small"
+                type="button"
+                title="Remove document"
+                @click="removeDocument(index)"
+                x-bind:disabled="loading"
+                >
+                <svg class="icon" aria-hidden="true"><use href="#svg_trash" /></svg>
+            </button>
+
+            <!-- Show existing document if there is one -->
+            <button x-show="document.filename" class="button is-info is-outlined is-small" type="button" @click="openDocumentModal(document.filename, document.text)">
+              View/edit text
+            </button>
+
+            <div x-show="document.filename">
+              <strong x-text="document.filename"></strong> <em class="mx-2" x-text="`(${wordCount} words)`"></em>
             </div>
 
             <!-- Show file upload when no document -->
-            <div class="control file has-name" x-show="!document.filename && !processing">
+            <div class="file has-name" x-show="!document.filename && !processing">
               <label class="file-label">
                 <input class="file-input" type="file" accept=".pdf,.docx" x-bind:disabled="loading || processing" @change="handleFileSelect($event)">
                 <span class="file-cta">
@@ -427,7 +422,7 @@
             </div>
 
             <!-- Progress bar -->
-            <div x-show="processing" class="control mt-2">
+            <div x-show="processing">
               <progress class="progress is-primary mb-2" x-bind:value="progress" max="100">
                 <span x-text="progress + '%'"></span>
               </progress>
@@ -435,14 +430,12 @@
             </div>
 
             <!-- Error display -->
-            <div x-show="error" class="control mt-2">
+            <div x-show="error">
               <div class="notification is-danger is-light" @click="clearState()">
                 <button class="delete" type="button"></button>
                 <span x-text="error"></span>
               </div>
             </div>
-
-          </div>
 
         <dialog x-ref="document_text_modal" style="width: 60%; max-width: 80em; min-width: min(50em, 100vw);">
           <div class="content box">
@@ -465,10 +458,10 @@
             </div>
           </div>
         </dialog>
-        </div>
+
+          </div>
         </template>
         <button type="button" class="button is-link is-outlined" @click="addDocument()">+ Add Document</button>
-        </div>
         </div>
       </div>
       <hr>
