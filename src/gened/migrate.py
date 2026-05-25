@@ -2,14 +2,13 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import itertools
 import sqlite3
 from collections.abc import Iterable
+from dataclasses import dataclass
 from datetime import datetime
 from importlib import resources
 from importlib.resources.abc import Traversable
 from pathlib import Path
-from typing import TypedDict
 
 import click
 from flask import current_app
@@ -20,27 +19,35 @@ from .db import get_db
 from .db_admin import backup_db, drop_views, on_init_db, rebuild_views
 
 
-class MigrationDict(TypedDict):
-    name: str
+@dataclass(frozen=True)
+class Migration:
+    package: str
+    filename: str
     contents: str
-    mtime: float
-    applied_on: str | None
+    applied_on: datetime | None
     skipped: bool | None
     succeeded: bool | None
 
 
-def _do_migration(name: str, script: str) -> tuple[bool, str]:
+class DuplicateMigrationError(Exception):
+    def __init__(self, files: Iterable[str]):
+        super().__init__(f"Migration filenames must be unique.  Duplicates found: {', '.join(files)}")
+
+
+def _do_migration(migration: Migration) -> tuple[bool, str]:
     """
     Run a migration script against the instance database, recording and returning success or failure.
 
     Parameters:
-      name - str: The filename of the script.
-      script - str: The script contents (a string of SQL commands).
+      migration - Migration: The script and its metadata
 
     Returns a tuple:
       [0] - bool: True on success, False otherwise.
       [1] - str: on failure, contains the exception that occurred as a string.
     """
+    name = migration.filename
+    script = migration.contents
+
     db = get_db()
     db.execute("INSERT OR IGNORE INTO migrations (filename) VALUES (?)", [name])
     db.commit()
@@ -51,6 +58,7 @@ def _do_migration(name: str, script: str) -> tuple[bool, str]:
 
         db.executescript(script)
         db.commit()
+
         db.execute("UPDATE migrations SET applied_on=CURRENT_TIMESTAMP, succeeded=True WHERE filename=?", [name])
         db.commit()
 
@@ -64,17 +72,21 @@ def _do_migration(name: str, script: str) -> tuple[bool, str]:
         # Rebuild views post-migration
         rebuild_views()
     except sqlite3.Error as e:
-        current_app.logger.warning(f"DB error while rebuilding views after migration.  Check this carefully.  It may be okay (handled by a later migration) or it may be a problem.\nError: {e}")
+        current_app.logger.warning(f"DB error while rebuilding views after migration {name}.  Check this carefully.  It may be okay (handled by a later migration) or it may be a problem.\nError: {e}")
 
     return True, ''
 
 
-def _apply_migrations(migrations: Iterable[MigrationDict]) -> None:
+def _apply_migrations(migrations: list[Migration], *, verbose: bool = False) -> None:
     """
     Apply a list of migrations in the order provided.
 
-    migrations: an iterable of dictionaries, each defined as in migrate_command() below.
+    migrations: a list of Migration objects.
     """
+    if not migrations:
+        current_app.logger.info("_apply_migrations() called with an empty list of migrations.  No migrations applied.")
+        return
+
     # Make a backup of the old database
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")   # noqa: DTZ005 - a timezone-unaware object is fine here
     backup_dir = Path(current_app.instance_path) / "backups"
@@ -84,73 +96,84 @@ def _apply_migrations(migrations: Iterable[MigrationDict]) -> None:
         backup_dest = backup_dest.with_suffix('.age')
 
     backup_db(backup_dest)
-    click.echo(f"Database backup saved in \x1B[33m{backup_dest}\x1B[m.")
+    click.echo(f"Database backup saved in {click.style(str(backup_dest), fg='yellow')}.")
 
     # Run the scripts
     for migration in migrations:
-        name = migration['name']
-        script = migration['contents']
-        click.echo(f"\x1B[35;1m═╦═Applying {name}═══\x1B[m")
-        indented = '\n'.join(f" ║ {x}" for x in script.split('\n'))
-        click.echo(indented)
-        success, err = _do_migration(name, script)
+        click.secho(f"═╦═Applying {migration.filename}═══", fg="magenta", bold=True)
+        if verbose:
+            script = migration.contents
+            indented = '\n'.join(f" ║ {x}" for x in script.split('\n'))
+            click.echo(indented)
+
+        success, err = _do_migration(migration)
         if success:
-            click.echo("\x1B[32;1m═╩═Migration succeeded═══\x1B[m")
+            click.secho("═╩═Migration succeeded═══", fg="green", bold=True)
         else:
-            click.echo(f"\x1B[31;1m═╩═Migration failed═══\x1B[m  \x1B[31m{err}\x1B[m")
-            return  # End here
+            click.secho("═╩═Migration failed═══  ", fg="red", bold=True, nl=False)
+            click.secho(err, fg="red")
+            raise click.Abort  # end here, and ensure exit code is non-zero
 
 
-def _migration_info(resource: Traversable) -> MigrationDict:
+def _migration_info(package: str, resource: Traversable) -> Migration:
     """Get info on a migration, provided as an importlib.resources resource."""
     db = get_db()
     with resources.as_file(resource) as path, path.open(encoding="utf-8") as f:
-        name = path.name
-        info: MigrationDict = {
-            'name': name,
-            'contents': f.read(),
-            'mtime': path.stat().st_mtime,
-            'applied_on': None,
-            'skipped': None,
-            'succeeded': None,
-        }
-        row = db.execute("SELECT * FROM migrations WHERE filename=?", [name]).fetchone()
+        filename = path.name
+        contents = f.read()
+        applied_on = None
+        skipped = None
+        succeeded = None
+
+        row = db.execute("SELECT * FROM migrations WHERE filename=?", [filename]).fetchone()
+
         if row:
-            info['applied_on'] = row['applied_on']
-            info['skipped'] = row['skipped']
-            info['succeeded'] = row['succeeded']
+            applied_on = row['applied_on']
+            skipped = bool(row['skipped'])
+            succeeded = bool(row['succeeded'])
 
-        return info
+        return Migration(
+            package=package,
+            filename=filename,
+            contents=contents,
+            applied_on=applied_on,
+            skipped=skipped,
+            succeeded=succeeded,
+        )
 
 
-def _get_migrations() -> list[MigrationDict]:
+def _get_migrations() -> list[Migration]:
     # Common migrations in the gened package + app migrations + registered component migrations
     migration_dirs = [
         ('gened', 'migrations'),
         (current_app.name, 'migrations'),
     ]
-    # add component migrations
+    # Add component migrations
     migration_dirs.extend(
         (c.package, c.migrations_dir) for c in get_registered_components() if c.migrations_dir
     )
 
-    migration_paths = [
-        resources.files(package_name).joinpath(folder)
-        for package_name, folder in migration_dirs
-    ]
-
-    migration_resources = itertools.chain(
-        *(x.iterdir() for x in migration_paths if x.is_dir())
-    )
-
     # Collect info
-    migrations = [
-        _migration_info(res)
-        for res in migration_resources
-        if not res.name.startswith('.') and res.name.endswith('.sql')
-    ]
-    # Sort by name and modified time (to apply migrations in order)
-    migrations.sort(key=lambda x: (x['name'], x['mtime']))
+    migrations: list[Migration] = []
+    for package_name, migrations_dir in migration_dirs:
+        path = resources.files(package_name).joinpath(migrations_dir)
+        if path.is_dir():
+            migrations.extend(
+                _migration_info(package_name, res)
+                for res in path.iterdir()
+                if res.name.endswith('.sql') and not res.name.startswith('.')
+            )
+
+    # Sort by filename (to apply migrations in order)
+    migrations.sort(key=lambda x: x.filename)
+
+    # Check for duplicate filenames (relies on sorting by filename above)
+    duplicates = {
+        migrations[i].filename for i in range(len(migrations) - 1)
+        if migrations[i].filename == migrations[i+1].filename
+    }
+    if duplicates:
+        raise DuplicateMigrationError(duplicates)
 
     return migrations
 
@@ -159,48 +182,59 @@ def _get_migrations() -> list[MigrationDict]:
 def _mark_all_as_applied() -> None:
     db = get_db()
     for migration in _get_migrations():
-        db.execute("INSERT OR IGNORE INTO migrations (filename) VALUES (?)", [migration['name']])
-        db.execute("UPDATE migrations SET succeeded=True WHERE filename=?", [migration['name']])
+        db.execute("INSERT OR IGNORE INTO migrations (filename) VALUES (?)", [migration.filename])
+        db.execute("UPDATE migrations SET succeeded=True WHERE filename=?", [migration.filename])
     db.commit()
 
 
 @click.command('migrate')
-def migrate_command() -> None:
-    """ Launch a simple text interface for managing migration scripts. """
+@click.option('--auto', is_flag=True, help='Automatically run all pending migrations.')
+def migrate_command(*, auto: bool) -> None:
+    """ Apply (if --auto) or manage migration scripts. """
     migrations = _get_migrations()
+    pending = [m for m in migrations if not m.succeeded and not m.skipped]
 
+    if auto:
+        _apply_migrations(pending, verbose=False)
+    else:
+        _migrate_ui(migrations, pending)
+
+
+def _migrate_ui(migrations: list[Migration], pending: list[Migration]) -> None:
+    """ Launch a simple text interface for managing migration scripts. """
     click.echo("  # status  script file")
     click.echo("--- ------  --------------------")
     status_new = "☐"
-    status_success = "\x1B[32m☑\x1B[m"
-    status_skipped = "\x1B[33m☑\x1B[m"
-    status_failed = "\x1B[31m☒\x1B[m"
+    status_success = click.style("☑", fg="green")
+    status_skipped = click.style("☑", fg="yellow")
+    status_failed = click.style("☒", fg="red")
     for i, migration in enumerate(migrations):
         status = status_new
-        if migration['succeeded']:
+        if migration.succeeded:
             status = status_success
-        if migration['skipped']:
+        if migration.skipped:
             status = status_skipped
-        if migration['succeeded'] is False:
+        if migration.succeeded is False:
             status = status_failed
-        click.echo(f"{i+1:3}   {status}     {migration['name']}")
+        click.echo(f"{i+1:3}   {status}     {migration.filename}")
 
     click.echo()
     click.echo(f"Key:  {status_new}  = new  {status_success}  = applied successfully  {status_skipped}  = skipped  {status_failed}  = failed to apply")
     click.echo()
-    choice = input("[A]pply all new or failed migrations  [M]ark all as successfully applied  [Q]uit   Choice? ")
+
+    click.echo("[A]pply all new or failed migrations  [M]ark all as successfully applied  [Q]uit")
+    choice = click.prompt("Choice", type=click.Choice(['a', 'm', 'q'], case_sensitive=False), default='q', show_choices=True)
     click.echo()
 
     if choice.lower() == 'm':
-        sure = input("Are you sure?  This should pretty much never be used... [yN] ")
-        if sure.lower() == 'y':
+        if click.confirm("Are you sure? This should pretty much never be used...", default=False):
             _mark_all_as_applied()
             click.echo("Done.")
     elif choice.lower() == 'a':
-        if all(m['succeeded'] for m in migrations):
-            click.echo("No new or failed migrations to apply.")
+        if not pending:
+            click.echo("No pending migrations to apply.")
         else:
-            _apply_migrations(m for m in migrations if not m['succeeded'] and not m['skipped'])
+            _apply_migrations(pending, verbose=True)
 
 
 def init_app(app: Flask) -> None:

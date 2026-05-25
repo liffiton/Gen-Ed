@@ -47,6 +47,10 @@ window.md.inline.ruler.disable(['escape']);
       loading: false,
 
       renderMessage(msg) {
+        if (msg.role === 'user') {
+          throw new Error('User messages should not be rendered as HTML');
+        }
+
         if (msg.loading && !msg.content) {
           return "💭 <em>thinking...</em>"
         }
@@ -56,11 +60,7 @@ window.md.inline.ruler.disable(['escape']);
           text += " *[...]*";
         }
 
-        if (msg.role === 'user') {
-          return text;
-        } else {
-          return window.md.render(text);
-        }
+        return window.md.render(text);
       },
       handleTab(e) {
         // Adapted from https://stackoverflow.com/a/6637396
@@ -275,7 +275,7 @@ window.md.inline.ruler.disable(['escape']);
                   <details>
                     <summary>System prompt</summary>
                     <div class="content">{{ message.content | markdown }}</div>
-                    </details>
+                  </details>
                   {% elif message.role == 'assistant' %}
                     <div class="content" x-show="show_tutor">{{ message.content | markdown }}</div>
                   {% elif message.role == 'user' %}
@@ -290,7 +290,17 @@ window.md.inline.ruler.disable(['escape']);
                 <div style="display: contents;">{# for 'passthrough' element so template gets a single el but grid still 'sees' two els here, not one #}
                   <div class="chat_role" :class="`chat_role_${msg.role}`" x-text="msg.role === 'user' && 'You' || 'Tutor'">
                   </div>
-                  <div class="chat_message" :class="`chat_message_${msg.role}`" x-html="renderMessage(msg)" x-effect="msg.content + msg.loading /* hacky way to trigger the effect */; renderMathInElement($el);">
+                  <div class="chat_message"
+                       :class="`chat_message_${msg.role}`"
+                       x-effect="msg.content + msg.loading /* hacky way to trigger the effect */; $nextTick(() => renderMathInElement($el));">
+                    <template x-if="msg.role === 'user'">
+                      <div class="chat_message_user_contents" x-text="msg.content">
+                      </div>
+                    </template>
+                    <template x-if="msg.role !== 'user'">
+                      <div class="content" x-html="renderMessage(msg)">
+                      </div>
+                    </template>
                   </div>
                 </div>
               </template>

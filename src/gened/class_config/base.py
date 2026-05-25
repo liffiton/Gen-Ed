@@ -23,8 +23,8 @@ from gened.component_registry import get_registered_components
 from gened.db import get_db
 from gened.llm import LLM, get_models, with_llm
 from gened.redir import safe_redirect
-from gened.tz import date_is_past
 
+from .access_links import AccessLink, v2_generate_new_key
 from .config_table import create_blueprint
 from .types import ConfigTable
 
@@ -42,6 +42,7 @@ def build_blueprint() -> Blueprint:
     # Apply instructor_required to protect all class_config blueprint endpoints.
     control_blueprint_access(new_bp, Access.INSTRUCTOR)
 
+    # Add all routes from this module
     new_bp.register_blueprint(bp)
 
     config_table_bp = create_blueprint()
@@ -125,23 +126,23 @@ def config_form() -> str:
     class_id = cur_class.class_id
 
     class_row = db.execute("""
-        SELECT classes.id, classes.enabled, classes_user.link_ident, classes_user.link_reg_expires, classes_user.link_anon_login, classes_user.llm_api_key, classes_user.model_id
+        SELECT classes.id, classes.name, classes.enabled, classes_user.link_key, classes_user.link_reg_expires, classes_user.link_anon_login, classes_user.llm_api_key, classes_user.model_id
         FROM classes
         LEFT JOIN classes_user
           ON classes.id = classes_user.class_id
         WHERE classes.id=?
     """, [class_id]).fetchone()
 
-    # TODO: refactor into function for checking start/end dates
-    expiration_date = class_row['link_reg_expires']
-    if expiration_date is None:
-        link_reg_state = None  # not a user-created class
-    elif date_is_past(expiration_date):
-        link_reg_state = "disabled"
-    elif expiration_date == dt.date.max:
-        link_reg_state = "enabled"
-    else:
-        link_reg_state = "date"
+    link = None
+    nologin_links = []
+
+    if class_row['link_key'] is not None:
+        link = AccessLink.from_row(class_row)
+
+        if link.key.startswith("v2."):
+            nologin_links = [
+                link.get_url(counter=i) for i in range(1, 1001)
+            ]
 
     models = get_models(plus_id=class_row['model_id'])
 
@@ -162,7 +163,35 @@ def config_form() -> str:
 
     toggleable_components = [c for c in components if not c.always_enabled]
 
-    return render_template("instructor_class_config.html", class_row=class_row, link_reg_state=link_reg_state, user_is_creator=cur_class.user_is_creator, models=models, components=toggleable_components, extra_sections_data=extra_sections_data)
+    return render_template(
+        "instructor_class_config.html",
+        class_row=class_row,
+        link=link,
+        user_is_creator=cur_class.user_is_creator,
+        models=models,
+        components=toggleable_components,
+        extra_sections_data=extra_sections_data,
+        nologin_links=nologin_links
+    )
+
+
+@bp.route("/regenerate_key", methods=["POST"])
+def regenerate_link_key() -> Response:
+    db = get_db()
+
+    # only trust class_id from auth, not from user
+    cur_class = get_auth_class()
+    class_id = cur_class.class_id
+
+    # generate a new, unique, unguessable link key
+    # currently on version 2 of this feature
+    link_key = v2_generate_new_key()
+
+    db.execute("UPDATE classes_user SET link_key=? WHERE class_id=?", [link_key, class_id])
+    db.commit()
+    flash("Class access links regenerated / old links invalidated.", "success")
+
+    return safe_redirect(request.referrer, default_endpoint="profile.main")
 
 
 @bp.route("/save/access", methods=["POST"])

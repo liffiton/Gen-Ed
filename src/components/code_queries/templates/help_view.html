@@ -158,26 +158,6 @@ SPDX-License-Identifier: AGPL-3.0-only
       </div>
       {% endif %}
 
-      {% if auth.is_tester and "main" in responses %}
-        <div class="card-content content p-2 pl-5">
-          <h2 class="is-size-5">Related Topics</h2>
-          {% if topics %}
-            {% set context_name=query.context_name %}
-            {% include "topics_fragment.html" %}
-          {% else %}
-            <div
-              x-data="{topics_fragment: '<span class=\'loader m-4\' style=\'font-size: 200%\'></span>'}"
-              x-html="topics_fragment"
-              x-init="
-                fetch('{{ url_for('.get_topics_html', query_id=query.id) }}')
-                  .then(response => response.text())
-                  .then(text => { topics_fragment = text })
-              "
-            >
-            </div>
-          {% endif %}
-        </div>
-      {% endif %}
     </div>
     {% endif %}
 

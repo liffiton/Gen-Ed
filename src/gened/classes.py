@@ -14,7 +14,7 @@ For instructor-specific operations, see instructor.py.
 """
 
 import datetime as dt
-import secrets
+from hashlib import blake2b
 
 from flask import (
     Blueprint,
@@ -29,12 +29,12 @@ from flask import (
 from werkzeug.wrappers.response import Response
 
 from .access import login_required
-from .auth import get_auth, set_session_auth_class
+from .auth import get_auth, set_session_auth_class, set_session_auth_user
+from .class_config.access_links import AccessLink, v2_check_hash, v2_generate_new_key
 from .component_registry import get_navbar_components
 from .db import get_db
 from .llm import LLM, with_llm
 from .redir import safe_redirect_next
-from .tz import date_is_past
 
 bp = Blueprint('classes', __name__, template_folder='templates')
 
@@ -102,7 +102,6 @@ def get_or_create_lti_class(lti_consumer_id: int, lti_context_id: str, class_nam
 
         current_app.logger.info(f"New class (LTI): {class_name} ({class_id})")
 
-        assert class_id is not None
         return class_id
 
 
@@ -127,13 +126,9 @@ def create_user_class(user_id: int, class_name: str, llm_api_key: str | None = N
     """
     db = get_db()
 
-    # generate a new, unique, unguessable link identifier
-    while True:
-        link_ident = secrets.token_urlsafe(8)
-        match_row = db.execute("SELECT 1 FROM classes_user WHERE link_ident=?", [link_ident]).fetchone()
-        is_unique = not match_row
-        if is_unique:
-            break
+    # generate a new, unique, unguessable link key
+    # currently on version 2 of this feature
+    link_key = v2_generate_new_key()
 
     cur = db.execute("INSERT INTO classes (name) VALUES (?)", [class_name])
     class_id = cur.lastrowid
@@ -145,8 +140,8 @@ def create_user_class(user_id: int, class_name: str, llm_api_key: str | None = N
     ).fetchone()['id']
 
     db.execute(
-        "INSERT INTO classes_user (class_id, creator_user_id, link_ident, llm_api_key, link_reg_expires, model_id) VALUES (?, ?, ?, ?, ?, ?)",
-        [class_id, user_id, link_ident, llm_api_key, dt.date.min, model_id]
+        "INSERT INTO classes_user (class_id, creator_user_id, link_key, llm_api_key, link_reg_expires, model_id) VALUES (?, ?, ?, ?, ?, ?)",
+        [class_id, user_id, link_key, llm_api_key, dt.date.min, model_id]
     )
     db.execute(
         "INSERT INTO roles (user_id, class_id, role) VALUES (?, ?, ?)",
@@ -247,7 +242,56 @@ def create_class() -> Response:
 
 # Not using @login_required here because we may need to redirect to anon. login specifically
 @bp.route("/access/<string:class_ident>")
-def access_class(class_ident: str) -> str | Response:
+def access_class_v1(class_ident: str) -> str | Response:
+    db = get_db()
+
+    # Get the class info
+    key = f"v1.{class_ident}"
+    class_row = db.execute("""
+        SELECT classes.id, classes.name, classes_user.link_key, classes_user.link_reg_expires, classes_user.link_anon_login
+        FROM classes
+        JOIN classes_user
+          ON classes.id = classes_user.class_id
+        WHERE classes_user.link_key = ?
+    """, [key]).fetchone()
+
+    if not class_row:
+        abort(404)
+
+    # row exists with that ident: continue
+    link = AccessLink.from_row(class_row)
+    return _join_class(link)
+
+
+@bp.route("/access/<int:class_id>/<string:hash_val>")
+@bp.route("/access/<int:class_id>/<int:counter>/<string:hash_val>")
+def access_class_v2(class_id: int, hash_val: str, counter: int | None = None) -> str | Response:
+    db = get_db()
+
+    # Get the class info
+    class_row = db.execute("""
+        SELECT classes.id, classes.name, classes_user.link_key, classes_user.link_reg_expires, classes_user.link_anon_login
+        FROM classes
+        JOIN classes_user
+          ON classes.id = classes_user.class_id
+        WHERE classes_user.class_id = ?
+    """, [class_id]).fetchone()
+
+    if not class_row:
+        abort(404)
+
+    link = AccessLink.from_row(class_row)
+
+    # verify the hash
+    valid = v2_check_hash(link.key, hash_val, counter)
+    if not valid:
+        abort(404)
+
+    # hash is correct: continue
+    return _join_class(link, counter)
+
+
+def _join_class(link: AccessLink, counter: int | None = None) -> str | Response:
     '''Join a class or just login/access it.
 
     If the user already has a role in the class, just access it.
@@ -255,51 +299,106 @@ def access_class(class_ident: str) -> str | Response:
     add this user to the class.
     '''
     db = get_db()
-
     auth = get_auth()
 
-    # Get the class info
-    class_row = db.execute("""
-        SELECT classes.id, classes.name, classes_user.link_reg_expires, classes_user.link_anon_login
-        FROM classes
-        JOIN classes_user
-          ON classes.id = classes_user.class_id
-        WHERE classes_user.link_ident = ?
-    """, [class_ident]).fetchone()
+    class_id = link.class_id
 
-    if not class_row:
-        abort(404)
+    # first, check if the user is logged in and already has a role in the class
+    if auth.user:
+        role_row = db.execute("SELECT * FROM roles WHERE class_id=? AND user_id=?", [class_id, auth.user_id]).fetchone()
 
-    if not auth.user:
-        flash(f"Please log in to access class '{class_row['name']}'")
-        anon = 1 if class_row['link_anon_login'] else None
-        return redirect(url_for('auth.login', anon=anon, next=request.full_path))
+        if role_row:
+            # user already has a role, but it may not be active
+            success = switch_class(class_id)
+            if not success:
+                abort(403)
+            else:
+                return redirect(url_for(current_app.config['DEFAULT_LOGIN_ENDPOINT']))
 
-    class_id = class_row['id']
-    user_id = auth.user_id
-    role_row = db.execute("SELECT * FROM roles WHERE class_id=? AND user_id=?", [class_id, user_id]).fetchone()
+        # logged in (but no existing role) conflicts with no-login links
+        if counter is not None:
+            flash("No-login links cannot be used when already logged in.", "warning")
+            return render_template("error.html")
 
-    if role_row:
-        # user already has a role, but it may not be active
-        success = switch_class(class_id)
-        if not success:
-            abort(403)
-        else:
-            return redirect(url_for("landing"))
-
-    # user does not have a role
-    if date_is_past(class_row['link_reg_expires']):
-        # but registration is not currently active
+    # no existing active role: for all other cases, we're registering,
+    # so only proceed if registration is enabled
+    if link.reg_state == 'disabled':
         flash("Registration is not active for this class.  Please contact the instructor for assistance.", "warning")
         return render_template("error.html")
 
-    # user does not have a role and registration is currently active for this class
-    # register them and switch to that role
+    if auth.user:
+        # user must be logged in but not yet enrolled in the class,
+        # so enroll them and switch to the class
+        return _enroll_and_switch(class_id)
+
+    if link.anon_login and counter is not None:
+        # no-login counter-based link:
+        #  1) create new user if doesn't already exist
+        #  2) log session in as that user
+        #  3) enroll them and switch to the class
+        _activate_nologin_user(class_id, link.key, counter)
+        return _enroll_and_switch(class_id)
+    else:
+        # either normal login or normal anon registration;
+        # redir to login with the correct argument
+        flash(f"Please log in to access class '{link.class_name}'")
+        anon = 1 if link.anon_login else None
+        return redirect(url_for('auth.login', anon=anon, next=request.full_path))
+
+
+def _activate_nologin_user(class_id: int, link_key: str, counter: int) -> None:
+    """ Activate a nologin user, creating it first if needed.
+
+    Derives a short hash from the link key so that regenerating the key
+    produces fresh accounts rather than reconnecting to old ones.
+
+    Parameters
+    ----------
+    class_id : int
+      id of the class in which to create them -- will be included in the username
+    link_key: str
+      the current v2 link key for the class, used to derive a key-specific hash
+    counter: int
+      counter to differentiate users within the class -- will be included in the username
+    """
+    db = get_db()
+    assert get_auth().user is None
+
+    key_secret = link_key[3:]
+    key_hash = blake2b(key_secret.encode(), digest_size=3).hexdigest()
+    username = f"user{key_hash}_{class_id}_{counter}"
+
+    provider_row = db.execute("SELECT id FROM auth_providers WHERE name='nologin'").fetchone()
+    nologin_provider_id = provider_row['id']
+
+    user_row = db.execute("SELECT * FROM users WHERE auth_name=? AND auth_provider=?", [username, nologin_provider_id]).fetchone()
+    if user_row:
+        user_id = user_row['id']
+    else:
+        cur = db.execute("INSERT INTO users(auth_provider, auth_name, query_tokens) VALUES(?, ?, 0)", [nologin_provider_id, username])
+        user_id = cur.lastrowid
+        db.commit()
+
+    assert user_id is not None
+    set_session_auth_user(user_id)
+
+
+def _enroll_and_switch(class_id: int) -> Response:
+    """ Enroll the current user in the given class, and switch into that class. """
+    db = get_db()
+    auth = get_auth()
+    assert auth.user is not None
+
+    # OR IGNORE: proceed even if the role already exists (UNIQUE constraint violated)
     db.execute(
-        "INSERT INTO roles (user_id, class_id, role) VALUES (?, ?, ?)",
-        [user_id, class_id, 'student']
+        "INSERT OR IGNORE INTO roles (user_id, class_id, role) VALUES (?, ?, ?)",
+        [auth.user_id, class_id, 'student']
     )
     db.commit()
+
+    # user may already has a role that is disabled; check for switch success
     success = switch_class(class_id)
-    assert success
-    return redirect(url_for("landing"))
+    if not success:
+        abort(403)
+
+    return redirect(url_for(current_app.config['DEFAULT_LOGIN_ENDPOINT']))

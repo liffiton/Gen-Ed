@@ -14,7 +14,7 @@ from werkzeug.datastructures import ImmutableMultiDict
 from gened.access import AccessControl
 from gened.auth import get_auth_class
 
-# This module provides the basis for application-specific configuration tables,
+# The following provide the basis for application-specific configuration tables,
 # in which multiple elements of a given type need to be managed in a table.
 #
 # It is kept relatively generic, and much of the specific implementation of the

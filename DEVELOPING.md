@@ -134,10 +134,10 @@ See the instructions in `README.md`.
 
 ### Running Tests
 
-First, install test dependencies:
+First, install development dependencies:
 
 ```sh
-pip install -e .[test]
+pip install -e .[dev]
 ```
 
 Run all tests:
@@ -183,7 +183,7 @@ the correct libraries installed.  To be sure you have all dependencies
 installed, run:
 
 ```sh
-pip install -U -e .[test]
+pip install -U -e .[dev]
 ```
 
 #### Database Schema

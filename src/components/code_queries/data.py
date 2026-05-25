@@ -12,6 +12,8 @@ from gened.app_data import (
 from gened.db import get_db
 from gened.tables import Col, DataTableSpec, NumCol, ResponseCol, TimeCol, UserCol
 
+TABLE_NAME = 'code_queries'
+DISPLAY_NAME = 'Code Queries'
 
 def gen_query_charts(filters: Filters) -> list[ChartData]:
     """ Generate chart data for CodeHelp query charts.
@@ -90,8 +92,7 @@ def get_queries(filters: Filters, /, limit: int=-1, offset: int=0) -> Cursor:
             t.helpful_emoji AS rating,
             t.user_id AS user_id,
             t.context_string_id AS context_string_id,
-            classes.id AS class_id,
-            t.topics_json AS topics_json
+            classes.id AS class_id
         FROM code_queries AS t
         JOIN users ON t.user_id=users.id
         LEFT JOIN auth_providers ON users.auth_provider=auth_providers.id
@@ -114,8 +115,8 @@ queries_table = DataTableSpec(
 )
 
 queries_data_source = DataSource(
-    table_name='code_queries',
-    display_name='Queries',
+    table_name=TABLE_NAME,
+    display_name=DISPLAY_NAME,
     get_data=get_queries,
     table_spec=queries_table,
     time_col='query_time',

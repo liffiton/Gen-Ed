@@ -1,5 +1,11 @@
 .env
 
+.git/
+
+dev/
+media/
+tests/
+
 instance/
 
 .*_cache/

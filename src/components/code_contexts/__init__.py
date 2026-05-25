@@ -11,7 +11,6 @@ from .data import (
     ContextsDeletionHandler,
     get_available_contexts,
     get_context_by_name,
-    get_context_string_by_id,
     record_context_string,
 )
 from .model import ContextConfig
@@ -38,6 +37,5 @@ __all__ = [
     "gened_component",
     "get_available_contexts",
     "get_context_by_name",
-    "get_context_string_by_id",
     "record_context_string",
 ]
