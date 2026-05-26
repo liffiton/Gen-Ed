@@ -150,7 +150,7 @@ Running an Application
 flask run
 
 # or, during development:
-flask --debug run
+flask run --debug
 ```
 
 When deploying an application in production, do not use the development server
