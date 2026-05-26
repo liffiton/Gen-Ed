@@ -88,7 +88,7 @@ class TutorConfig(ConfigItem):
                 use_in_list = [u.strip() for u in use_in_str.split(',') if u.strip()]
             else:
                 use_in_list = ['setup']  # default
-            # Validate correct literals - we control the input values via radio buttons
+            # Validate correct literals - we control the input values via the form
             assert all(u in ('setup', 'chat') for u in use_in_list), f"Invalid use_in values: {use_in_list}"
             documents.append(ContextDocument(filename=fn, text=txt, use_in=set(use_in_list)))
 
