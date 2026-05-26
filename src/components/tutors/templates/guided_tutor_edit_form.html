@@ -6,6 +6,10 @@
     import markdownIt from 'https://cdn.jsdelivr.net/npm/markdown-it@14/+esm';
     const md = markdownIt();
 
+    function wordCount(text) {
+      return text.split(/\s+/).filter(word => word.length > 0).length;
+    }
+
     document.addEventListener('alpine:init', () => {
       const orig_tutor = {{ item.to_json() | safe }};  // store so we can reset the entire form
       Alpine.data('tutor_editor', () => ({
@@ -40,6 +44,12 @@
         },
         get hasQuestions() {
           return this.hasObjectives && this.tutor.objectives.some(obj => obj.questions.length);
+        },
+        get ctx_size_draft() {
+          return this.tutor.documents.reduce((acc, doc) => doc.use_in.includes("setup") ? acc + wordCount(doc.text) : acc, 0);
+        },
+        get ctx_size_chat() {
+          return this.tutor.documents.reduce((acc, doc) => doc.use_in.includes("chat") ? acc + wordCount(doc.text) : acc, 0);
         },
 
         addDocument() {
@@ -137,12 +147,12 @@
         error: '',
         origWordCount: 0,
 
-        get wordCount() {
-          return this.document.text.split(/\s+/).filter(word => word.length > 0).length;
-        },
-
         // state for the editing modal
         editingFilename: null,
+
+        get wordCount() {
+          return wordCount(this.document.text);
+        },
 
         async handleFileSelect(event) {
           const file = event.target.files[0];
@@ -240,7 +250,7 @@
           let text = rawText.trim();
 
           // Count words
-          this.origWordCount = text.split(/\s+/).filter(word => word.length > 0).length;
+          this.origWordCount = wordCount(text);
 
           // Truncate if too long (50k words limit)
           if (this.origWordCount > 50000) {
@@ -377,33 +387,19 @@
       <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label">Context documents (optional)</label>
-          <p class="help-text">You may upload PDF or DOCX files or paste text with additional context for generating objectives and questions (e.g., lecture notes, a book chapter, or an assignment).<br>Text will be extracted in your browser.<br>Max extracted text: 50,000 words.</p>
+          <p class="help-text">You may upload PDF or DOCX files or paste text with additional context (e.g., lecture notes, a book chapter, or an assignment) for generating objectives and questions here and optionally to be context for the generated tutor during chats.<br>Text will be extracted in your browser.<br>Max extracted text: 50,000 words.</p>
         </div>
 
         <div class="field-body is-flex-direction-column">
         <template x-for="(doc, index) in tutor.documents" :key="doc.id">
-          <div x-data="docUploader(doc)" class="box p-3 is-flex is-align-items-center mb-4" style="gap: 0.8em;" x-cloak>
+          <div x-data="docUploader(doc)" class="box p-3 is-flex is-align-items-center mb-4" style="gap: 0.8em; max-width: 50em;" x-cloak>
             <input type="hidden" name="document_filename[]" x-model="document.filename">
             <input type="hidden" name="document_text[]" x-model="document.text">
             <input type="hidden" name="document_use_in[]" :value="document.use_in.join(',')">
 
-            <button
-                class="button is-danger is-outlined is-small"
-                type="button"
-                title="Remove document"
-                @click="removeDocument(index)"
-                x-bind:disabled="loading"
-                >
-                <svg class="icon" aria-hidden="true"><use href="#svg_trash" /></svg>
-            </button>
-
             <!-- Show existing document if there is one -->
-            <button x-show="document.filename" class="button is-info is-outlined is-small" type="button" @click="openDocumentModal(document.filename, document.text)">
-              View/edit text
-            </button>
-
             <div x-show="document.filename">
-              <strong x-text="document.filename"></strong> <em class="mx-2" x-text="`(${wordCount} words)`"></em>
+              <strong x-text="document.filename" style="overflow-wrap: anywhere;"></strong> <em class="ml-1" x-text="`${wordCount} words`"></em>
             </div>
 
             <!-- Show file upload when no document -->
@@ -437,6 +433,29 @@
               </div>
             </div>
 
+            <div style="margin-left: auto;"></div>{# to push following divs to right edge #}
+
+            <div x-show="document.filename">
+              <label class="checkbox">
+                <input type="checkbox" x-model="doc.use_in" value="chat">
+                Include in chat context
+              </label>
+            </div>
+
+            <button x-show="document.filename" class="button is-info is-outlined is-small" type="button" @click="openDocumentModal(document.filename, document.text)">
+              View/edit text
+            </button>
+
+            <button
+                class="button is-danger is-outlined is-small"
+                type="button"
+                title="Remove document"
+                @click="removeDocument(index)"
+                x-bind:disabled="loading"
+                >
+                <svg class="icon" aria-hidden="true"><use href="#svg_trash" /></svg>
+            </button>
+
         <dialog x-ref="document_text_modal" style="width: 60%; max-width: 80em; min-width: min(50em, 100vw);">
           <div class="content box">
             <h3 x-text="editingFilename"></h3>
@@ -461,9 +480,28 @@
 
           </div>
         </template>
-        <button type="button" class="button is-link is-outlined" @click="addDocument()">+ Add Document</button>
+
+        <div class="content mb-3" x-show="tutor.documents.length && (ctx_size_draft || ctx_size_chat)">
+          <p>Context sizes <span class="help-text">(for drafting, keep below 50,000 words; for chat context, keep below 10,000 words to avoid chat latency and cost increases)</span>:</p>
+          <ul class="mt-1">
+            <li>
+              Drafting objectives &amp; questions:
+              <span x-text="ctx_size_draft"></span> words
+              <span x-show="ctx_size_draft > 50000" class="has-text-warning-dark">⚠️ Warning: this is a lot, and it is unlikely all of this can be synthesized into a single tutor.</span>
+            </li>
+            <li>
+              In chats:
+              <span x-text="ctx_size_chat"></span> words
+              <span x-show="ctx_size_chat > 10000" class="has-text-warning-dark">⚠️ Warning: this is a lot, and it will increase chat latency and cost substantially.</span>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <button type="button" class="button is-link is-outlined" @click="addDocument()">+ Add Document</button>
+        </div>
         </div>
       </div>
+
       <hr>
 
       <div class="field is-horizontal">
