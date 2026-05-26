@@ -142,14 +142,17 @@ def create_guided_chat(llm: LLM) -> Response:
     db = get_db()
     auth = get_auth()
     assert auth.cur_class is not None
+
     tutor_id = request.form['tutor_id']
     row = db.execute("SELECT * FROM tutors WHERE class_id=? AND id=?", [auth.cur_class.class_id, tutor_id]).fetchone()
 
     tutor_config = TutorConfig.from_row(row)
 
-    auth = get_auth()
+    # Get documents marked for use in chat
+    chat_docs = [doc for doc in tutor_config.documents if 'chat' in doc.use_in]
+
     tikz_enabled = 'tikz_experiment' in auth.class_experiments
-    sys_prompt = prompts.guided_sys_msg_tpl.render(tutor_config=tutor_config, tikz_enabled=tikz_enabled)
+    sys_prompt = prompts.guided_sys_msg_tpl.render(tutor_config=tutor_config, documents=chat_docs, tikz_enabled=tikz_enabled)
 
     chat = _create_chat(tutor_config.topic, context_name=None, sys_prompt=sys_prompt, mode="guided")
 

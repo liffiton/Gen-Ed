@@ -148,7 +148,19 @@ The learning context given by the instructor is:
 {{ tutor_config.context }}
 </learning_context>
 
-Here are the specific learning objectives along with assessment questions for each.
+{% if documents -%}
+The instructor has provided additional context for this session:
+<context>
+{% for doc in documents %}
+<document name="{{ doc.filename }}">
+{{ doc.text }}
+</document>
+{% endfor %}
+</context>
+
+{% endif -%}
+
+Here are the specific learning objectives along with assessment questions for each:
 
 {% for objective in tutor_config.objectives %}
 <objective>
