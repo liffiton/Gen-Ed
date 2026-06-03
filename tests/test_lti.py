@@ -217,3 +217,9 @@ def test_lti_instructor_and_students(client: AppClient) -> None:
     assert result.status_code == 200
     assert 'student_1_code' in result.text
     assert 'Invalid id.' not in result.text
+
+def test_lti_config_xml_available(client: AppClient) -> None:
+    result = client.get('/lti/config.xml')
+    assert result.status_code == 200
+    assert result.text.startswith('<?xml version="1.0" encoding="UTF-8"?>\n<cartridge_basiclti_link')
+    assert "CodeHelp" in result.text
