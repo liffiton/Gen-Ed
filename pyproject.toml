@@ -121,5 +121,5 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.package-data]
-"*" = ["py.typed", "*.sql", "static/**/*", "templates/*.html", "migrations/*.sql", "docs/*.md"]
+"*" = ["py.typed", "*.sql", "static/**/*", "templates/*.html", "templates/*.xml", "migrations/*.sql", "docs/*.md"]
 "components" = ["*/static/**/*", "*/templates/*.html", "*/migrations/*.sql"]
