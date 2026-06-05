@@ -85,7 +85,6 @@ class ConfigShareLink(msgspec.Struct, frozen=True):
 class ConfigTable(msgspec.Struct, frozen=True, kw_only=True):
     name: str
     config_item_class: type[ConfigItem]
-    db_table_name: str
     display_name: str
     display_name_plural: str
     help_text: Template | str | None = None

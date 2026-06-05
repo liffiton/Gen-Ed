@@ -17,7 +17,7 @@ def get_available_contexts() -> list[ContextConfig]:
     class_id = auth.cur_class.class_id if auth.cur_class else None
     # Only return contexts that are available:
     #   current date anywhere on earth (using UTC+12) is at or after the saved date
-    context_rows = db.execute("SELECT * FROM contexts WHERE class_id=? AND available <= date('now', '+12 hours') ORDER BY class_order ASC", [class_id]).fetchall()
+    context_rows = db.execute("SELECT * FROM config_items WHERE class_id=? AND item_type='context' AND available <= date('now', '+12 hours') ORDER BY class_order ASC", [class_id]).fetchall()
 
     return [ContextConfig.from_row(row) for row in context_rows]
 
@@ -31,7 +31,7 @@ def get_context_by_name(ctx_name: str) -> ContextConfig | None:
 
     class_id = auth.cur_class.class_id if auth.cur_class else None
 
-    context_row = db.execute("SELECT * FROM contexts WHERE class_id=? AND name=?", [class_id, ctx_name]).fetchone()
+    context_row = db.execute("SELECT * FROM config_items WHERE class_id=? AND item_type='context' AND name=?", [class_id, ctx_name]).fetchone()
 
     if not context_row:
         return None
@@ -67,10 +67,10 @@ class ContextsDeletionHandler:
 
         # Remove context names and configs as they may contain personal information
         db.execute("""
-            UPDATE contexts
+            UPDATE config_items
             SET name = '[deleted]' || id,
                 config = '{}'
-            WHERE class_id = ?
+            WHERE class_id = ? AND item_type = 'context'
         """, [class_id])
 
         # Remove context strings as they may contain personal information

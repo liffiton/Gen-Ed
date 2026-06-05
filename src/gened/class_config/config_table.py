@@ -86,12 +86,14 @@ def create_base_blueprint() -> Blueprint:
 
         cur_class = auth.cur_class
 
-        # verify the given item is in the user's current class
+        # verify the given item exists and belongs to the user's current class
         cur_class_id = cur_class.class_id
         item_id = values.pop('item_id')
-        query = f"SELECT * FROM {g.config_table.db_table_name} WHERE id=?"
-        item_row = db.execute(query, [item_id]).fetchone()
-        if item_row['class_id'] != cur_class_id:
+        item_row = db.execute(
+            "SELECT * FROM config_items WHERE id=? AND class_id=? AND item_type=?",
+            [item_id, cur_class_id, g.config_table.name],
+        ).fetchone()
+        if item_row is None:
             abort(403)
 
         values['item'] = g.config_table.config_item_class.from_row(item_row)
@@ -122,7 +124,7 @@ def new_item_form() -> str | Response:
 def create_item() -> Response:
     cur_class = get_auth_class()
     item = g.config_table.config_item_class.from_request_form(request.form)
-    _, name = _insert_item(cur_class.class_id, item.name, item.to_json(), "9999-12-31")  # defaults to hidden
+    _, name = _insert_item(cur_class.class_id, g.config_table.name, item.name, item.to_json(), "9999-12-31")  # defaults to hidden
     flash(f"Item '{name}' created.", "success")
     return redirect(url_for("class_config.base.config_form"))
 
@@ -148,8 +150,10 @@ def copy_from_course() -> Response:
         abort(403) # User is not instructor in source course
     # --- End Security Check ---
 
-    query = f"SELECT * FROM {g.config_table.db_table_name} WHERE class_id = ? ORDER BY class_order"
-    source_items = db.execute(query, [source_class_id]).fetchall()
+    source_items = db.execute(
+        "SELECT * FROM config_items WHERE class_id=? AND item_type=? ORDER BY class_order",
+        [source_class_id, g.config_table.name]
+    ).fetchall()
     source_class_name = db.execute("SELECT name FROM classes WHERE id = ?", [source_class_id]).fetchone()['name']
 
     if not source_items:
@@ -157,7 +161,7 @@ def copy_from_course() -> Response:
         return redirect(url_for("class_config.base.config_form"))
 
     for item_row in source_items:
-        _insert_item(target_class_id, item_row['name'], item_row['config'], "9999-12-31")  # default to hidden
+        _insert_item(target_class_id, g.config_table.name, item_row['name'], item_row['config'], "9999-12-31")  # default to hidden
 
     flash(f"Successfully copied {len(source_items)} item(s) from '{source_class_name}'.", "success")
 
@@ -171,14 +175,14 @@ def copy_item(item: ConfigItem) -> Response:
 
     # passing existing name, but _insert_item will take care of finding
     # a new, unused name in the class.
-    _, new_name = _insert_item(cur_class.class_id, item.name, item.to_json(), "9999-12-31")  # default to hidden
+    _, new_name = _insert_item(cur_class.class_id, g.config_table.name, item.name, item.to_json(), "9999-12-31")  # default to hidden
     flash(f"Item '{item.name}' copied to '{new_name}'.", "success")
     return redirect(url_for("class_config.base.config_form"))
 
 
-def _make_unique_item_name(db_table_name: str, class_id: int, name: str, item_id: int|None = None) -> str:
+def _make_unique_item_name(item_type: str, class_id: int, name: str, item_id: int|None = None) -> str:
     """ Given a class and a potential item name, return an item name that
-        is unique within that class.
+        is unique within that class and item type.
 
         (Yes, there's a race condition when using this.  Worst-case, the
         database constraints will error out an invalid insert or update.)
@@ -199,7 +203,10 @@ def _make_unique_item_name(db_table_name: str, class_id: int, name: str, item_id
 
     def name_exists(candidate: str) -> bool:
         """ Return True if the candidate name exists in the table already, False otherwise. """
-        row = db.execute(f"SELECT id FROM {db_table_name} WHERE class_id=? AND name=? AND id!=?", [class_id, candidate, item_id]).fetchone()
+        row = db.execute(
+            "SELECT id FROM config_items WHERE class_id=? AND item_type=? AND name=? AND id!=?",
+            [class_id, item_type, candidate, item_id],
+        ).fetchone()
         return row is not None
 
     while name_exists(new_name):
@@ -209,7 +216,7 @@ def _make_unique_item_name(db_table_name: str, class_id: int, name: str, item_id
     return new_name
 
 
-def _insert_item(class_id: int, name: str, config: str, available: str) -> tuple[int, str]:
+def _insert_item(class_id: int, item_type: str, name: str, config: str, available: str) -> tuple[int, str]:
     """ Insert an item with the given name, config, and availability into the given class.
     Ensures the name is unique within the class, modifying it as needed.
     Returns a tuple of the new row id and the name of the newly inserted item.
@@ -217,12 +224,12 @@ def _insert_item(class_id: int, name: str, config: str, available: str) -> tuple
     db = get_db()
 
     # names must be unique within a class: check/look for an unused name
-    new_name = _make_unique_item_name(g.config_table.db_table_name, class_id, name)
+    new_name = _make_unique_item_name(item_type, class_id, name)
 
-    cur = db.execute(f"""
-        INSERT INTO {g.config_table.db_table_name} (class_id, name, config, available, class_order)
-        VALUES (?, ?, ?, ?, (SELECT COALESCE(MAX(class_order)+1, 0) FROM {g.config_table.db_table_name} WHERE class_id=?))
-    """, [class_id, new_name, config, available, class_id])
+    cur = db.execute("""
+        INSERT INTO config_items (class_id, item_type, name, config, available, class_order)
+        VALUES (?, ?, ?, ?, ?, (SELECT COALESCE(MAX(class_order)+1, 0) FROM config_items WHERE class_id=? AND item_type=?))
+    """, [class_id, item_type, new_name, config, available, class_id, item_type])
     db.commit()
     new_item_id = cur.lastrowid
     assert new_item_id is not None
@@ -236,9 +243,12 @@ def update_item(item: ConfigItem) -> Response:
     # names must be unique within a class: check/look for an unused name
     cur_class = get_auth_class()
     new_item = g.config_table.config_item_class.from_request_form(request.form)
-    new_name = _make_unique_item_name(g.config_table.db_table_name, cur_class.class_id, request.form['name'], item.row_id)
+    new_name = _make_unique_item_name(g.config_table.name, cur_class.class_id, request.form['name'], item.row_id)
 
-    db.execute(f"UPDATE {g.config_table.db_table_name} SET name=?, config=? WHERE id=?", [new_name, new_item.to_json(), item.row_id])
+    db.execute(
+        "UPDATE config_items SET name=?, config=? WHERE id=? AND item_type=?",
+        [new_name, new_item.to_json(), item.row_id, g.config_table.name]
+    )
     db.commit()
 
     flash(f"Configuration for item '{item.name}' updated.", "success")
@@ -250,7 +260,7 @@ def update_item(item: ConfigItem) -> Response:
 def delete_item(item: ConfigItem) -> Response:
     db = get_db()
 
-    db.execute(f"DELETE FROM {g.config_table.db_table_name} WHERE id=?", [item.row_id])
+    db.execute("DELETE FROM config_items WHERE id=? AND item_type=?", [item.row_id, g.config_table.name])
     db.commit()
 
     flash(f"Item '{item.name}' deleted.", "success")
@@ -268,10 +278,12 @@ def update_order() -> str:
     if not isinstance(ordered_ids, list):
         current_app.logger.error(f"update_order received non-list JSON: {ordered_ids}")
         abort(400)
-    sql_tuples = [(i, item_id, class_id) for i, item_id in enumerate(ordered_ids)]
 
     # Check class_id in the WHERE to prevent changing items in another class
-    db.executemany(f"UPDATE {g.config_table.db_table_name} SET class_order=? WHERE id=? AND class_id=?", sql_tuples)
+    db.executemany(
+        "UPDATE config_items SET class_order=? WHERE id=? AND class_id=? AND item_type=?",
+        [(i, item_id, class_id, g.config_table.name) for i, item_id in enumerate(ordered_ids)]
+    )
     db.commit()
 
     return 'ok'
@@ -290,7 +302,10 @@ def update_available() -> str:
         abort(400)
 
     # Check class_id in the WHERE to prevent changing items in another class
-    db.execute(f"UPDATE {g.config_table.db_table_name} SET available=? WHERE id=? AND class_id=?", [data['available'], data['item_id'], class_id])
+    db.execute(
+        "UPDATE config_items SET available=? WHERE id=? AND class_id=? AND item_type=?",
+        [data['available'], data['item_id'], class_id, g.config_table.name]
+    )
     db.commit()
 
     return 'ok'

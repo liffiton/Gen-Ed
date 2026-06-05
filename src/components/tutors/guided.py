@@ -103,7 +103,6 @@ class TutorConfig(ConfigItem):
 guided_tutor_config_table = ConfigTable(
     config_item_class=TutorConfig,
     name='guided_tutor',
-    db_table_name='tutors',
     display_name='focused tutor',
     display_name_plural='focused tutors',
     help_text=Markup("<p>Instructors can design Focused Tutors for students with pre-defined learning objectives and assessment questions (e.g., to be used as reinforcement and/or low-stakes assessments following a reading or video).</p>"),

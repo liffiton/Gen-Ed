@@ -51,7 +51,7 @@ def build_blueprint() -> Blueprint:
     return new_bp
 
 
-def _get_instructor_courses(user_id: int, current_class_id: int, db_table: str) -> list[dict[str, str | list[str]]]:
+def _get_instructor_courses(user_id: int, current_class_id: int, item_type: str) -> list[dict[str, str | list[str]]]:
     """ Get other courses where the user is an instructor. """
     db = get_db()
     course_rows = db.execute("""
@@ -67,9 +67,10 @@ def _get_instructor_courses(user_id: int, current_class_id: int, db_table: str) 
     # Fetch items for each eligible course to display in the copy modal
     instructor_courses_data = []
     for course in course_rows:
-        course_items = db.execute(f"""
-            SELECT name FROM {db_table} WHERE class_id = ? ORDER BY class_order
-        """, [course['id']]).fetchall()
+        course_items = db.execute(
+            "SELECT name FROM config_items WHERE class_id=? AND item_type=? ORDER BY class_order",
+            [course['id'], item_type],
+        ).fetchall()
         instructor_courses_data.append({
             'id': course['id'],
             'name': course['name'],
@@ -86,12 +87,12 @@ def get_table_template_context(table: ConfigTable) -> dict[str, Any]:
     cur_class = get_auth_class()
     class_id = cur_class.class_id
 
-    items = db.execute(f"""
+    items = db.execute("""
         SELECT id, name, CAST(available AS TEXT) AS available
-        FROM {table.db_table_name}
-        WHERE class_id=?
+        FROM config_items
+        WHERE class_id=? AND item_type=?
         ORDER BY class_order
-    """, [class_id]).fetchall()
+    """, [class_id, table.name]).fetchall()
     items = [dict(c) for c in items]  # for conversion to json
 
     # add pre-generated URLs for actions and share links
@@ -109,7 +110,7 @@ def get_table_template_context(table: ConfigTable) -> dict[str, Any]:
                 )
 
     assert auth.user
-    copyable_courses = _get_instructor_courses(auth.user.id, class_id, table.db_table_name)
+    copyable_courses = _get_instructor_courses(auth.user.id, class_id, table.name)
 
     return {
         "table": table,

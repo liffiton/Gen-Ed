@@ -204,3 +204,16 @@ CREATE TABLE class_components (
     FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE
 );
 
+-- Generic config items table for all components
+CREATE TABLE config_items (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    class_id    INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    item_type   TEXT NOT NULL,
+    name        TEXT NOT NULL,
+    class_order INTEGER NOT NULL,
+    available   DATE NOT NULL,
+    config      TEXT NOT NULL DEFAULT '{}',  -- storing JSON
+    created     DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX config_items_by_class_type_name ON config_items(class_id, item_type, name);
+

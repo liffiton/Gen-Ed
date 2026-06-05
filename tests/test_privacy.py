@@ -174,7 +174,7 @@ def test_delete_class_full_process(app: Flask, instructor: AppClient) -> None:
         db = get_db()
         initial_queries = db.execute("SELECT COUNT(*) FROM code_queries WHERE role_id IN (SELECT id FROM roles WHERE class_id = ?)",
 [class_id]).fetchone()[0]
-        initial_contexts = db.execute("SELECT COUNT(*) FROM contexts WHERE class_id = ?", [class_id]).fetchone()[0]
+        initial_contexts = db.execute("SELECT COUNT(*) FROM config_items WHERE item_type='context' AND class_id = ?", [class_id]).fetchone()[0]
         assert initial_queries > 0, "Test data should include queries"
         assert initial_contexts > 0, "Test data should include contexts"
 
@@ -227,7 +227,7 @@ def test_delete_class_full_process(app: Flask, instructor: AppClient) -> None:
             assert query['context_string_id'] is None, "Query context_string_id should be nulled"
 
         # Check contexts anonymization
-        contexts = db.execute("SELECT * FROM contexts WHERE class_id = ?", [class_id]).fetchall()
+        contexts = db.execute("SELECT * FROM config_items WHERE item_type='context' AND class_id = ?", [class_id]).fetchall()
         for context in contexts:
             assert context['name'].startswith('[deleted]'), "Context names should be anonymized"
             assert context['config'] == '{}', "Context configs should be emptied"

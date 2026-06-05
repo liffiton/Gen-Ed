@@ -19,16 +19,16 @@ VALUES
     (8, 'USER103', 1),
     (9, 'USER104', 1);
 
-INSERT INTO contexts (id, name, class_id, class_order, available, config)
+INSERT INTO config_items (id, class_id, item_type, name, class_order, available, config)
 VALUES
-    (1, 'default', 1, 0, '0001-01-01', '{"tools": "Python\r\nC++\r\nOCaml", "avoid": "sum()\r\neval()\r\nzfill()\r\n+=\r\n"}'),
-    (2, 'default', 2, 0, '0001-01-01', '{"tools": "Python", "avoid": ""}'),
-    (3, 'default', 3, 0, '0001-01-01', '{"tools": "Python", "avoid": ""}'),
-    (4, 'default', 4, 0, '0001-01-01', '{"tools": "Python", "avoid": ""}'),
+    (1, 1, 'context', 'default', 0, '0001-01-01', '{"tools": "Python\r\nC++\r\nOCaml", "avoid": "sum()\r\neval()\r\nzfill()\r\n+=\r\n"}'),
+    (2, 2, 'context', 'default', 0, '0001-01-01', '{"tools": "Python", "avoid": ""}'),
+    (3, 3, 'context', 'default', 0, '0001-01-01', '{"tools": "Python", "avoid": ""}'),
+    (4, 4, 'context', 'default', 0, '0001-01-01', '{"tools": "Python", "avoid": ""}'),
     -- contexts for testuser's class:
-    (5, 'default1', 2, 0, '0001-02-03', '{"tools": "Python1", "avoid": "avoid1"}'),
-    (6, 'default2', 2, 1, '0004-05-06', '{"tools": "Python2", "avoid": "avoid2"}'),
-    (7, 'default3', 2, 2, '0007-08-09', '{"tools": "Python3", "avoid": "avoid3"}');
+    (5, 2, 'context', 'default1', 0, '0001-02-03', '{"tools": "Python1", "avoid": "avoid1"}'),
+    (6, 2, 'context', 'default2', 1, '0004-05-06', '{"tools": "Python2", "avoid": "avoid2"}'),
+    (7, 2, 'context', 'default3', 2, '0007-08-09', '{"tools": "Python3", "avoid": "avoid3"}');
 
 INSERT INTO classes_lti (class_id, lti_consumer_id, lti_context_id)
 VALUES

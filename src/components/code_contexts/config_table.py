@@ -23,7 +23,6 @@ context_config_help = Environment(autoescape=True).from_string("""\
 contexts_config_table = ConfigTable(
     config_item_class=ContextConfig,
     name='context',
-    db_table_name='contexts',
     display_name='context',
     display_name_plural='contexts',
     help_text=context_config_help,

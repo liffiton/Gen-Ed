@@ -73,7 +73,7 @@ def new_chat_form(class_id: int | None = None) -> Response | str:
             contexts = {context.name: context.desc_html()}
         elif 'tutor_name' in request.args:
             tutor_name = request.args['tutor_name']
-            tutor_rows = db.execute("SELECT id, name FROM tutors WHERE class_id=? AND name=?", [class_id, tutor_name]).fetchall()
+            tutor_rows = db.execute("SELECT id, name FROM config_items WHERE class_id=? AND item_type='guided_tutor' AND name=?", [class_id, tutor_name]).fetchall()
             if not tutor_rows:
                 flash(f"Tutor not found: '{tutor_name}'", "danger")
                 return make_response(render_template("error.html"), 400)
@@ -89,7 +89,7 @@ def new_chat_form(class_id: int | None = None) -> Response | str:
         # Get all pre-defined guided tutors that are available:
         #   current date anywhere on earth (using UTC+12) is at or after the saved date
         class_id = auth.cur_class.class_id if auth.cur_class else None
-        tutor_rows = db.execute("SELECT id, name FROM tutors WHERE class_id=? AND available <= date('now', '+12 hours') ORDER BY class_order ASC", [class_id]).fetchall()
+        tutor_rows = db.execute("SELECT id, name FROM config_items WHERE class_id=? AND item_type='guided_tutor' AND available <= date('now', '+12 hours') ORDER BY class_order ASC", [class_id]).fetchall()
 
     # check if each feature is enabled
     if not check_access(RequireComponent("tutors", "inquiry")):
@@ -144,7 +144,7 @@ def create_guided_chat(llm: LLM) -> Response:
     assert auth.cur_class is not None
 
     tutor_id = request.form['tutor_id']
-    row = db.execute("SELECT * FROM tutors WHERE class_id=? AND id=?", [auth.cur_class.class_id, tutor_id]).fetchone()
+    row = db.execute("SELECT * FROM config_items WHERE class_id=? AND item_type='guided_tutor' AND id=?", [auth.cur_class.class_id, tutor_id]).fetchone()
 
     tutor_config = TutorConfig.from_row(row)
 
