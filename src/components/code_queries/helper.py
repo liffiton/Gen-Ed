@@ -22,8 +22,7 @@ from werkzeug.wrappers.response import Response
 
 from components.code_contexts import (
     ContextConfig,
-    get_available_contexts,
-    get_context_by_name,
+    contexts_config_table,
     record_context_string,
 )
 from gened.access import (
@@ -67,14 +66,14 @@ def help_form(llm: LLM, query_id: int | None = None, class_id: int | None = None
     query_row = None
     if ctx_name is not None:
         # see if the given context is part of the current class (whether available or not)
-        context = get_context_by_name(ctx_name)
+        context = contexts_config_table.get_item_by_name(ctx_name)
         if context is None:
             flash(f"Context not found: {ctx_name}", "danger")
             return make_response(render_template("error.html"), 404)
         contexts_list = [context]  # this will be the only context in this page -- no other options
         selected_context_name = ctx_name
     else:
-        contexts_list = get_available_contexts()  # all *available* contexts will be shown
+        contexts_list = contexts_config_table.get_items(available_only=True)  # all *available* contexts will be shown
         if query_id is not None:
             # populate with a query if one is specified in the query string
             with suppress(DataAccessError):
@@ -89,7 +88,7 @@ def help_form(llm: LLM, query_id: int | None = None, class_id: int | None = None
 
         # verify the context is real and part of the current class
         if selected_context_name is not None:
-            context = get_context_by_name(selected_context_name)
+            context = contexts_config_table.get_item_by_name(selected_context_name)
             if context is None:
                 selected_context_name = None
             else:
@@ -226,7 +225,7 @@ def record_response(query_id: int, responses: list[dict[str, str]], texts: dict[
 @with_llm(spend_token=True)
 def help_request(llm: LLM) -> Response:
     if 'context' in request.form:
-        context = get_context_by_name(request.form['context'])
+        context = contexts_config_table.get_item_by_name(request.form['context'])
         if context is None:
             flash(f"Context not found: {request.form['context']}", "danger")
             return make_response(render_template("error.html"), 400)

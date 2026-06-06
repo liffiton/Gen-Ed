@@ -3,6 +3,7 @@ from sqlite3 import Row
 import pytest
 from flask import Flask
 
+from components.code_contexts.data import ITEM_TYPE as CONTEXT_ITEM_TYPE
 from gened.db import get_db
 from tests.conftest import AppClient
 
@@ -10,7 +11,7 @@ from tests.conftest import AppClient
 def _get_context_by_name(app: Flask, name: str) -> Row:
     with app.app_context():
         db = get_db()
-        context: Row | None = db.execute("SELECT * FROM config_items WHERE item_type='context' AND name = ?", [name]).fetchone()
+        context: Row | None = db.execute("SELECT * FROM config_items WHERE item_type=? AND name = ?", [CONTEXT_ITEM_TYPE, name]).fetchone()
         assert context is not None
         return context
 
@@ -48,7 +49,7 @@ def test_update_context_saves_changes_to_db(app: Flask, instructor: AppClient) -
 
     with app.app_context():
         db = get_db()
-        updated_context = db.execute("SELECT * FROM config_items WHERE item_type='context' AND id = ?", (context_id,)).fetchone()
+        updated_context = db.execute("SELECT * FROM config_items WHERE item_type=? AND id = ?", (CONTEXT_ITEM_TYPE, context_id)).fetchone()
         assert updated_context is not None
         assert updated_context['name'] == 'Updated Context'
         assert updated_context['config'] == '{"name":"Updated Context","tools":"ABC","details":"XYZ","avoid":"123"}'
@@ -68,7 +69,7 @@ def test_delete_context_removes_from_db(app: Flask, instructor: AppClient) -> No
 
     with app.app_context():
         db = get_db()
-        deleted_context = db.execute("SELECT * FROM config_items WHERE item_type='context' AND id = ?", (context_id,)).fetchone()
+        deleted_context = db.execute("SELECT * FROM config_items WHERE item_type=? AND id = ?", (CONTEXT_ITEM_TYPE, context_id)).fetchone()
         assert deleted_context is None
 
 

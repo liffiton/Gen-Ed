@@ -32,7 +32,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             <div class="field-body">
               {% if tutors | length == 1 %}
                 <div class="input is-medium">{{ tutors[0].name }}</div>
-                <input type="hidden" name="tutor_id" value="{{ tutors[0].id }}">
+                <input type="hidden" name="tutor_id" value="{{ tutors[0].row_id }}">
               {% else %}
               <div class="field">
                 <div class="control">
@@ -40,7 +40,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                     <select name="tutor_id">
                       <option disabled selected value="">Please select</option>
                       {% for tutor in tutors %}
-                        <option value="{{ tutor.id }}">{{ tutor.name }}</option>
+                        <option value="{{ tutor.row_id }}">{{ tutor.name }}</option>
                       {% endfor %}
                     </select>
                   </div>

@@ -3,40 +3,11 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 
-from gened.auth import get_auth
 from gened.db import get_db
 
-from .model import ContextConfig
+from .config_table import contexts_config_table
 
-### Helper functions for using contexts
-
-def get_available_contexts() -> list[ContextConfig]:
-    db = get_db()
-    auth = get_auth()
-
-    class_id = auth.cur_class.class_id if auth.cur_class else None
-    # Only return contexts that are available:
-    #   current date anywhere on earth (using UTC+12) is at or after the saved date
-    context_rows = db.execute("SELECT * FROM config_items WHERE class_id=? AND item_type='context' AND available <= date('now', '+12 hours') ORDER BY class_order ASC", [class_id]).fetchall()
-
-    return [ContextConfig.from_row(row) for row in context_rows]
-
-
-def get_context_by_name(ctx_name: str) -> ContextConfig | None:
-    """ Return a context object of the given class based on the specified name
-        or return None if no context exists with that name.
-    """
-    db = get_db()
-    auth = get_auth()
-
-    class_id = auth.cur_class.class_id if auth.cur_class else None
-
-    context_row = db.execute("SELECT * FROM config_items WHERE class_id=? AND item_type='context' AND name=?", [class_id, ctx_name]).fetchone()
-
-    if not context_row:
-        return None
-
-    return ContextConfig.from_row(context_row)
+ITEM_TYPE = contexts_config_table.name
 
 
 def record_context_string(context_str: str) -> int:
@@ -70,8 +41,8 @@ class ContextsDeletionHandler:
             UPDATE config_items
             SET name = '[deleted]' || id,
                 config = '{}'
-            WHERE class_id = ? AND item_type = 'context'
-        """, [class_id])
+            WHERE class_id = ? AND item_type = ?
+        """, [class_id, ITEM_TYPE])
 
         # Remove context strings as they may contain personal information
         db.execute("""

@@ -26,7 +26,7 @@ from gened.redir import safe_redirect
 
 from .access_links import AccessLink, v2_generate_new_key
 from .config_table import create_blueprint
-from .types import ConfigTable
+from .types import ConfigItem, ConfigTable
 
 bp = Blueprint('base', __name__, template_folder='templates')
 
@@ -80,7 +80,7 @@ def _get_instructor_courses(user_id: int, current_class_id: int, item_type: str)
     return instructor_courses_data
 
 
-def get_table_template_context(table: ConfigTable) -> dict[str, Any]:
+def get_table_template_context(table: ConfigTable[ConfigItem]) -> dict[str, Any]:
     """ Returns a dictionary of context variables to be used within the config screen template. """
     db = get_db()
     auth = get_auth()

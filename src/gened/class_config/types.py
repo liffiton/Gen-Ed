@@ -4,7 +4,7 @@
 
 from collections.abc import Iterable
 from sqlite3 import Row
-from typing import Any, Literal, Self
+from typing import Any, Generic, Literal, Self, TypeVar
 
 import msgspec
 from flask import Blueprint, url_for
@@ -12,7 +12,15 @@ from jinja2 import Template
 from werkzeug.datastructures import ImmutableMultiDict
 
 from gened.access import AccessControl
-from gened.auth import get_auth_class
+from gened.auth import get_auth, get_auth_class
+from gened.db import get_db
+
+# C is defined with covariant=True so that a ConfigTable containing a subclass of
+# ConfigItem (such as ConfigTable[TutorConfig]) is considered a subtype of
+# ConfigTable[ConfigItem]. This allows code processing arbitrary ConfigTables
+# to be typed as ConfigTable[ConfigItem] rather than losing type safety with
+# ConfigTable[Any].
+C_co = TypeVar('C_co', bound='ConfigItem', covariant=True)
 
 # The following provide the basis for application-specific configuration tables,
 # in which multiple elements of a given type need to be managed in a table.
@@ -82,9 +90,9 @@ class ConfigShareLink(msgspec.Struct, frozen=True):
         return url_for(self.endpoint, _external=True, **kwargs)
 
 
-class ConfigTable(msgspec.Struct, frozen=True, kw_only=True):
+class ConfigTable(msgspec.Struct, Generic[C_co], frozen=True, kw_only=True):
     name: str
-    config_item_class: type[ConfigItem]
+    config_item_class: type[C_co]
     display_name: str
     display_name_plural: str
     help_text: Template | str | None = None
@@ -96,3 +104,66 @@ class ConfigTable(msgspec.Struct, frozen=True, kw_only=True):
     @property
     def new_url(self) -> str:
         return url_for('class_config.table.crud.new_item_form', table_name=self.name)
+
+    def get_items(self, *, available_only: bool = False) -> list[C_co]:
+        """Get all config items of this type for the current user's class.
+
+        If available_only is True, only return items whose available date has passed
+        (UTC+12, so current date anywhere on earth).
+
+        Items are ordered by class_order.
+        """
+        db = get_db()
+        auth = get_auth()
+        class_id = auth.cur_class.class_id if auth.cur_class else None
+
+        if available_only:
+            rows = db.execute(
+                "SELECT * FROM config_items WHERE class_id=? AND item_type=? AND available <= date('now', '+12 hours') ORDER BY class_order ASC",
+                [class_id, self.name]
+            ).fetchall()
+        else:
+            rows = db.execute(
+                "SELECT * FROM config_items WHERE class_id=? AND item_type=? ORDER BY class_order ASC",
+                [class_id, self.name]
+            ).fetchall()
+
+        return [self.config_item_class.from_row(row) for row in rows]
+
+    def get_item_by_name(self, name: str) -> C_co | None:
+        """Get a single config item by name for the current user's class.
+
+        Returns None if no item with that name exists for the current class + type.
+        """
+        db = get_db()
+        auth = get_auth()
+        class_id = auth.cur_class.class_id if auth.cur_class else None
+
+        row = db.execute(
+            "SELECT * FROM config_items WHERE class_id=? AND item_type=? AND name=?",
+            [class_id, self.name, name]
+        ).fetchone()
+
+        if row is None:
+            return None
+
+        return self.config_item_class.from_row(row)
+
+    def get_item_by_id(self, item_id: int) -> C_co | None:
+        """Get a single config item by id for the current user's class.
+
+        Returns None if no item with that id exists for the current class + type.
+        """
+        db = get_db()
+        auth = get_auth()
+        class_id = auth.cur_class.class_id if auth.cur_class else None
+
+        row = db.execute(
+            "SELECT * FROM config_items WHERE id=? AND class_id=? AND item_type=?",
+            [item_id, class_id, self.name]
+        ).fetchone()
+
+        if row is None:
+            return None
+
+        return self.config_item_class.from_row(row)

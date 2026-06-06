@@ -9,8 +9,6 @@ from gened.components import GenEdComponent
 from .config_table import contexts_config_table
 from .data import (
     ContextsDeletionHandler,
-    get_available_contexts,
-    get_context_by_name,
     record_context_string,
 )
 from .model import ContextConfig
@@ -34,8 +32,7 @@ gened_component = GenEdComponent(
 
 __all__ = [
     "ContextConfig",
+    "contexts_config_table",
     "gened_component",
-    "get_available_contexts",
-    "get_context_by_name",
     "record_context_string",
 ]

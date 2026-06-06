@@ -16,7 +16,7 @@ from .access import (
     control_blueprint_access,
 )
 from .auth import get_auth
-from .class_config import types as class_config_types
+from .class_config.types import ConfigItem, ConfigTable
 from .db import get_db
 
 
@@ -55,7 +55,7 @@ class GenEdComponent:
     # configure a DataSource, used primarily to present data from this component to users, instructors, and admins
     data_source: app_data.DataSource | None = None
     # set up a table in the class configuration screen for configuring items for this component
-    config_table: class_config_types.ConfigTable | None = None
+    config_table: ConfigTable[ConfigItem] | None = None
     # add a time series chart to the top of the admin dashboard
     admin_chart: app_data.ChartGenerator | None = None
     # register a DeletionHandler to properly delete or anonymize data for this component when deleting a user or class

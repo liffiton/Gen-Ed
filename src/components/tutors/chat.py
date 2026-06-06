@@ -22,8 +22,7 @@ from werkzeug.wrappers.response import Response
 
 from components.code_contexts import (
     ContextConfig,
-    get_available_contexts,
-    get_context_by_name,
+    contexts_config_table,
 )
 from gened.access import (
     Access,
@@ -40,7 +39,7 @@ from gened.llm import LLM, ChatMessage, with_llm
 
 from . import prompts
 from .data import ChatData, ChatMode, GuidedAnalysis, chats_data_source
-from .guided import TutorConfig
+from .guided import guided_tutor_config_table
 
 bp = Blueprint('tutors', __name__, url_prefix='/tutor', template_folder='templates')
 
@@ -50,7 +49,6 @@ bp = Blueprint('tutors', __name__, url_prefix='/tutor', template_folder='templat
 @bp.route("/new")
 @bp.route("/new/<int:class_id>")
 def new_chat_form(class_id: int | None = None) -> Response | str:
-    db = get_db()
     auth = get_auth()
 
     if class_id is not None:
@@ -62,44 +60,44 @@ def new_chat_form(class_id: int | None = None) -> Response | str:
             return make_response(render_template("error.html"), 400)
 
         contexts = None
-        tutor_rows = None
+        tutors = None
 
         if 'ctx_name' in request.args:
             ctx_name = request.args['ctx_name']
-            context = get_context_by_name(ctx_name)
+            context = contexts_config_table.get_item_by_name(ctx_name)
             if not context:
                 flash(f"Context not found: '{ctx_name}'", "danger")
                 return make_response(render_template("error.html"), 400)
             contexts = {context.name: context.desc_html()}
         elif 'tutor_name' in request.args:
             tutor_name = request.args['tutor_name']
-            tutor_rows = db.execute("SELECT id, name FROM config_items WHERE class_id=? AND item_type='guided_tutor' AND name=?", [class_id, tutor_name]).fetchall()
-            if not tutor_rows:
+            tutor = guided_tutor_config_table.get_item_by_name(tutor_name)
+            if not tutor:
                 flash(f"Tutor not found: '{tutor_name}'", "danger")
                 return make_response(render_template("error.html"), 400)
+            tutors = [tutor]
         else:
             return make_response(render_template("error.html"), 400)
 
     else:
         # All contexts and all guided tutors
-        contexts_list = get_available_contexts()
+        contexts_list = contexts_config_table.get_items(available_only=True)
         # turn into format we can pass to js via JSON
         contexts = {ctx.name: ctx.desc_html() for ctx in contexts_list}
 
         # Get all pre-defined guided tutors that are available:
         #   current date anywhere on earth (using UTC+12) is at or after the saved date
-        class_id = auth.cur_class.class_id if auth.cur_class else None
-        tutor_rows = db.execute("SELECT id, name FROM config_items WHERE class_id=? AND item_type='guided_tutor' AND available <= date('now', '+12 hours') ORDER BY class_order ASC", [class_id]).fetchall()
+        tutors = guided_tutor_config_table.get_items(available_only=True)
 
     # check if each feature is enabled
     if not check_access(RequireComponent("tutors", "inquiry")):
-        contexts = None    # don't dislay the form
+        contexts = None  # don't display the form
     if not check_access(RequireComponent("tutors", "guided")):
-        tutor_rows = None  # don't dislay the form
+        tutors = None  # don't display the form
 
     recent_chats = chats_data_source.get_user_data(limit=10)
 
-    return render_template("tutor_new_form.html", contexts=contexts, tutors=tutor_rows, recent_chats=recent_chats)
+    return render_template("tutor_new_form.html", contexts=contexts, tutors=tutors, recent_chats=recent_chats)
 
 
 @bp.route("/create_inquiry", methods=["POST"])
@@ -110,7 +108,7 @@ def create_inquiry_chat(llm: LLM) -> Response:
     context: ContextConfig | None = None
 
     if context_name := request.form.get('context'):
-        context = get_context_by_name(context_name)
+        context = contexts_config_table.get_item_by_name(context_name)
         if context is None:
             flash(f"Context not found: {context_name}", "danger")
             return make_response(render_template("error.html"), 400)
@@ -139,14 +137,15 @@ def create_inquiry_chat(llm: LLM) -> Response:
 @route_requires(Access.CLASS_ENABLED, RequireComponent("tutors", feature="guided"))
 @with_llm(spend_token=True)
 def create_guided_chat(llm: LLM) -> Response:
-    db = get_db()
     auth = get_auth()
     assert auth.cur_class is not None
 
     tutor_id = request.form['tutor_id']
-    row = db.execute("SELECT * FROM config_items WHERE class_id=? AND item_type='guided_tutor' AND id=?", [auth.cur_class.class_id, tutor_id]).fetchone()
+    tutor_config = guided_tutor_config_table.get_item_by_id(int(tutor_id))
 
-    tutor_config = TutorConfig.from_row(row)
+    if tutor_config is None:
+        flash("Tutor not found.", "danger")
+        return make_response(render_template("error.html"), 400)
 
     # Get documents marked for use in chat
     chat_docs = [doc for doc in tutor_config.documents if 'chat' in doc.use_in]

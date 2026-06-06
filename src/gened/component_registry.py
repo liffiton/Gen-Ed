@@ -8,7 +8,7 @@ from typing import TypeGuard
 from flask import current_app
 
 from . import app_data
-from .class_config import types as class_config_types
+from .class_config.types import ConfigItem, ConfigTable
 from .components import GenEdComponent
 
 
@@ -54,7 +54,7 @@ def get_component_data_source_by_name(name: str) -> app_data.DataSource | None:
     return None
 
 
-def get_component_config_table_by_name(name: str) -> class_config_types.ConfigTable | None:
+def get_component_config_table_by_name(name: str) -> ConfigTable[ConfigItem] | None:
     components = get_registered_components()
     for c in components:
         if (ct := c.config_table) and ct.name == name:
