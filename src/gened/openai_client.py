@@ -26,19 +26,17 @@ class OpenAIClient:
 
     def _translate_openai_error(self, e: openai.APIError) -> tuple[str, str]:
         common_error_text = "Error ({error_type}).  Something went wrong with this query.  The error has been logged, and we'll work on it.  For now, please try again."
+        log_msg = f"OpenAI {type(e).__name__}: {e}"
         match e:
             case openai.APITimeoutError():
                 user_msg = "Error (APITimeoutError).  The system timed out producing the response.  Please try again."
-                log_msg = f"OpenAI Timeout: {e}"
             case openai.RateLimitError():
                 if "exceeded your current quota" in str(e):
                     user_msg = "Error (RateLimitError).  The API key for this class has exceeded its current quota (https://platform.openai.com/docs/guides/rate-limits/usage-tiers).  The instructor should check their API plan and billing details.  Possibly the key is in the free tier, which does not cover the models used here."
                 else:
                     user_msg = "Error (RateLimitError).  The system is receiving too many requests right now.  Please try again in one minute."
-                log_msg = f"OpenAI RateLimitError: {e}"
             case openai.AuthenticationError():
                 user_msg = "Error (AuthenticationError).  The API key set by the instructor for this class is invalid.  A valid API key is needed for this application to work."
-                log_msg = f"OpenAI AuthenticationError: {e}"
             case openai.BadRequestError():
                 if "API key not valid" in str(e):
                     user_msg = "Error (BadRequestError).  The API key set by the instructor for this class is invalid.  A valid API key is needed for this application to work."
@@ -46,7 +44,8 @@ class OpenAIClient:
                     user_msg = "Error (BadRequestError).  Your query is too long for the model to process.  Please reduce the length of your input."
                 else:
                     user_msg = common_error_text.format(error_type='BadRequestError')
-                log_msg = f"OpenAI BadRequestError: {e}"
+            case openai.NotFoundError():
+                user_msg = f"Error (NotFoundError).  The API endpoint {self._client.base_url} returned a 404.  It is probably not the correct URL."
             case _:
                 user_msg = common_error_text.format(error_type='APIError')
                 log_msg = f"Exception (OpenAI {type(e).__name__}, but I don't handle that specifically yet): {e}"
