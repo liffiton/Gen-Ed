@@ -113,15 +113,23 @@ def help_view(query_id: int) -> Response | str:
     except DataAccessError:
         abort(400, "Invalid id.")
 
-    if query_row['response']:
-        responses = json.loads(query_row['response'])
-    else:
-        responses = {'error': "*No response -- an error occurred.  Please try again.*"}
+    try:
+        if query_row['response']:
+            responses = json.loads(query_row['response'])
+        else:
+            responses = {'error': "*No response -- an error occurred.  Please try again.*"}
+    except json.JSONDecodeError:
+        current_app.logger.error(f"Failed to decode response for query {query_id}. Response: {query_row['response']}")
+        responses = {'error': "*Error: The stored response is corrupt.*"}
 
     marked_up: str | Markup = ""
     if 'main' in responses:
-        response_data = json.loads(responses['main'])
-        marked_up = insert_corrections_html(query_row['writing'], response_data.get('errors'))
+        try:
+            response_data = json.loads(responses['main'])
+            marked_up = insert_corrections_html(query_row['writing'], response_data.get('errors'))
+        except json.JSONDecodeError:
+            current_app.logger.error(f"Invalid JSON in language_help response {query_id}: {responses['main']}")
+            marked_up = Markup("<p class='has-text-danger'>*Error: The AI response could not be parsed.*</p>")
 
     history = queries_data_source.get_user_data(limit=10)
 

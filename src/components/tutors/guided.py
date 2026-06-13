@@ -121,7 +121,7 @@ guided_tutor_config_table = ConfigTable(
 
 @bp.route('/objectives/generate', methods=['POST'])
 @with_llm(spend_token=True, is_api=True)
-def generate_objectives(llm: LLM) -> bytes:
+def generate_objectives(llm: LLM) -> bytes | tuple[dict[str, str], int]:
     """Generate learning objectives for the given topic."""
     config = TutorConfig.from_request_form(request.form)
 
@@ -156,14 +156,14 @@ def generate_objectives(llm: LLM) -> bytes:
         objectives_data = response.objectives
     except msgspec.DecodeError as e:
         current_app.logger.error(f"Failed to parse objectives from LLM. Error: {e}. Response: {response_txt}")
-        raise
+        return {"error": "The AI service returned an invalid response. Please try again."}, 502
 
     objectives = [LearningObjective(obj, []) for obj in objectives_data]
 
     return msgspec.json.encode(objectives)
 
 
-async def generate_questions_for_objective(config: TutorConfig, index: int, llm: LLM, num_questions: int) -> None:
+async def generate_questions_for_objective(config: TutorConfig, index: int, llm: LLM, num_questions: int) -> list[str]:
     context = config.context
 
     # Get documents marked for setup use
@@ -186,36 +186,38 @@ async def generate_questions_for_objective(config: TutorConfig, index: int, llm:
 
     try:
         response = msgspec.json.decode(response_txt, type=QuestionsResponse)
-        data = response.questions
     except msgspec.DecodeError as e:
         current_app.logger.error(f"Failed to parse questions from LLM for objective '{objective}'. Error: {e}. Response: {response_txt}")
         raise
-
-    config.objectives[index].questions = data
+    else:
+        return response.questions
 
 
 async def populate_questions(config: TutorConfig, llm: LLM, num_questions: int) -> None:
     """ Populate (in-place) all learning objectives in config with the given number of questions. """
-    # TaskGroup is 3.11+ (TODO: switch after 3.10 eol)
-    #async with asyncio.TaskGroup() as tg:
-    #    for i in range(len(config.objectives)):
-    #        tg.create_task(generate_questions_for_objective(config, i, llm, num_questions))
-    tasks = [
-        asyncio.create_task(generate_questions_for_objective(config, i, llm, num_questions))
-        for i in range(len(config.objectives))
-    ]
-    await asyncio.gather(*tasks)
+    async with asyncio.TaskGroup() as tg:
+        tasks = [
+            tg.create_task(generate_questions_for_objective(config, i, llm, num_questions))
+            for i in range(len(config.objectives))
+        ]
+
+    # If we reach here, all tasks succeeded. Apply results.
+    for i, task in enumerate(tasks):
+        config.objectives[i].questions = task.result()
 
 
 @bp.route('/questions/generate', methods=['POST'])
 @with_llm(spend_token=True, is_api=True)
-def generate_questions(llm: LLM) -> bytes:
+def generate_questions(llm: LLM) -> bytes | tuple[dict[str, str], int]:
     """Generate questions based on topic and objectives."""
     config = TutorConfig.from_request_form(request.form)
 
     num_questions = int(request.form.get('num_questions', DEFAULT_QUESTIONS_PER_OBJECTIVE))
 
-    task = populate_questions(config, llm, num_questions)
-    asyncio.run(task)
+    try:
+        asyncio.run(populate_questions(config, llm, num_questions))
+    except (msgspec.DecodeError, ExceptionGroup):
+        return {"error": "The AI service returned an invalid response for one or more objectives. Please try again."}, 502
 
     return msgspec.json.encode(config.objectives)
+

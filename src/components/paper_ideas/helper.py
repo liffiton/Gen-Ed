@@ -9,6 +9,7 @@ from contextlib import suppress
 from flask import (
     Blueprint,
     abort,
+    current_app,
     redirect,
     render_template,
     request,
@@ -53,10 +54,14 @@ def help_view(query_id: int) -> Response | str:
     except DataAccessError:
         abort(400, "Invalid id.")
 
-    if query_row['response']:
-        responses = json.loads(query_row['response'])
-    else:
-        responses = {'error': "*No response -- an error occurred.  Please try again.*"}
+    try:
+        if query_row['response']:
+            responses = json.loads(query_row['response'])
+        else:
+            responses = {'error': "*No response -- an error occurred.  Please try again.*"}
+    except json.JSONDecodeError:
+        current_app.logger.error(f"Failed to decode response for query {query_id}. Response: {query_row['response']}")
+        responses = {'error': "*Error: The stored response is corrupt.*"}
 
     history = queries_data_source.get_user_data(limit=10)
 
