@@ -1,0 +1,5 @@
+user-agent: *
+disallow: /demo/
+disallow: /auth/
+disallow: /oauth/
+disallow: /set_timezone
