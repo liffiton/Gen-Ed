@@ -6,7 +6,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
-import frontmatter  # type: ignore [import-untyped]
+import frontmatter
 from flask import Blueprint, Flask, abort, current_app, render_template
 from markdown_it import MarkdownIt
 
@@ -45,9 +45,9 @@ def _process_doc(docfile_path: Path) -> Document:
     md_doc = frontmatter.load(docfile_path)
     html = _markdown_processor.render(md_doc.content)
 
-    title = md_doc['title']
-    summary = md_doc['summary']
-    category = md_doc.get('category', "Uncategorized")
+    title = str(md_doc['title'])
+    summary = str(md_doc['summary'])
+    category = str(md_doc.get('category', "Uncategorized"))
 
     return Document(
         name=docfile_path.stem,
