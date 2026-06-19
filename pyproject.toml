@@ -34,7 +34,6 @@ dependencies = [
     "pylti@git+https://github.com/liffiton/pylti",
     "pyrage~=1.3.0",
     "python-dotenv~=1.2.0",
-    "python-frontmatter~=1.3.0",
     "tzdata",  # Timezone data (needed on Windows; can make a difference on Linux)
 ]
 
