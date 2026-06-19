@@ -153,7 +153,7 @@ def create_guided_chat(llm: LLM) -> Response:
     tikz_enabled = 'tikz_experiment' in auth.class_experiments
     sys_prompt = prompts.guided_sys_msg_tpl.render(tutor_config=tutor_config, documents=chat_docs, tikz_enabled=tikz_enabled)
 
-    chat = _create_chat(tutor_config.topic, context_name=None, sys_prompt=sys_prompt, mode="guided")
+   chat = _create_chat(tutor_config.topic, context_name=None, sys_prompt=sys_prompt, mode="guided")
 
     if tutor_config.opening_message:
         # Use the pre-generated/instructor-written opening message — no LLM call needed.
