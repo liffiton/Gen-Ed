@@ -125,7 +125,7 @@ def evaluate_responses() -> Response:
         return redirect(url_for('dashboard'))
 
     response_set_id = row['id']
-    eval_model = "gemini/gemini-2.0-flash"   # TODO: un-hardcode evaluating model
+    eval_model = "gemini/gemini-2.5-flash"   # TODO: un-hardcode evaluating model
     gen_evals_func(db, eval_model, response_set_id, "make_sufficient_prompt")  # TODO: un-hardcode prompt type
     flash(f"Responses evaluated successfully for response set {response_set_id}.", "success")
     return redirect(url_for('dashboard'))
