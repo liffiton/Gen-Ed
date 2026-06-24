@@ -611,6 +611,20 @@
         </div>
       </div>
 
+     <div class="field is-horizontal">
+        <div class="field-label is-normal">
+          <label class="label" for="opening_message"><h2 class="title is-size-5">Opening Message</h2></label>
+          <p class="help-text">The first message students will see when they start this tutor. Write it yourself or leave blank to have it generated automatically.</p>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <textarea class="textarea" name="opening_message" id="opening_message" rows="5" x-bind:disabled="loading" placeholder="e.g. Hi! Today we'll explore recursion. Let's start — can you describe in your own words what recursion means?">{{ item.opening_message }}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="field is-horizontal mt-5">
         <div class="field-label is-normal"><!-- spacing --></div>
         <div class="field-body">
