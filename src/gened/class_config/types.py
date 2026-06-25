@@ -7,7 +7,7 @@ from sqlite3 import Row
 from typing import Any, Generic, Literal, Self, TypeVar
 
 import msgspec
-from flask import Blueprint, url_for
+from flask import Blueprint, current_app, url_for
 from jinja2 import Template
 from werkzeug.datastructures import ImmutableMultiDict
 
@@ -128,7 +128,14 @@ class ConfigTable(msgspec.Struct, Generic[C_co], frozen=True, kw_only=True):
                 [class_id, self.name]
             ).fetchall()
 
-        return [self.config_item_class.from_row(row) for row in rows]
+        items = []
+        for row in rows:
+            try:
+                items.append(self.config_item_class.from_row(row))
+            except (msgspec.DecodeError, msgspec.ValidationError) as e:
+                current_app.logger.error(f"Failed to load config item {row['id']} ({self.name}). Error: {e}")
+
+        return items
 
     def get_item_by_name(self, name: str) -> C_co | None:
         """Get a single config item by name for the current user's class.

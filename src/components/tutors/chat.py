@@ -226,7 +226,11 @@ def get_chat(chat_id: int) -> ChatData:
 
     chat_json = chat_row['chat_json']
 
-    chat_data = msgspec.json.decode(chat_json, type=ChatData)
+    try:
+        chat_data = msgspec.json.decode(chat_json, type=ChatData)
+    except msgspec.DecodeError as e:
+        current_app.logger.error(f"Failed to decode chat {chat_id} from database. Error: {e}")
+        raise DataAccessError from e
 
     return msgspec.structs.replace(
         chat_data,

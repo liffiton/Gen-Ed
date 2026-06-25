@@ -7,12 +7,13 @@ import logging.config
 import os
 import sqlite3
 import sys
+from importlib import resources
 from pathlib import Path
 from typing import Any
 
 import pyrage
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, send_from_directory
+from flask import Flask, render_template, request, send_file, send_from_directory
 from flask.sessions import SecureCookieSessionInterface
 from flask.wrappers import Response
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -134,6 +135,11 @@ class GenEdAppBuilder:
         @app.route('/')
         def landing() -> str:
             return render_template("landing.html")
+
+        @app.route('/robots.txt')
+        def robots_txt() -> Response:
+            with resources.path('gened', 'robots.txt') as fspath:
+                return send_file(fspath)
 
         @app.route('/.well-known/<path:path>')
         def well_known(path: Path) -> Response:

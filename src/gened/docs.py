@@ -6,7 +6,6 @@ from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
-import frontmatter  # type: ignore [import-untyped]
 from flask import Blueprint, Flask, abort, current_app, render_template
 from markdown_it import MarkdownIt
 
@@ -38,16 +37,64 @@ class Document:
     category: str = "Uncategorized"  # default category if none specified
 
 
+@dataclass(frozen=True)
+class ParsedDoc:
+    metadata: dict[str, str]
+    content: str
+
+
+class DocParsingError(Exception):
+    pass
+
+
+def _parse_frontmatter(docfile_path: Path) -> ParsedDoc:
+    """Parse frontmatter from a markdown file.
+
+    Expects the file to start with a '---' line, followed by key-value pairs,
+    followed by another '---' line, then markdown content.
+
+    Raises DocParsingError if a document does not conform to the expected format.
+    """
+    content = docfile_path.read_text(encoding="utf-8")
+    lines = content.splitlines()
+
+    # Check if the file starts with frontmatter
+    if not lines or lines[0].strip() != "---":
+        raise DocParsingError
+
+    # Find the closing marker
+    closing_idx = -1
+    for i in range(1, len(lines)):
+        if lines[i].strip() == "---":
+            closing_idx = i
+            break
+
+    # If no closing marker is found, it's not valid frontmatter
+    if closing_idx == -1:
+        raise DocParsingError
+
+    metadata: dict[str, str] = {}
+    for line in lines[1:closing_idx]:
+        if ":" in line:
+            key, val = line.strip().split(":", 1)
+            metadata[key.strip()] = val.strip()
+
+    # Reconstruct the remaining content
+    content_start_idx = closing_idx + 1
+    md_content = "\n".join(lines[content_start_idx:])
+    return ParsedDoc(metadata=metadata, content=md_content)
+
+
 def _process_doc(docfile_path: Path) -> Document:
     ''' Given a markdown processor (md) and a Path object to a markdown documentation page,
     return a Document for that page.
     '''
-    md_doc = frontmatter.load(docfile_path)
-    html = _markdown_processor.render(md_doc.content)
+    parsed = _parse_frontmatter(docfile_path)
+    html = _markdown_processor.render(parsed.content)
 
-    title = md_doc['title']
-    summary = md_doc['summary']
-    category = md_doc.get('category', "Uncategorized")
+    title = parsed.metadata['title']
+    summary = parsed.metadata['summary']
+    category = parsed.metadata.get('category', "Uncategorized")
 
     return Document(
         name=docfile_path.stem,
@@ -77,8 +124,8 @@ def main() -> str:
         try:
             page = _process_doc(md_file)
             docs_pages.append(page)
-        except KeyError as e:
-            current_app.logger.warning(f"Failed to load docs page: {md_file}.  KeyError: {e}")
+        except (DocParsingError, KeyError) as e:
+            current_app.logger.warning(f"Failed to load docs page: {md_file}.  {e}")
 
     # Group pages by category
     categorized_pages = defaultdict(list)
