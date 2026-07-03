@@ -156,7 +156,8 @@ def generate_objectives(llm: LLM) -> bytes | tuple[dict[str, str], int]:
         objectives_data = response.objectives
     except msgspec.DecodeError as e:
         current_app.logger.error(f"Failed to parse objectives from LLM. Error: {e}. Response: {response_txt}")
-        return {"error": "The AI service returned an invalid response. Please try again."}, 502
+        opt_contact = "" if "SUPPORT_EMAIL" not in current_app.config else f" to {current_app.config['SUPPORT_EMAIL']}"
+        return {"error": f"The LLM returned an invalid response.\nPlease try again or report the issue{opt_contact} if it continues."}, 502
 
     objectives = [LearningObjective(obj, []) for obj in objectives_data]
 
@@ -217,7 +218,8 @@ def generate_questions(llm: LLM) -> bytes | tuple[dict[str, str], int]:
     try:
         asyncio.run(populate_questions(config, llm, num_questions))
     except (msgspec.DecodeError, ExceptionGroup):
-        return {"error": "The AI service returned an invalid response for one or more objectives. Please try again."}, 502
+        opt_contact = "" if "SUPPORT_EMAIL" not in current_app.config else f" to {current_app.config['SUPPORT_EMAIL']}"
+        return {"error": f"The LLM returned an invalid response for one or more objectives.\nPlease try again or report the issue{opt_contact} if it continues."}, 502
 
     return msgspec.json.encode(config.objectives)
 
