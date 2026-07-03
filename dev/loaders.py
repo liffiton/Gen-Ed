@@ -5,6 +5,7 @@
 import csv
 import importlib
 import inspect
+import re
 from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,19 @@ def model_string(model, reasoning_effort, verbosity) -> str:
     if verbosity:
         model_str += f" (verbosity {verbosity})"
     return model_str
+
+
+def parse_model_string(model_str: str) -> tuple[str, str | None, str | None]:
+    """Parse a model string into its components: (model, reasoning_effort, verbosity).
+    Inverse of model_string().
+    """
+    matches = re.match(r"^(.+) +\((.+)\) +\(verbosity (.+)\)$", model_str)
+    if matches:
+        return matches[1], matches[2], matches[3]
+    matches = re.match(r"^(.+) +\((.+)\)$", model_str)
+    if matches:
+        return matches[1], matches[2], None
+    return model_str, None, None
 
 
 def test_and_report_model(model: str, reasoning_effort: str | None = None, verbosity: str | None = None) -> None:

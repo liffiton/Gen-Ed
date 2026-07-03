@@ -23,8 +23,6 @@ from loaders import (
 )
 from tqdm.auto import tqdm
 
-MAX_TOKENS = 10000
-
 
 def get_db(db_path: Path) -> sqlite3.Connection:
     db = sqlite3.connect(db_path, detect_types=sqlite3.PARSE_DECLTYPES)
@@ -115,7 +113,6 @@ def gen_responses(db: sqlite3.Connection, prompt_set_id: int, model: str, reason
             response = litellm.completion(
                 model=model,
                 messages=msgs,
-                max_completion_tokens=MAX_TOKENS,
                 n=1,
                 reasoning_effort=reasoning_effort,
                 verbosity=verbosity,
@@ -213,7 +210,6 @@ def eval_sufficient(model: str, row: Row) -> dict[str, bool]:
         model=model,
         response_format={ "type": "json_object" },
         messages=msgs,
-        max_completion_tokens=MAX_TOKENS,
         n=1,
         drop_params = True,  # still run if 'response_format' not accepted by the current model
     )

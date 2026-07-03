@@ -23,7 +23,10 @@ SPDX-License-Identifier: AGPL-3.0-only
         header a:hover { color: #ffffff; font-weight: bold; }
         .flash-messages { padding: 10px; margin: 10px 0; border-radius: 5px; }
         .flash-success { background-color: #d4edda; border-color: #c3e6cb; color: #155724; }
-        .flash-error { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .flash-danger { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .flash-warning { background-color: #fff3cd; border-color: #ffeeba; color: #856404; }
+        .true { color: green; }
+        .false { color: red; }
     </style>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </head>
@@ -36,7 +39,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             <nav>
                 <ul>
                     <li><a href="{{ url_for('home') }}">Home</a></li>
-                    <li><a href="{{ url_for('select_file') }}">Load Data</a></li>
+                    <li><a href="{{ url_for('load_data') }}">Load Data</a></li>
                     <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
                 </ul>
             </nav>

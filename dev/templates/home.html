@@ -13,14 +13,19 @@ SPDX-License-Identifier: AGPL-3.0-only
     <p>Current application: {{ app }}</p>
     <p>This tool allows you to load data, generate responses, evaluate them, and view results.</p>
     <ul>
-        <li><a href="{{ url_for('select_file') }}">Load Data</a>: Load your query data and prompts.</li>
+        <li><a href="{{ url_for('load_data') }}">Load Data</a>: Load your query data and prompts.</li>
         <li><a href="{{ url_for('dashboard') }}">Dashboard</a>: View status, generate, evaluate, and see results.</li>
     </ul>
 {% else %}
     <p>Please select an application to begin:</p>
     <form action="{{ url_for('home') }}" method="post">
         <label for="app">Application:</label>
-        <input type="text" id="app" name="app" required>
+        <select id="app" name="app" required>
+            <option value="" disabled selected>-- Select an application --</option>
+            {% for app_name in apps %}
+                <option value="{{ app_name }}">{{ app_name }}</option>
+            {% endfor %}
+        </select>
         <button type="submit">Set Application</button>
     </form>
 {% endif %}

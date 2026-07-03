@@ -5,20 +5,21 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import json
-import os
-import re
 import sqlite3
 from pathlib import Path
 from secrets import token_bytes
+from typing import Any
 
 from flask import Flask, flash, redirect, render_template, request, session, url_for
-from loaders import get_available_prompts
+from loaders import get_available_prompts, parse_model_string
 from markdown_it import MarkdownIt
 from markupsafe import Markup
 from model_eval import gen_evals as gen_evals_func
 from model_eval import gen_responses as gen_responses_func
-from model_eval import load_data as load_data_func
+from model_eval import load_prompt_data
 from werkzeug.wrappers.response import Response
+
+_SRC_DIR = Path(__file__).resolve().parent.parent / 'src' / 'components'
 
 app = Flask(__name__)
 app.secret_key = token_bytes(16)  # randomizes each startup -- fine for a dev tool
@@ -26,6 +27,8 @@ app.secret_key = token_bytes(16)  # randomizes each startup -- fine for a dev to
 # Configuration
 app.config['DATA_DIR'] = Path('data')
 app.config['DB_PATH'] = app.config['DATA_DIR'] / 'model_evals.db'
+app.config['EVAL_MODEL'] = 'gemini/gemini-2.5-flash'
+app.config['EVAL_PROMPT_TYPE'] = 'make_sufficient_prompt'
 
 # Database connection
 def get_db() -> sqlite3.Connection:
@@ -35,79 +38,68 @@ def get_db() -> sqlite3.Connection:
 
 @app.route('/', methods=['GET', 'POST'])
 def home() -> str | Response:
+    apps = sorted(d.name for d in _SRC_DIR.iterdir() if (d / 'prompts.py').exists())
     if request.method == 'POST':
         session['app'] = request.form['app']
         return redirect(url_for('home'))
-    return render_template('home.html', app=session.get('app'))
+    return render_template('home.html', app=session.get('app'), apps=apps)
 
-@app.route('/select_file')
-def select_file() -> str | Response:
-    if 'app' not in session:
-        return redirect(url_for('home'))
-
-    files = [f for f in os.listdir(app.config['DATA_DIR']) if f.endswith(('.csv', '.ods', '.xlsx'))]
-    return render_template('select_file.html', app=session['app'], files=files)
-
-@app.route('/select_prompt')
-def select_prompt() -> str | Response:
-    if 'app' not in session:
-        return redirect(url_for('home'))
-
-    selected_file = request.args.get('file')
-    if selected_file:
-        file_path = app.config['DATA_DIR'] / selected_file
-        if file_path.exists():
-            available_prompts = get_available_prompts(session['app'])
-
-            return render_template('select_prompt.html',
-                                    app=session['app'],
-                                    file=selected_file,
-                                    prompts=available_prompts)
-        else:
-            flash("Selected file does not exist.", "danger")
-
-    return redirect(url_for('select_file'))
-
-@app.route('/load_data', methods=['POST'])
+@app.route('/load_data', methods=['GET', 'POST'])
 def load_data() -> str | Response:
     if 'app' not in session:
         return redirect(url_for('home'))
 
-    selected_file = request.form.get('file')
-    selected_prompt = request.form.get('prompt')
+    if request.method == 'POST':
+        selected_file = request.form.get('file')
+        selected_prompt = request.form.get('prompt')
+        if not selected_file or not selected_prompt:
+            flash("Missing required argument.", "danger")
+            return redirect(url_for('load_data'))
 
-    if not selected_file or not selected_prompt:
-        flash("Missing required argument.", "danger")
-        return redirect(url_for('select_file'))
+        db = get_db()
+        data_dir = app.config['DATA_DIR'].resolve()
+        file_path = (data_dir / selected_file).resolve()
+        if not str(file_path).startswith(str(data_dir)):
+            flash("Invalid file path.", "danger")
+            return redirect(url_for('load_data'))
+        try:
+            load_prompt_data(db, file_path, session['app'], selected_prompt)
+        except ValueError as e:
+            flash(str(e), "danger")
+            return redirect(url_for('load_data'))
 
-    db = get_db()
-    file_path = app.config['DATA_DIR'] / selected_file
+        flash("Data loaded successfully.", "success")
+        return redirect(url_for('home'))
 
-    try:
-        load_data_func(db, file_path, session['app'], selected_prompt)
-    except ValueError as e:
-        flash(str(e), "danger")
-        return redirect(url_for('select_file'))
+    # GET: show file list, and optionally prompts if a file is selected
+    files = sorted(f.name for f in app.config['DATA_DIR'].iterdir() if f.suffix in ('.csv', '.ods', '.xlsx'))
+    selected_file = request.args.get('file')
+    available_prompts = None
+    if selected_file:
+        data_dir = app.config['DATA_DIR'].resolve()
+        file_path = (data_dir / selected_file).resolve()
+        if not str(file_path).startswith(str(data_dir)):
+            flash("Invalid file path.", "danger")
+            return redirect(url_for('load_data'))
+        if file_path.exists():
+            available_prompts = get_available_prompts(session['app'])
+        else:
+            flash("Selected file does not exist.", "danger")
+            return redirect(url_for('load_data'))
 
-    flash("Data loaded successfully.", "success")
-    return redirect(url_for('home'))
+    return render_template('load_data.html',
+                           app=session['app'],
+                           files=files,
+                           selected_file=selected_file,
+                           prompts=available_prompts)
 
 
 @app.route('/generate_responses', methods=['POST'])
 def generate_responses() -> Response:
     db = get_db()
     prompt_set_id = int(request.form['prompt_set'])
-    model = request.form['model']
-    reasoning_effort = None
-    verbosity = None
-
-    if matches := re.match(r"^(.+) +\((.+)\) +\(verbosity (.+)\)$", model):
-        model = matches[1]
-        reasoning_effort = matches[2]
-        verbosity = matches[3]
-    elif matches := re.match(r"^(.+) +\((.+)\)$", model):
-        model = matches[1]
-        reasoning_effort = matches[2]
+    model_str = request.form['model']
+    model, reasoning_effort, verbosity = parse_model_string(model_str)
 
     gen_responses_func(db, prompt_set_id, model, reasoning_effort, verbosity)
     flash(f"Responses generated successfully for prompt set {prompt_set_id} using {model}.", "success")
@@ -124,16 +116,16 @@ def evaluate_responses() -> Response:
         flash(f"Could not find response set with id {response_set_id} to evaluate.", "danger")
         return redirect(url_for('dashboard'))
 
-    response_set_id = row['id']
-    eval_model = "gemini/gemini-2.5-flash"   # TODO: un-hardcode evaluating model
-    gen_evals_func(db, eval_model, response_set_id, "make_sufficient_prompt")  # TODO: un-hardcode prompt type
-    flash(f"Responses evaluated successfully for response set {response_set_id}.", "success")
+    gen_evals_func(db, app.config['EVAL_MODEL'], row['id'], app.config['EVAL_PROMPT_TYPE'])
+    flash(f"Responses evaluated successfully for response set {row['id']}.", "success")
     return redirect(url_for('dashboard'))
 
 
-@app.template_filter('percentage')
-def percentage_filter(value: int, total: int) -> str:
-    return f"{(value / total * 100):.1f}%" if total > 0 else "N/A"
+@app.template_filter('markdown')
+def markdown_filter(value: str) -> Markup:
+    md = MarkdownIt("js-default")
+    md.inline.ruler.disable(['escape'])
+    return Markup(md.render(value))
 
 @app.route('/view_false_responses/<int:eval_set_id>')
 def view_false_responses(eval_set_id: int) -> str:
@@ -287,16 +279,6 @@ def compare_responses() -> Response | str:
     # Create a mapping of prompt_id to responses and evaluations
     comparison_data = []
 
-    # Jinja filter for converting Markdown to HTML
-    markdown_processor = MarkdownIt("js-default")  # js-default: https://markdown-it-py.readthedocs.io/en/latest/security.html
-    markdown_processor.inline.ruler.disable(['escape'])  # disable escaping so that \(, \[, etc. come through for TeX math
-
-    def markdown(value: str) -> str:
-        '''Convert markdown to HTML.'''
-        html = markdown_processor.render(value)
-        # relying on MarkdownIt's escaping (w/o HTML parsing, due to "js-default"), so mark this as safe
-        return Markup(html)
-
     for prompt in prompts:
         prompt_id = prompt['id']
 
@@ -309,7 +291,7 @@ def compare_responses() -> Response | str:
             'prompt_msgs': json.loads(prompt['msgs_json']),
             'model_response': prompt['model_response'],
             'response1': {
-                'text': markdown(response1['text']) if response1 else "No response",
+                'text': response1['text'] if response1 else "No response",
                 'response_time': response1['response_time'] if response1 else None,
                 'prompt_tokens': response1['prompt_tokens'] if response1 else None,
                 'reasoning_tokens': response1['reasoning_tokens'] if response1 else None,
@@ -317,7 +299,7 @@ def compare_responses() -> Response | str:
                 'evaluation': evals1.get(prompt_id, {})
             },
             'response2': {
-                'text': markdown(response2['text']) if response2 else "No response",
+                'text': response2['text'] if response2 else "No response",
                 'response_time': response2['response_time'] if response2 else None,
                 'prompt_tokens': response2['prompt_tokens'] if response2 else None,
                 'reasoning_tokens': response2['reasoning_tokens'] if response2 else None,
@@ -398,7 +380,7 @@ def dashboard() -> str:
     """).fetchall()
 
     # 4. Structure data for the template: cell_data[prompt_set_id][model] = { ... }
-    cell_data: dict[int, dict[str, dict]] = {}
+    cell_data: dict[int, dict[str, dict[str, Any]]] = {}
 
     # Populate with response set info and times
     for rs_row in response_sets_raw:

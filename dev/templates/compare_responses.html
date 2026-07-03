@@ -81,8 +81,6 @@ SPDX-License-Identifier: AGPL-3.0-only
     }
 </style>
 
-<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-
 <div class="prompt-set-info">
     <h2>Prompt Set: {{ prompt_set.query_src_file }} ({{ prompt_set.prompt_func }})</h2>
     <p>Created: {{ prompt_set.created }}</p>
@@ -158,7 +156,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <div class="responses-container">
                     <div class="response-box">
                         <div class="response-header">{{ model1.split('/')[-1] }}</div>
-                        <div class="response-content">{{ item.response1.text }}</div>
+                        <div class="response-content">{{ item.response1.text|markdown }}</div>
                         <div class="response-meta">
                             {% if item.response1.response_time %}
                                 Response time: {{ "%.2f"|format(item.response1.response_time) }}s
@@ -179,7 +177,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
                     <div class="response-box">
                         <div class="response-header">{{ model2.split('/')[-1] }}</div>
-                        <div class="response-content">{{ item.response2.text }}</div>
+                        <div class="response-content">{{ item.response2.text|markdown }}</div>
                         <div class="response-meta">
                             {% if item.response2.response_time %}
                                 Response time: {{ "%.2f"|format(item.response2.response_time) }}s
