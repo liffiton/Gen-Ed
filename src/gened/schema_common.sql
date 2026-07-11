@@ -168,8 +168,8 @@ INSERT INTO llm_providers(name, endpoint) VALUES ('Google', 'https://generativel
 
 -- See also: DEFAULT_CLASS_MODEL_SHORTNAME in base.create_app_base()
 INSERT INTO models(provider_id, shortname, model, default_params, active, owner_id) VALUES
-    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-5.4 mini', 'gpt-5.4-mini', '{"reasoning_effort": "medium", "temperature": 1}', true, NULL),
-    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-5.4 nano', 'gpt-5.4-nano', '{"reasoning_effort": "high", "temperature": 1}', true, NULL),
+    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-5.6 Luna', 'gpt-5.6-luna', '{"reasoning_effort": "medium"}', true, NULL),
+    ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-5.4 nano', 'gpt-5.4-nano', '{"reasoning_effort": "high"}', true, NULL),
     ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-4.1 nano', 'gpt-4.1-nano', '{}', true, NULL),
     ((SELECT id FROM llm_providers WHERE name='Google'), 'Gemini 3 Flash Preview', 'gemini-3-flash-preview', '{}', true, NULL)
 ;

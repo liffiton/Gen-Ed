@@ -12,8 +12,8 @@ responses.  By default, the following models are available in Starburst:
 | Model | Avg cost per 100 queries | Average response time | Notes |
 | ----- | ------------------------ | ----------------- | ----- |
 | **Google Gemini 3 Flash Preview** | US$0.50 | 8 seconds | **(Recommended)**  The best Google model for most cases.  It compares well on cost, speed, and response quality to the recommended OpenAI model. |
-| **OpenAI GPT-5.4 mini** | US$0.70 | 5 seconds | **(Recommended)**  The best OpenAI model for most cases.  High quality responses at a high speed. |
-| **OpenAI GPT-5.4 nano** | US$0.20 | 7 seconds | A step down in quality from GPT-5.4 mini, but it will still provide reasonable, useful responses in most cases. |
+| **OpenAI GPT-5.6 Luna** | US$0.70 | 6 seconds | **(Recommended)**  The best OpenAI model for most cases.  High quality responses at a high speed. |
+| **OpenAI GPT-5.4 nano** | US$0.20 | 7 seconds | A step down in quality from GPT-5.6 Luna, but it will still provide reasonable, useful responses in most cases. |
 | **OpenAI GPT-4.1 nano** | US$0.05 | 2 seconds | The lowest-cost and fastest of these options.  It can provide accurate, helpful responses in a wide variety of *simple* applications, but it will be noticeably less accurate in more complex or less common topics and may exhibit less fluency in languages other than English.  A good choice only if cost is the most important factor. |
 
 
