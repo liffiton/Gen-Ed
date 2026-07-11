@@ -19,6 +19,7 @@ from loaders import (
     load_prompt,
     make_prompt,
     model_string,
+    parse_model_string,
     test_and_report_model,
 )
 from tqdm.auto import tqdm
@@ -108,6 +109,10 @@ def gen_responses(db: sqlite3.Connection, prompt_set_id: int, model: str, reason
     for prompt in tqdm(prompts, ncols=60):
         msgs = json.loads(prompt['msgs_json'])
         response_time = None
+        prompt_tokens = None
+        completion_tokens = None
+        reasoning_tokens = None
+        cost = None
         try:
             start_time = time.time()
             response = litellm.completion(
@@ -123,23 +128,22 @@ def gen_responses(db: sqlite3.Connection, prompt_set_id: int, model: str, reason
             response_json = json.dumps(response.model_dump())
             text = response.choices[0].message.content
             assert text
+
+            # Extract token counts and cost from response
+            prompt_tokens = response.usage.prompt_tokens
+            completion_tokens = response.usage.completion_tokens
+            if response.usage.completion_tokens_details:
+                # might not be present
+                reasoning_tokens = response.usage.completion_tokens_details.reasoning_tokens
+            cost = response._hidden_params.get("response_cost")  # noqa: SLF001
         except Exception as e:  # noqa
             text = f"[An error occurred in the completion.]\n{e}"
             tqdm.write(f"\x1B[31m{text}\x1B[m")
             response_json = json.dumps(text)
 
-        # Extract token counts from response
-        prompt_tokens = response.usage.prompt_tokens
-        completion_tokens = response.usage.completion_tokens
-        if response.usage.completion_tokens_details:
-            # might not be present
-            reasoning_tokens = response.usage.completion_tokens_details.reasoning_tokens
-        else:
-            reasoning_tokens = None
-
         db.execute(
-            "INSERT INTO response(set_id, prompt_id, response, text, response_time, prompt_tokens, reasoning_tokens, completion_tokens) VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
-            [response_set_id, prompt['id'], response_json, text, response_time, prompt_tokens, reasoning_tokens, completion_tokens]
+            "INSERT INTO response(set_id, prompt_id, response, text, response_time, prompt_tokens, reasoning_tokens, completion_tokens, cost) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [response_set_id, prompt['id'], response_json, text, response_time, prompt_tokens, reasoning_tokens, completion_tokens, cost]
         )
         db.commit()
 
@@ -296,6 +300,53 @@ def show_one_eval(args: argparse.Namespace) -> None:
 
     summarize_eval_insufficient(db, args.eval_set)
 
+def cli_backfill_costs(args: argparse.Namespace) -> None:
+    db = get_db(args.db_path)
+    backfill_costs(db)
+
+
+def backfill_costs(db: sqlite3.Connection) -> None:
+    rows = db.execute("""
+        SELECT response.id, response.prompt_tokens, response.completion_tokens, response_set.model
+        FROM response
+        JOIN response_set ON response.set_id=response_set.id
+        WHERE response.cost IS NULL
+    """).fetchall()
+
+    updated = 0
+    skipped_no_tokens = 0
+    skipped_unknown_model = 0
+
+    for row in tqdm(rows, ncols=60):
+        prompt_tokens = row['prompt_tokens']
+        completion_tokens = row['completion_tokens']
+        if prompt_tokens is None or completion_tokens is None:
+            skipped_no_tokens += 1
+            continue
+
+        model_full = row['model']
+        base_model, _, _ = parse_model_string(model_full)
+
+        try:
+            prompt_cost, completion_cost = litellm.cost_per_token(
+                model=base_model,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+            )
+        except Exception:  # noqa: BLE001
+            tqdm.write(f"  Unknown model pricing: {base_model}")
+            skipped_unknown_model += 1
+            continue
+
+        total_cost = prompt_cost + completion_cost
+        db.execute("UPDATE response SET cost=? WHERE id=?", [total_cost, row['id']])
+        updated += 1
+
+    db.commit()
+
+    print(f"Updated: {updated}, Skipped (no token data): {skipped_no_tokens}, Skipped (unknown model): {skipped_unknown_model}")
+
+
 def show_all_evals(args: argparse.Namespace) -> None:
     db = get_db(args.db_path)
 
@@ -348,6 +399,9 @@ def main() -> None:
     parser_eval = subparsers.add_parser('eval', help='Evaluate a given response set.')
     parser_eval.set_defaults(command_func=cli_gen_evals)
     parser_eval.add_argument('model', type=str, help="The LLM to use.")
+
+    parser_backfill_costs = subparsers.add_parser('backfill_costs', help='Backfill cost estimates for response rows with NULL cost using LiteLLM pricing.')
+    parser_backfill_costs.set_defaults(command_func=cli_backfill_costs)
 
     parser_show_evals = subparsers.add_parser('show_evals', help="Display the results of past evals.")
     parser_show_evals.set_defaults(command_func=show_evals)

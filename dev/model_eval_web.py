@@ -144,6 +144,7 @@ def view_false_responses(eval_set_id: int) -> str:
     false_responses = db.execute("""
         SELECT response.text, response.response_time,
                response.prompt_tokens, response.reasoning_tokens, response.completion_tokens,
+               response.cost,
                eval.evaluation, prompt.model_response
         FROM eval
         JOIN response ON response.id = eval.response_id
@@ -158,6 +159,7 @@ def view_false_responses(eval_set_id: int) -> str:
             'prompt_tokens': row['prompt_tokens'],
             'reasoning_tokens': row['reasoning_tokens'],
             'completion_tokens': row['completion_tokens'],
+            'cost': row['cost'],
             'evaluation': json.loads(row['evaluation']),
             'model_response': row['model_response']
         }
@@ -222,14 +224,16 @@ def compare_responses() -> Response | str:
     # Get responses for both models
     responses1 = db.execute("""
         SELECT response.prompt_id, response.text, response.response_time,
-               response.prompt_tokens, response.reasoning_tokens, response.completion_tokens
+               response.prompt_tokens, response.reasoning_tokens, response.completion_tokens,
+               response.cost
         FROM response
         WHERE response.set_id = ?
     """, [set1_id]).fetchall()
 
     responses2 = db.execute("""
         SELECT response.prompt_id, response.text, response.response_time,
-               response.prompt_tokens, response.reasoning_tokens, response.completion_tokens
+               response.prompt_tokens, response.reasoning_tokens, response.completion_tokens,
+               response.cost
         FROM response
         WHERE response.set_id = ?
     """, [set2_id]).fetchall()
@@ -296,6 +300,7 @@ def compare_responses() -> Response | str:
                 'prompt_tokens': response1['prompt_tokens'] if response1 else None,
                 'reasoning_tokens': response1['reasoning_tokens'] if response1 else None,
                 'completion_tokens': response1['completion_tokens'] if response1 else None,
+                'cost': response1['cost'] if response1 else None,
                 'evaluation': evals1.get(prompt_id, {})
             },
             'response2': {
@@ -304,6 +309,7 @@ def compare_responses() -> Response | str:
                 'prompt_tokens': response2['prompt_tokens'] if response2 else None,
                 'reasoning_tokens': response2['reasoning_tokens'] if response2 else None,
                 'completion_tokens': response2['completion_tokens'] if response2 else None,
+                'cost': response2['cost'] if response2 else None,
                 'evaluation': evals2.get(prompt_id, {})
             }
         })
@@ -348,7 +354,10 @@ def dashboard() -> str:
             MAX(r.completion_tokens) as max_completion_tokens,
             MIN(r.reasoning_tokens) as min_reasoning_tokens,
             AVG(r.reasoning_tokens) as avg_reasoning_tokens,
-            MAX(r.reasoning_tokens) as max_reasoning_tokens
+            MAX(r.reasoning_tokens) as max_reasoning_tokens,
+            MIN(r.cost) as min_cost,
+            AVG(r.cost) as avg_cost,
+            MAX(r.cost) as max_cost
         FROM response_set rs
         LEFT JOIN response r ON r.set_id = rs.id AND r.response_time IS NOT NULL
         GROUP BY rs.id, rs.prompt_set_id, rs.model
@@ -420,6 +429,11 @@ def dashboard() -> str:
                     'avg': rs_row['avg_reasoning_tokens'],
                     'max': rs_row['max_reasoning_tokens'],
                 } if rs_row['min_reasoning_tokens'] is not None else None,
+                'cost': {
+                    'min': rs_row['min_cost'],
+                    'avg': rs_row['avg_cost'],
+                    'max': rs_row['max_cost'],
+                } if rs_row['min_cost'] is not None else None,
             }
 
     # Update with evaluation info

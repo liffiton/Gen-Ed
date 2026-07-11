@@ -19,6 +19,10 @@ SPDX-License-Identifier: AGPL-3.0-only
     <div class="response">
         <h3>Response:</h3>
         <div class="response-text">{{ response['text']|markdown }}</div>
+        <p><small>
+            {% if response.response_time %}Time: {{ "%.2f"|format(response.response_time) }}s{% endif %}
+            {% if response.cost %} &nbsp;|&nbsp; Cost: ${{ "%.4f"|format(response.cost) }}{% endif %}
+        </small></p>
         <h3>Model Response:</h3>
         <pre>{{ response['model_response'] }}</pre>
         <h3>Evaluation:</h3>

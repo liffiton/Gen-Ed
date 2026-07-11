@@ -259,6 +259,11 @@ SPDX-License-Identifier: AGPL-3.0-only
                       <p>Reasoning: <small>{{ "%d"|format(cell.stats.reasoning.min) }} / <strong>{{ "%.1f"|format(cell.stats.reasoning.avg) }}</strong> / {{ "%d"|format(cell.stats.reasoning.max) }}</small></p>
                     </div>
                     {% endif %}
+                    {% if cell.stats and cell.stats.cost %}
+                    <div class="stats-block">
+                      <p>Cost: <small>${{ "%.4f"|format(cell.stats.cost.min) }} / <strong>${{ "%.4f"|format(cell.stats.cost.avg) }}</strong> / ${{ "%.4f"|format(cell.stats.cost.max) }}</small></p>
+                    </div>
+                    {% endif %}
 
                     {# Add checkbox if responses exist AND compare mode is active #}
                     {% if status == 'generated' or status == 'evaluated' %}

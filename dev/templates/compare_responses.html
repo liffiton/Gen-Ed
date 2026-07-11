@@ -161,6 +161,9 @@ SPDX-License-Identifier: AGPL-3.0-only
                             {% if item.response1.response_time %}
                                 Response time: {{ "%.2f"|format(item.response1.response_time) }}s
                             {% endif %}
+                            {% if item.response1.cost %}
+                                &nbsp;|&nbsp; Cost: ${{ "%.4f"|format(item.response1.cost) }}
+                            {% endif %}
                         </div>
 
                         {% if item.response1.evaluation %}
@@ -181,6 +184,9 @@ SPDX-License-Identifier: AGPL-3.0-only
                         <div class="response-meta">
                             {% if item.response2.response_time %}
                                 Response time: {{ "%.2f"|format(item.response2.response_time) }}s
+                            {% endif %}
+                            {% if item.response2.cost %}
+                                &nbsp;|&nbsp; Cost: ${{ "%.4f"|format(item.response2.cost) }}
                             {% endif %}
                         </div>
 

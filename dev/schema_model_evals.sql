@@ -39,6 +39,7 @@ CREATE TABLE response (
     prompt_tokens INTEGER,      -- number of tokens in prompt
     reasoning_tokens INTEGER,   -- number of tokens used in reasoning
     completion_tokens INTEGER,  -- number of tokens in completion
+    cost REAL,                  -- cost in USD for this completion
     FOREIGN KEY(prompt_id) REFERENCES prompt(id),
     FOREIGN KEY(set_id) REFERENCES response_set(id) ON DELETE CASCADE
 );
