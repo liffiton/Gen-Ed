@@ -21,11 +21,6 @@ from .openai_client import (
 
 ChatMessage: TypeAlias = OpenAIChatMessage
 
-DEFAULT_COMPLETION_ARGS: dict[str, Any] = {
-    'temperature': 0.25,
-    'max_completion_tokens': 10000,
-}
-
 
 @dataclass
 class LLM:
@@ -41,7 +36,7 @@ class LLM:
     _client: OpenAIClient | None = field(default=None, init=False, repr=False)  # Instantiated only when needed
 
     def make_args(self, extra_args: dict[str, Any] | None) -> dict[str, Any]:
-        completion_args = DEFAULT_COMPLETION_ARGS.copy()
+        completion_args: dict[str, Any] = dict()
         if self.default_params:
             completion_args |= self.default_params
         if extra_args:
