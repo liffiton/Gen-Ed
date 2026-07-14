@@ -4,7 +4,7 @@ table.datatable-table.row_selectable tbody tr:hover { background: #def; }
 /**/
 
 /* Avoiding x-overflows */
-table.datatable-table tbdody td { overflow-wrap: break-word; }
+table.datatable-table tbody td { overflow-wrap: break-word; }
 .datatable-container { overflow-x: auto; }
 /**/
 
