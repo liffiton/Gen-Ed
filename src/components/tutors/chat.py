@@ -155,17 +155,24 @@ def create_guided_chat(llm: LLM) -> Response:
 
     chat = _create_chat(tutor_config.topic, context_name=None, sys_prompt=sys_prompt, mode="guided")
 
-    try:
-        run_chat_round(llm, chat)
-    except RuntimeError as e:
-        current_app.logger.error(f"Error running guided chat round: {e}")
-        # On error, erase the nascent chat and tell the user what happened.
-        erase_chat(chat)
-        flash(str(e), 'danger')
-        return make_response(render_template("error.html"), 502)
+    if tutor_config.opening_message:
+        # Use the pre-generated/instructor-written opening message — no LLM call needed.
+        chat.messages.append({
+            'role': 'assistant',
+            'content': tutor_config.opening_message,
+        })
+        save_chat(chat)
+    else:
+        # Fallback: no saved opening message, generate one live (old behavior).
+        try:
+            run_chat_round(llm, chat)
+        except RuntimeError as e:
+            current_app.logger.error(f"Error running guided chat round: {e}")
+            erase_chat(chat)
+            flash(str(e), 'danger')
+            return make_response(render_template("error.html"), 502)
 
     return redirect(url_for("tutors.chat_interface", chat_id=chat.id))
-
 
 def _create_chat(topic: str, context_name: str | None, sys_prompt: str, mode: ChatMode) -> ChatData:
     db = get_db()

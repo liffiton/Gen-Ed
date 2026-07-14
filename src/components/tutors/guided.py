@@ -57,6 +57,7 @@ class TutorConfig(ConfigItem):
     context: str = ""
     documents: list[ContextDocument] = []     # noqa: RUF012 - ConfigItem is a msgspec.Struct, so this is okay
     objectives: list[LearningObjective] = []  # noqa: RUF012 - ConfigItem is a msgspec.Struct, so this is okay
+    opening_message: str = ""
 
     @classmethod
     def from_request_form(cls, form: ImmutableMultiDict[str, Any]) -> Self:
@@ -69,7 +70,7 @@ class TutorConfig(ConfigItem):
         config.name = form.get('name', '').strip()
         config.topic = form.get('topic', '').strip()
         config.context = form.get('context', '').strip()
-
+        config.opening_message = form.get('opening_message', '').strip()
         # Parse documents from array-style form fields
         filenames = form.getlist('document_filename[]')
         texts = form.getlist('document_text[]')
