@@ -45,6 +45,9 @@
         get hasQuestions() {
           return this.hasObjectives && this.tutor.objectives.some(obj => obj.questions.length);
         },
+        get hasOpening() {
+          return !!this.tutor.opening_message;
+        },
         get ctx_size_draft() {
           return this.tutor.documents.reduce((acc, doc) => doc.use_in.includes("setup") ? acc + wordCount(doc.text) : acc, 0);
         },
@@ -59,7 +62,7 @@
           this.tutor.documents.splice(index, 1);
         },
 
-        async _fetchGeneratedObjectives(url, loadingKey) {
+        async _fetchGenerated(url, loadingKey, parseAs = 'json') {
           const form = this.$refs.tutor_form;
 
           // validate and report issues in form (if any) before proceeding
@@ -81,8 +84,7 @@
               return;
             }
 
-            const newObjectives = await response.json();
-            this.tutor.objectives = newObjectives;
+            return parseAs === 'json' ? await response.json() : await response.text();
           } catch (error) {
             alert(`An error occurred: ${error}`);
           } finally {
@@ -91,10 +93,19 @@
         },
 
         async generateObjectives() {
-          await this._fetchGeneratedObjectives('{{ url_for('class_config.table.guided.generate_objectives') }}', 'objectives');
+          const newObjectives = await this._fetchGenerated('{{ url_for('class_config.table.guided.generate_objectives') }}', 'objectives');
+          if (!newObjectives) return;
+          this.tutor.objectives = newObjectives;
         },
         async generateQuestions() {
-          await this._fetchGeneratedObjectives('{{ url_for('class_config.table.guided.generate_questions') }}', 'questions');
+          const newObjectives = await this._fetchGenerated('{{ url_for('class_config.table.guided.generate_questions') }}', 'questions');
+          if (!newObjectives) return;
+          this.tutor.objectives = newObjectives;
+        },
+        async generateOpening() {
+          const newOpening = await this._fetchGenerated('{{ url_for('class_config.table.guided.generate_opening') }}', 'opening', 'text');
+          if (!newOpening) return;
+          this.tutor.opening_message = newOpening;
         },
 
         // Item editor modal methods
@@ -548,7 +559,7 @@
                   </div>
                 </template>
               </ol>
-              <button class="button is-link is-outlined ml-4" type="button" @click="openItemEditor(tutor.objectives, 'Learning Objectives', true)">
+              <button class="button is-link is-outlined ml-4" type="button" :disabled="loading" @click="openItemEditor(tutor.objectives, 'Learning Objectives', true)">
                 Edit objectives
               </button>
             </div>
@@ -602,7 +613,7 @@
                     </div>
                   </template>
                 </ol>
-                <button class="button is-link is-outlined ml-4" type="button" @click="openItemEditor(obj.questions, obj.name, false)">
+                <button class="button is-link is-outlined ml-4" type="button" :disabled="loading" @click="openItemEditor(obj.questions, obj.name, false)">
                   Edit questions
                 </button>
               </div>
@@ -611,7 +622,28 @@
         </div>
       </div>
 
-     <div class="field is-horizontal">
+      <div class="field is-horizontal mt-5">
+        <div class="field-label is-normal"><!-- spacing --></div>
+        <div class="field-body">
+          <div class="field is-grouped is-flex-wrap-wrap">
+            <div class="control">
+              <button
+                class="button"
+                type="button"
+                id="gen_opening"
+                :class="[hasOpening ? 'is-warning' : 'is-link', loading === 'opening' && 'is-loading']"
+                :disabled="loading && loading !== 'opening'"
+                @click="generateOpening"
+              >
+                <span x-text="hasOpening ? 'Regenerate' : 'Generate'"></span>
+                <svg class="icon" aria-hidden="true"><use href="#svg_corner_right_down" /></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label" for="opening_message"><h2 class="title is-size-5">Opening Message</h2></label>
           <p class="help-text">The first message students will see when they start this tutor. Write it yourself or leave blank to have it generated automatically.</p>
@@ -619,7 +651,7 @@
         <div class="field-body">
           <div class="field">
             <div class="control">
-              <textarea class="textarea" name="opening_message" id="opening_message" rows="5" x-bind:disabled="loading" placeholder="e.g. Hi! Today we'll explore recursion. Let's start — can you describe in your own words what recursion means?">{{ item.opening_message }}</textarea>
+              <textarea class="textarea" name="opening_message" id="opening_message" rows="5" x-bind:disabled="loading" x-model="tutor.opening_message" placeholder="e.g. Hi! Today we'll explore recursion. Let's start — can you describe in your own words what recursion means?">{{ item.opening_message }}</textarea>
             </div>
           </div>
         </div>

@@ -5,8 +5,12 @@
 from gened.components import ComponentFeature, GenEdComponent
 
 from .chat import bp as bp
-from .data import TutorsDeletionHandler, chats_data_source, gen_chats_chart
-from .guided import guided_tutor_config_table
+from .data import (
+    TutorsDeletionHandler,
+    chats_data_source,
+    gen_chats_chart,
+    guided_tutor_config_table,
+)
 
 gened_component = GenEdComponent(
     package=__package__,

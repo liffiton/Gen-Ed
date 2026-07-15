@@ -6,64 +6,43 @@ from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
 from sqlite3 import Cursor
-from typing import Final, Literal, TypeAlias, TypedDict, cast
+from typing import Final
 
 import msgspec
 from flask import current_app
 from markupsafe import Markup
 
+from gened.access import RequireComponent
 from gened.app_data import (
     ChartData,
     DataSource,
     Filters,
 )
+from gened.class_config.types import ConfigShareLink, ConfigTable
 from gened.db import get_db
-from gened.llm import ChatMessage
 from gened.tables import Col, DataTableSpec, NumCol, TimeCol, UserCol
 
-ChatMode: TypeAlias = Literal["inquiry", "guided"]
-ObjectiveStatus: TypeAlias = Literal["not started", "moved on", "in progress", "completed"]
+from .data_types import GuidedAnalysis, ObjectiveStatus, TutorConfig
+from .guided import bp as guided_bp
 
-
-class GuidedObjectiveProgress(msgspec.Struct):
-    """Progress on a single learning objective."""
-    objective: str
-    status: ObjectiveStatus
-
-
-class GuidedAnalysis(msgspec.Struct):
-    """Analysis of a guided tutor chat."""
-    summary: str
-    progress: list[GuidedObjectiveProgress]
-
-
-# We use this in place of ChatMessage (an alias for
-# openai.types.chat.ChatCompletionMessageParam), because msgspec won't decode
-# into a union of typeddicts (which is what ChatMessage is), but it will into
-# this.  And this encodes all of the type constraints we actually need, anyway.
-class ChatMessageX(TypedDict):
-    role: Literal["system", "assistant", "user"]
-    content: str
-
-
-class ChatData(msgspec.Struct, kw_only=True, omit_defaults=True):
-    topic: str
-    messages: list[ChatMessageX]
-    mode: ChatMode
-    id: int | None = None
-    user_id: int | None = None
-    user_json: str | None = None
-    class_id: int | None = None
-    context_name: str | None = None
-    usages: list[dict[str, int | dict[str, int]]] = []
-    analysis: GuidedAnalysis | None = None
-
-    # We have to cast to list[ChatMessage] before passing these into OpenAI API
-    # functions, because MyPy can't tell our custom ChatMessageX is a valid
-    # substitute.
-    @property
-    def openai_messages(self) -> list[ChatMessage]:
-        return cast("list[ChatMessage]", self.messages)
+# To register the configuration UI inside gened's class_config module
+guided_tutor_config_table = ConfigTable(
+    config_item_class=TutorConfig,
+    name='guided_tutor',
+    display_name='focused tutor',
+    display_name_plural='focused tutors',
+    help_text=Markup("<p>Instructors can design Focused Tutors for students with pre-defined learning objectives and assessment questions (e.g., to be used as reinforcement and/or low-stakes assessments following a reading or video).</p>"),
+    edit_form_template='guided_tutor_edit_form.html',
+    share_links=[
+        ConfigShareLink(
+            'Focused tutor chat',
+            'tutors.new_chat_form',
+            {'class_id', 'tutor_name'},
+        ),
+    ],
+    extra_routes=guided_bp,
+    availability_requirements=(RequireComponent('tutors', feature='guided'), ),
+)
 
 
 def gen_chats_chart(filters: Filters) -> list[ChartData]:

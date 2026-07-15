@@ -38,8 +38,9 @@ from gened.db import get_db
 from gened.llm import LLM, ChatMessage, with_llm
 
 from . import prompts
-from .data import ChatData, ChatMode, GuidedAnalysis, chats_data_source
-from .guided import guided_tutor_config_table
+from .chat_helpers import create_guided_chat, create_inquiry_chat
+from .data import chats_data_source, guided_tutor_config_table
+from .data_types import ChatData, GuidedAnalysis
 
 bp = Blueprint('tutors', __name__, url_prefix='/tutor', template_folder='templates')
 
@@ -100,10 +101,10 @@ def new_chat_form(class_id: int | None = None) -> Response | str:
     return render_template("tutor_new_form.html", contexts=contexts, tutors=tutors, recent_chats=recent_chats)
 
 
-@bp.route("/create_inquiry", methods=["POST"])
+@bp.route("/new/inquiry", methods=["POST"])
 @route_requires(Access.CLASS_ENABLED, RequireComponent("tutors", feature="inquiry"))
 @with_llm(spend_token=True)
-def create_inquiry_chat(llm: LLM) -> Response:
+def new_inquiry_chat(llm: LLM) -> Response:
     topic = request.form['topic']
     context: ContextConfig | None = None
 
@@ -113,13 +114,7 @@ def create_inquiry_chat(llm: LLM) -> Response:
             flash(f"Context not found: {context_name}", "danger")
             return make_response(render_template("error.html"), 400)
 
-    context_name = context.name if context else None
-    context_string = context.prompt_str() if context else None
-    auth = get_auth()
-    tikz_enabled = 'tikz_experiment' in auth.class_experiments
-    sys_prompt = prompts.inquiry_sys_msg_tpl.render(topic=topic, context=context_string, tikz_enabled=tikz_enabled)
-
-    chat = _create_chat(topic, context_name, sys_prompt, "inquiry")
+    chat = create_inquiry_chat(topic, context)
 
     try:
         run_chat_round(llm, chat)
@@ -133,10 +128,10 @@ def create_inquiry_chat(llm: LLM) -> Response:
     return redirect(url_for("tutors.chat_interface", chat_id=chat.id))
 
 
-@bp.route("/create_guided", methods=["POST"])
+@bp.route("/new/guided", methods=["POST"])
 @route_requires(Access.CLASS_ENABLED, RequireComponent("tutors", feature="guided"))
 @with_llm(spend_token=True)
-def create_guided_chat(llm: LLM) -> Response:
+def new_guided_chat(llm: LLM) -> Response:
     auth = get_auth()
     assert auth.cur_class is not None
 
@@ -147,60 +142,27 @@ def create_guided_chat(llm: LLM) -> Response:
         flash("Tutor not found.", "danger")
         return make_response(render_template("error.html"), 400)
 
-    # Get documents marked for use in chat
-    chat_docs = [doc for doc in tutor_config.documents if 'chat' in doc.use_in]
-
-    tikz_enabled = 'tikz_experiment' in auth.class_experiments
-    sys_prompt = prompts.guided_sys_msg_tpl.render(tutor_config=tutor_config, documents=chat_docs, tikz_enabled=tikz_enabled)
-
-    chat = _create_chat(tutor_config.topic, context_name=None, sys_prompt=sys_prompt, mode="guided")
+    chat = create_guided_chat(tutor_config)
 
     if tutor_config.opening_message:
-        # Use the pre-generated/instructor-written opening message — no LLM call needed.
+        # Use the pre-generated/instructor-written opening message; no LLM call needed.
         chat.messages.append({
             'role': 'assistant',
             'content': tutor_config.opening_message,
         })
         save_chat(chat)
     else:
-        # Fallback: no saved opening message, generate one live (old behavior).
+        # Fallback: no saved opening message, generate one live.
         try:
             run_chat_round(llm, chat)
         except RuntimeError as e:
             current_app.logger.error(f"Error running guided chat round: {e}")
+            # On error, erase the nascent chat and tell the user what happened.
             erase_chat(chat)
             flash(str(e), 'danger')
             return make_response(render_template("error.html"), 502)
 
     return redirect(url_for("tutors.chat_interface", chat_id=chat.id))
-
-def _create_chat(topic: str, context_name: str | None, sys_prompt: str, mode: ChatMode) -> ChatData:
-    db = get_db()
-    auth = get_auth()
-    user_id = auth.user_id
-    class_id = auth.cur_class.class_id if auth.cur_class else None
-    role_id = auth.cur_class.role_id if auth.cur_class else None
-
-    chat_data = ChatData(
-        user_id=user_id,
-        class_id=class_id,
-        topic=topic,
-        context_name=context_name,
-        messages=[{"role": "system", "content": sys_prompt}],
-        usages=[],
-        mode=mode,
-    )
-
-    cur = db.execute(
-        "INSERT INTO chats (user_id, role_id, chat_json) VALUES (?, ?, ?)",
-        [user_id, role_id, msgspec.json.encode(chat_data).decode()]
-    )
-    new_row_id = cur.lastrowid
-
-    db.commit()
-
-    assert new_row_id is not None
-    return msgspec.structs.replace(chat_data, id=new_row_id)
 
 
 @bp.route("/<int:chat_id>")

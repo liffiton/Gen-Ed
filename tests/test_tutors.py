@@ -10,13 +10,15 @@ import msgspec
 from flask import Flask
 from werkzeug.datastructures import ImmutableMultiDict
 
-from components.tutors.data import (
+from components.tutors.data import fmt_analysis
+from components.tutors.data_types import (
     ChatData,
+    ContextDocument,
     GuidedAnalysis,
     GuidedObjectiveProgress,
-    fmt_analysis,
+    LearningObjective,
+    TutorConfig,
 )
-from components.tutors.guided import ContextDocument, LearningObjective, TutorConfig
 from gened.db import get_db
 from tests.conftest import AppClient
 
