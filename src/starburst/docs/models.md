@@ -30,9 +30,9 @@ These models will produce some of the highest quality responses available, but
 the improvement over the recommended models above will be relatively small,
 especially relative to their substantially slower generation and higher costs.
 They're probably not worth the cost and latency except for graduate-level
-classes, niche topics, and uncommon programming languages.  Most CS classes and
-students are unlikely to see a useful difference in responses between these and
-the above models.
+classes, niche topics, or uncommon languages.  Most classes and students are
+unlikely to see a useful difference in responses between these and the above
+models.
 
 They are not provided as options by default, but you can always configure one
 as a custom model for your own classes if you want to try it.
