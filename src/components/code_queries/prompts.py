@@ -51,7 +51,7 @@ common_template_user = jinja_env.from_string("""\
 {% endif %}
 """)
 
-main_template_sys2 = jinja_env.from_string("""\
+main_template_sys2 = """\
 If the student query is off-topic, respond with an error.
 
 Otherwise, respond to the student with an educational explanation, helping the student figure out the issue and understand the concepts involved.  If the student query includes an error message, tell the student what it means, giving a detailed explanation to help the student understand the message.  Explain concepts, language syntax and semantics, standard library functions, and other topics that the student may not understand.  Be positive and encouraging!
@@ -62,9 +62,7 @@ Otherwise, respond to the student with an educational explanation, helping the s
 - Do not write a heading for the response.
 - Do not write any example code blocks.
 - If the student wrote in a language other than English, always respond in the student's own language.
-
-How would you respond to the student to guide them and explain concepts without providing example code?
-""")
+"""
 
 
 def make_main_prompt(code: str, error: str, issue: str, context: str | None = None) -> list[ChatMessage]:
@@ -74,20 +72,25 @@ def make_main_prompt(code: str, error: str, issue: str, context: str | None = No
         issue = "Please help me understand this error."
 
     sys_job = "to respond to a student's query as a helpful expert teacher"
+    sys_prompt = (
+        common_template_sys1.render(job=sys_job, code=code, error=error, issue=issue, context=context)
+        +
+        main_template_sys2
+    )
+
     return [
-        {'role': 'system', 'content': common_template_sys1.render(job=sys_job, code=code, error=error, issue=issue, context=context)},
+        {'role': 'system', 'content': sys_prompt},
         {'role': 'user',   'content': common_template_user.render(code=code, error=error, issue=issue)},
-        {'role': 'system', 'content': main_template_sys2.render()},
     ]
 
 
-sufficient_template_sys2 = jinja_env.from_string("""\
+sufficient_template_sys2 = """\
 Do not tell the student how to solve the issue or correct their code.
 
 Please assess their query and tell them whether it contains sufficient detail for you to potentially provide help (write "OK.") or not (ask for clarification).  You can make reasonable assumptions about missing details.  Only ask for clarification if the query is completely ambiguous or unclear.
  - If the query is sufficient and you are able to help, say "OK."
  - Or, if you cannot help without additional information, write directly to the student and clearly describe the additional information you need.  Ask for the most important piece of information, and do not overwhelm the student with minor details.
-""")
+"""
 
 
 def make_sufficient_prompt(code: str, error: str, issue: str, context: str | None) -> list[ChatMessage]:
@@ -97,10 +100,15 @@ def make_sufficient_prompt(code: str, error: str, issue: str, context: str | Non
         issue = "Please help me understand this error."
 
     sys_job = "to evaluate whether a student's query contains sufficient detail for you to provide assistance"
+    sys_prompt = (
+        common_template_sys1.render(job=sys_job, code=code, error=error, issue=issue, context=context)
+        +
+        sufficient_template_sys2
+    )
+
     return [
-        {'role': 'system', 'content': common_template_sys1.render(job=sys_job, code=code, error=error, issue=issue, context=context)},
+        {'role': 'system', 'content': sys_prompt},
         {'role': 'user',   'content': common_template_user.render(code=code, error=error, issue=issue)},
-        {'role': 'system', 'content': sufficient_template_sys2.render()},
     ]
 
 
@@ -112,15 +120,3 @@ def make_cleanup_prompt(response_text: str) -> str:
 Rewritten:
 """
 
-
-def make_topics_prompt(code: str, error: str, issue: str, context: str | None, response_text: str) -> list[ChatMessage]:
-    sys_job = "to respond to a student's query as a helpful expert teacher"
-    messages : list[ChatMessage] = [
-        {'role': 'system', 'content': common_template_sys1.render(job=sys_job, code=code, error=error, issue=issue, context=context)},
-        {'role': 'user',   'content': common_template_user.render(code=code, error=error, issue=issue)},
-        {'role': 'assistant', 'content': response_text},
-        {'role': 'user', 'content': "Please give me a list of specific concepts I appear to be having difficulty with in the above exchange.  Write each as a single-sentence description."},
-        {'role': 'system', 'content': "Respond with a JSON-formatted array of strings with NO other text, like: [\"Item1\",\"Item2\",\"Item3\",\"Item4\"]"}
-    ]
-
-    return messages
