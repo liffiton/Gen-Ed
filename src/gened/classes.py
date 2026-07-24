@@ -133,10 +133,9 @@ def create_user_class(user_id: int, class_name: str, llm_api_key: str | None = N
     cur = db.execute("INSERT INTO classes (name) VALUES (?)", [class_name])
     class_id = cur.lastrowid
     assert class_id is not None
-    # Get default model ID - we validated at startup that this exists
+    # Get default model ID - first active system model
     model_id = db.execute(
-        "SELECT id FROM models WHERE active AND shortname = ?",
-        [current_app.config['DEFAULT_CLASS_MODEL_SHORTNAME']]
+        "SELECT id FROM models WHERE active AND scope='system' ORDER BY id ASC LIMIT 1"
     ).fetchone()['id']
 
     db.execute(

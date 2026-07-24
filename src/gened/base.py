@@ -212,9 +212,8 @@ class GenEdAppBuilder:
         #  - SECRET_KEY: used by Flask to sign session cookies
         #  - SYSTEM_API_KEY: the "system" LLM API key used in certain situations
         #  - SYSTEM_MODEL_SHORTNAME: shortname of model (in db) used for 'system' completions
-        #  - DEFAULT_CLASS_MODEL_SHORTNAME: shortname of model (in db) used as default for new classes
         #    (see models table in db)
-        for varname in ["SECRET_KEY", "SYSTEM_API_KEY", "SYSTEM_MODEL_SHORTNAME", "DEFAULT_CLASS_MODEL_SHORTNAME"]:
+        for varname in ["SECRET_KEY", "SYSTEM_API_KEY", "SYSTEM_MODEL_SHORTNAME"]:
             try:
                 env_var = os.environ[varname]
             except KeyError as e:
@@ -287,7 +286,7 @@ class GenEdAppBuilder:
 
         # Validate that the system and default class models exist and are active.
         try:
-            for var in "SYSTEM_MODEL_SHORTNAME", "DEFAULT_CLASS_MODEL_SHORTNAME":
+            for var in "SYSTEM_MODEL_SHORTNAME",:
                 shortname = app.config[var]
                 model = llm.get_model(by_shortname=shortname)
                 if not model or not model.active:

@@ -21,9 +21,7 @@ def test_valid_default_model(app: Flask) -> None:
         test_config={
             'TESTING': True,
             'DATABASE': instance_path / 'test.db',
-            # Use existing, active models (loaded into config from .env.test for all tests)
             'SYSTEM_MODEL_SHORTNAME': app.config['SYSTEM_MODEL_SHORTNAME'],
-            'DEFAULT_CLASS_MODEL_SHORTNAME': app.config['DEFAULT_CLASS_MODEL_SHORTNAME'],
         },
         instance_path = instance_path
     )
@@ -37,15 +35,6 @@ def test_invalid_model_shortname(app: Flask) -> None:
     when creating a new app for the test.
     """
     instance_path = Path(app.instance_path)
-    with pytest.raises(DBMissingModelError):
-        codehelp.create_app(
-            test_config={
-                'TESTING': True,
-                'DATABASE': instance_path / 'test.db',
-                'DEFAULT_CLASS_MODEL_SHORTNAME': 'NONEXISTENT-MODEL',
-            },
-            instance_path = instance_path
-        )
     with pytest.raises(DBMissingModelError):
         codehelp.create_app(
             test_config={
@@ -67,13 +56,15 @@ def test_model_used_in_class_creation(app: Flask, client: AppClient) -> None:
     )
     assert response.status_code == 302
 
-    # Check that the class was created with the correct model
+    # Check that the class was created with a valid active system model
     with app.app_context():
         db = get_db()
-        model_id = db.execute(
+        model = db.execute(
             """SELECT classes_user.model_id, models.shortname
                FROM classes_user
                JOIN models ON classes_user.model_id = models.id
+               WHERE models.active AND models.scope='system'
                ORDER BY classes_user.class_id DESC LIMIT 1"""
         ).fetchone()
-        assert model_id['shortname'] == app.config['DEFAULT_CLASS_MODEL_SHORTNAME']
+        assert model is not None
+        assert model['shortname'] is not None

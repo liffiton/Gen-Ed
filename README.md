@@ -71,9 +71,6 @@ Set Up an Application
      class context (e.g. for free queries).
    - `SYSTEM_MODEL_SHORTNAME`: Name from the application database of the model
      to be used outside of a class context.  `GPT-5.6 Luna` is a good default.
-   - `DEFAULT_CLASS_MODEL_SHORTNAME`: Name from the application database for
-     the default model to be used in new classes (can be configured after
-     creating the class).  `GPT-5.6 Luna` is a good default.
 
 *Optionally*, if you want to allow logins from 3rd party authentication
 providers, set any of the following pairs with IDs/secrets obtained from

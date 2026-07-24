@@ -166,7 +166,6 @@ INSERT INTO llm_providers(name) VALUES ("Custom");
 INSERT INTO llm_providers(name, endpoint) VALUES ('OpenAI', 'https://api.openai.com/v1');
 INSERT INTO llm_providers(name, endpoint) VALUES ('Google', 'https://generativelanguage.googleapis.com/v1beta/openai/');
 
--- See also: DEFAULT_CLASS_MODEL_SHORTNAME in base.create_app_base()
 INSERT INTO models(provider_id, shortname, model, default_params, active, owner_id) VALUES
     ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-5.6 Luna', 'gpt-5.6-luna', '{"reasoning_effort": "medium"}', true, NULL),
     ((SELECT id FROM llm_providers WHERE name='OpenAI'), 'GPT-5.4 nano', 'gpt-5.4-nano', '{"reasoning_effort": "high"}', true, NULL),
