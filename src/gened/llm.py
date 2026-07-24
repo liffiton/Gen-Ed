@@ -321,6 +321,6 @@ def get_models(plus_id : int | None = None) -> list[Row]:
         WHERE
             ( m.active AND (m.scope = 'system' OR m.owner_id = ?) )
             OR m.id = ?
-        ORDER BY m.id ASC
+        ORDER BY p.name, m.shortname
     """, [auth.user_id, plus_id]).fetchall()
     return models
