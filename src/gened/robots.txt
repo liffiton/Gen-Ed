@@ -2,4 +2,5 @@ user-agent: *
 disallow: /demo/
 disallow: /auth/
 disallow: /oauth/
+disallow: /lti/
 disallow: /set_timezone
