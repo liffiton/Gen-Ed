@@ -37,6 +37,11 @@ SPDX-License-Identifier: AGPL-3.0-only
         padding-bottom: 5px;
         border-bottom: 1px solid #ddd;
     }
+    .response-header small {
+        display: block;
+        color: #666;
+        font-weight: normal;
+    }
     .prompt-content {
         white-space: pre-wrap;
         font-family: monospace;
@@ -155,7 +160,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 
                 <div class="responses-container">
                     <div class="response-box">
-                        <div class="response-header">{{ model1.split('/')[-1] }}</div>
+                        <div class="response-header">
+                            {{ run1.model.split('/')[-1] }}
+                            <small>Response set {{ run1.id }} &middot; {{ run1.created|short_datetime }}</small>
+                        </div>
                         <div class="response-content">{{ item.response1.text|markdown }}</div>
                         <div class="response-meta">
                             {% if item.response1.response_time %}
@@ -179,7 +187,10 @@ SPDX-License-Identifier: AGPL-3.0-only
                     </div>
 
                     <div class="response-box">
-                        <div class="response-header">{{ model2.split('/')[-1] }}</div>
+                        <div class="response-header">
+                            {{ run2.model.split('/')[-1] }}
+                            <small>Response set {{ run2.id }} &middot; {{ run2.created|short_datetime }}</small>
+                        </div>
                         <div class="response-content">{{ item.response2.text|markdown }}</div>
                         <div class="response-meta">
                             {% if item.response2.response_time %}

@@ -127,6 +127,12 @@ def markdown_filter(value: str) -> Markup:
     md.inline.ruler.disable(['escape'])
     return Markup(md.render(value))
 
+@app.template_filter('short_datetime')
+def short_datetime_filter(value: Any) -> str:
+    if hasattr(value, 'strftime'):
+        return value.strftime('%Y-%m-%d %H:%M')
+    return str(value)[:16]
+
 @app.route('/view_false_responses/<int:eval_set_id>')
 def view_false_responses(eval_set_id: int) -> str:
     db = get_db()
@@ -243,12 +249,16 @@ def compare_responses() -> Response | str:
         SELECT eval_set.id
         FROM eval_set
         WHERE eval_set.response_set_id = ?
+        ORDER BY eval_set.created DESC, eval_set.id DESC
+        LIMIT 1
     """, [set1_id]).fetchone()
 
     eval_set2 = db.execute("""
         SELECT eval_set.id
         FROM eval_set
         WHERE eval_set.response_set_id = ?
+        ORDER BY eval_set.created DESC, eval_set.id DESC
+        LIMIT 1
     """, [set2_id]).fetchone()
 
     evals1 = {}
@@ -316,8 +326,16 @@ def compare_responses() -> Response | str:
 
     return render_template('compare_responses.html',
                             prompt_set=prompt_set,
-                            model1=set1_row['model'],
-                            model2=set2_row['model'],
+                            run1={
+                                'model': set1_row['model'],
+                                'id': set1_row['id'],
+                                'created': set1_row['created'],
+                            },
+                            run2={
+                                'model': set2_row['model'],
+                                'id': set2_row['id'],
+                                'created': set2_row['created'],
+                            },
                             comparison_data=comparison_data)
 
 
@@ -338,10 +356,10 @@ def dashboard() -> str:
     models_query = db.execute("SELECT DISTINCT model FROM response_set ORDER BY model").fetchall()
     models = [row['model'] for row in models_query]
 
-    # 3. Fetch all response sets, eval sets, and stats, keyed for lookup
+    # 3. Fetch all response sets, eval sets, and stats.
     response_sets_raw = db.execute("""
         SELECT
-            rs.id as response_set_id, rs.prompt_set_id, rs.model,
+            rs.id as response_set_id, rs.prompt_set_id, rs.model, rs.created as response_created,
             MIN(r.response_time) as min_time,
             AVG(r.response_time) as avg_time,
             MAX(r.response_time) as max_time,
@@ -361,6 +379,7 @@ def dashboard() -> str:
         FROM response_set rs
         LEFT JOIN response r ON r.set_id = rs.id AND r.response_time IS NOT NULL
         GROUP BY rs.id, rs.prompt_set_id, rs.model
+        ORDER BY rs.prompt_set_id, rs.model, rs.created, rs.id
     """).fetchall()
 
     eval_sets_raw = db.execute("""
@@ -386,10 +405,12 @@ def dashboard() -> str:
         FROM eval_set es
         JOIN eval e ON e.set_id = es.id
         GROUP BY es.id, es.response_set_id, es.model
+        ORDER BY es.created DESC, es.id DESC
     """).fetchall()
 
-    # 4. Structure data for the template: cell_data[prompt_set_id][model] = { ... }
-    cell_data: dict[int, dict[str, dict[str, Any]]] = {}
+    # 4. Structure data for the template as separate runs per model.
+    cell_data: dict[int, dict[str, list[dict[str, Any]]]] = {}
+    response_set_lookup: dict[int, dict[str, Any]] = {}
 
     # Populate with response set info and times
     for rs_row in response_sets_raw:
@@ -397,17 +418,21 @@ def dashboard() -> str:
         model = rs_row['model']
         if ps_id not in cell_data:
             cell_data[ps_id] = {}
+        if model not in cell_data[ps_id]:
+            cell_data[ps_id][model] = []
 
-        cell_data[ps_id][model] = {
+        run: dict[str, Any] = {
             'status': 'generated',
             'response_set_id': rs_row['response_set_id'],
+            'created': rs_row['response_created'],
+            'run_number': len(cell_data[ps_id][model]) + 1,
             'stats': None,
             'eval_stats': None,
             'eval_model': None,
             'eval_set_id': None
         }
         if rs_row['count_with_time'] > 0:
-             cell_data[ps_id][model]['stats'] = {
+            run['stats'] = {
                 'count': rs_row['count_with_time'],
                 'time': {
                     'min': rs_row['min_time'],
@@ -435,65 +460,60 @@ def dashboard() -> str:
                     'max': rs_row['max_cost'],
                 } if rs_row['min_cost'] is not None else None,
             }
+        cell_data[ps_id][model].append(run)
+        response_set_lookup[rs_row['response_set_id']] = run
 
-    # Update with evaluation info
+    # Update the exact response-set run.  The query is newest-first, so only
+    # the newest evaluation is shown if an evaluation was repeated.
     for es_row in eval_sets_raw:
-        # Find the corresponding response set to link back to prompt_set_id and model
-        response_set_info = next((rs for rs in response_sets_raw if rs['response_set_id'] == es_row['response_set_id']), None)
-        if not response_set_info:
-            # This might happen if a response set exists but has no responses with response_time,
-            # causing it to be missed by the response_sets_raw query if it also has no evals yet.
-            # Let's try fetching it directly.
-            rs_direct = db.execute("SELECT prompt_set_id, model FROM response_set WHERE id = ?", [es_row['response_set_id']]).fetchone()
-            if rs_direct:
-                response_set_info = {'prompt_set_id': rs_direct['prompt_set_id'], 'model': rs_direct['model'], 'response_set_id': es_row['response_set_id']}
-            else:
-                 # If still not found, skip this eval set (orphan?)
-                print(f"Warning: Could not find response set for eval_set_id {es_row['eval_set_id']}")
-                continue
+        run = response_set_lookup.get(es_row['response_set_id'])
+        if run is None or run['eval_set_id'] is not None:
+            continue
 
-        ps_id = response_set_info['prompt_set_id']
-        model = response_set_info['model']
+        run['status'] = 'evaluated'
+        run['eval_set_id'] = es_row['eval_set_id']
+        run['eval_model'] = es_row['eval_model']
 
-        # Ensure the base entry exists if it wasn't created by the response_sets_raw query
-        if ps_id not in cell_data:
-            cell_data[ps_id] = {}
-        if model not in cell_data[ps_id]:
-             cell_data[ps_id][model] = {
-                'status': 'generated', # Assume generated if evaluated
-                'response_set_id': response_set_info['response_set_id'],
-                'stats': None, # No timing info from this query path
-                'eval_stats': None,
-                'eval_model': None,
-                'eval_set_id': None
-            }
+        # Calculate derived stats.
+        ok_true = es_row['ok_true'] or 0
+        ok_false = es_row['ok_false'] or 0
+        other_true = es_row['other_true'] or 0
+        other_total_raw = es_row['other_total']
+        other_total = other_total_raw if other_total_raw is not None else 0
+        run['eval_stats'] = {
+            'ok_true': ok_true,
+            'ok_false': ok_false,
+            'ok_total': ok_true + ok_false,
+            'other_true': other_true,
+            'other_false': other_total - other_true,
+            'other_total': other_total,
+        }
 
-
-        if ps_id in cell_data and model in cell_data[ps_id]:
-            cell_data[ps_id][model]['status'] = 'evaluated'
-            cell_data[ps_id][model]['eval_set_id'] = es_row['eval_set_id']
-            cell_data[ps_id][model]['eval_model'] = es_row['eval_model']
-
-            # Calculate derived stats
-            ok_true = es_row['ok_true'] or 0
-            ok_false = es_row['ok_false'] or 0
-            other_true = es_row['other_true'] or 0
-            # Handle potential NULL from SUM if no 'other' keys exist
-            other_total_raw = es_row['other_total']
-            other_total = other_total_raw if other_total_raw is not None else 0
-            other_false = other_total - other_true
-
-            cell_data[ps_id][model]['eval_stats'] = {
-                'ok_true': ok_true,
-                'ok_false': ok_false,
-                'ok_total': ok_true + ok_false,
-                'other_true': other_true,
-                'other_false': other_false,
-                'other_total': other_total,
-            }
-
-
+    model_columns = [
+        {
+            'model': model,
+            'run_count': max(
+                (len(cell_data.get(prompt_set['id'], {}).get(model, [])) for prompt_set in prompt_sets),
+                default=1,
+            ),
+            'response_set_ids': [
+                run['response_set_id']
+                for prompt_set in prompt_sets
+                for run in cell_data.get(prompt_set['id'], {}).get(model, [])
+            ],
+        }
+        for model in models
+    ]
+    response_set_ids_by_prompt_set = {
+        prompt_set['id']: [
+            run['response_set_id']
+            for model in models
+            for run in cell_data.get(prompt_set['id'], {}).get(model, [])
+        ]
+        for prompt_set in prompt_sets
+    }
     return render_template('dashboard.html',
                            prompt_sets=prompt_sets,
-                           models=models,
-                           cell_data=cell_data)
+                           model_columns=model_columns,
+                           cell_data=cell_data,
+                           response_set_ids_by_prompt_set=response_set_ids_by_prompt_set)

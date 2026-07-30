@@ -9,107 +9,106 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 {% block content %}
 <style>
+    [x-cloak] { display: none !important; }
     table {
         border-collapse: collapse;
     }
     th, td {
         border: 1px solid #fff;
-        padding: 8px;
+        padding: 6px;
         text-align: left;
-        vertical-align: top; /* Align content to the top */
-        word-wrap: break-word; /* Wrap long model names */
-        min-width: 5em;
-        max-width: 5em;
+        vertical-align: top;
+        word-wrap: break-word;
+        min-width: 6em;
+        max-width: 12em;
     }
     th {
         background-color: #ddd;
-        position: sticky; /* Keep headers visible */
+        position: sticky;
+        top: 0;
         z-index: 1;
     }
-    th:first-child, td:first-child {
+    .prompt-header, .prompt-cell {
         max-width: fit-content;
+        min-width: 9em;
         font-size: 0.9em;
         position: sticky;
         left: 0;
-        background-color: #eee; /* Match header bg */
-        z-index: 2; /* Above scrolling headers */
+        background-color: #eee;
+        z-index: 2;
     }
-
     td {
-        font-size: 0.85em; /* Slightly smaller font for cells */
+        font-size: 0.85em;
     }
-    .status-not-generated {
-        background-color: #f8d7da; /* Light red */
+    .status-not-generated { background-color: #f8d7da; }
+    .status-generated { background-color: #fff3cd; }
+    .status-evaluated { background-color: #d4edda; }
+    .empty-run { background-color: #fafafa; }
+    .archived-cell { background-color: #fafafa; }
+    .run-card { min-width: 9em; }
+    .run-card.archived-run { opacity: 0.6; }
+    .run-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 4px;
+        align-items: baseline;
+        margin-bottom: 4px;
+        border-bottom: 1px solid #ccc;
     }
-    .status-generated {
-        background-color: #fff3cd; /* Light yellow */
+    .run-meta small { color: #666; }
+    .run-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        align-items: center;
+        margin-bottom: 4px;
     }
-    .status-evaluated {
-        background-color: #d4edda; /* Light green */
+    .run-actions form { margin: 0; }
+    .action-button {
+        font-size: 0.8em;
+        cursor: pointer;
     }
+    .archive-button {
+        cursor: pointer;
+        background: none;
+        border: 1px solid #aaa;
+        border-radius: 3px;
+        color: #666;
+        font-size: 0.75em;
+        padding: 0 4px;
+    }
+    .archive-button:hover { background: #ddd; color: #333; }
+    .model-archive-button {
+        cursor: pointer;
+        background: none;
+        border: 1px solid #aaa;
+        border-radius: 3px;
+        color: #666;
+        font-size: 0.75em;
+        padding: 0 4px;
+        white-space: nowrap;
+    }
+    .model-archive-button:hover { background: #ddd; color: #333; }
+    .center-content { text-align: center; }
+    .checkbox-cell { text-align: center; margin-top: 5px; }
     .stats-block {
         font-size: 0.9em;
         margin-top: 5px;
         text-align: left;
     }
-    .stats-block p {
-        margin: 0;
-    }
+    .stats-block p { margin: 0; }
     .eval-bar-container {
         width: 100%;
         background-color: #e9ecef;
         border-radius: 3px;
         margin-bottom: 2px;
-        height: 8px; /* Smaller bar */
+        height: 8px;
         display: flex;
-        overflow: hidden; /* Ensure bars stay within container */
+        overflow: hidden;
     }
-    .eval-bar-true {
-        background-color: #4CAF50; /* Green */
-        height: 100%;
-    }
-    .eval-bar-false {
-        background-color: #F44336; /* Red */
-        height: 100%;
-    }
-    /* Add back radius if only one type exists */
-    .eval-bar-true.full { border-radius: 3px; }
-    .eval-bar-false.full { border-radius: 3px; }
-
-
-    .action-button {
-        font-size: 0.8em;
-        cursor: pointer;
-    }
-    .center-content {
-        text-align: center;
-    }
-    .checkbox-cell {
-        text-align: center;
-        margin-top: 5px; /* Add some space above the checkbox */
-    }
-    .col-archived {
-        opacity: 0.6;
-    }
-    th.col-archived {
-        background-color: #e8e8e8 !important;
-    }
-    th button.archive-btn {
-        cursor: pointer;
-        background: none;
-        border: 1px solid #aaa;
-        border-radius: 3px;
-        font-size: 0.75em;
-        padding: 0 4px;
-        margin-left: 3px;
-        vertical-align: middle;
-        color: #888;
-        line-height: 1.4;
-    }
-    th button.archive-btn:hover {
-        background: #ddd;
-        color: #333;
-    }
+    .eval-bar-true { background-color: #4CAF50; height: 100%; }
+    .eval-bar-false { background-color: #F44336; height: 100%; }
+    .eval-bar-true.full, .eval-bar-false.full { border-radius: 3px; }
     .toolbar {
         background: #f5f5f5;
         border: 1px solid #ddd;
@@ -139,7 +138,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     }
 </style>
 
-<div x-data="responseSelector"> {# Wrap toolbar and table in the Alpine scope #}
+<div x-data="responseSelector">
     <div class="toolbar">
         <div class="toolbar-group">
             <h1 class="toolbar-title">Unified Dashboard</h1>
@@ -155,196 +154,225 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <span x-text="selectionMessage" style="font-size: 0.9em;"></span>
             </form>
         </div>
-        <div class="toolbar-divider" x-show="archivedModels.length > 0"></div>
-        <div class="toolbar-group" x-show="archivedModels.length > 0">
-            <button @click="showArchived = !showArchived" class="action-button" x-text="showArchived ? 'Hide archived' : `Show archived (${archivedModels.length})`"></button>
+        <div class="toolbar-divider" x-show="archivedSets.length > 0"></div>
+        <div class="toolbar-group" x-show="archivedSets.length > 0">
+            <button @click="showArchived = !showArchived" class="action-button" x-text="showArchived ? 'Hide archived' : `Show archived (${archivedSets.length})`"></button>
         </div>
     </div>
 
     {% if prompt_sets %}
-    <div style="overflow-x: auto;"> {# Enable horizontal scrolling for the table #}
-    <table @toggle-selection.window="toggleSelection($event.detail.responseSet, $event.detail.checked)"> {# Moved listener to table for scope #}
+    <div style="overflow-x: auto;">
+    <table>
     <thead>
         <tr>
-            <th>Prompt Set</th>
-            {% for model in models %}
-                <th x-show="showArchived || !isArchived('{{ model }}')" :class="showArchived && isArchived('{{ model }}') ? 'col-archived' : ''">{{ model.split('/')[-1] }} <button class="archive-btn" @click.prevent.stop="toggleArchive('{{ model }}')" x-text="isArchived('{{ model }}') ? '[+]' : '[-]'" :title="isArchived('{{ model }}') ? 'Unarchive this model' : 'Archive this model'"></button></th>
+            <th class="prompt-header">Prompt Set</th>
+            {% for column in model_columns %}
+                <th colspan="{{ column.run_count }}"
+                    x-show="showArchived || !isModelFullyArchived({{ column.response_set_ids|tojson }})">
+                    {{ column.model.split('/')[-1] }}
+                    {% if column.run_count > 1 %}<small>({{ column.run_count }} runs)</small>{% endif %}
+                    <button type="button" class="model-archive-button"
+                            @click.stop="toggleModelArchive({{ column.response_set_ids|tojson }})"
+                            x-text="modelArchiveLabel({{ column.response_set_ids|tojson }})"
+                            :title="modelArchiveLabel({{ column.response_set_ids|tojson }}) + ' for this model'"></button>
+                </th>
             {% endfor %}
         </tr>
     </thead>
     <tbody>
         {% for prompt_set in prompt_sets %}
-        <tr>
-            <td>
+        <tr x-show="hasNonArchivedResponseSet({{ response_set_ids_by_prompt_set[prompt_set.id]|tojson }})">
+            <td class="prompt-cell">
                 <b>ID: {{ prompt_set.id }}</b><br>
                 {{ prompt_set.query_src_file }}<br>
                 <i>{{ prompt_set.prompt_func }}</i><br>
-                <small>{{ prompt_set.created.strftime('%Y-%m-%d %H:%M') }}</small><br>
+                <small>{{ prompt_set.created|short_datetime }}</small><br>
                 <small>{{ prompt_set.prompt_count }} prompts</small>
             </td>
-            {% for model in models %}
-                {% set cell = cell_data.get(prompt_set.id, {}).get(model) %}
-                {% set status = cell.status if cell else 'not-generated' %}
-                <td x-show="showArchived || !isArchived('{{ model }}')" :class="showArchived && isArchived('{{ model }}') ? 'col-archived' : ''" class="status-{{ status }}">
-                    {% if status == 'not-generated' %}
+            {% for column in model_columns %}
+                {% set runs = cell_data.get(prompt_set.id, {}).get(column.model, []) %}
+                {% for run_index in range(column.run_count) %}
+                    {% set run = runs[run_index] if run_index < runs|length else none %}
+                    {% if run %}
+                    <td x-show="showArchived || !isModelFullyArchived({{ column.response_set_ids|tojson }})"
+                        class="status-{{ run.status }}"
+                        :class="isArchived('{{ run.response_set_id }}') ? 'archived-cell' : ''">
+                        <div x-cloak x-show="showArchived || !isArchived('{{ run.response_set_id }}')"
+                             class="run-card"
+                             :class="isArchived('{{ run.response_set_id }}') ? 'archived-run' : ''">
+                            <div class="run-meta">
+                                <strong>#{{ run.run_number }}</strong>
+                                <small>ID {{ run.response_set_id }}</small>
+                            </div>
+                            <div class="run-actions">
+                                <form action="{{ url_for('generate_responses') }}" method="post">
+                                    <input type="hidden" name="prompt_set" value="{{ prompt_set.id }}">
+                                    <input type="hidden" name="model" value="{{ column.model }}">
+                                    <button type="submit" class="action-button">Run again</button>
+                                </form>
+                                <button type="button" class="archive-button"
+                                        @click="toggleArchive('{{ run.response_set_id }}')"
+                                        x-text="isArchived('{{ run.response_set_id }}') ? 'Unarchive' : 'Archive'"></button>
+                            </div>
+                            <small>{{ run.created|short_datetime }}</small>
+                            {% if run.status == 'generated' %}
+                                <form action="{{ url_for('evaluate_responses') }}" method="post" style="margin-top: 4px;">
+                                    <input type="hidden" name="response_set" value="{{ run.response_set_id }}">
+                                    <button type="submit" class="action-button">Evaluate</button>
+                                </form>
+                            {% elif run.status == 'evaluated' %}
+                                <div class="center-content" {% if run.eval_model %}title="Evaluated by: {{ run.eval_model }}"{% endif %}>
+                                    ✅
+                                </div>
+                            {% endif %}
+                            {% if run.eval_stats %}
+                            <div class="stats-block">
+                                {% set stats = run.eval_stats %}
+                                {% if stats.ok_total > 0 %}
+                                    <div>OK: {{ stats.ok_true }}/{{ stats.ok_total }}</div>
+                                    <div class="eval-bar-container">
+                                        <div class="eval-bar-true {{ 'full' if stats.ok_false == 0 else '' }}" style="width: {{ (stats.ok_true / stats.ok_total) * 100 }}%"></div>
+                                        <div class="eval-bar-false {{ 'full' if stats.ok_true == 0 else '' }}" style="width: {{ (stats.ok_false / stats.ok_total) * 100 }}%"></div>
+                                    </div>
+                                {% else %}
+                                    <div>OK: N/A</div>
+                                {% endif %}
+                                {% if stats.other_total > 0 %}
+                                    <div>Other: {{ stats.other_true }}/{{ stats.other_total }}</div>
+                                    <div class="eval-bar-container">
+                                        <div class="eval-bar-true {{ 'full' if stats.other_false == 0 else '' }}" style="width: {{ (stats.other_true / stats.other_total) * 100 }}%"></div>
+                                        <div class="eval-bar-false {{ 'full' if stats.other_true == 0 else '' }}" style="width: {{ (stats.other_false / stats.other_total) * 100 }}%"></div>
+                                    </div>
+                                {% else %}
+                                    <div>Other: N/A</div>
+                                {% endif %}
+                                <small><a href="{{ url_for('view_false_responses', eval_set_id=run.eval_set_id) }}">View False</a></small>
+                            </div>
+                            {% endif %}
+                            {% if run.stats and run.stats.time and run.stats.time.min is not none %}
+                            <div class="stats-block">
+                                <p><small>Min: {{ "%.2fs"|format(run.stats.time.min) }}</small></p>
+                                <p>Avg: {{ "%.2fs"|format(run.stats.time.avg) }}</p>
+                                <p><small>Max: {{ "%.2fs"|format(run.stats.time.max) }}</small></p>
+                            </div>
+                            {% endif %}
+                            {% if run.stats and run.stats.prompt %}
+                            <div class="stats-block"><p>Prompt: <small>{{ "%d"|format(run.stats.prompt.min) }} / <strong>{{ "%.1f"|format(run.stats.prompt.avg) }}</strong> / {{ "%d"|format(run.stats.prompt.max) }}</small></p></div>
+                            {% endif %}
+                            {% if run.stats and run.stats.completion %}
+                            <div class="stats-block"><p>Completion: <small>{{ "%d"|format(run.stats.completion.min) }} / <strong>{{ "%.1f"|format(run.stats.completion.avg) }}</strong> / {{ "%d"|format(run.stats.completion.max) }}</small></p></div>
+                            {% endif %}
+                            {% if run.stats and run.stats.reasoning %}
+                            <div class="stats-block"><p>Reasoning: <small>{{ "%d"|format(run.stats.reasoning.min) }} / <strong>{{ "%.1f"|format(run.stats.reasoning.avg) }}</strong> / {{ "%d"|format(run.stats.reasoning.max) }}</small></p></div>
+                            {% endif %}
+                            {% if run.stats and run.stats.cost %}
+                            <div class="stats-block"><p>Cost: <small>${{ "%.4f"|format(run.stats.cost.min) }} / <strong>${{ "%.4f"|format(run.stats.cost.avg) }}</strong> / ${{ "%.4f"|format(run.stats.cost.max) }}</small></p></div>
+                            {% endif %}
+                            <div x-show="isCompareModeActive" class="checkbox-cell">
+                                <input type="checkbox" class="response-checkbox"
+                                       data-response-set="{{ run.response_set_id }}"
+                                       @change="toggleSelection('{{ run.response_set_id }}', $event.target.checked)">
+                            </div>
+                        </div>
+                    </td>
+                    {% elif run_index == 0 and not runs %}
+                    <td x-show="showArchived || !isModelFullyArchived({{ column.response_set_ids|tojson }})"
+                        class="status-not-generated">
                         <div class="center-content">
                             <form action="{{ url_for('generate_responses') }}" method="post" style="margin: 0;">
-                                {# Removed action input #}
                                 <input type="hidden" name="prompt_set" value="{{ prompt_set.id }}">
-                                <input type="hidden" name="model" value="{{ model }}">
+                                <input type="hidden" name="model" value="{{ column.model }}">
                                 <button type="submit" class="action-button">Generate</button>
                             </form>
                         </div>
-                    {% elif status == 'generated' %}
-                        <div class="center-content">
-                            <form action="{{ url_for('evaluate_responses') }}" method="post" style="margin: 0;">
-                                {# Removed action input #}
-                                <input type="hidden" name="response_set" value="{{ cell.response_set_id }}">
-                                {# TODO: Make eval model selectable #}
-                                <small>[{{ cell.response_set_id }}]</small>
-                                <button type="submit" class="action-button">Evaluate</button>
-                            </form>
-                        </div>
-                    {% elif status == 'evaluated' %}
-                        <div class="center-content" {% if cell.eval_model %}title="Evaluated by: {{ cell.eval_model }}"{% endif %}>
-                            <small>[{{ cell.response_set_id }}]</small>
-                            ✅
-                        </div>
-                        {% if cell.eval_stats %}
-                        <div class="stats-block">
-                            {% set stats = cell.eval_stats %}
-                            {% if stats.ok_total > 0 %}
-                                <div>OK: {{ stats.ok_true }}/{{ stats.ok_total }}</div>
-                                <div class="eval-bar-container">
-                                    <div class="eval-bar-true {{ 'full' if stats.ok_false == 0 else '' }}" style="width: {{ (stats.ok_true / stats.ok_total) * 100 }}%"></div>
-                                    <div class="eval-bar-false {{ 'full' if stats.ok_true == 0 else '' }}" style="width: {{ (stats.ok_false / stats.ok_total) * 100 }}%"></div>
-                                </div>
-                            {% else %}
-                                <div>OK: N/A</div>
-                            {% endif %}
-                            {% if stats.other_total > 0 %}
-                                <div>Other: {{ stats.other_true }}/{{ stats.other_total }}</div>
-                                <div class="eval-bar-container">
-                                    <div class="eval-bar-true {{ 'full' if stats.other_false == 0 else '' }}" style="width: {{ (stats.other_true / stats.other_total) * 100 }}%"></div>
-                                    <div class="eval-bar-false {{ 'full' if stats.other_true == 0 else '' }}" style="width: {{ (stats.other_false / stats.other_total) * 100 }}%"></div>
-                                </div>
-                            {% else %}
-                                <div>Other: N/A</div>
-                            {% endif %}
-                            <small><a href="{{ url_for('view_false_responses', eval_set_id=cell.eval_set_id) }}">View False</a></small>
-                        </div>
-                        {% else %}
-                         <div class="stats-block"><small>(No eval stats)</small></div>
-                        {% endif %}
+                    </td>
+                    {% else %}
+                    <td x-show="showArchived || !isModelFullyArchived({{ column.response_set_ids|tojson }})"
+                        class="empty-run"></td>
                     {% endif %}
-                    {% if cell.stats and cell.stats.time.min %}
-                    <div class="stats-block">
-                      <p><small>Min: {{ "%.2fs"|format(cell.stats.time.min) }}</small></p>
-                      <p>Avg: {{ "%.2fs"|format(cell.stats.time.avg) }}</p>
-                      <p><small>Max: {{ "%.2fs"|format(cell.stats.time.max) }}</small></p>
-                    </div>
-                    {% endif %}
-                    {% if cell.stats and cell.stats.prompt %}
-                    <div class="stats-block">
-                      <p>Prompt: <small>{{ "%d"|format(cell.stats.prompt.min) }} / <strong>{{ "%.1f"|format(cell.stats.prompt.avg) }}</strong> / {{ "%d"|format(cell.stats.prompt.max) }}</small></p>
-                    </div>
-                    {% endif %}
-                    {% if cell.stats and cell.stats.completion %}
-                    <div class="stats-block">
-                      <p>Completion: <small>{{ "%d"|format(cell.stats.completion.min) }} / <strong>{{ "%.1f"|format(cell.stats.completion.avg) }}</strong> / {{ "%d"|format(cell.stats.completion.max) }}</small></p>
-                    </div>
-                    {% endif %}
-                    {% if cell.stats and cell.stats.reasoning %}
-                    <div class="stats-block">
-                      <p>Reasoning: <small>{{ "%d"|format(cell.stats.reasoning.min) }} / <strong>{{ "%.1f"|format(cell.stats.reasoning.avg) }}</strong> / {{ "%d"|format(cell.stats.reasoning.max) }}</small></p>
-                    </div>
-                    {% endif %}
-                    {% if cell.stats and cell.stats.cost %}
-                    <div class="stats-block">
-                      <p>Cost: <small>${{ "%.4f"|format(cell.stats.cost.min) }} / <strong>${{ "%.4f"|format(cell.stats.cost.avg) }}</strong> / ${{ "%.4f"|format(cell.stats.cost.max) }}</small></p>
-                    </div>
-                    {% endif %}
-
-                    {# Add checkbox if responses exist AND compare mode is active #}
-                    {% if status == 'generated' or status == 'evaluated' %}
-                    <div x-show="isCompareModeActive"> {# Conditionally show based on compare mode #}
-                        <div class="checkbox-cell"> {# Removed x-data here, handled by parent #}
-                            <input type="checkbox" class="response-checkbox"
-                                   data-response-set="{{ cell.response_set_id }}"
-                                   @change="$dispatch('toggle-selection', { responseSet: '{{ cell.response_set_id }}', checked: $event.target.checked })">
-                        </div>
-                    </div>
-                    {% endif %}
-                </td>
+                {% endfor %}
             {% endfor %}
         </tr>
         {% endfor %}
     </tbody>
-</table>
+    </table>
+    </div>
+    {% else %}
+    <p>No prompt sets found. <a href="{{ url_for('load_data') }}">Load data</a> to get started.</p>
+    {% endif %}
 </div>
-{% else %}
-<p>No prompt sets found. <a href="{{ url_for('select_file') }}">Load data</a> to get started.</p>
-{% endif %}
-
-</div> {# End of x-data="responseSelector" scope #}
 
 <script>
   document.addEventListener('alpine:init', () => {
     Alpine.data('responseSelector', () => ({
       selectedSets: [],
-      isCompareModeActive: false, // State for compare mode
-      archivedModels: JSON.parse(localStorage.getItem('model_eval_archived_models') || '[]'),
+      isCompareModeActive: false,
+      archivedSets: JSON.parse(localStorage.getItem('model_eval_archived_sets') || '[]').map(String),
       showArchived: false,
 
-      init() {
-        // Listen for the toggle event dispatched from checkboxes
-        // This listener is now on the table element
-      },
-
       startCompare() {
-          this.isCompareModeActive = true;
+        this.isCompareModeActive = true;
       },
 
       cancelCompare() {
-          this.isCompareModeActive = false;
-          this.selectedSets = [];
-          // Find all visible checkboxes within the scope and uncheck them
-          document.querySelectorAll('.response-checkbox').forEach(checkbox => {
-              checkbox.checked = false;
-          });
+        this.isCompareModeActive = false;
+        this.selectedSets = [];
+        document.querySelectorAll('.response-checkbox').forEach(checkbox => {
+          checkbox.checked = false;
+        });
       },
 
-      toggleArchive(model) {
-        if (this.archivedModels.includes(model)) {
-          this.archivedModels = this.archivedModels.filter(m => m !== model);
+      toggleArchive(responseSet) {
+        responseSet = String(responseSet);
+        if (this.archivedSets.includes(responseSet)) {
+          this.archivedSets = this.archivedSets.filter(setId => setId !== responseSet);
         } else {
-          this.archivedModels = [...this.archivedModels, model];
+          this.archivedSets = [...this.archivedSets, responseSet];
         }
-        localStorage.setItem('model_eval_archived_models', JSON.stringify(this.archivedModels));
+        localStorage.setItem('model_eval_archived_sets', JSON.stringify(this.archivedSets));
       },
 
-      isArchived(model) {
-        return this.archivedModels.includes(model);
+       toggleModelArchive(responseSetIds) {
+         const setIds = responseSetIds.map(String);
+        const allArchived = setIds.length > 0 && setIds.every(setId => this.archivedSets.includes(setId));
+        if (allArchived) {
+          this.archivedSets = this.archivedSets.filter(setId => !setIds.includes(setId));
+        } else {
+          this.archivedSets = [...new Set([...this.archivedSets, ...setIds])];
+        }
+        localStorage.setItem('model_eval_archived_sets', JSON.stringify(this.archivedSets));
+      },
+
+       modelArchiveLabel(responseSetIds) {
+         const setIds = responseSetIds.map(String);
+        return setIds.length > 0 && setIds.every(setId => this.archivedSets.includes(setId))
+          ? 'Unarchive'
+          : 'Archive all';
+      },
+
+       isModelFullyArchived(responseSetIds) {
+        const setIds = responseSetIds.map(String);
+         return setIds.length > 0 && setIds.every(setId => this.archivedSets.includes(setId));
+       },
+
+       hasNonArchivedResponseSet(responseSetIds) {
+         return responseSetIds.some(responseSetId => !this.isArchived(responseSetId));
+       },
+
+       isArchived(responseSet) {
+        return this.archivedSets.includes(String(responseSet));
       },
 
       toggleSelection(responseSet, checked) {
-        // This logic only runs when a checkbox is changed (i.e., when compare mode is active)
         if (checked) {
-          // Add to selected sets
-          this.selectedSets.push(responseSet);
-
-          // If more than 2 are selected, uncheck the first one
+          this.selectedSets.push(String(responseSet));
           if (this.selectedSets.length > 2) {
             const removed = this.selectedSets.shift();
-            // Find and uncheck the checkbox (without triggering this handler again)
-            const checkboxToUncheck = document.querySelector(`input[data-response-set="${removed}"]`);
-            if (checkboxToUncheck) {
-                checkboxToUncheck.checked = false;
-            }
+            const checkbox = document.querySelector(`input[data-response-set="${removed}"]`);
+            if (checkbox) checkbox.checked = false;
           }
         } else {
-          // Remove from selected sets
-          this.selectedSets = this.selectedSets.filter(val => (val !== responseSet));
+          this.selectedSets = this.selectedSets.filter(setId => setId !== String(responseSet));
         }
       },
 
@@ -354,7 +382,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       get selectionMessage() {
         return this.isReadyToCompare
-          ? "Ready to compare!"
+          ? 'Ready to compare!'
           : `(Select exactly 2 response sets to compare, ${2 - this.selectedSets.length} more needed)`;
       },
 
@@ -367,9 +395,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       },
 
       submitCompare() {
-        if (this.isReadyToCompare) {
-          document.getElementById('compareForm').submit();
-        }
+        if (this.isReadyToCompare) document.getElementById('compareForm').submit();
       }
     }));
   });
