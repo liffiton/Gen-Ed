@@ -38,7 +38,7 @@ The project repository contains several key files and directories at its root le
       migrations are located in subdirectories within
       `src/components/[component_name]/migrations/`, and application-specific
       migrations can be found in `src/[application_name]/migrations/`. All are
-      applied using the custom migration command: `flask --app [application] migrate`.
+      applied using the custom migration command: `flask migrate`.
 - **tests/:** Contains unit and integration tests for the Gen-Ed framework and
   the CodeHelp applications.  Most tests are executed on instances of CodeHelp,
   even when testing functionality solely contained in `src/gened/`, and
@@ -68,7 +68,7 @@ important ones:
 - **classes.py:** Routes for creating new classes and switching between classes
   (as a student).
 - **db.py:** Database connections and operations, including CLI commands
-  (see `flask --app [application] --help` for a list of commands).
+  (see `flask --help` for a list of commands).
 - **llm.py:** Configuring, selecting, and using LLMs.
 
 ### src/[application]/
@@ -137,8 +137,11 @@ See the instructions in `README.md`.
 First, install development dependencies:
 
 ```sh
-pip install -e .[dev]
+pip install -e . --group dev
 ```
+
+Note: the `--group` option requires pip 25.1 or newer.  If your pip is older,
+upgrade it first (`pip install --upgrade pip`).
 
 Run all tests:
 
@@ -159,12 +162,6 @@ The project uses mypy for static type checking (in strict mode), and Ruff and
 djLint for linting and style checks.  These are all configured in
 `pyproject.toml`.
 
-We recommend installing the checkers using a tool like
-[uv](https://docs.astral.sh/uv/concepts/tools/)
-or
-[pipx](https://pipx.pypa.io/)
-.
-
 Run the checks from the project root:
 - Type checking: `mypy`
 - Python linting: `ruff check`
@@ -183,7 +180,7 @@ the correct libraries installed.  To be sure you have all dependencies
 installed, run:
 
 ```sh
-pip install -U -e .[dev]
+pip install -U -e . --group dev
 ```
 
 #### Database Schema
@@ -194,7 +191,7 @@ may crash. To update an existing database to the latest schema, use the custom
 migration tool provided by Gen-Ed (via the `gened.migrate` module):
 
 ```sh
-flask --app [application_name] migrate
+flask migrate
 ```
 
 This command finds and applies any pending migration scripts located in

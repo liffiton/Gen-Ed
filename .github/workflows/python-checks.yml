@@ -25,7 +25,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --upgrade pip wheel
-        pip install .[dev]
+        pip install . --group dev
     - name: Type check with mypy
       run: |
         mypy
@@ -46,7 +46,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --upgrade pip wheel
-        pip install .[dev]
+        pip install . --group dev
     - name: Test with pytest
       run: |
         pytest
