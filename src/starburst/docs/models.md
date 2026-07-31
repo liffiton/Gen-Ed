@@ -13,8 +13,7 @@ responses.  By default, the following models are available in Starburst:
 | ----- | ------------------------ | ----------------- | ----- |
 | **Google Gemini 3.6 Flash** | US$1.00 | 7 seconds | The best Google model here in terms of speed and quality if the price is acceptable. |
 | **Google Gemini 3 Flash Preview** | US$0.50 | 8 seconds | **(Recommended)** Only slightly slower than 3.6 Flash, and its responses are likely to be just as high quality in nearly all realistic student uses. |
-| **OpenAI GPT-5.6 Luna** | US$0.70 | 6 seconds | **(Recommended)**  The best OpenAI model for most cases.  High quality responses at a high speed. |
-| **OpenAI GPT-5.4 nano** | US$0.20 | 7 seconds | A step down in quality from GPT-5.6 Luna, but it will still provide reasonable, useful responses in most cases. |
+| **OpenAI GPT-5.6 Luna** | US$0.14 | 6 seconds | **(Recommended)**  The best OpenAI model for most cases.  High quality responses at a high speed. |
 | **OpenAI GPT-4.1 nano** | US$0.05 | 2 seconds | The lowest-cost and fastest of these options.  It can provide accurate, helpful responses in a wide variety of *simple* applications, but it will be noticeably less accurate in more complex or less common topics and may exhibit less fluency in languages other than English.  A good choice only if cost is the most important factor. |
 
 

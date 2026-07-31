@@ -11,39 +11,11 @@ By default, the following models are available in CodeHelp.
 (Costs and response times are estimated here for uses of the "Q&A" tool.  The
 cost of tutor chats varies greatly based on chat length.)
 
-<!--
-April, 2025:
-OpenAI
-Avg tokens per query: 3400 prompt, 420 completion
-Costs per million tokens:
-GPT-4.1: $2 in, $8 out
-GPT-4.1 mini: $0.40 in, $1.60 out
-GPT-4.1 nano: $0.10 in, $0.40 out
-
-Dec, 2025:
-Google Gemini 3 Flash Preview (default reasoning)
-Avg tokens per query: let's assume 3400 prompt still, but now 1000 completion (due to reasoning)
-Costs per million tokens: $0.50 in, $3.00 out
-OpenAI GPT-5-mini
-Avg tokens per query goes to 2000 out (substantial reasoning by default)
-Cost per million: $0.25 in, $2.00 out
-
-March, 2026:
-OpenAI GPT-5.4 (none): $2.50 in, $15.00 out
-OpenAI GPT-5.4-mini:   $0.75 in, $4.50 out
-OpenAI GPT-5.4-nano:   $0.20 in, $1.25 out
-Retired:
-  | **OpenAI GPT-4.1 mini** | US$0.20 | 6 seconds |
-  | **OpenAI GPT-4.1** | US$1 | 8 seconds |
-
--->
-
 | Model | Avg cost per 100 queries | Average response time | Notes |
 | ----- | ------------------------ | ----------------- | ----- |
 | **Google Gemini 3.6 Flash** | US$1.00 | 7 seconds | The best Google model here in terms of speed and quality if the price is acceptable. |
 | **Google Gemini 3 Flash Preview** | US$0.50 | 8 seconds | **(Recommended)** Only slightly slower than 3.6 Flash, and its responses are likely to be just as high quality in nearly all realistic student uses. |
-| **OpenAI GPT-5.6 Luna** | US$0.70 | 6 seconds | **(Recommended)**  The best OpenAI model for most cases.  High quality responses at a high speed. |
-| **OpenAI GPT-5.4 nano** | US$0.20 | 7 seconds | A step down in quality from GPT-5.6 Luna, but it will still provide reasonable, useful responses in most cases. |
+| **OpenAI GPT-5.6 Luna** | US$0.14 | 6 seconds | **(Recommended)**  The best OpenAI model for most cases.  High quality responses at a high speed. |
 | **OpenAI GPT-4.1 nano** | US$0.05 | 2 seconds | The lowest-cost and fastest of these options.  It can provide accurate, helpful responses in a wide variety of cases, but it will be noticeably less accurate at times, including for less common programming languages, and it may exhibit less fluency in languages other than English.  A good choice only if cost is the most important factor. |
 
 Additional custom models can be added from your <a href="/profile/">profile
