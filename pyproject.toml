@@ -82,13 +82,12 @@ ignore = [
     "S311",   # pseudo-random number generators
     "TRY400", # logger.error() inside except block
     "G004",   # f-string in logging statement
-    "EM",     # Exceptions with string literals
     "Q",      # string quoting
     "D",      # docstrings
     "ANN",    # type annotation
     "TD",     # TODOs
-    "PERF203",# try-except in a loop
     "C408",   # dict() vs dict literal
+    "CPY001", # we do have copyright notices; ruff just doesn't see them as such
 ]
 
 [tool.ruff.lint.per-file-ignores]

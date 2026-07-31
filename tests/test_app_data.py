@@ -47,7 +47,7 @@ _ALL_QUERY_COLS = [
 ]
 
 
-def _build_mock_row(**fields: str | int | None | dt.datetime) -> MagicMock:
+def _build_mock_row(**fields: str | int | dt.datetime | None) -> MagicMock:
     """Build a mock sqlite3.Row with the given fields.
 
     The mock supports both key-based and index-based access, matching the
@@ -68,9 +68,9 @@ def _build_mock_row(**fields: str | int | None | dt.datetime) -> MagicMock:
     return row
 
 
-def _make_query_mock_row(**overrides: str | int | None | dt.datetime) -> MagicMock:
+def _make_query_mock_row(**overrides: str | int | dt.datetime | None) -> MagicMock:
     """Create a mock row with all columns expected by help_view."""
-    fields: dict[str, str | int | None | dt.datetime] = {
+    fields: dict[str, str | int | dt.datetime | None] = {
         "id": 100,
         "user": '["testuser","local",""]',
         "time": dt.datetime(2024, 1, 1, 12, 0, 0),

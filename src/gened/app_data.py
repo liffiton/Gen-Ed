@@ -96,12 +96,14 @@ class Filters:
         spec = self._available_filter_specs.get(spec_name)
 
         if not spec:
-            raise RuntimeError(f"Invalid filter spec name: {spec_name}")
+            msg = f"Invalid filter spec name: {spec_name}"
+            raise RuntimeError(msg)
 
         if with_display and spec.display_query:
             display_row = get_db().execute(spec.display_query, [value]).fetchone()
             if not display_row:
-                raise RuntimeError(f"Invalid filter value: {spec_name}={value}")
+                msg = f"Invalid filter value: {spec_name}={value}"
+                raise RuntimeError(msg)
             display_value = display_row[0]
         else:
             display_value = None
