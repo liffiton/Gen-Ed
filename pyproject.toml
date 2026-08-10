@@ -29,6 +29,7 @@ dependencies = [
     "Authlib~=1.7.2",
     "Flask~=3.1.0",
     "markdown-it-py~=4.0",
+    "mdit_py_plugins~=0.6.0",
     "msgspec~=0.20.0",
     "openai~=2.0",
     "pylti@git+https://github.com/liffiton/pylti",

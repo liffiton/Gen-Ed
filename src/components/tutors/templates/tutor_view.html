@@ -12,12 +12,14 @@ SPDX-License-Identifier: AGPL-3.0-only
   <script src="{{ url_for('static', filename='tikzjax.js') }}" defer></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='tikzjax_fonts.css') }}">
 {% endif %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.19/dist/katex.min.css" integrity="sha384-7lU0muIg/i1plk7MgygDUp3/bNRA65orrBub4/OSWHECgwEsY83HaS1x3bljA/XV" crossorigin="anonymous">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.19/dist/katex.min.js" integrity="sha384-RdymN7NRJ+XoyeRY4185zXaxq9QWOOx3O7beyyrRK4KQZrPlCDQQpCu95FoCGPAE" crossorigin="anonymous"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.19/dist/contrib/auto-render.min.js" integrity="sha384-hCXGrW6PitJEwbkoStFjeJxv+fSOOQKOPbJxSfM6G5sWZjAyWhXiTIIAmQqnlLlh" crossorigin="anonymous" onload="renderMathInElement(document.querySelector('#chat_view'));"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.18.4/dist/katex.min.css" integrity="sha384-u1zONI5gPXUx0UKI62c75/zww972y0v2rSK5ZYlVdS6xEuWDeZWUI66v6t1gvlXJ" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.18.4/dist/katex.min.js" integrity="sha384-ykMNcWQhhTUb0YV9SPpPUFURHZ+tWmubkakGBP+OgNK/UXdO2gtzglWx0Rj9hnO3" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.18.4/dist/contrib/auto-render.min.js" integrity="sha384-bjyGPfbij8/NDKJhSGZNP/khQVgtHUE5exjm4Ydllo42FwIgYsdLO2lXGmRBf5Mz" crossorigin="anonymous"
+  onload="renderMathInElement(document.querySelector('#chat_view'));"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/styles/default.min.css">
 <script type="module">
 import markdownIt from 'https://cdn.jsdelivr.net/npm/markdown-it@14/+esm'
+import texmath from 'https://cdn.jsdelivr.net/npm/markdown-it-texmath@1/+esm'
 import hljs from 'https://cdn.jsdelivr.net/npm/highlight.js@11/+esm'
 
 // highlight everything loaded from the server
@@ -34,8 +36,20 @@ window.md = markdownIt({
     return ''; // use external default escaping
   }
 });
-// disable escaping so that \(, \[, etc. come through for TeX math
-window.md.inline.ruler.disable(['escape']);
+
+window.md.disable('lheading');  // no "===" headings; can get confused by = on a line by itself
+
+// preserve \( and \[ without rendering markdown within so we can render TeX math in the browser
+// [uses texmath plugin but configures it to pass contents through (not wrap in <eqn> or similar)
+window.md.use(texmath, {
+  delimiters: 'brackets',
+  engine: {
+    renderToString: (tex, options) => {
+      const escaped = md.utils.escapeHtml(tex);
+      return options.displayMode ? `\\[${escaped}\\]` : `\\(${escaped}\\)`;
+    }
+  }
+});
 </script>
 <script defer type="text/javascript">
   document.addEventListener('alpine:init', () => {

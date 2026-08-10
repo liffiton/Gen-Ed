@@ -8,7 +8,9 @@ from typing import Any
 from flask import Flask
 from flask.json.provider import DefaultJSONProvider
 from markdown_it import MarkdownIt
+from markdown_it.common.utils import escapeHtml
 from markupsafe import Markup, escape
+from mdit_py_plugins.texmath import texmath_plugin
 
 
 def _make_titled_span(title: str, text: str, max_title_len: int = 500) -> Markup:
@@ -75,8 +77,20 @@ def init_app(app: Flask) -> None:
 
     # Jinja filter for converting Markdown to HTML
     markdown_processor = MarkdownIt("js-default")  # js-default: https://markdown-it-py.readthedocs.io/en/latest/security.html
-    markdown_processor.inline.ruler.disable(['escape'])  # disable escaping so that \(, \[, etc. come through for TeX math
     markdown_processor.options['highlight'] = lambda code, name, _: code if name == 'tikz' else ''  # don't escape tikz code, so it goes straight to tikzjax
+    markdown_processor.disable("lheading")  # no "===" headings; can get confused by = on a line by itself
+
+    # preserve \( and \[ without rendering markdown within so we can render TeX math in the browser
+    # [uses texmath plugin but configures it to pass contents through (not wrap in <eqn> or similar)
+    markdown_processor.use(texmath_plugin, delimiters="brackets")
+    markdown_processor.add_render_rule(
+        "math_inline",
+        lambda _self, tokens, idx, _options, _env: f"\\({escapeHtml(tokens[idx].content)}\\)"
+    )
+    markdown_processor.add_render_rule(
+        "math_block",
+        lambda _self, tokens, idx, _options, _env: f"\\[{escapeHtml(tokens[idx].content)}\\]\n"
+    )
 
     @app.template_filter('markdown')
     def markdown_filter(value: str) -> str:
