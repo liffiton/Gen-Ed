@@ -20,3 +20,5 @@ dist/
 *.egg-info/
 
 .aider*
+
+.idea/
