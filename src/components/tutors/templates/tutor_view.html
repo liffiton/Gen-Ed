@@ -19,7 +19,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/styles/default.min.css">
 <script type="module">
 import markdownIt from 'https://cdn.jsdelivr.net/npm/markdown-it@14/+esm'
-import texmath from 'https://cdn.jsdelivr.net/npm/markdown-it-texmath@1/+esm'
 import hljs from 'https://cdn.jsdelivr.net/npm/highlight.js@11/+esm'
 
 // highlight everything loaded from the server
@@ -40,16 +39,60 @@ window.md = markdownIt({
 window.md.disable('lheading');  // no "===" headings; can get confused by = on a line by itself
 
 // preserve \( and \[ without rendering markdown within so we can render TeX math in the browser
-// [uses texmath plugin but configures it to pass contents through (not wrap in <eqn> or similar)
-window.md.use(texmath, {
-  delimiters: 'brackets',
-  engine: {
-    renderToString: (tex, options) => {
-      const escaped = md.utils.escapeHtml(tex);
-      return options.displayMode ? `\\[${escaped}\\]` : `\\(${escaped}\\)`;
+
+// No 'm' flag: '^' must anchor at the start of the slice so a rule invoked for a
+// given line/position can't match an equation on a later line (which would drop
+// the text in between).  This mirrors the Python implementation, which uses re.match.
+const mathBlockRe = /^\\\[([\s\S]+?)\\\]/;
+const inlineMathRe = /^\\\(([\s\S]+?)\\\)/;
+
+function makeInlineMathRule(name, rex) {
+  return function (state, silent) {
+    const match = rex.exec(state.src.slice(state.pos));
+    if (!match) return false;
+
+    if (!silent) {
+      const token = state.push(name, 'math', 0);
+      token.content = match[1];
     }
+    state.pos += match[0].length;
+
+    return true;
+  };
+}
+
+// block rule: \[ ... \] on its own block
+window.md.block.ruler.before('fence', 'math_block', function (state, begLine, endLine, silent) {
+  const begin = state.bMarks[begLine] + state.tShift[begLine];
+  const match = mathBlockRe.exec(state.src.slice(begin));
+  if (!match) return false;
+
+  // only accept the match if the closing \] falls within this block's lines;
+  // otherwise fall through so the inline rule can handle it inside a paragraph
+  // (and state.line always advances when we return true)
+  const endpos = begin + match[0].length - 1;
+  let line = begLine;
+  while (line < endLine && endpos > state.eMarks[line]) line++;
+  if (line >= endLine) return false;
+
+  if (!silent) {
+    const token = state.push('math_block', 'math', 0);
+    token.block = true;
+    token.content = match[1];
   }
+  state.line = line + 1;
+
+  return true;
 });
+
+// inline rules: \( ... \) and \[ ... \] (the latter also catches equations folded
+// into a paragraph, where the block rule never runs)
+window.md.inline.ruler.before('escape', 'math_inline', makeInlineMathRule('math_inline', inlineMathRe));
+window.md.inline.ruler.before('escape', 'math_block', makeInlineMathRule('math_block', mathBlockRe));
+
+window.md.renderer.rules.math_inline = (tokens, idx) => `\\(${md.utils.escapeHtml(tokens[idx].content)}\\)`;
+// a math_block token also comes from an equation folded into a paragraph, where the trailing newline is harmless
+window.md.renderer.rules.math_block = (tokens, idx) => `\\[${md.utils.escapeHtml(tokens[idx].content)}\\]\n`;
 </script>
 <script defer type="text/javascript">
   document.addEventListener('alpine:init', () => {
