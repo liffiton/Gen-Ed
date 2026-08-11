@@ -40,7 +40,7 @@ from gened.llm import LLM, ChatMessage, with_llm
 from . import prompts
 from .chat_helpers import create_guided_chat, create_inquiry_chat
 from .data import chats_data_source, guided_tutor_config_table
-from .data_types import ChatData, GuidedAnalysis
+from .data_types import ChatData, GuidedAnalysis, Usage
 
 bp = Blueprint('tutors', __name__, url_prefix='/tutor', template_folder='templates')
 
@@ -271,7 +271,7 @@ async def stream_chat_round(llm: LLM, chat: ChatData) -> AsyncGenerator[str, Non
             response_txt += delta
         elif chunk.usage is not None:
             # usage available in the final chunk
-            chat.usages.append(chunk.usage.model_dump())
+            chat.usages.append(msgspec.convert(chunk.usage.model_dump(), Usage))
 
     # Update the chat w/ the response (and persist to the DB)
     chat.messages.append({

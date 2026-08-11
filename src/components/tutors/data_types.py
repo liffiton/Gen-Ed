@@ -95,6 +95,34 @@ class GuidedAnalysis(msgspec.Struct):
     progress: list[GuidedObjectiveProgress]
 
 
+class PromptTokensDetails(TypedDict, total=False):
+    """Breakdown of tokens used in the prompt.  Mirrors OpenAI's
+    prompt_tokens_details.  Optional fields may be absent or null."""
+    audio_tokens: int | None
+    cache_write_tokens: int | None
+    cached_tokens: int | None
+
+
+class CompletionTokensDetails(TypedDict, total=False):
+    """Breakdown of tokens used in the completion.  Mirrors OpenAI's
+    completion_tokens_details.  Optional fields may be absent or null."""
+    accepted_prediction_tokens: int | None
+    audio_tokens: int | None
+    reasoning_tokens: int | None
+    rejected_prediction_tokens: int | None
+
+
+class Usage(TypedDict, total=False):
+    """Token usage for a single LLM call, as returned by
+    `chunk.usage.model_dump()`.  All fields are optional: providers may omit
+    counts, and the details breakdowns may be null or absent."""
+    completion_tokens: int | None
+    prompt_tokens: int | None
+    total_tokens: int | None
+    completion_tokens_details: CompletionTokensDetails | None
+    prompt_tokens_details: PromptTokensDetails | None
+
+
 # We use this in place of ChatMessage (an alias for
 # openai.types.chat.ChatCompletionMessageParam), because msgspec won't decode
 # into a union of typeddicts (which is what ChatMessage is), but it will into
@@ -113,7 +141,7 @@ class ChatData(msgspec.Struct, kw_only=True, omit_defaults=True):
     user_json: str | None = None
     class_id: int | None = None
     context_name: str | None = None
-    usages: list[dict[str, int | dict[str, int]]] = []
+    usages: list[Usage] = []
     analysis: GuidedAnalysis | None = None
 
     # We have to cast to list[ChatMessage] before passing these into OpenAI API

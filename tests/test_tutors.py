@@ -192,6 +192,53 @@ def test_read_chat_with_analysis_from_database(app: Flask, client: AppClient) ->
     assert 'completed' in response.text
 
 
+def test_read_chat_with_null_usages_from_database(app: Flask, client: AppClient) -> None:
+    """A chat whose stored usages contain nulls (written by an older bug) must
+    still load rather than erroring out."""
+    # Insert a chat with nulls in the usages, as the old code would have saved
+    with app.app_context():
+        db = get_db()
+        chat_json = {
+            "topic": "Corrupt usages",
+            "mode": "guided",
+            "messages": [
+                {"role": "user", "content": "Hello"},
+                {"role": "assistant", "content": "Hi there"}
+            ],
+            "usages": [
+                {
+                    "completion_tokens": 12,
+                    "prompt_tokens": 456,
+                    "total_tokens": 468,
+                    "completion_tokens_details": {
+                        "accepted_prediction_tokens": None,
+                        "audio_tokens": None,
+                        "reasoning_tokens": None,
+                        "rejected_prediction_tokens": None,
+                    },
+                    "prompt_tokens_details": {
+                        "audio_tokens": None,
+                        "cache_write_tokens": None,
+                        "cached_tokens": None,
+                    },
+                }
+            ],
+        }
+        db.execute(
+            "INSERT INTO chats (chat_json, user_id, role_id) VALUES (?, ?, ?)",
+            [msgspec.json.encode(chat_json).decode(), 11, 4]
+        )
+        db.commit()
+        new_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+    # Access via HTTP request
+    client.login('testuser', 'testpassword')
+    response = client.get(f'/tutor/{new_id}')
+    assert response.status_code == 200
+    assert 'Corrupt usages' in response.text
+    assert 'Hello' in response.text
+
+
 def test_fmt_analysis_valid() -> None:
     """Test fmt_analysis with valid analysis JSON."""
     analysis_json = '''{
