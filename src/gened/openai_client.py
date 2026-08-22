@@ -33,6 +33,8 @@ class OpenAIClient:
             case openai.RateLimitError():
                 if "exceeded your current quota" in str(e):
                     user_msg = "Error (RateLimitError).  The API key for this class has exceeded its current quota (https://platform.openai.com/docs/guides/rate-limits/usage-tiers).  The instructor should check their API plan and billing details.  Possibly the key is in the free tier, which does not cover the models used here."
+                elif "have no credits remaining" in str(e):
+                    user_msg = "Error (RateLimitError).  The API key for this class has no credits remaining.  The instructor should check their LLM provider API plan and billing details.  This tool will not work until credits are added."
                 else:
                     user_msg = "Error (RateLimitError).  The system is receiving too many requests right now.  Please try again in one minute."
             case openai.AuthenticationError():
