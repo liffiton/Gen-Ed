@@ -43,7 +43,6 @@ _ALL_QUERY_COLS = [
     "user_id",
     "context_string_id",
     "class_id",
-    "topics_json",
 ]
 
 
@@ -84,7 +83,6 @@ def _make_query_mock_row(**overrides: str | int | dt.datetime | None) -> MagicMo
         "user_id": 11,
         "context_string_id": 1,
         "class_id": 2,
-        "topics_json": None,
     }
     fields.update(overrides)
     return _build_mock_row(**fields)
