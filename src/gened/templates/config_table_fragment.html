@@ -84,6 +84,27 @@
           setTimeout(() => {this.copied = false;}, 2000);
         },
       }));
+      Alpine.data('copy_from_course_{{ table.name }}', () => ({
+        showCopyModal: false,
+        courses_data: {{ copyable_courses | tojson }},
+        selected_course_id: "",
+        selected_items: [],
+
+        get selected_course() {
+          return this.courses_data.find(course => course.id == this.selected_course_id) || {"id": null, "name": null, "items": []};
+        },
+        get all_items_selected() {
+          return this.selected_course.items.length > 0 && this.selected_items.length === this.selected_course.items.length;
+        },
+        init() {
+          this.$watch('selected_course_id', () => {
+            // Default to selecting all items in the newly chosen course
+            this.selected_items = this.selected_course.items.map(item => item.id);
+          });
+        },
+        select_all() { this.selected_items = this.selected_course.items.map(item => item.id); },
+        deselect_all() { this.selected_items = []; },
+      }));
     });
   </script>
   <table class="table is-hoverable is-narrow" style="width: auto; min-width: min(40em, 80%); margin: auto;" x-data="config_table_{{ table.name }}">
@@ -233,18 +254,10 @@
     </a>
 
     {# Button and modal for copying items from another course #}
-    <span x-data='{
-        showCopyModal: false,
-        courses_data: {{ copyable_courses | tojson }},
-        selected_course_id: "",
-        get selected_course() {
-          return this.courses_data.find(course => course.id == this.selected_course_id) || {"id": null, "name": null, "items": []};
-        }
-      }'
-      x-show="courses_data.length > 0">
+    <span x-data="copy_from_course_{{ table.name }}" x-show="courses_data.length > 0">
       <button class="button is-light is-link is-small ml-2"
-              @click="showCopyModal = true; selected_course_id = '';"
-              title="Copy all items from another course you teach into this one">
+              @click="showCopyModal = true; selected_course_id = ''; selected_items = [];"
+              title="Copy items from another course you teach into this one">
         <svg class="icon" aria-hidden="true"><use href="#svg_copy" /></svg>
         <span>Copy from another course...</span>
       </button>
@@ -254,7 +267,7 @@
         <div class="modal-content">
           <div class="box">
             <h3 class="title is-4">Copy {{ table.display_name_plural | title }}</h3>
-            <p>Select a course to see its {{ table.display_name_plural }}. All items from the selected course will be copied into the current course. Existing items will not be affected, and copied items will be renamed if necessary to avoid duplicate names.</p>
+            <p>Select a course, then choose which of its {{ table.display_name_plural }} to copy into the current course. Existing items will not be affected, and copied items will be renamed if necessary to avoid duplicate names.</p>
             <form method="post" action="{{ url_for('class_config.table.crud.copy_from_course', table_name=table.name) }}">
               <div class="field">
                 <label class="label" for="source_class_id">Copy from course:</label>
@@ -271,12 +284,23 @@
               </div>
 
               {# Section to display items of the selected course #}
-              <div class="mt-3 mb-3 content" style="min-height: 200px; max-height: 200px; overflow-y: auto; border: 1px solid #dbdbdb; padding: 0.5em;">
+              <div class="mt-3 mb-3 content" style="min-height: 250px; max-height: 250px; overflow-y: auto; border: 1px solid #dbdbdb; padding: 0.5em;">
                 <div x-show="selected_course.items.length > 0" class="m-0">
-                  <p class="has-text-weight-semibold" x-text="`{{ table.display_name_plural | capitalize }} in '${selected_course.name || ''}':`"></p>
+                  <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5em;">
+                    <p class="has-text-weight-semibold m-0" x-text="`{{ table.display_name_plural | capitalize }} in '${selected_course.name || ''}':`"></p>
+                    <span style="white-space: nowrap;">
+                      <button type="button" class="button is-small" :disabled="all_items_selected" @click="select_all">Select all</button>
+                      <button type="button" class="button is-small" :disabled="selected_items.length == 0" @click="deselect_all">Deselect all</button>
+                    </span>
+                  </div>
                   <ol class="mt-0">
-                    <template x-for="item_name in selected_course.items" :key="item_name">
-                      <li x-text="item_name"></li>
+                    <template x-for="item in selected_course.items" :key="item.id">
+                      <li>
+                        <label>
+                          <input type="checkbox" name="selected_items" :value="item.id" x-model="selected_items" style="transform: scale(1.5); margin-top: 0.5em;">
+                          <span x-text="item.name"></span>
+                        </label>
+                      </li>
                     </template>
                   </ol>
                 </div>
@@ -285,7 +309,9 @@
 
               <div class="field is-grouped is-justify-content-flex-end">
                 <div class="control">
-                  <button type="submit" class="button is-link" x-bind:disabled="!selected_course_id || selected_course.items.length == 0">Copy {{ table.display_name_plural }}</button>
+                  <button type="submit" class="button is-link" x-bind:disabled="!selected_course_id || selected_items.length == 0">
+                    <span x-text="'Copy ' + selected_items.length + (selected_items.length === 1 ? ' item' : ' items')"></span>
+                  </button>
                 </div>
                 <div class="control">
                   <button type="button" class="button" @click="showCopyModal = false">Cancel</button>

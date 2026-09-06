@@ -156,14 +156,20 @@ def copy_from_course() -> Response:
     ).fetchall()
     source_class_name = db.execute("SELECT name FROM classes WHERE id = ?", [source_class_id]).fetchone()['name']
 
-    if not source_items:
-        flash(f"Course '{source_class_name}' has no items to copy.", "warning")
+    # Only copy the items the user selected.  By filtering the source course's
+    # rows by id, any ids that don't belong to this course and item type are
+    # safely ignored.
+    selected_ids = set(request.form.getlist('selected_items'))
+    items_to_copy = [row for row in source_items if str(row['id']) in selected_ids]
+
+    if not items_to_copy:
+        flash(f"No {g.config_table.display_name_plural} selected to copy from '{source_class_name}'.", "warning")
         return redirect(url_for("class_config.base.config_form"))
 
-    for item_row in source_items:
+    for item_row in items_to_copy:
         _insert_item(target_class_id, g.config_table.name, item_row['name'], item_row['config'], "9999-12-31")  # default to hidden
 
-    flash(f"Successfully copied {len(source_items)} item(s) from '{source_class_name}'.", "success")
+    flash(f"Successfully copied {len(items_to_copy)} item(s) from '{source_class_name}'.", "success")
 
     return redirect(url_for("class_config.base.config_form"))
 

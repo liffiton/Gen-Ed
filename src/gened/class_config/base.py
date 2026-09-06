@@ -51,7 +51,7 @@ def build_blueprint() -> Blueprint:
     return new_bp
 
 
-def _get_instructor_courses(user_id: int, current_class_id: int, item_type: str) -> list[dict[str, str | list[str]]]:
+def _get_instructor_courses(user_id: int, current_class_id: int, item_type: str) -> list[dict[str, int | str | list[dict[str, int | str]]]]:
     """ Get other courses where the user is an instructor. """
     db = get_db()
     course_rows = db.execute("""
@@ -60,6 +60,7 @@ def _get_instructor_courses(user_id: int, current_class_id: int, item_type: str)
         JOIN roles r ON c.id = r.class_id
         WHERE r.user_id = ?
           AND r.role = 'instructor'
+          AND r.active = 1
           AND c.id != ?
         ORDER BY c.name
     """, [user_id, current_class_id]).fetchall()
@@ -68,13 +69,13 @@ def _get_instructor_courses(user_id: int, current_class_id: int, item_type: str)
     instructor_courses_data = []
     for course in course_rows:
         course_items = db.execute(
-            "SELECT name FROM config_items WHERE class_id=? AND item_type=? ORDER BY class_order",
+            "SELECT id, name FROM config_items WHERE class_id=? AND item_type=? ORDER BY class_order",
             [course['id'], item_type],
         ).fetchall()
         instructor_courses_data.append({
             'id': course['id'],
             'name': course['name'],
-            'items': [item['name'] for item in course_items]
+            'items': [{'id': item['id'], 'name': item['name']} for item in course_items]
         })
 
     return instructor_courses_data

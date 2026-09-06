@@ -93,4 +93,87 @@ def test_get_item_by_id_returns_none_for_wrong_class() -> None:
     assert result is None
 
 
+COPY_URL = '/instructor/config/table/context/copy_from_course'
+
+
+def test_copy_from_course_copies_selected_items(instructor: AppClient, app: Flask) -> None:
+    """Tests that copy_from_course copies only the selected items, renaming duplicates."""
+    response = instructor.post(
+        COPY_URL,
+        data={'source_class_id': '3', 'selected_items': ['3']},
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert "Successfully copied 1 item(s) from 'USER002'." in response.text
+
+    # class 2 starts with 4 contexts (default, default1, default2, default3)
+    with app.app_context():
+        db = get_db()
+        items = db.execute(
+            "SELECT name FROM config_items WHERE class_id=2 AND item_type='context' ORDER BY class_order, id"
+        ).fetchall()
+    assert len(items) == 5
+    # 'default' already exists in class 2, so the copied item is renamed
+    assert items[-1]['name'] == 'default (1)'
+
+
+def test_copy_from_course_ignores_ids_not_in_source_course(instructor: AppClient, app: Flask) -> None:
+    """Tests that submitted item ids not belonging to the source course are ignored."""
+    # id 4 belongs to class 4, not to the source course (class 3)
+    response = instructor.post(
+        COPY_URL,
+        data={'source_class_id': '3', 'selected_items': ['3', '4']},
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert "Successfully copied 1 item(s) from 'USER002'." in response.text
+
+    with app.app_context():
+        db = get_db()
+        count = db.execute(
+            "SELECT COUNT(*) AS n FROM config_items WHERE class_id=2 AND item_type='context'"
+        ).fetchone()['n']
+    assert count == 5
+
+
+def test_copy_from_course_empty_selection(instructor: AppClient, app: Flask) -> None:
+    """Tests that submitting no selected items flashes a warning and copies nothing."""
+    response = instructor.post(
+        COPY_URL,
+        data={'source_class_id': '3'},
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert "No contexts selected to copy from 'USER002'." in response.text
+
+    with app.app_context():
+        db = get_db()
+        count = db.execute(
+            "SELECT COUNT(*) AS n FROM config_items WHERE class_id=2 AND item_type='context'"
+        ).fetchone()['n']
+    assert count == 4
+
+
+def test_copy_from_course_non_instructor_source_aborts(instructor: AppClient) -> None:
+    """Tests that copying from a course where the user is not an instructor is rejected."""
+    response = instructor.post(
+        COPY_URL,
+        data={'source_class_id': '1', 'selected_items': ['1']},
+    )
+    assert response.status_code == 403
+
+
+def test_copy_modal_hides_courses_with_inactive_role(instructor: AppClient, app: Flask) -> None:
+    """Tests that courses where the user's instructor role is inactive are not offered for copying."""
+    with app.app_context():
+        db = get_db()
+        db.execute("UPDATE roles SET active=0 WHERE id=8")  # testuser's instructor role in class 4 (USER003)
+        db.commit()
+
+    response = instructor.get('/instructor/config/')
+    assert response.status_code == 200
+    assert 'USER002' in response.text  # class 3: still an active instructor role
+    assert 'USER003' not in response.text  # class 4: role deactivated
+
+
 
