@@ -2,7 +2,8 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, NoReturn
 
 from flask import (
     Blueprint,
@@ -22,6 +23,7 @@ from werkzeug.wrappers.response import Response
 from .access import check_access
 from .auth import (
     LoginData,
+    RoleType,
     ext_login_update_or_create,
     set_session_auth_class,
     set_session_auth_user,
@@ -34,6 +36,18 @@ from .component_registry import (
 from .db import get_db
 
 bp = Blueprint('lti', __name__, template_folder='templates')
+
+
+@dataclass(frozen=True)
+class LTILaunchData:
+    lti_user_id: str
+    consumer: str
+    context_id: str
+    class_name: str
+    full_name: str | None
+    email: str | None
+    role: RoleType
+    message_type: str | None
 
 
 def reload_consumers() -> None:
@@ -50,6 +64,11 @@ def lti_error(exception: dict[str, Any]) -> tuple[str, int]:
     """Log the error and render a simple error page."""
     current_app.logger.error(f"LTI exception: {exception['exception']=} {exception['kwargs']=} {exception['args']=}")
     return "There was an LTI communication error", 500
+
+
+def _reject(code: int, detail: str | None = None) -> NoReturn:
+    session.clear()
+    abort(code, detail)
 
 
 def _resolve_deep_link(dl_table: str, dl_link: str, content_id: str, class_id: int) -> str | None:  # noqa: PLR0911 - each validation step logs a distinct reason
@@ -100,15 +119,11 @@ def _resolve_deep_link(dl_table: str, dl_link: str, content_id: str, class_id: i
     return link.render_url({'name': item.name})
 
 
-# Handles LTI 1.0/1.1 initial request / login
-# https://github.com/mitodl/pylti/blob/master/pylti/flask.py
-# https://github.com/mitodl/mit_lti_flask_sample
-@bp.route("/", methods=['GET', 'POST'])
-@lti_flask(request='initial', error=lti_error)  # type: ignore[untyped-decorator]
-def lti_login(lti: LTI) -> Response | tuple[str, int]:  # noqa: ARG001 (unused argument required by lti_flask decorator)
+def _validate_launch() -> LTILaunchData:
+    """Read LTI session data, run sanity checks, and return validated launch data."""
     authenticated = session.get("lti_authenticated", False)
     lti_message_type = session.get("lti_message_type")
-    role = session.get("roles", "").lower()
+    raw_role = session.get("roles", "").lower()
     full_name = session.get("lis_person_name_full", None)
     email = session.get("lis_person_contact_email_primary", None)
     lti_user_id = session.get("user_id", "")
@@ -116,77 +131,92 @@ def lti_login(lti: LTI) -> Response | tuple[str, int]:  # noqa: ARG001 (unused a
     lti_context_id = session.get("context_id", "")
     class_name = session.get("context_label", "")
 
-    current_app.logger.debug(f"LTI login: {lti_consumer=} {lti_message_type=} {full_name=} {email=} {role=} {class_name=}")
+    current_app.logger.debug(f"LTI login: {lti_consumer=} {lti_message_type=} {full_name=} {email=} {raw_role=} {class_name=}")
 
-    # sanity checks
     if not authenticated:
         current_app.logger.warning("LTI login not authenticated.")
-        session.clear()
-        abort(403)
+        _reject(403)
 
     if not lti_user_id or not lti_consumer or not lti_context_id or not class_name:
         current_app.logger.warning(f"LTI login missing one of: {lti_user_id=} {lti_consumer=} {lti_context_id=} {class_name=}")
-        session.clear()
-        abort(400)
+        _reject(400)
 
     if not full_name and (not email or '@' not in email):
         current_app.logger.warning(f"LTI login missing name or email: {lti_consumer=} {full_name=} {email=}")
-        session.clear()
-        abort(400, "LTI login missing name and email (at least one required).")
+        _reject(400, "LTI login missing name and email (at least one required).")
 
-    # check for instructors
+    role: RoleType
     instructor_role_substrs = ["instructor", "teachingassistant"]
-    if any(substr in role.lower() for substr in instructor_role_substrs):
+    if any(substr in raw_role for substr in instructor_role_substrs):
         role = "instructor"
     else:
-        # anything else becomes "student"
         role = "student"
 
-    # another set of sanity checks
     if lti_message_type == "ContentItemSelectionRequest":
         if role != "instructor":
             current_app.logger.warning("LTI login requests content item selection, but role != 'instructor'")
-            session.clear()
-            abort(400)
+            _reject(400)
         if 'content_item_return_url' not in session:
             current_app.logger.warning("LTI login requests content item selection, but session does not contain 'content_item_return_url'")
-            session.clear()
-            abort(400)
+            _reject(400)
 
+    return LTILaunchData(
+        lti_user_id=lti_user_id,
+        consumer=lti_consumer,
+        context_id=lti_context_id,
+        class_name=class_name,
+        full_name=full_name,
+        email=email,
+        role=role,
+        message_type=lti_message_type,
+    )
+
+
+def _provision_lti_identity(launch: LTILaunchData) -> tuple[int, int]:
+    """Get-or-create class, user, and role for an LTI launch. Returns (user_id, class_id)."""
     db = get_db()
 
-    # grab consumer ID (must exist, since the LTI processing must have used it to get here with success)
-    consumer_row = db.execute("SELECT id FROM consumers WHERE lti_consumer=?", [lti_consumer]).fetchone()
-    lti_consumer_id = consumer_row['id']
+    # The consumer must exist: pylti verified the launch signature against the
+    # registered consumers, so this key is guaranteed to be present in the table.
+    consumer_row = db.execute(
+        "SELECT id FROM consumers WHERE lti_consumer=?", [launch.consumer]
+    ).fetchone()
+    lti_consumer_id: int = consumer_row['id']
 
-    # check for and create class if needed
-    class_id = get_or_create_lti_class(lti_consumer_id, lti_context_id, class_name)
+    class_id = get_or_create_lti_class(lti_consumer_id, launch.context_id, launch.class_name)
 
-    # check for and create user account if needed
-    lti_id = f"{lti_consumer}_{lti_user_id}_{email}"
-    user_normed = LoginData(
-        ext_id=lti_id,
-        email=email,
-        full_name=full_name,
-    )
+    lti_id = f"{launch.consumer}_{launch.lti_user_id}_{launch.email}"
+    user_normed = LoginData(ext_id=lti_id, email=launch.email, full_name=launch.full_name)
     # LTI users given 0 tokens by default -- should only ever use API key registered w/ LTI consumer
     user_row = ext_login_update_or_create('lti', user_normed, query_tokens=0)
-    user_id = user_row['id']
+    user_id: int = user_row['id']
 
-    # check for and create role if needed
     role_row = db.execute(
         "SELECT * FROM roles WHERE user_id=? AND class_id=?", [user_id, class_id]
     ).fetchone()
 
     if not role_row:
-        # Register this user
-        db.execute("INSERT INTO roles(user_id, class_id, role) VALUES(?, ?, ?)", [user_id, class_id, role])
+        db.execute(
+            "INSERT INTO roles(user_id, class_id, role) VALUES(?, ?, ?)",
+            [user_id, class_id, launch.role],
+        )
         db.commit()
     elif not role_row['active']:
-        session.clear()
-        abort(403)
+        _reject(403)
 
-    # Record them as logged in in the session
+    return user_id, class_id
+
+
+# Handles LTI 1.0/1.1 initial request / login
+# https://github.com/mitodl/pylti/blob/master/pylti/flask.py
+# https://github.com/mitodl/mit_lti_flask_sample
+@bp.route("/", methods=['GET', 'POST'])
+@lti_flask(request='initial', error=lti_error)  # type: ignore[untyped-decorator]
+def lti_login(lti: LTI) -> Response:  # noqa: ARG001 (unused argument required by lti_flask decorator)
+    launch = _validate_launch()
+
+    user_id, class_id = _provision_lti_identity(launch)
+
     set_session_auth_user(user_id)
     set_session_auth_class(class_id)
 
@@ -204,8 +234,8 @@ def lti_login(lti: LTI) -> Response | tuple[str, int]:  # noqa: ARG001 (unused a
         flash("The linked content could not be opened. It may have been deleted from this class, or a feature that provides it may be disabled.", "warning")
 
     # Redirect to the app
-    if role == "instructor":
-        if lti_message_type == "ContentItemSelectionRequest":
+    if launch.role == "instructor":
+        if launch.message_type == "ContentItemSelectionRequest":
             # The selection page reads content_item_return_url from the session
             # (pylti stored it from the OAuth-verified launch).
             return redirect(url_for("class_config.base.lti_content_select"))
