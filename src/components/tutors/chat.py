@@ -42,6 +42,8 @@ from .chat_helpers import create_guided_chat, create_inquiry_chat
 from .data import chats_data_source, guided_tutor_config_table
 from .data_types import ChatData, GuidedAnalysis, Usage
 
+MAX_MESSAGE_LEN = 10_000
+
 bp = Blueprint('tutors', __name__, url_prefix='/tutor', template_folder='templates')
 
 # NOTE: Blueprint default access controls set in __init__ via availability_requirements
@@ -324,13 +326,18 @@ def new_message(llm: LLM) -> Response:
     chat_id = int(request.form["id"])
     new_msg = request.form["message"]
 
-    # TODO: limit length
+    if len(new_msg) > MAX_MESSAGE_LEN:
+        current_app.logger.warning(
+            "Rejecting chat message by user %d: %d chars (max %d)",
+            get_auth().user_id, len(new_msg), MAX_MESSAGE_LEN
+        )
+        return Response(f"Message is too long (max {MAX_MESSAGE_LEN:,} characters).", 400, mimetype='text/plain')
 
     # Get the specified chat
     try:
         chat = get_chat(chat_id)
     except DataAccessError:
-        abort(400, "Invalid id")
+        return Response("Invalid id.", 400, mimetype='text/plain')
 
     messages = chat.messages
 

@@ -40,6 +40,8 @@ from gened.testing.mocks import mock_async_completion
 from . import prompts
 from .data import queries_data_source
 
+MAX_INPUT_LEN = 50_000
+
 bp = Blueprint('helper', __name__, url_prefix="/help", template_folder='templates')
 
 
@@ -239,7 +241,14 @@ def help_request(llm: LLM) -> Response:
     error = request.form["error"]
     issue = request.form["issue"]
 
-    # TODO: limit length of code/error/issue
+    for name, value in (("code", code), ("error", error), ("issue", issue)):
+        if len(value) > MAX_INPUT_LEN:
+            current_app.logger.warning(
+                "Rejecting code query by user %d: '%s' is %d chars (max %d)",
+                get_auth().user_id, name, len(value), MAX_INPUT_LEN
+            )
+            flash(f"Your {name} input is too long (max {MAX_INPUT_LEN:,} characters).", "danger")
+            return make_response(render_template("error.html"), 400)
 
     query_id = run_query(llm, context, code, error, issue)
 
