@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import platform
-import subprocess
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 
@@ -12,6 +11,9 @@ from flask import Flask
 
 from gened.admin.download import get_encryption_status
 from gened.db_admin import backup_db
+
+# Throwaway ed25519 key generated for testing; only the public key is needed.
+TEST_SSH_PUBLIC_KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHsHhD55MQMlYxt/Tj/RMrtMI64SNqMGkjr4ICJDdjXP gened-test-key"
 
 
 def test_db_download_status(app: Flask, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -57,16 +59,7 @@ def test_backup_db_encryption(app: Flask) -> None:
 
         # Test encrypted backup with a real SSH key
         with TemporaryDirectory() as temp_dir:
-            # Generate SSH keypair
-            key_path = Path(temp_dir) / "temp_key"
-            subprocess.run(
-                ["ssh-keygen", "-t", "ed25519", "-N", "", "-f", str(key_path)],
-                check=True, capture_output=True
-            )
-            pubkey = (key_path.with_suffix(".pub")).read_text().strip()
-
-            # Configure and test encryption
-            app.config['AGE_PUBLIC_KEY'] = pubkey
+            app.config['AGE_PUBLIC_KEY'] = TEST_SSH_PUBLIC_KEY
 
             backup_path = Path(temp_dir) / "backup.db"
             backup_db(backup_path)
