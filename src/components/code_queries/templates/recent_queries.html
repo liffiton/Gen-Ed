@@ -14,8 +14,9 @@ SPDX-License-Identifier: AGPL-3.0-only
         <a href="{{url_for('helper.help_view', query_id=prev.id)}}" class="button is-link is-outlined is-rounded p-2">View</a>
         <a href="{{url_for('helper.help_form', query_id=prev.id)}}" class="button is-link is-outlined is-rounded p-2">Retry</a>
       </div>
-      {% if prev.context_name %}
-        <p>{{ prev.context_name }}:</p>
+      <p class="is-size-7 has-text-grey">{{ prev.time | localtime }}</p>
+      {% if prev.context %}
+        <p>{{ prev.context }}:</p>
       {% endif %}
       {% if prev.code %}
         <p><code>{{prev.code | truncate(50)}}</code></p>
