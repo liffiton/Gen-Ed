@@ -179,7 +179,7 @@ class DataSource:
                 COUNT(IIF(t.{self.time_col} > date('now', '-7 days'), 1, null)) AS num_1wk
             FROM {self.table_name} AS t
             WHERE t.user_id = ?
-        """
+        """  # noqa: S608 -- table and column names come from statically registered components
         row = db.execute(sql, [user_id]).fetchone()
         return dict(row)
 

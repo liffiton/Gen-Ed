@@ -81,7 +81,7 @@ def _get_class_users(*, for_export: bool = False) -> list[Row]:
         WHERE roles.class_id=?
         GROUP BY users.id
         ORDER BY users.display_name
-    """, [class_id, class_id]).fetchall()
+    """, [class_id, class_id]).fetchall()  # noqa: S608 -- for_export selects between fixed literals, no user input
 
     return users
 

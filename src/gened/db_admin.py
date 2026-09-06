@@ -21,6 +21,7 @@ from .component_registry import get_registered_components
 from .db import get_db
 
 AUTH_PROVIDER_LOCAL = 1
+MIN_PASSWORD_LENGTH = 3
 
 
 def encrypt_file(source: Path, target: Path) -> None:
@@ -76,7 +77,7 @@ def on_init_db(func: Callable[[], None]) -> Callable[[], None]:
 
 
 class DatabaseExistsError(Exception):
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str | Path) -> None:
         super().__init__(f"Database file {path} already exists. Delete it before initializing or use migrations to update.")
 
 def init_db() -> None:
@@ -147,7 +148,7 @@ def rebuild_views() -> None:
                 t.{time_col} AS entry_time
             FROM {table_name} t
             LEFT JOIN roles r ON r.id=t.role_id
-        """)
+        """)  # noqa: S608 -- table and column names come from statically registered components
 
     db.execute("DROP VIEW IF EXISTS v_user_items")
     db.execute(f"""
@@ -246,8 +247,8 @@ def setpassword_command(username: str) -> None:
         raise click.Abort
 
     password1 = getpass("New password: ")
-    if len(password1) < 3:
-        click.secho("Error: password must be at least 3 characters long.", fg='red')
+    if len(password1) < MIN_PASSWORD_LENGTH:
+        click.secho(f"Error: password must be at least {MIN_PASSWORD_LENGTH} characters long.", fg='red')
         raise click.Abort
 
     password2 = getpass("      Repeat: ")

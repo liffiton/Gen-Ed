@@ -177,7 +177,7 @@ class GenEdAppBuilder:
             logging.getLogger('markdown_it').setLevel(logging.INFO)  # avoid noisy debug logging in markdown_it
             #import logging_tree
             #logging_tree.printout()
-            logging.debug("DEBUG logging enabled.")  # This appears to be required for the config to "stick"?
+            logging.debug("DEBUG logging enabled.")  # noqa: LOG015 - This appears to be required for the config to "stick"?
 
     def _config_app(self, app_config: dict[str, Any]) -> None:
         # alias to simplify code
@@ -204,7 +204,7 @@ class GenEdAppBuilder:
             },
             # finalize the database path now that we have an instance_path
             # may be overridden by app_config (e.g. if test_config sets DATABASE)
-            DATABASE=os.path.join(app.instance_path, app_config['DATABASE_NAME']),
+            DATABASE=Path(app.instance_path) / app_config['DATABASE_NAME'],
         )
 
         # Add vars set in .env, loaded by load_dotenv() above, to config dictionary.
@@ -329,7 +329,7 @@ class GenEdAppBuilder:
                     # check any registered component data sources
                     for component in components:
                         if ds := component.data_source:
-                            db_conn.execute(f"SELECT 1 FROM {ds.table_name}")
+                            db_conn.execute(f"SELECT 1 FROM {ds.table_name}")  # noqa: S608 -- table name comes from statically registered components
                     # only rebuild views if everything checks out so far, but also accept that this might fail if the database isn't migrated
                     db_admin.rebuild_views()
                 except sqlite3.OperationalError:

@@ -94,10 +94,12 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = [  # Ignore warnings in the tests directory
+    "DTZ001",   # timezone-unspecified calls are okay in tests
     "DTZ005",   # timezone-unaware objects are okay in tests
     "E712",     # equality comparisons to False (make assertions clearer)
     "FBT001",   # boolean positional arguments (used for parameterized tests)
     "PLR0913",  # too many arguments (fixtures push us in that direction)
+    "PLR0917",  # too many position arguments (no one is writing calls for these tests)
     "PLR2004",  # magic numbers
     "S",        # all security lints (not important in test code)
 ]

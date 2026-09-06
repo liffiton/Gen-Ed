@@ -5,6 +5,7 @@
 import asyncio
 import json
 import re
+from collections.abc import Iterable
 from contextlib import suppress
 from typing import TypedDict
 
@@ -56,27 +57,44 @@ class ErrorSet(TypedDict):
     original: str
     error_types: list[str]
 
+
+_error_span = Markup(
+    '<span class="writing_error" tabindex="0">{text}'
+    '<span class="is-size-6 writing_error_details">{error_types}</span></span>'
+)
+_error_item = Markup('<span class="item">- {}</span>')
+
+
 def insert_corrections_html(original: str, errors: list[ErrorSet]) -> Markup:
-    # HTML-escape user inputs now, since we will be adding HTML soon and cannot escape after that
-    jinja_escape = current_app.jinja_env.filters['e']
-    original = jinja_escape(original)
+    # Escape user content at final assembly: Markup's .format()/.join() escape
+    # plain-string arguments exactly once, so we can work with raw text until then.
 
-    # Create paragraphs / maintain paragraph breaks
-    original = f"<p>{original}</p>"
-    original = re.sub("\n\n+", "</p><p>", original)
+    # blank lines become paragraph breaks; normalize all remaining whitespace
+    # so we can be sure to match correctly
+    paragraphs = [normalize_whitespace(p) for p in re.split(r"\n\n+", original)]
 
-    # normalize all remaining whitespace so we can be sure to match correctly
-    original = normalize_whitespace(original)
-
-    if not errors:
-        return Markup(original)
-
-    # must normalize and HTML-escape these as well, since we're matching into already-escaped/normalized text
+    # must normalize these the same way, since we're matching into normalized text;
+    # drop blank fragments, which would match at every position
     error_mapping = {
-        jinja_escape(normalize_whitespace(item['original'])): [jinja_escape(x) for x in item['error_types']]
+        normalized: item['error_types']
         for item in errors
+        if (normalized := normalize_whitespace(item['original'])).strip()
     }
 
+    if not error_mapping:
+        return _paragraphs_html(paragraphs)
+
+    pattern = _error_pattern(error_mapping)
+
+    return _paragraphs_html(_wrap_paragraph(p, pattern, error_mapping) for p in paragraphs)
+
+
+def _paragraphs_html(paragraphs: Iterable[str | Markup]) -> Markup:
+    # .join() escapes raw paragraphs and keeps Markup as-is; + keeps Markup as-is
+    return Markup("<p>") + Markup("</p><p>").join(paragraphs) + Markup("</p>")
+
+
+def _error_pattern(error_mapping: dict[str, list[str]]) -> re.Pattern[str]:
     # regex-escape substrings to safely use them in regex
     escaped_substrings = [re.escape(sub) for sub in error_mapping]
 
@@ -93,16 +111,19 @@ def insert_corrections_html(original: str, errors: list[ErrorSet]) -> Markup:
     #escaped_substrings = [re.sub(r"\b$", r"\\b", sub) for sub in escaped_substrings]
 
     # create a regex pattern to match any of the substrings
-    pattern = r"(" + r"|".join(escaped_substrings) + r")"
+    return re.compile(r"(" + r"|".join(escaped_substrings) + r")")
 
-    def replacement(match: re.Match[str]) -> str:
-        matched_text = match.group(0)
-        error_types = "".join(f'<span class="item">- {item}</span>' for item in error_mapping[matched_text])
-        return Markup(f'<span class="writing_error" tabindex="0">{matched_text}<span class="is-size-6 writing_error_details">{error_types}</span></span>')
 
-    # Replace matches with wrapped spans
-    result = re.sub(pattern, replacement, original)
-    return Markup(result)
+def _wrap_paragraph(paragraph: str, pattern: re.Pattern[str], error_mapping: dict[str, list[str]]) -> Markup:
+    parts: list[str | Markup] = []
+    last = 0
+    for match in pattern.finditer(paragraph):
+        parts.append(paragraph[last:match.start()])
+        error_types = Markup("").join(_error_item.format(item) for item in error_mapping[match.group(0)])
+        parts.append(_error_span.format(text=match.group(0), error_types=error_types))
+        last = match.end()
+    parts.append(paragraph[last:])
+    return Markup("").join(parts)
 
 
 @bp.route("/view/<int:query_id>")
