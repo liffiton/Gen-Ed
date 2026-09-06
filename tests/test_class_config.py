@@ -11,6 +11,9 @@ from components.code_contexts.config_table import contexts_config_table
 from components.code_contexts.data import ITEM_TYPE as CONTEXT_ITEM_TYPE
 from components.code_contexts.model import ContextConfig
 from gened.auth import AUTH_SESSION_KEY
+from gened.class_config.types import ConfigShareLink, ConfigTable
+from gened.component_registry import get_share_link_by_key, register_component
+from gened.components import GenEdComponent
 from gened.db import get_db
 from tests.conftest import AppClient
 
@@ -174,6 +177,54 @@ def test_copy_modal_hides_courses_with_inactive_role(instructor: AppClient, app:
     assert response.status_code == 200
     assert 'USER002' in response.text  # class 3: still an active instructor role
     assert 'USER003' not in response.text  # class 4: role deactivated
+
+
+def _make_component_with_link(name: str, key: str) -> GenEdComponent:
+    """Build a minimal component with one config table containing one share link."""
+    return GenEdComponent(
+        package='test',
+        name=name,
+        display_name='Test Component',
+        description='test component for share link key validation',
+        config_table=ConfigTable(
+            name=f'{name}_table',
+            config_item_class=ContextConfig,
+            display_name='test item',
+            display_name_plural='test items',
+            edit_form_template='context_edit_form.html',
+            share_links=[
+                ConfigShareLink(
+                    key=key,
+                    label='Test link',
+                    endpoint='helper.help_form',
+                    args={'class_id', 'ctx_name'},
+                ),
+            ],
+        ),
+    )
+
+
+def test_share_link_key_invalid_format_rejected(app: Flask) -> None:
+    """Share link keys that don't match [a-z0-9_]+ are rejected at registration."""
+    with app.app_context(), pytest.raises(AssertionError, match='invalid share link key'):
+        register_component(_make_component_with_link('test_bad_key', 'Bad Key'))
+
+
+def test_share_link_key_duplicate_rejected(app: Flask) -> None:
+    """Share link keys must be globally unique across registered components."""
+    with app.app_context():
+        register_component(_make_component_with_link('test_dup_a', 'dup_test_key'))
+        with pytest.raises(AssertionError, match='duplicate share link key'):
+            register_component(_make_component_with_link('test_dup_b', 'dup_test_key'))
+
+
+def test_get_share_link_by_key(app: Flask) -> None:
+    """get_share_link_by_key() resolves a registered key and returns None otherwise."""
+    with app.app_context():
+        link = get_share_link_by_key('context_inquiry_chat')
+        assert link is not None
+        assert link.label == 'Inquiry chat'
+        assert get_share_link_by_key('does_not_exist') is None
 
 
 

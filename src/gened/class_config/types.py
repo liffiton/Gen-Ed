@@ -73,7 +73,16 @@ class ConfigItem(msgspec.Struct):
         return msgspec.json.encode(d).decode()
 
 
-class ConfigShareLink(msgspec.Struct, frozen=True):
+class ConfigShareLink(msgspec.Struct, frozen=True, kw_only=True):
+    # Stable slug identifying this share link.  Used (together with the
+    # config table name) in LTI deep-link launch URLs (the `dl_link` query
+    # arg) to name a *specific* link, because a single item type can map to
+    # several links with the same argument shape (e.g. 'context' -> 'Help
+    # form' / 'Inquiry chat'), so the link cannot be identified by its args
+    # alone.  Keys persist in URLs stored by the LMS; do not change them
+    # once in use.  Must match [a-z0-9_]+ and be globally unique across
+    # components (both enforced at component registration).
+    key: str
     label: str
     endpoint: str
     args: set[Literal['class_id', 'ctx_name', 'tutor_name']]

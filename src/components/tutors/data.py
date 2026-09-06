@@ -35,9 +35,10 @@ guided_tutor_config_table = ConfigTable(
     edit_form_template='guided_tutor_edit_form.html',
     share_links=[
         ConfigShareLink(
-            'Focused tutor chat',
-            'tutors.new_chat_form',
-            {'class_id', 'tutor_name'},
+            key='focused_tutor_chat',
+            label='Focused tutor chat',
+            endpoint='tutors.new_chat_form',
+            args={'class_id', 'tutor_name'},
         ),
     ],
     extra_routes=guided_bp,

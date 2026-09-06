@@ -29,15 +29,17 @@ contexts_config_table = ConfigTable(
     edit_form_template='context_edit_form.html',
     share_links=[
         ConfigShareLink(
-            'Help form',
-            'helper.help_form',
-            {'class_id', 'ctx_name'},
+            key='context_help_form',
+            label='Help form',
+            endpoint='helper.help_form',
+            args={'class_id', 'ctx_name'},
             extra_requirements=(RequireComponent('code_queries'), ),
         ),
         ConfigShareLink(
-            'Inquiry chat',
-            'tutors.new_chat_form',
-            {'class_id', 'ctx_name'},
+            key='context_inquiry_chat',
+            label='Inquiry chat',
+            endpoint='tutors.new_chat_form',
+            args={'class_id', 'ctx_name'},
             extra_requirements=(RequireComponent('tutors', feature='inquiry'), ),
         ),
     ]
