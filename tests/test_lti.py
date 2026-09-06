@@ -4,6 +4,7 @@
 
 import json
 from html.parser import HTMLParser
+from typing import Any
 
 import pytest
 from flask import Flask, url_for
@@ -31,7 +32,7 @@ class LTIConsumer:
         self.consumer_key = consumer_key
         self.consumer_secret = consumer_secret
 
-    def generate_launch_request(self, user_and_role: str, class_config: dict[str, str]=CLASS, *, message_type: str = "basic-lti-launch-request", context_id: str = "course54321", return_url: str | None = None) -> tuple[str, dict[str, str], str]:
+    def generate_launch_request(self, user_and_role: str, class_config: dict[str, str]=CLASS, *, message_type: str = "basic-lti-launch-request", context_id: str = "course54321", return_url: str | None = None, query: str = "") -> tuple[str, dict[str, str], str]:
         params = {
             "user_id": user_and_role,
             "roles": user_and_role,
@@ -63,6 +64,14 @@ class LTIConsumer:
             body=params,
             headers=headers
         )
+
+        # A deep-link launch URL carries query args (dl_table, dl_link,
+        # content_id) identifying the saved item.  They are appended after
+        # signing, mirroring an LMS that posts to the stored URL: pylti
+        # verifies the form body against the base URL, which excludes the
+        # query string, so the args are not covered by the OAuth signature.
+        if query:
+            uri = f"{self.url}?{query}"
 
         return uri, headers, body
 
@@ -244,6 +253,15 @@ class RadioGrab(HTMLParser):
                 self.radios.append(attrs_dict)
 
 
+def _assert_deep_link_item(payloads: dict[str, dict[str, Any]], key: str, *, expected_id: str, expected_url: str, expected_text: str | None = None) -> None:
+    """ Assert a deep-link option's payload has the expected @id, url, and (optionally) text. """
+    item = payloads[key]
+    assert item['@id'] == expected_id
+    assert item['url'] == expected_url
+    if expected_text is not None:
+        assert item['text'] == expected_text
+
+
 def test_lti_content_select_launch(app: Flask, client: AppClient) -> None:
     # instructor content-item-selection launch -> 302 to the select page
     # (the return URL is not passed in the redirect; the page reads it from the session)
@@ -275,6 +293,11 @@ def test_lti_content_select_page(app: Flask, client: AppClient) -> None:
             "INSERT INTO config_items (class_id, item_type, name, class_order, available, config) VALUES (?, ?, ?, ?, ?, ?)",
             [1, 'context', 'hidden_ctx', 11, '9999-12-31', '{"tools":"","details":"","avoid":""}'],
         ).lastrowid
+        # add a focused tutor; it must appear under its share link
+        tutor_id = db.execute(
+            "INSERT INTO config_items (class_id, item_type, name, class_order, available, config) VALUES (?, ?, ?, ?, ?, ?)",
+            [1, 'guided_tutor', 'tutor1', 0, '0001-01-01', '{}'],
+        ).lastrowid
         db.commit()
 
     result = client.get("/instructor/config/lti_content_select")
@@ -295,11 +318,13 @@ def test_lti_content_select_page(app: Flask, client: AppClient) -> None:
     # a hidden item is offered too, flagged as hidden (not "available 9999-12-31")
     assert 'hidden_ctx — Help form (hidden from students)' in text
     assert 'hidden_ctx — Inquiry chat (hidden from students)' in text
+    # the focused tutor appears under its own table's share link
+    assert 'tutor1 — Focused tutor chat' in text
 
     # each option's data-ci attribute holds a valid content_items JSON document
     grab = RadioGrab()
     grab.feed(text)
-    assert len(grab.radios) == 6
+    assert len(grab.radios) == 7
     payloads = {}
     for radio in grab.radios:
         assert radio['name'] == 'content_select'
@@ -312,25 +337,33 @@ def test_lti_content_select_page(app: Flask, client: AppClient) -> None:
         'context:context_help_form:1', 'context:context_inquiry_chat:1',
         f'context:context_help_form:{future_id}', f'context:context_inquiry_chat:{future_id}',
         f'context:context_help_form:{hidden_id}', f'context:context_inquiry_chat:{hidden_id}',
+        f'guided_tutor:focused_tutor_chat:{tutor_id}',
     }
+    _assert_deep_link_item(payloads, 'context:context_help_form:1',
+        expected_id='gened_context_1_context_help_form',
+        expected_text='CodeHelp: Help form – default',  # noqa: RUF001
+        expected_url="http://localhost/lti/?dl_table=context&dl_link=context_help_form&content_id=1")
+    # the help form item also declares the LTI link media type and window placement
     help_item = payloads['context:context_help_form:1']
-    assert help_item['@id'] == 'gened_context_1_context_help_form'
-    assert help_item['text'] == 'CodeHelp: Help form – default'  # noqa: RUF001
     assert help_item['mediaType'] == 'application/vnd.ims.lti.v1.ltilink'
     assert help_item['placementAdvice'] == {'presentationDocumentTarget': 'window'}
-    assert help_item['url'] == "http://localhost/lti/?dl_table=context&dl_link=context_help_form&content_id=1"
-    inquiry_item = payloads['context:context_inquiry_chat:1']
-    assert inquiry_item['@id'] == 'gened_context_1_context_inquiry_chat'
-    assert inquiry_item['text'] == 'CodeHelp: Inquiry chat – default'  # noqa: RUF001
-    assert inquiry_item['url'] == "http://localhost/lti/?dl_table=context&dl_link=context_inquiry_chat&content_id=1"
+    _assert_deep_link_item(payloads, 'context:context_inquiry_chat:1',
+        expected_id='gened_context_1_context_inquiry_chat',
+        expected_text='CodeHelp: Inquiry chat – default',  # noqa: RUF001
+        expected_url="http://localhost/lti/?dl_table=context&dl_link=context_inquiry_chat&content_id=1")
     # deep links are built for not-yet-available items as well (launches to them are allowed)
-    future_item = payloads[f'context:context_help_form:{future_id}']
-    assert future_item['@id'] == f'gened_context_{future_id}_context_help_form'
-    assert future_item['url'] == f"http://localhost/lti/?dl_table=context&dl_link=context_help_form&content_id={future_id}"
+    _assert_deep_link_item(payloads, f'context:context_help_form:{future_id}',
+        expected_id=f'gened_context_{future_id}_context_help_form',
+        expected_url=f"http://localhost/lti/?dl_table=context&dl_link=context_help_form&content_id={future_id}")
     # deep links are built for hidden items as well
-    hidden_item = payloads[f'context:context_help_form:{hidden_id}']
-    assert hidden_item['@id'] == f'gened_context_{hidden_id}_context_help_form'
-    assert hidden_item['url'] == f"http://localhost/lti/?dl_table=context&dl_link=context_help_form&content_id={hidden_id}"
+    _assert_deep_link_item(payloads, f'context:context_help_form:{hidden_id}',
+        expected_id=f'gened_context_{hidden_id}_context_help_form',
+        expected_url=f"http://localhost/lti/?dl_table=context&dl_link=context_help_form&content_id={hidden_id}")
+    # the tutor's deep link names the tutor table and its own share link
+    _assert_deep_link_item(payloads, f'guided_tutor:focused_tutor_chat:{tutor_id}',
+        expected_id=f'gened_guided_tutor_{tutor_id}_focused_tutor_chat',
+        expected_text='CodeHelp: Focused tutor chat – tutor1',  # noqa: RUF001
+        expected_url=f"http://localhost/lti/?dl_table=guided_tutor&dl_link=focused_tutor_chat&content_id={tutor_id}")
 
 
 def test_lti_content_select_page_empty(client: AppClient) -> None:
@@ -392,3 +425,200 @@ def test_lti_content_select_launch_missing_return_url(client: AppClient) -> None
     uri, headers, body = lti.generate_launch_request("Instructor", message_type="ContentItemSelectionRequest")
     result = client.post(uri, headers=headers, data=body)
     assert result.status_code == 400
+
+
+def test_lti_deep_link_student_inquiry_chat(app: Flask, client: AppClient) -> None:
+    # a student launching a saved deep link to the 'default' context's inquiry chat
+    # lands directly on the chat form for that context (class 1 has item id=1, name 'default')
+    lti = LTIConsumer('consumer.domain', 'seecrits1')
+    uri, headers, body = lti.generate_launch_request(
+        "Student", context_id="ctx_id",
+        query="dl_table=context&dl_link=context_inquiry_chat&content_id=1",
+    )
+    result = client.post(uri, headers=headers, data=body)
+    assert result.status_code == 302
+    with app.test_request_context():
+        assert result.location == url_for("tutors.new_chat_form", class_id=1, ctx_name="default", _external=True)
+    result = client.get(result.location)
+    assert result.status_code == 200
+    assert "Inquiry Chat" in result.text
+
+
+def test_lti_deep_link_instructor(app: Flask, client: AppClient) -> None:
+    # an instructor launching their own deep link also lands on the content,
+    # not the config form
+    lti = LTIConsumer('consumer.domain', 'seecrits1')
+    uri, headers, body = lti.generate_launch_request(
+        "Instructor", context_id="ctx_id",
+        query="dl_table=context&dl_link=context_inquiry_chat&content_id=1",
+    )
+    result = client.post(uri, headers=headers, data=body)
+    assert result.status_code == 302
+    with app.test_request_context():
+        assert result.location == url_for("tutors.new_chat_form", class_id=1, ctx_name="default", _external=True)
+    result = client.get(result.location)
+    assert result.status_code == 200
+
+
+def test_lti_deep_link_help_form(app: Flask, client: AppClient) -> None:
+    # a deep link to the 'default' context's help form lands on the help form
+    lti = LTIConsumer('consumer.domain', 'seecrits1')
+    uri, headers, body = lti.generate_launch_request(
+        "Student", context_id="ctx_id",
+        query="dl_table=context&dl_link=context_help_form&content_id=1",
+    )
+    result = client.post(uri, headers=headers, data=body)
+    assert result.status_code == 302
+    with app.test_request_context():
+        assert result.location == url_for("helper.help_form", class_id=1, ctx_name="default", _external=True)
+    result = client.get(result.location)
+    assert result.status_code == 200
+
+
+def test_lti_deep_link_guided_tutor(app: Flask, client: AppClient) -> None:
+    # a deep link to a focused tutor (inserted for the LTI test class)
+    lti = LTIConsumer('consumer.domain', 'seecrits1')
+    with app.app_context():
+        db = get_db()
+        tutor_id = db.execute(
+            "INSERT INTO config_items (class_id, item_type, name, class_order, available, config) VALUES (?, ?, ?, ?, ?, ?)",
+            [1, 'guided_tutor', 'tutor1', 0, '0001-01-01', '{}'],
+        ).lastrowid
+        db.commit()
+    uri, headers, body = lti.generate_launch_request(
+        "Student", context_id="ctx_id",
+        query=f"dl_table=guided_tutor&dl_link=focused_tutor_chat&content_id={tutor_id}",
+    )
+    result = client.post(uri, headers=headers, data=body)
+    assert result.status_code == 302
+    with app.test_request_context():
+        assert result.location == url_for("tutors.new_chat_form", class_id=1, tutor_name="tutor1", _external=True)
+    result = client.get(result.location)
+    assert result.status_code == 200
+    assert "Guided Chat" in result.text
+    assert "tutor1" in result.text
+
+
+def test_lti_deep_link_not_yet_available(app: Flask, client: AppClient) -> None:
+    # deep links to not-yet-available items are allowed: the item is served, not gated
+    lti = LTIConsumer('consumer.domain', 'seecrits1')
+    with app.app_context():
+        db = get_db()
+        future_id = db.execute(
+            "INSERT INTO config_items (class_id, item_type, name, class_order, available, config) VALUES (?, ?, ?, ?, ?, ?)",
+            [1, 'context', 'future', 10, '2999-01-01', '{"tools":"","details":"","avoid":""}'],
+        ).lastrowid
+        db.commit()
+    uri, headers, body = lti.generate_launch_request(
+        "Student", context_id="ctx_id",
+        query=f"dl_table=context&dl_link=context_inquiry_chat&content_id={future_id}",
+    )
+    result = client.post(uri, headers=headers, data=body)
+    assert result.status_code == 302
+    with app.test_request_context():
+        assert result.location == url_for("tutors.new_chat_form", class_id=1, ctx_name="future", _external=True)
+    result = client.get(result.location)
+    assert result.status_code == 200
+
+
+@pytest.mark.parametrize(('role', 'fallback'), [
+    ('Student', 'default'),
+    ('Instructor', 'config_form'),
+])
+def test_lti_deep_link_miss_falls_back_with_flash(app: Flask, client: AppClient, role: str, fallback: str) -> None:
+    # a deep link that cannot be resolved (no such content_id) falls back to the
+    # role's normal landing page, flashing a warning so the user knows the link
+    # did not work (rather than silently landing somewhere unrelated)
+    lti = LTIConsumer('consumer.domain', 'seecrits1')
+    uri, headers, body = lti.generate_launch_request(
+        role, context_id="ctx_id",
+        query="dl_table=context&dl_link=context_inquiry_chat&content_id=9999",
+    )
+    result = client.post(uri, headers=headers, data=body)
+    assert result.status_code == 302
+    with app.test_request_context():
+        if fallback == 'default':
+            expected = url_for(app.config['DEFAULT_LOGIN_ENDPOINT'])
+        else:
+            expected = url_for("class_config.base.config_form")
+        assert result.location == expected
+    result = client.get(result.location)
+    assert result.status_code == 200
+    assert "The linked content could not be opened" in result.text
+
+
+@pytest.mark.parametrize('query', [
+    # unknown share link
+    "dl_table=context&dl_link=no_such_link&content_id=1",
+    # unknown config table
+    "dl_table=no_such_table&dl_link=context_inquiry_chat&content_id=1",
+    # non-integer content id
+    "dl_table=context&dl_link=context_inquiry_chat&content_id=abc",
+    # link that does not belong to the named table (keys are globally unique)
+    "dl_table=context&dl_link=focused_tutor_chat&content_id=1",
+])
+def test_lti_deep_link_bad_args(app: Flask, client: AppClient, query: str) -> None:
+    # unresolvable deep links fall back to the default landing page and flash
+    # a warning
+    lti = LTIConsumer('consumer.domain', 'seecrits1')
+    uri, headers, body = lti.generate_launch_request("Student", context_id="ctx_id", query=query)
+    result = client.post(uri, headers=headers, data=body)
+    assert result.status_code == 302
+    with app.test_request_context():
+        assert result.location == url_for(app.config['DEFAULT_LOGIN_ENDPOINT'])
+    result = client.get(result.location)
+    assert result.status_code == 200
+    assert "The linked content could not be opened" in result.text
+
+
+def test_lti_deep_link_table_unavailable(app: Flask, client: AppClient) -> None:
+    # a deep link to a table whose availability requirements are not met in the
+    # launched class falls back, even when the link itself has no extra
+    # requirements (the 'tutors:guided' feature is disabled for the class)
+    with app.app_context():
+        db = get_db()
+        db.execute(
+            "INSERT INTO class_components (class_id, component_name, enabled) VALUES (?, ?, ?)",
+            [1, 'tutors:guided', 0],
+        )
+        tutor_id = db.execute(
+            "INSERT INTO config_items (class_id, item_type, name, class_order, available, config) VALUES (?, ?, ?, ?, ?, ?)",
+            [1, 'guided_tutor', 'tutor1', 0, '0001-01-01', '{}'],
+        ).lastrowid
+        db.commit()
+    lti = LTIConsumer('consumer.domain', 'seecrits1')
+    uri, headers, body = lti.generate_launch_request(
+        "Student", context_id="ctx_id",
+        query=f"dl_table=guided_tutor&dl_link=focused_tutor_chat&content_id={tutor_id}",
+    )
+    result = client.post(uri, headers=headers, data=body)
+    assert result.status_code == 302
+    with app.test_request_context():
+        assert result.location == url_for(app.config['DEFAULT_LOGIN_ENDPOINT'])
+    result = client.get(result.location)
+    assert result.status_code == 200
+    assert "The linked content could not be opened" in result.text
+
+
+def test_lti_deep_link_link_access_denied(app: Flask, client: AppClient) -> None:
+    # a deep link whose share link's extra requirements are not met (the
+    # inquiry feature is disabled for the class) falls back
+    with app.app_context():
+        db = get_db()
+        db.execute(
+            "INSERT INTO class_components (class_id, component_name, enabled) VALUES (?, ?, ?)",
+            [1, 'tutors:inquiry', 0],
+        )
+        db.commit()
+    lti = LTIConsumer('consumer.domain', 'seecrits1')
+    uri, headers, body = lti.generate_launch_request(
+        "Student", context_id="ctx_id",
+        query="dl_table=context&dl_link=context_inquiry_chat&content_id=1",
+    )
+    result = client.post(uri, headers=headers, data=body)
+    assert result.status_code == 302
+    with app.test_request_context():
+        assert result.location == url_for(app.config['DEFAULT_LOGIN_ENDPOINT'])
+    result = client.get(result.location)
+    assert result.status_code == 200
+    assert "The linked content could not be opened" in result.text
