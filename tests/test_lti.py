@@ -2,10 +2,14 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import json
+from html.parser import HTMLParser
+
 import pytest
 from flask import Flask, url_for
 from oauthlib import oauth1
 
+from gened.db import get_db
 from tests.conftest import AppClient
 
 CLASS = {
@@ -27,11 +31,11 @@ class LTIConsumer:
         self.consumer_key = consumer_key
         self.consumer_secret = consumer_secret
 
-    def generate_launch_request(self, user_and_role: str, class_config: dict[str, str]=CLASS) -> tuple[str, dict[str, str], str]:
+    def generate_launch_request(self, user_and_role: str, class_config: dict[str, str]=CLASS, *, message_type: str = "basic-lti-launch-request", context_id: str = "course54321", return_url: str | None = None) -> tuple[str, dict[str, str], str]:
         params = {
             "user_id": user_and_role,
             "roles": user_and_role,
-            "context_id": "course54321",
+            "context_id": context_id,
             "context_label": class_config['label'],
             "context_title": class_config['title'],
             "lis_person_name_given": USER['given'],
@@ -40,8 +44,10 @@ class LTIConsumer:
             "lis_person_contact_email_primary": USER['email'],
             "oauth_callback": "about:blank",
             "lti_version": "LTI-1p0",
-            "lti_message_type": "basic-lti-launch-request",
+            "lti_message_type": message_type,
         }
+        if return_url is not None:
+            params["content_item_return_url"] = return_url
 
         headers = {'Content-Type': oauth1.rfc5849.CONTENT_TYPE_FORM_URLENCODED}
 
@@ -223,3 +229,166 @@ def test_lti_config_xml_available(client: AppClient) -> None:
     assert result.status_code == 200
     assert result.text.startswith('<?xml version="1.0" encoding="UTF-8"?>\n<cartridge_basiclti_link')
     assert "CodeHelp" in result.text
+
+
+class RadioGrab(HTMLParser):
+    """ Collects the attributes of all radio-button inputs in an HTML document. """
+    def __init__(self) -> None:
+        super().__init__()
+        self.radios: list[dict[str, str]] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == 'input':
+            attrs_dict = {key: value for key, value in attrs if value is not None}
+            if attrs_dict.get('type') == 'radio':
+                self.radios.append(attrs_dict)
+
+
+def test_lti_content_select_launch(app: Flask, client: AppClient) -> None:
+    # instructor content-item-selection launch -> 302 to the select page
+    # (the return URL is not passed in the redirect; the page reads it from the session)
+    lti = LTIConsumer('consumer.domain', 'seecrits1')
+    uri, headers, body = lti.generate_launch_request("Instructor", message_type="ContentItemSelectionRequest", return_url="https://lms.example.com/content_item")
+    result = client.post(uri, headers=headers, data=body)
+    assert result.status_code == 302
+    with app.test_request_context():
+        assert result.location == url_for("class_config.base.lti_content_select")
+
+
+def test_lti_content_select_page(app: Flask, client: AppClient) -> None:
+    # launch against class 1 (context_id 'ctx_id'), which has context item 'default' (id=1)
+    lti = LTIConsumer('consumer.domain', 'seecrits1')
+    return_url = "https://lms.example.com/content_item"
+    uri, headers, body = lti.generate_launch_request("Instructor", message_type="ContentItemSelectionRequest", context_id="ctx_id", return_url=return_url)
+    client.post(uri, headers=headers, data=body)
+
+    # add a context that is not yet available; it must still be linkable, with a note
+    with app.app_context():
+        db = get_db()
+        future_id = db.execute(
+            "INSERT INTO config_items (class_id, item_type, name, class_order, available, config) VALUES (?, ?, ?, ?, ?, ?)",
+            [1, 'context', 'future', 10, '2999-01-01', '{"tools":"","details":"","avoid":""}'],
+        ).lastrowid
+        # add a context hidden by the instructor (sentinel available date); it must
+        # be flagged as hidden, not "not yet available" with the far-future date
+        hidden_id = db.execute(
+            "INSERT INTO config_items (class_id, item_type, name, class_order, available, config) VALUES (?, ?, ?, ?, ?, ?)",
+            [1, 'context', 'hidden_ctx', 11, '9999-12-31', '{"tools":"","details":"","avoid":""}'],
+        ).lastrowid
+        db.commit()
+
+    result = client.get("/instructor/config/lti_content_select")
+    assert result.status_code == 200
+    text = result.text
+    # standalone document (no app layout) whose single form posts to the LMS return URL
+    assert 'navbar' not in text
+    assert f'action="{return_url}"' in text
+    assert 'name="lti_message_type" value="ContentItemSelection"' in text
+    assert 'name="lti_version" value="LTI-1p0"' in text
+    assert text.count('name="content_items"') == 1
+    # both context items appear under both of their share links
+    assert 'default — Help form' in text
+    assert 'default — Inquiry chat' in text
+    # the not-yet-available item is offered too, flagged so it doesn't surprise the instructor
+    assert 'future — Help form (not yet available; available 2999-01-01)' in text
+    assert 'future — Inquiry chat (not yet available; available 2999-01-01)' in text
+    # a hidden item is offered too, flagged as hidden (not "available 9999-12-31")
+    assert 'hidden_ctx — Help form (hidden from students)' in text
+    assert 'hidden_ctx — Inquiry chat (hidden from students)' in text
+
+    # each option's data-ci attribute holds a valid content_items JSON document
+    grab = RadioGrab()
+    grab.feed(text)
+    assert len(grab.radios) == 6
+    payloads = {}
+    for radio in grab.radios:
+        assert radio['name'] == 'content_select'
+        payload = json.loads(radio['data-ci'])
+        assert payload['@context'] == 'http://purl.imsglobal.org/ctx/lti/v1/ContentItem'
+        assert len(payload['@graph']) == 1
+        payloads[radio['value']] = payload['@graph'][0]
+
+    assert set(payloads) == {
+        'context:context_help_form:1', 'context:context_inquiry_chat:1',
+        f'context:context_help_form:{future_id}', f'context:context_inquiry_chat:{future_id}',
+        f'context:context_help_form:{hidden_id}', f'context:context_inquiry_chat:{hidden_id}',
+    }
+    help_item = payloads['context:context_help_form:1']
+    assert help_item['@id'] == 'gened_context_1_context_help_form'
+    assert help_item['text'] == 'CodeHelp: Help form – default'  # noqa: RUF001
+    assert help_item['mediaType'] == 'application/vnd.ims.lti.v1.ltilink'
+    assert help_item['placementAdvice'] == {'presentationDocumentTarget': 'window'}
+    assert help_item['url'] == "http://localhost/lti/?dl_table=context&dl_link=context_help_form&content_id=1"
+    inquiry_item = payloads['context:context_inquiry_chat:1']
+    assert inquiry_item['@id'] == 'gened_context_1_context_inquiry_chat'
+    assert inquiry_item['text'] == 'CodeHelp: Inquiry chat – default'  # noqa: RUF001
+    assert inquiry_item['url'] == "http://localhost/lti/?dl_table=context&dl_link=context_inquiry_chat&content_id=1"
+    # deep links are built for not-yet-available items as well (launches to them are allowed)
+    future_item = payloads[f'context:context_help_form:{future_id}']
+    assert future_item['@id'] == f'gened_context_{future_id}_context_help_form'
+    assert future_item['url'] == f"http://localhost/lti/?dl_table=context&dl_link=context_help_form&content_id={future_id}"
+    # deep links are built for hidden items as well
+    hidden_item = payloads[f'context:context_help_form:{hidden_id}']
+    assert hidden_item['@id'] == f'gened_context_{hidden_id}_context_help_form'
+    assert hidden_item['url'] == f"http://localhost/lti/?dl_table=context&dl_link=context_help_form&content_id={hidden_id}"
+
+
+def test_lti_content_select_page_empty(client: AppClient) -> None:
+    # launch for a context with no mapped class items -> "nothing to link yet", no form
+    lti = LTIConsumer('consumer.domain', 'seecrits1')
+    uri, headers, body = lti.generate_launch_request("Instructor", message_type="ContentItemSelectionRequest", context_id="ctx_no_items", return_url="https://lms.example.com/content_item")
+    result = client.post(uri, headers=headers, data=body)
+    assert result.status_code == 302
+
+    result = client.get("/instructor/config/lti_content_select")
+    assert result.status_code == 200
+    assert 'no content to link yet' in result.text
+    assert '<form' not in result.text
+
+
+def test_lti_content_select_no_return_url(app: Flask, client: AppClient) -> None:
+    # instructor logged in via a normal launch (no selection request in session)
+    lti = LTIConsumer('consumer.domain', 'seecrits1')
+    uri, headers, body = lti.generate_launch_request("Instructor")
+    client.post(uri, headers=headers, data=body)
+    with client.session_transaction() as sess:
+        sess.pop('content_item_return_url', None)
+    result = client.get("/instructor/config/lti_content_select")
+    assert result.status_code == 302
+    with app.test_request_context():
+        assert result.location == url_for("class_config.base.config_form")
+
+
+def test_lti_content_select_invalid_return_url(app: Flask, client: AppClient) -> None:
+    # a non-http(s) return URL must not be rendered as the form action
+    # (it would execute in the app's origin on submit)
+    lti = LTIConsumer('consumer.domain', 'seecrits1')
+    uri, headers, body = lti.generate_launch_request("Instructor", message_type="ContentItemSelectionRequest", return_url="javascript:alert(1)")
+    client.post(uri, headers=headers, data=body)
+    result = client.get("/instructor/config/lti_content_select")
+    assert result.status_code == 302
+    with app.test_request_context():
+        assert result.location == url_for("class_config.base.config_form")
+    # the warning is shown on the page the instructor lands on
+    result = client.get(result.location)
+    assert result.status_code == 200
+    assert "did not provide a valid return URL" in result.text
+    # the unusable value is cleared, so later visits see "no launch in progress"
+    with client.session_transaction() as sess:
+        assert 'content_item_return_url' not in sess
+
+
+def test_lti_content_select_student_rejected(client: AppClient) -> None:
+    # content selection is instructor-only; a student launch is rejected
+    lti = LTIConsumer('consumer.domain', 'seecrits1')
+    uri, headers, body = lti.generate_launch_request("Student", message_type="ContentItemSelectionRequest", return_url="https://lms.example.com/content_item")
+    result = client.post(uri, headers=headers, data=body)
+    assert result.status_code == 400
+
+
+def test_lti_content_select_launch_missing_return_url(client: AppClient) -> None:
+    # a selection request without content_item_return_url cannot complete; rejected at launch
+    lti = LTIConsumer('consumer.domain', 'seecrits1')
+    uri, headers, body = lti.generate_launch_request("Instructor", message_type="ContentItemSelectionRequest")
+    result = client.post(uri, headers=headers, data=body)
+    assert result.status_code == 400

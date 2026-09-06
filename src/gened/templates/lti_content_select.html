@@ -1,27 +1,63 @@
-{% block body %}
+{#
+SPDX-FileCopyrightText: 2026 Mark Liffiton <liffiton@gmail.com>
 
-{# https://developerdocs.instructure.com/services/canvas/external-tools/lti/file.content_item #}
-<form action="{{ return_url }}" method="post">
-  <input type="hidden" name="lti_message_type" value="ContentItemSelection">
-  <input type="hidden" name="lti_version" value="LTI-1p0">
-  <textarea name="content_items">
-    {
-      "@context": "http://purl.imsglobal.org/ctx/lti/v1/ContentItem",
-      "@graph": [
-        {
-          "@type": "LtiLinkItem",
-          "@id": "random",
-          "text": "{{ config['APPLICATION_TITLE'] }}: Resource (TBD)",
-          "mediaType": "application/vnd.ims.lti.v1.ltilink",
-          "url": "{{ url_for("lti.lti_login", _external=True) }}",
-          "placementAdvice": {
-            "presentationDocumentTarget": "window"
+SPDX-License-Identifier: AGPL-3.0-only
+#}
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link content – {{ config['APPLICATION_TITLE'] }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  </head>
+  <body>
+    <section class="section">
+      <h1 class="title is-size-4">Choose content to link</h1>
+      {% if sections %}
+      <p>Choose one item to link to this class in the LMS.</p>
+      <form action="{{ return_url }}" method="post">
+        <input type="hidden" name="lti_message_type" value="ContentItemSelection">
+        <input type="hidden" name="lti_version" value="LTI-1p0">
+        <input type="hidden" name="content_items" id="content_items" value="">
+        {% for section in sections %}
+        <div class="box mb-3">
+          <h2 class="title is-size-5">{{ section.display_name }}</h2>
+          {% for option in section.options %}
+          <div class="control">
+            {# auto-escaping (not tojson) keeps the JSON string a valid HTML attribute value #}
+            <label class="radio">
+              <input type="radio" name="content_select" value="{{ option.value }}" data-ci="{{ option.content_items }}">
+              {{ option.label }}
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+        <noscript><p class="has-text-warning">JavaScript is required to select content.</p></noscript>
+        <div class="control">
+          <button type="submit" class="button is-link">Select</button>
+        </div>
+      </form>
+      <script>
+        const form = document.querySelector('form');
+        form.addEventListener('submit', (event) => {
+          const selected = form.querySelector('input[name="content_select"]:checked');
+          if (!selected) {
+            event.preventDefault();
+            alert('Please select an item first.');
+            return;
           }
-        }
-      ]
-    }
-  </textarea>
-  <input type="submit">
-</form>
-
-{% endblock body %}
+          // data-ci holds the content_items JSON document (HTML-unescaped by the browser)
+          document.getElementById('content_items').value = selected.getAttribute('data-ci');
+        });
+      </script>
+      {% else %}
+      <div class="notification is-warning">
+        <p>There is no content to link yet.  Add a config item for this class first.</p>
+      </div>
+      {% endif %}
+    </section>
+  </body>
+</html>

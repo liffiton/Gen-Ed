@@ -138,12 +138,9 @@ def lti_login(lti: LTI) -> Response | tuple[str, int]:  # noqa: ARG001 (unused a
     # Redirect to the app
     if role == "instructor":
         if lti_message_type == "ContentItemSelectionRequest":
-            return redirect(
-                url_for(
-                    "class_config.base.lti_content_select",
-                    content_item_return_url=session.get('content_item_return_url'),
-                )
-            )
+            # The selection page reads content_item_return_url from the session
+            # (pylti stored it from the OAuth-verified launch).
+            return redirect(url_for("class_config.base.lti_content_select"))
         else:
             return redirect(url_for("class_config.base.config_form"))
     else:

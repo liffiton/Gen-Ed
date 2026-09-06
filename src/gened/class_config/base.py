@@ -4,15 +4,19 @@
 
 import asyncio
 import datetime as dt
+import json
 from typing import Any
+from urllib.parse import urlparse
 
 from flask import (
     Blueprint,
     abort,
     current_app,
     flash,
+    redirect,
     render_template,
     request,
+    session,
     url_for,
 )
 from werkzeug.wrappers.response import Response
@@ -311,7 +315,91 @@ def save_component_enabled() -> Response:
     return safe_redirect(request.referrer, default_endpoint="profile.main")
 
 
+def _lti_select_options(table: ConfigTable[Any], class_id: int | None, app_title: str) -> list[dict[str, str]]:
+    """ Build the LTI content-select options for one config table.
+
+    One option per (item, share-link) pair, each carrying a pre-built
+    `content_items` JSON payload.  All items are offered, including those not
+    yet available and those hidden from students; they are labeled as such so
+    it doesn't surprise the instructor (a deep link to a not-yet-available
+    item still works).
+    """
+    db = get_db()
+    # item id -> (available date, is available), using the same UTC+12 threshold
+    # as ConfigTable.get_items(available_only=True)
+    avail_rows = db.execute(
+        "SELECT id, available, available <= date('now', '+12 hours') AS is_available "
+        "FROM config_items WHERE class_id=? AND item_type=?",
+        [class_id, table.name],
+    ).fetchall()
+    avail_by_id: dict[int, tuple[str, bool]] = {
+        row['id']: (row['available'], bool(row['is_available'])) for row in avail_rows
+    }
+
+    options: list[dict[str, str]] = []
+    for item in table.get_items():  # all items, incl. not-yet-available
+        for link in table.share_links:
+            if not check_access(*link.extra_requirements):
+                continue
+
+            # https://developerdocs.instructure.com/services/canvas/external-tools/lti/file.content_item
+            content_item = {
+                "@type": "LtiLinkItem",
+                "@id": f"gened_{table.name}_{item.row_id}_{link.key}",
+                "text": f"{app_title}: {link.label} – {item.name}",  # noqa: RUF001 (en dash is intentional; shown in the LMS)
+                "url": url_for("lti.lti_login", _external=True, dl_table=table.name, dl_link=link.key, content_id=item.row_id),
+                "mediaType": "application/vnd.ims.lti.v1.ltilink",
+                "placementAdvice": {"presentationDocumentTarget": "window"},
+            }
+            label = f"{item.name} — {link.label}"
+            if item.row_id is not None:
+                avail = avail_by_id.get(item.row_id)
+                if avail is not None and not avail[1]:
+                    if str(avail[0]) == "9999-12-31":  # sentinel date used to hide an item from students
+                        label += " (hidden from students)"
+                    else:
+                        label += f" (not yet available; available {avail[0]})"
+            options.append({
+                'value': f"{table.name}:{link.key}:{item.row_id}",
+                'label': label,
+                'content_items': json.dumps({
+                    "@context": "http://purl.imsglobal.org/ctx/lti/v1/ContentItem",
+                    "@graph": [content_item],
+                }, indent=2),
+            })
+    return options
+
+
 @bp.route("/lti_content_select")
-def lti_content_select() -> str:
-    content_item_return_url = request.args.get('content_item_return_url')
-    return render_template("lti_content_select.html", return_url=content_item_return_url)
+def lti_content_select() -> Response | str:
+    """ LTI deep-link content selection page (single-select, single-step).
+
+    This page renders in a small dialog inside the LMS (iframe), so the
+    template is a standalone document.  The page's form posts directly to the
+    LMS's content_item_return_url (stored in the session by pylti at launch);
+    there is no POST to this app.
+    """
+    return_url = session.get('content_item_return_url')
+    if not return_url:
+        flash("No LTI content selection launch in progress.", "warning")
+        return redirect(url_for("class_config.base.config_form"))
+    # The LTI spec requires an absolute http(s) URL; reject anything else (e.g. javascript:)
+    # so a misconfigured or malicious registered LMS cannot control the form's action.
+    if urlparse(return_url).scheme not in ('http', 'https'):
+        session.pop('content_item_return_url', None)
+        flash("LTI content selection launch did not provide a valid return URL.", "warning")
+        return redirect(url_for("class_config.base.config_form"))
+
+    app_title = current_app.config['APPLICATION_TITLE']
+    auth = get_auth()
+    class_id = auth.cur_class.class_id if auth.cur_class else None
+    sections: list[dict[str, Any]] = []
+    for component in get_registered_components():
+        table = component.config_table
+        if table is None or not check_access(*table.availability_requirements):
+            continue
+        options = _lti_select_options(table, class_id, app_title)
+        if options:
+            sections.append({'display_name': table.display_name, 'options': options})
+
+    return render_template("lti_content_select.html", return_url=return_url, sections=sections)
