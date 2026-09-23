@@ -175,7 +175,7 @@ Author
 ------
 
 Gen-Ed and the included applications are by Mark Liffiton with contributions
-from Zhansen Shingis.
+from Zhansen Shingis and Akshay Sriram.
 
 
 Licenses
