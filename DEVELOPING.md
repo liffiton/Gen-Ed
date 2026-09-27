@@ -11,14 +11,14 @@ on how to install and run the applications, see `README.md`.
 
 The project repository contains several key files and directories at its root level:
 
-- **pyproject.toml:** Located at the project root, this is the central
-  configuration file for the Python project, defining metadata, dependencies,
-  and settings for tools like Ruff, mypy, djlint, and pytest.
-- **instance/:** Also located at the project root (typically), this directory is
-  configured via the `FLASK_INSTANCE_PATH` environment variable (usually set
-  in `.env`). It holds persistent runtime-generated files not tracked by Git,
-  primarily the application's SQLite database (`[...].db`), but also backups
-  and/or files for domain verification (`.well-known/`).
+- **pyproject.toml:** The central configuration file for the Python project,
+  defining metadata, dependencies, and settings for tools like Ruff, mypy,
+  djlint, and pytest.
+- **instance/:** This directory is configured via the `FLASK_INSTANCE_PATH`
+  environment variable (usually set in `.env`). It holds persistent
+  runtime-generated files not tracked by Git, primarily the application's
+  SQLite database (`[...].db`), but also backups and/or files for domain
+  verification (`.well-known/`).
 - **src/:** Contains the primary source code for both the Gen-Ed framework and
   the applications built on it.
     - **gened/:** The code for the Gen-Ed framework itself, containing all
@@ -59,17 +59,36 @@ for functionality common to all Gen-Ed applications.  A few of the more
 important ones:
 
 - **admin/:** Administrator interfaces.
-- **class_config/** Provides a generic mechanism for components to define and
-  manage configuration items on a per-class basis.
+- **class_config/:** Provides a generic mechanism for components to define and
+  manage configuration items on a per-class basis. All items from all
+  components are stored in the single common `config_items` table (keyed by
+  the component-defined `item_type`), not in per-component tables.
 - **auth.py:** User session management and authorization, including
   login/logout.  Generally, only the admin users are "local," with credentials
   stored in the database.  For most users, authentication is handled via either
   OpenID Connect (in `oauth.py`) or LTI (`lti.py`).
 - **classes.py:** Routes for creating new classes and switching between classes
   (as a student).
-- **db.py:** Database connections and operations, including CLI commands
-  (see `flask --help` for a list of commands).
-- **llm.py:** Configuring, selecting, and using LLMs.
+- **access.py:** Access controls for routes. Components and their features
+  can be enabled/disabled on a per-class basis, and routes can be protected
+  accordingly (e.g., `RequireComponent`, `control_blueprint_access`).
+- **app_data.py:** Data source definitions used to present component data to
+  users, instructors, and admins, plus personal data deletion handlers.
+- **db.py:** Database connections and operations. The `flask` CLI commands
+  (`initdb`, `newuser`, `setpassword`, `migrate`) are defined in
+  `db_admin.py` and `migrate.py` (see `flask --help` for a list of commands).
+- **docs.py:** Renders the Markdown pages in an application's `docs/`
+  directory as documentation pages on the site.
+- **instructor.py:** Instructor-specific routes, including the instructor
+  dashboard, student data management, and class data export.
+- **llm.py:** Configuring, selecting, and using LLMs. Components should call
+  LLMs through this module rather than instantiating LLM API clients directly:
+  `get_llm()` selects the model and API key appropriate for the current
+  context (a per-class key if one is set, otherwise the system key), and the
+  `with_llm(...)` decorator wraps a route's LLM usage, including handling of
+  free-query tokens and user-facing errors (e.g., no key available, no tokens
+  left).
+- **models.py:** LLM model registry and model management routes.
 
 ### src/[application]/
 
@@ -88,9 +107,12 @@ general user- and class-management code provided by Gen-Ed.
   used alongside `schema_common.sql` and component schemas when creating a new
   database with `flask initdb`.
 - **templates/:** Jinja2 templates -- any that need to be customized
-  specifically for CodeHelp.  Note that many of these are used by routes
-  defined in `src/gened/` -- in those cases, the route's code is generic, but
-  some aspect of the page contents are still application-specific.
+  specifically for the application.  Note that many of these are used by
+  routes defined in `src/gened/` -- in those cases, the route's code is
+  generic, but some aspect of the page contents are still
+  application-specific.
+- **docs/:** Markdown pages rendered into the application as documentation
+  pages (e.g., privacy policy, LTI setup guides) by `src/gened/docs.py`.
 
 ### src/components/[component]/
 
@@ -99,7 +121,7 @@ component encapsulates a specific piece of functionality (e.g., a query
 interface, a tutor) that can be reused across different Gen-Ed applications.
 
 A component is integrated into an application via a `GenEdComponent` object,
-which should be defined in and exporetged from  the component's `__init__.py`
+which should be defined in and exported from the component's `__init__.py`
 file. This object tells the `GenEdAppBuilder` how to wire the component into
 the application.
 
@@ -123,7 +145,15 @@ the component that the Gen-Ed framework needs to know about. See
 To create a new component, a developer can create a new directory in
 `src/components`, structure it as described above, and then add its
 `gened_component` to the desired application in `src/[application]/__init__.py`
-using `builder.add_component()`.
+using `builder.add_component()`.  A component's routes are protected
+automatically: when the component's blueprint is passed to the
+`GenEdComponent` object, all of its routes are wrapped with
+`RequireComponent` (see `__post_init__` in `src/gened/components.py`), since
+components and their features can be enabled/disabled on a per-class basis.
+Routes that are not part of the component's blueprint, or that need finer
+per-route controls, should be protected manually using the access controls in
+`src/gened/access.py` (e.g., `control_blueprint_access`, `RequireComponent`,
+`route_requires`).
 
 
 ## Development
@@ -149,11 +179,16 @@ Run all tests:
 pytest
 ```
 
-For code coverage report (currently only codehelp and the components it
-includes are tested):
+The `app` fixture in `tests/conftest.py` builds a CodeHelp application on a
+throwaway database in a temporary directory (configured via `.env.test`), so
+tests never touch the development database in `instance/`.  LLM calls are
+mocked by default via `src/gened/testing/mocks.py`; tests marked with
+`use_real_openai` instead make real requests to the OpenAI API.
+
+For a code coverage report (written to `htmlcov/index.html`):
 
 ```sh
-pytest --cov=src/gened --cov=src/components --cov=src/codehelp --cov-report=html && xdg-open htmlcov/index.html
+pytest --cov=src/gened --cov=src/components --cov=src/codehelp --cov-report=html
 ```
 
 ### Type Checking, Code Style, and Standards
@@ -169,7 +204,8 @@ Run the checks from the project root:
 
 All new code should pass these checks. Code should be correctly typed with no
 mypy errors (ignoring unavoidable errors from third-party libraries lacking
-type information).
+type information). The project supports Python 3.11–3.14, and CI runs `mypy`
+and `pytest` (on Linux and Windows) for every pull request.
 
 ### Updates
 
@@ -177,11 +213,7 @@ type information).
 
 If dependencies in `pyproject.toml` change, your environment may no longer have
 the correct libraries installed.  To be sure you have all dependencies
-installed, run:
-
-```sh
-pip install -U -e . --group dev
-```
+installed, run `pip install -U -e . --group dev` from the project root.
 
 #### Database Schema
 
@@ -194,12 +226,27 @@ migration tool provided by Gen-Ed (via the `gened.migrate` module):
 flask migrate
 ```
 
+Note that the `flask` CLI commands operate on the application named by the
+`FLASK_APP` environment variable (usually set in `.env`, e.g.,
+`FLASK_APP=codehelp`).  To run any of them against a different application in
+this repository, override it explicitly: `flask --app starburst migrate`.
+
 This command finds and applies any pending migration scripts located in
 `src/gened/migrations/`, `src/[application_name]/migrations/`, and in any of
 the application's component directories (`src/components/[component_name]/migrations/`).
 Typically, typing `A` at the prompt to apply all new migrations will bring your
-database schema up to date. Note that this command modifies an *existing* database; use
-`flask initdb` only when creating a *new* database from scratch.
+database schema up to date (`flask migrate --auto` does the same
+non-interactively). A timestamped backup of the database is automatically
+saved to `instance/backups/` before any migrations are applied. Note that this
+command modifies an *existing* database; use `flask initdb` only when creating
+a *new* database from scratch.
+
+To *create* a new migration, add a new `.sql` script to the appropriate
+`migrations/` directory (framework-wide changes go in
+`src/gened/migrations/`; otherwise use the application's or a component's
+directory).  Name it `YYYYMMDD--description.sql`: scripts are applied in
+filename order across *all* of these directories, and duplicate filenames are
+an error, so the date prefix keeps new migrations ordered after existing ones.
 
 ### Contributing
 
