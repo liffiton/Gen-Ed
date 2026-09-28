@@ -3,6 +3,8 @@ from typing import Any, TypeAlias
 import openai
 from flask import current_app
 
+from .auth import get_auth
+
 OpenAIChatMessage: TypeAlias = openai.types.chat.ChatCompletionMessageParam
 ChatStream: TypeAlias = openai.AsyncStream[openai.types.chat.ChatCompletionChunk]
 
@@ -24,9 +26,15 @@ class OpenAIClient:
             self._client = openai.AsyncOpenAI(api_key=api_key)
         self._model = model
 
-    def _translate_openai_error(self, e: openai.APIError) -> tuple[str, str]:
+    def _translate_openai_error(self, e: openai.APIError) -> tuple[str, str]:  # noqa: PLR0912, C901 (it's just going to be branchy)
         common_error_text = "Error ({error_type}).  Something went wrong with this query.  The error has been logged, and we'll work on it.  For now, please try again."
-        log_msg = f"OpenAI {type(e).__name__}: {e}"
+
+        auth = get_auth()
+        if auth.cur_class:
+            log_msg = f"OpenAI {type(e).__name__} [class {auth.cur_class.class_id}:{auth.cur_class.class_name}]: {e}"
+        else:
+            log_msg = f"OpenAI {type(e).__name__}: {e}"
+
         match e:
             case openai.APITimeoutError():
                 user_msg = "Error (APITimeoutError).  The system timed out producing the response.  Please try again."
@@ -50,7 +58,7 @@ class OpenAIClient:
                 user_msg = f"Error (NotFoundError).  The API endpoint {self._client.base_url} returned a 404.  It is probably not the correct URL."
             case _:
                 user_msg = common_error_text.format(error_type='APIError')
-                log_msg = f"Exception (OpenAI {type(e).__name__}, but I don't handle that specifically yet): {e}"
+                log_msg = "[!no special case!] " + log_msg
 
         return user_msg, log_msg
 
