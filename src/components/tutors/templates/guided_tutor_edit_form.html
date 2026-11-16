@@ -585,7 +585,7 @@
               </button>
             </div>
             <div class="control">
-              <input name="num_questions" required class="input" type="number" min=1 size="1" style="width: 4em;" x-data="{num_questions: $persist(3)}" x-model="num_questions">
+              <input name="num_questions" required class="input" type="number" min=1 max=100 size="1" style="width: 4em;" x-data="{num_questions: $persist(3)}" x-model="num_questions">
             </div>
             <div class="control pt-2">
               draft questions per objective.

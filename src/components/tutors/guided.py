@@ -129,6 +129,7 @@ def generate_questions(llm: LLM) -> bytes | tuple[dict[str, str], int]:
     config = TutorConfig.from_request_form(request.form)
 
     num_questions = int(request.form.get('num_questions', DEFAULT_QUESTIONS_PER_OBJECTIVE))
+    num_questions = max(1, min(100, num_questions))  # clamp between 1 and 100, inclusive
 
     try:
         asyncio.run(populate_questions(config, llm, num_questions))
