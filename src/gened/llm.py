@@ -192,7 +192,7 @@ def get_llm(*, use_system_key: bool, spend_token: bool) -> LLM:
 
     tokens = auth.user.query_tokens
 
-    if tokens == 0:
+    if tokens <= 0:
         raise NoTokensError
 
     if spend_token:
