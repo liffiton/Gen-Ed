@@ -3,7 +3,9 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import pytest
+from flask import Flask
 
+from gened.db import get_db
 from tests.conftest import AppClient
 
 
@@ -43,6 +45,54 @@ def test_saved_context(client: AppClient, context_name: str) -> None:
 
     response = client.get("/help/")
     assert f"selected>{context_name}" in response.text
+
+
+def test_context_description_shows_tools_and_details_but_hides_avoid(client: AppClient) -> None:
+    """The student-facing context description omits the instructor's avoid terms."""
+    client.login()
+    response = client.get('/classes/switch/2')
+    assert response.status_code == 302
+
+    response = client.get('/help/')
+    assert response.status_code == 200
+    assert 'Python2' in response.text
+    assert 'details2' in response.text
+    assert 'avoid2' not in response.text
+
+
+def test_query_records_rendered_context(app: Flask, client: AppClient) -> None:
+    """The context string stored with a query includes the full prompt text."""
+    client.login()
+    response = client.get('/classes/switch/2')
+    assert response.status_code == 302
+
+    response = client.post('/help/request', data={
+        'context': 'default2',
+        'code': 'code',
+        'error': 'error',
+        'issue': 'issue',
+    })
+    assert response.status_code == 302
+
+    with app.app_context():
+        row = get_db().execute(
+            """
+            SELECT cs.ctx_str
+            FROM code_queries AS q
+            JOIN context_strings AS cs ON cs.id = q.context_string_id
+            WHERE q.user_id = ? AND q.context_name = ?
+            ORDER BY q.id DESC
+            LIMIT 1
+            """,
+            [11, 'default2'],
+        ).fetchone()
+    assert row is not None
+    context_string = row['ctx_str']
+    assert 'Python2' in context_string
+    assert 'details2' in context_string
+    assert 'avoid2' in context_string
+    assert 'Environment and tools' in context_string
+    assert 'Keywords and concepts to avoid' in context_string
 
 
 @pytest.mark.parametrize(('username', 'password'), [

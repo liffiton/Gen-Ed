@@ -71,6 +71,7 @@ def test_get_item_by_name_returns_context() -> None:
     assert ctx_item.name == 'default2'
     assert ctx_item.row_id == 6
     assert ctx_item.tools == 'Python2'
+    assert ctx_item.details == 'details2'
     assert ctx_item.avoid == 'avoid2'
 
 
@@ -115,9 +116,16 @@ def test_copy_from_course_copies_selected_items(instructor: AppClient, app: Flas
         items = db.execute(
             "SELECT name FROM config_items WHERE class_id=2 AND item_type='context' ORDER BY class_order, id"
         ).fetchall()
+        source = db.execute("SELECT config FROM config_items WHERE id=3").fetchone()
+        copied = db.execute("SELECT config FROM config_items WHERE class_id=2 AND name='default (1)'").fetchone()
     assert len(items) == 5
     # 'default' already exists in class 2, so the copied item is renamed
     assert items[-1]['name'] == 'default (1)'
+    assert source is not None
+    assert copied is not None
+    assert copied['config'] == source['config']
+    # The source config includes a details field, so this verifies it is copied too.
+    assert 'details3' in copied['config']
 
 
 def test_copy_from_course_ignores_ids_not_in_source_course(instructor: AppClient, app: Flask) -> None:

@@ -1,3 +1,9 @@
+# SPDX-FileCopyrightText: 2026 Mark Liffiton <liffiton@gmail.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
+import json
+import re
 from sqlite3 import Row
 
 import pytest
@@ -27,7 +33,13 @@ def test_create_context_saves_to_db(app: Flask, instructor: AppClient) -> None:
 
     assert response.status_code == 302  # Redirect after successful creation
     context = _get_context_by_name(app, 'Test Context')
-    assert context['config'] == '{"name":"Test Context","tools":"ABC","details":"XYZ","avoid":"123"}'
+    config = json.loads(context['config'])
+    assert config == {
+        'name': 'Test Context',
+        'tools': 'ABC',
+        'details': 'XYZ',
+        'avoid': '123',
+    }
 
 
 def test_update_context_saves_changes_to_db(app: Flask, instructor: AppClient) -> None:
@@ -52,7 +64,22 @@ def test_update_context_saves_changes_to_db(app: Flask, instructor: AppClient) -
         updated_context = db.execute("SELECT * FROM config_items WHERE item_type=? AND id = ?", (CONTEXT_ITEM_TYPE, context_id)).fetchone()
         assert updated_context is not None
         assert updated_context['name'] == 'Updated Context'
-        assert updated_context['config'] == '{"name":"Updated Context","tools":"ABC","details":"XYZ","avoid":"123"}'
+        config = json.loads(updated_context['config'])
+        assert config == {
+            'name': 'Updated Context',
+            'tools': 'ABC',
+            'details': 'XYZ',
+            'avoid': '123',
+        }
+
+
+def test_context_new_form_has_expected_fields(instructor: AppClient) -> None:
+    """The context edit form exposes all configurable fields."""
+    response = instructor.get('/instructor/config/table/context/new')
+    assert response.status_code == 200
+    assert re.search(r'<input\b[^>]*\bname="name"', response.text)
+    for field in ('tools', 'details', 'avoid'):
+        assert re.search(rf'<textarea\b[^>]*\bname="{field}"', response.text)
 
 
 def test_delete_context_removes_from_db(app: Flask, instructor: AppClient) -> None:
@@ -71,6 +98,33 @@ def test_delete_context_removes_from_db(app: Flask, instructor: AppClient) -> No
         db = get_db()
         deleted_context = db.execute("SELECT * FROM config_items WHERE item_type=? AND id = ?", (CONTEXT_ITEM_TYPE, context_id)).fetchone()
         assert deleted_context is None
+
+
+def test_cannot_update_context_from_another_class(app: Flask, instructor: AppClient) -> None:
+    """Instructors cannot modify a context belonging to another class."""
+    with app.app_context():
+        before = get_db().execute("SELECT class_id, name, config FROM config_items WHERE id=1").fetchone()
+    assert before is not None
+
+    response = instructor.post('/instructor/config/table/context/update/1', data={'name': 'Hacked'})
+    assert response.status_code == 403
+
+    with app.app_context():
+        after = get_db().execute("SELECT class_id, name, config FROM config_items WHERE id=1").fetchone()
+    assert after is not None
+    assert dict(after) == dict(before)
+
+
+def test_cannot_delete_context_from_another_class(app: Flask, instructor: AppClient) -> None:
+    """Instructors cannot delete a context belonging to another class."""
+    response = instructor.post('/instructor/config/table/context/delete/1')
+    assert response.status_code == 403
+
+    with app.app_context():
+        context = get_db().execute("SELECT class_id, name FROM config_items WHERE id=1").fetchone()
+    assert context is not None
+    assert context['class_id'] == 1
+    assert context['name'] == 'default'
 
 
 @pytest.mark.parametrize('path', [
@@ -140,6 +194,7 @@ def test_context_edit_view(instructor: AppClient) -> None:
     response = instructor.get('/instructor/config/table/context/edit/6')
     assert response.status_code == 200
     assert 'Python2' in response.text
+    assert 'details2' in response.text
     assert 'avoid2' in response.text
     assert 'Python1' not in response.text
     assert 'Python3' not in response.text

@@ -7,6 +7,7 @@
 from typing import Any
 
 import msgspec
+import pytest
 from flask import Flask
 from werkzeug.datastructures import ImmutableMultiDict
 
@@ -304,3 +305,31 @@ def test_chat_save_and_retrieve(app: Flask, client: AppClient) -> None:
     assert 'You are a helpful tutor' not in response.text
     assert 'Hello' in response.text
     assert 'Hi there' in response.text
+
+
+def test_inquiry_chat_uses_selected_context(app: Flask, client: AppClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    """An inquiry chat includes the selected context's prompt text."""
+    # The chat is saved before the first LLM round, so skip the LLM call.
+    monkeypatch.setattr("components.tutors.chat.run_chat_round", lambda *_args, **_kwargs: None)
+
+    client.login('testuser', 'testpassword')
+    response = client.get('/classes/switch/2')
+    assert response.status_code == 302
+
+    response = client.post('/tutor/new/inquiry', data={
+        'topic': 'Understanding variables',
+        'context': 'default2',
+    })
+    assert response.status_code == 302
+
+    with app.app_context():
+        db = get_db()
+        row = db.execute("SELECT * FROM chats WHERE user_id=? ORDER BY id DESC LIMIT 1", [11]).fetchone()
+    assert row is not None
+    chat = msgspec.json.decode(row['chat_json'], type=ChatData)
+    system_prompt = chat.messages[0]['content']
+    assert 'Python2' in system_prompt
+    assert 'details2' in system_prompt
+    assert 'avoid2' in system_prompt
+    assert 'Environment and tools' in system_prompt
+    assert 'Keywords and concepts to avoid' in system_prompt
