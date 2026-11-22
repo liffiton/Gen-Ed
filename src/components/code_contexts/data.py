@@ -44,7 +44,9 @@ class ContextsDeletionHandler:
             WHERE class_id = ? AND item_type = ?
         """, [class_id, ITEM_TYPE])
 
-        # Remove context strings as they may contain personal information
+        # Remove context strings as they may contain personal information,
+        # but only when no other class's queries still reference them.  Context
+        # strings are deduplicated globally, so a string may be shared.
         db.execute("""
             DELETE FROM context_strings
             WHERE id IN (
@@ -54,6 +56,13 @@ class ContextsDeletionHandler:
                     SELECT id FROM roles WHERE class_id = ?
                 )
             )
-        """, [class_id])
+            AND NOT EXISTS (
+                SELECT 1
+                FROM code_queries AS other_queries
+                LEFT JOIN roles AS other_roles ON other_roles.id = other_queries.role_id
+                WHERE other_queries.context_string_id = context_strings.id
+                  AND (other_roles.class_id IS NULL OR other_roles.class_id != ?)
+            )
+        """, [class_id, class_id])
 
         db.execute("PRAGMA foreign_keys=ON")
