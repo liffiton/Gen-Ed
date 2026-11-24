@@ -49,7 +49,7 @@ dev = [
     "types-requests",
     "pyrage-stubs~=1.4.0",
     "ruff~=0.16.0",
-    "djlint~=1.44.0",
+    "djlint~=1.53.0",
 ]
 
 [project.urls]
@@ -107,7 +107,7 @@ ignore = [
 [tool.djlint]
 profile = "jinja"
 files = ["src/"]
-ignore = "T001,H021,H023,H030,H031"
+ignore = "T001,H021,H023,H024,H030,H031"
 
 [tool.mypy]
 files = [ "src/", "tests/" ]

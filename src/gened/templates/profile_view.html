@@ -68,7 +68,7 @@ dl.profile dd { margin: 0; }
     <h2 class="title is-size-3">
       Classes
       {% if user.provider_name not in ['lti', 'demo'] %}
-        <button class="button ml-5 is-light is-link is-outlined" onclick="document.querySelector('#new_class_dialog').showModal()">
+        <button type="button" class="button ml-5 is-light is-link is-outlined" onclick="document.querySelector('#new_class_dialog').showModal()">
             <svg class="icon" aria-hidden="true"><use href="#svg_plus" /></svg>
             <span>Create new class</span>
         </button>
@@ -135,12 +135,12 @@ dl.profile dd { margin: 0; }
         View &amp; export your data
       </a>
       {% if user.provider_name not in ['lti', 'demo', 'local'] %}
-        <button class="button ml-5 is-info" onclick="document.querySelector('#anonymize_dialog').showModal()">
+        <button type="button" class="button ml-5 is-info" onclick="document.querySelector('#anonymize_dialog').showModal()">
           <svg class="icon" aria-hidden="true"><use href="#svg_user" /></svg>
           <span>Anonymize account</span>
         </button>
       {% endif %}
-      <button class="button ml-5 is-danger" onclick="document.querySelector('#delete_dialog').showModal()">
+      <button type="button" class="button ml-5 is-danger" onclick="document.querySelector('#delete_dialog').showModal()">
         <svg class="icon" aria-hidden="true"><use href="#svg_trash" /></svg>
         <span>Delete your account ...</span>
       </button>

@@ -306,8 +306,8 @@ window.md.renderer.rules.math_block = (tokens, idx) => `\\[${md.utils.escapeHtml
           <p><strong>User:</strong> {{ chat.user_json | fmt_user }}</p>
           <p class="buttons are-small">
             <strong>Show/Hide messages:</strong>
-            <button class="button ml-3" :class="show_tutor && 'is-primary'" @click="show_tutor = !show_tutor">Tutor</button>
-            <button class="button" :class="show_student && 'is-primary'" @click="show_student = !show_student">Student</button>
+            <button type="button" class="button ml-3" :class="show_tutor && 'is-primary'" @click="show_tutor = !show_tutor">Tutor</button>
+            <button type="button" class="button" :class="show_student && 'is-primary'" @click="show_student = !show_student">Student</button>
           </p>
         {% endif %}
 
