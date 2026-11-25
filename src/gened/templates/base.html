@@ -109,7 +109,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           {% if auth.user %}
             {% set has_dropdown=(auth.cur_class and auth.is_admin) or (auth.other_classes) %}
             <div class="navbar-item dropdown dropdown-trigger is-hoverable is-size-6" {% if has_dropdown %}aria-haspopup="true" aria-controls="classes-menu"{% endif %}>
-              <a class="navbar-link is-arrowless" style="flex-direction: column;" href="{{ url_for('profile.main') }}">
+              <a class="navbar-link is-arrowless" style="flex-direction: column; justify-content: center;" href="{{ url_for('profile.main') }}">
                 <div class="icon-text">
                   <svg class="icon" aria-hidden="true"><use href="#svg_user" /></svg>
                   <span class="is-italic">{{ auth.user.display_name }}</span>
