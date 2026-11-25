@@ -1,9 +1,12 @@
+import logging
+import sqlite3
 from pathlib import Path
 
 import pytest
 from flask import Flask
 
 import codehelp
+from gened import llm
 from gened.base import DBMissingModelError
 from gened.db import get_db
 from tests.conftest import AppClient
@@ -44,6 +47,30 @@ def test_invalid_model_shortname(app: Flask) -> None:
             },
             instance_path = instance_path
         )
+
+
+def test_pre_migration_model_lookup_only_warns(
+    app: Flask,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """An old model schema warns but does not prevent app startup."""
+    def fail_lookup(*, by_shortname: str) -> None:  # noqa: ARG001 -- match get_model's signature
+        raise sqlite3.OperationalError
+
+    monkeypatch.setattr(llm, 'get_model', fail_lookup)
+    with caplog.at_level(logging.WARNING):
+        test_app = codehelp.create_app(
+            test_config={
+                'TESTING': True,
+                'DATABASE': app.config['DATABASE'],
+                'SYSTEM_MODEL_SHORTNAME': app.config['SYSTEM_MODEL_SHORTNAME'],
+            },
+            instance_path=Path(app.instance_path),
+        )
+
+    assert isinstance(test_app, Flask)
+    assert any('You may need to run migrations.' in record.getMessage() for record in caplog.records)
 
 
 def test_model_used_in_class_creation(app: Flask, client: AppClient) -> None:

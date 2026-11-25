@@ -3,17 +3,21 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import json
+import sys
 import tempfile
 from collections.abc import Generator
 from pathlib import Path
 from typing import Any, cast
 
+import click
 import pytest
+from click.testing import CliRunner
 from flask import Flask
 
 import codehelp
 from gened.db import get_db
 from gened.db_admin import init_db
+from gened.migrate import running_migrate_command
 
 MIGRATION_FILENAME = '20261125--learning-contexts--refactor.sql'
 PRECEDING_MIGRATION_FILENAME = '20260605--unify-contexts-and-tutors.sql'
@@ -103,6 +107,37 @@ def _apply_pending_migration(app: Flask) -> None:
         result = app.test_cli_runner().invoke(args=['migrate', '--auto'])
     assert result.exit_code == 0, result.output
     assert MIGRATION_FILENAME in result.output
+
+
+def test_running_migrate_command_detection(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Startup DB initialization is skipped only for `flask migrate`."""
+    detected: dict[str, bool] = {}
+
+    @click.group()
+    def cli() -> None:
+        pass
+
+    @cli.command('migrate')
+    def migrate_cmd() -> None:
+        detected['running'] = running_migrate_command()
+
+    @cli.command('routes')
+    def routes_cmd() -> None:
+        detected['running'] = running_migrate_command()
+
+    runner = CliRunner()
+
+    monkeypatch.setattr(sys, 'argv', ['flask', 'migrate', '--auto'])
+    assert runner.invoke(cli, ['migrate']).exit_code == 0
+    assert detected['running'] is True
+
+    monkeypatch.setattr(sys, 'argv', ['flask', 'routes'])
+    assert runner.invoke(cli, ['routes']).exit_code == 0
+    assert detected['running'] is False
+
+    # Outside of the Flask CLI (e.g., waitress or tests), there is no click context.
+    monkeypatch.setattr(sys, 'argv', ['flask', 'migrate'])
+    assert running_migrate_command() is False
 
 
 def test_migration_runs_after_unified_config_migration(migration_app: Flask) -> None:

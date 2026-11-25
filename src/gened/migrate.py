@@ -14,6 +14,7 @@ import click
 from flask import current_app
 from flask.app import Flask
 
+from . import cli
 from .component_registry import get_registered_components
 from .db import get_db
 from .db_admin import backup_db, drop_views, on_init_db, rebuild_views
@@ -185,6 +186,16 @@ def _mark_all_as_applied() -> None:
         db.execute("INSERT OR IGNORE INTO migrations (filename) VALUES (?)", [migration.filename])
         db.execute("UPDATE migrations SET succeeded=True WHERE filename=?", [migration.filename])
     db.commit()
+
+
+def running_migrate_command() -> bool:
+    """Return True when Flask's CLI is creating the app just to run `flask migrate`.
+
+    The migrate command handles the database itself (backups, dropping and
+    rebuilding views), so the normal startup checks are redundant and can emit
+    misleading warnings about the not-yet-migrated schema.
+    """
+    return cli.is_command('migrate')
 
 
 @click.command('migrate')

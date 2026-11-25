@@ -22,6 +22,7 @@ from . import (
     admin,
     auth,
     classes,
+    cli,
     db,
     db_admin,
     demo,
@@ -108,8 +109,15 @@ class GenEdAppBuilder:
         testing = self._app.debug or app_config.get("TESTING", False)
         self._init_logging(testing=testing)
 
+        # collect missing configuration here to report after the app is configured
+        # (see _report_config)
+        self._missing_env_vars: list[str] = []
+        self._config_advisories: list[str] = []
+
         # build the app's complete configuration
         self._config_app(app_config)
+        # report missing configuration, or defer it for non-serving CLI commands
+        self._report_config()
 
         # set up middleware to fix headers from a proxy if configured as such
         if os.environ.get("FLASK_APP_BEHIND_PROXY", "").lower() in ("yes", "true", "1"):
@@ -213,51 +221,83 @@ class GenEdAppBuilder:
         #  - SYSTEM_API_KEY: the "system" LLM API key used in certain situations
         #  - SYSTEM_MODEL_SHORTNAME: shortname of model (in db) used for 'system' completions
         #    (see models table in db)
+        # A missing required variable is fatal when serving, but is deferred here
+        # (see _report_config) so that database commands such as `flask migrate`
+        # can run with only the database configured.
         for varname in ["SECRET_KEY", "SYSTEM_API_KEY", "SYSTEM_MODEL_SHORTNAME"]:
-            try:
-                env_var = os.environ[varname]
-            except KeyError as e:
-                raise MissingEnvVarError(varname) from e
-            base_config[varname] = env_var
+            env_var = os.environ.get(varname)
+            if env_var:
+                base_config[varname] = env_var
+            else:
+                self._missing_env_vars.append(varname)
 
         # Optional variables:
         #  - AGE_PUBLIC_KEY: used to encrypt database backups and exports
         varname = "AGE_PUBLIC_KEY"
-        try:
-            env_var = os.environ[varname]
+        env_var = os.environ.get(varname)
+        if env_var:
             # test the key
-            if env_var.startswith('ssh'):
-                pyrage.ssh.Recipient.from_str(env_var)
-            else:
-                pyrage.x25519.Recipient.from_str(env_var)
+            try:
+                if env_var.startswith('ssh'):
+                    pyrage.ssh.Recipient.from_str(env_var)
+                else:
+                    pyrage.x25519.Recipient.from_str(env_var)
+            except pyrage.RecipientError as e:
+                raise InvalidAGEKeyError(varname) from e
             base_config[varname] = env_var
-        except pyrage.RecipientError as e:
-            raise InvalidAGEKeyError(varname) from e
-        except KeyError:
-            app.logger.warning(f"{varname} environment variable not set.")
+        else:
+            self._config_advisories.append(f"{varname} environment variable not set.")
 
         # CLIENT_ID/CLIENT_SECRET vars are used by authlib:
         #   https://docs.authlib.org/en/latest/client/flask.html#configuration
         # But the application will run without them; it just won't provide login
         # options for any providers where the keys are missing.
         for provider in ["GOOGLE", "MICROSOFT", "GITHUB"]:
-            try:
-                client_id_key = f"{provider}_CLIENT_ID"
-                client_secret_key = f"{provider}_CLIENT_SECRET"
-                base_config[client_id_key] = os.environ[client_id_key]
-                base_config[client_secret_key] = os.environ[client_secret_key]
-            except KeyError:
+            client_id_key = f"{provider}_CLIENT_ID"
+            client_secret_key = f"{provider}_CLIENT_SECRET"
+            client_id = os.environ.get(client_id_key)
+            client_secret = os.environ.get(client_secret_key)
+            if client_id and client_secret:
+                base_config[client_id_key] = client_id
+                base_config[client_secret_key] = client_secret
+            else:
                 # Just warn, but continue
-                app.logger.warning(f"{provider}_CLIENT_ID and/or {provider}_CLIENT_SECRET environment variables not set.  SSO from {provider} will not be enabled.")
+                self._config_advisories.append(f"{provider}_CLIENT_ID and/or {provider}_CLIENT_SECRET environment variables not set.  SSO from {provider} will not be enabled.")
 
         # build total configuration
         total_config = base_config | app_config
 
         # ensure applications have unique secret keys if testing multiple applications with same SECRET_KEY env var
-        total_config['SECRET_KEY'] = str(total_config['APPLICATION_TITLE']) + str(total_config['SECRET_KEY'])
+        if total_config.get('SECRET_KEY'):
+            total_config['SECRET_KEY'] = str(total_config['APPLICATION_TITLE']) + str(total_config['SECRET_KEY'])
 
         # configure the application
         app.config.from_mapping(total_config)
+
+    def _report_config(self) -> None:
+        """Report missing configuration, or defer it for non-serving CLI commands.
+
+        Server processes need a complete configuration: a missing required
+        variable is fatal, and missing optional features are logged as warnings.
+        Database-management commands (e.g., `flask migrate`) and other CLI
+        commands do not serve requests and generally need no configuration
+        beyond the instance path, so the same messages are only logged at DEBUG
+        level there.
+        """
+        app = self._app
+        # A required variable supplied through app config (e.g., test_config) is fine.
+        missing = [varname for varname in self._missing_env_vars if not app.config.get(varname)]
+        if not cli.is_serving():
+            for varname in missing:
+                app.logger.debug(f"Required environment variable not set: {varname}")
+            for message in self._config_advisories:
+                app.logger.debug(message)
+            return
+
+        if missing:
+            raise MissingEnvVarError(missing[0])
+        for message in self._config_advisories:
+            app.logger.warning(message)
 
     def add_component(self, component: GenEdComponent) -> None:
         # Register component identity/metadata
@@ -284,17 +324,20 @@ class GenEdAppBuilder:
         """ Check that the database contains necessary data. """
         app = self._app
 
-        # Validate that the system and default class models exist and are active.
+        # Validate that the system class model exists and is active.
+        shortname = app.config.get("SYSTEM_MODEL_SHORTNAME")
+        if not shortname:
+            # Not configured (e.g., a CLI command running without a full
+            # server environment); _report_config handles this for servers.
+            return
+
         try:
-            for var in "SYSTEM_MODEL_SHORTNAME",:
-                shortname = app.config[var]
-                model = llm.get_model(by_shortname=shortname)
-                if not model or not model.active:
-                    raise DBMissingModelError(shortname)
+            model = llm.get_model(by_shortname=shortname)
+            if not model or not model.active:
+                raise DBMissingModelError(shortname)
         except sqlite3.OperationalError:
             # e.g., pre-migration, no 'active' column; just warn
             app.logger.warning("Error looking up default active model.  You may need to run migrations.")
-
 
     def build(self) -> Flask:
         """ Finalize the app with all registered components and return a complete Flask app. """
@@ -320,7 +363,8 @@ class GenEdAppBuilder:
 
         # run setup and checks that depend on the database (iff it is initialized)
         # must come after db.init_app(app) to ensure db is closed at end of context manager
-        if Path(app.config['DATABASE']).exists():
+        # skip when running `flask migrate`, which manages the database itself
+        if Path(app.config['DATABASE']).exists() and not migrate.running_migrate_command():
             with app.app_context():
                 db_conn = get_db()
                 try:
