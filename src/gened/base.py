@@ -47,6 +47,9 @@ from .component_registry import (
 from .components import GenEdComponent
 from .db import get_db
 
+_REQUIRED_CONFIG = ("SECRET_KEY", "SYSTEM_API_KEY", "SYSTEM_MODEL_SHORTNAME")
+_OAUTH_PROVIDERS = ("GOOGLE", "MICROSOFT", "GITHUB")
+
 
 class MissingEnvVarError(Exception):
     def __init__(self, varname: str):
@@ -109,15 +112,9 @@ class GenEdAppBuilder:
         testing = self._app.debug or app_config.get("TESTING", False)
         self._init_logging(testing=testing)
 
-        # collect missing configuration here to report after the app is configured
-        # (see _report_config)
-        self._missing_env_vars: list[str] = []
-        self._config_advisories: list[str] = []
-
-        # build the app's complete configuration
+        # Build and validate the app's complete configuration.
         self._config_app(app_config)
-        # report missing configuration, or defer it for non-serving CLI commands
-        self._report_config()
+        self._validate_config()
 
         # set up middleware to fix headers from a proxy if configured as such
         if os.environ.get("FLASK_APP_BEHIND_PROXY", "").lower() in ("yes", "true", "1"):
@@ -221,48 +218,13 @@ class GenEdAppBuilder:
         #  - SYSTEM_API_KEY: the "system" LLM API key used in certain situations
         #  - SYSTEM_MODEL_SHORTNAME: shortname of model (in db) used for 'system' completions
         #    (see models table in db)
-        # A missing required variable is fatal when serving, but is deferred here
-        # (see _report_config) so that database commands such as `flask migrate`
-        # can run with only the database configured.
-        for varname in ["SECRET_KEY", "SYSTEM_API_KEY", "SYSTEM_MODEL_SHORTNAME"]:
-            env_var = os.environ.get(varname)
-            if env_var:
-                base_config[varname] = env_var
-            else:
-                self._missing_env_vars.append(varname)
-
         # Optional variables:
         #  - AGE_PUBLIC_KEY: used to encrypt database backups and exports
-        varname = "AGE_PUBLIC_KEY"
-        env_var = os.environ.get(varname)
-        if env_var:
-            # test the key
-            try:
-                if env_var.startswith('ssh'):
-                    pyrage.ssh.Recipient.from_str(env_var)
-                else:
-                    pyrage.x25519.Recipient.from_str(env_var)
-            except pyrage.RecipientError as e:
-                raise InvalidAGEKeyError(varname) from e
-            base_config[varname] = env_var
-        else:
-            self._config_advisories.append(f"{varname} environment variable not set.")
-
-        # CLIENT_ID/CLIENT_SECRET vars are used by authlib:
-        #   https://docs.authlib.org/en/latest/client/flask.html#configuration
-        # But the application will run without them; it just won't provide login
-        # options for any providers where the keys are missing.
-        for provider in ["GOOGLE", "MICROSOFT", "GITHUB"]:
-            client_id_key = f"{provider}_CLIENT_ID"
-            client_secret_key = f"{provider}_CLIENT_SECRET"
-            client_id = os.environ.get(client_id_key)
-            client_secret = os.environ.get(client_secret_key)
-            if client_id and client_secret:
-                base_config[client_id_key] = client_id
-                base_config[client_secret_key] = client_secret
-            else:
-                # Just warn, but continue
-                self._config_advisories.append(f"{provider}_CLIENT_ID and/or {provider}_CLIENT_SECRET environment variables not set.  SSO from {provider} will not be enabled.")
+        #  - CLIENT_ID/CLIENT_SECRET: used by Authlib for SSO
+        oauth_keys = (f"{provider}_{suffix}" for provider in _OAUTH_PROVIDERS for suffix in ("CLIENT_ID", "CLIENT_SECRET"))
+        for key in (*_REQUIRED_CONFIG, "AGE_PUBLIC_KEY", *oauth_keys):
+            if key in os.environ:
+                base_config[key] = os.environ[key]
 
         # build total configuration
         total_config = base_config | app_config
@@ -274,30 +236,43 @@ class GenEdAppBuilder:
         # configure the application
         app.config.from_mapping(total_config)
 
-    def _report_config(self) -> None:
-        """Report missing configuration, or defer it for non-serving CLI commands.
-
-        Server processes need a complete configuration: a missing required
-        variable is fatal, and missing optional features are logged as warnings.
-        Database-management commands (e.g., `flask migrate`) and other CLI
-        commands do not serve requests and generally need no configuration
-        beyond the instance path, so the same messages are only logged at DEBUG
-        level there.
-        """
+    def _validate_config(self) -> None:
+        """Validate effective settings, allowing management commands to omit server config."""
         app = self._app
-        # A required variable supplied through app config (e.g., test_config) is fine.
-        missing = [varname for varname in self._missing_env_vars if not app.config.get(varname)]
-        if not cli.is_serving():
-            for varname in missing:
-                app.logger.debug(f"Required environment variable not set: {varname}")
-            for message in self._config_advisories:
-                app.logger.debug(message)
-            return
+        config = app.config
+        require_server_config = cli.requires_server_config()
+        advisory = app.logger.warning if require_server_config else app.logger.debug
 
-        if missing:
-            raise MissingEnvVarError(missing[0])
-        for message in self._config_advisories:
-            app.logger.warning(message)
+        for key in _REQUIRED_CONFIG:
+            if not config.get(key):
+                if require_server_config:
+                    raise MissingEnvVarError(key)
+                app.logger.debug("Required environment variable not set: %s", key)
+
+        age_key_name = "AGE_PUBLIC_KEY"
+        age_key = config.get(age_key_name)
+        if age_key is None:
+            advisory("%s environment variable not set.", age_key_name)
+        else:
+            # An explicitly empty or malformed key must not disable backup encryption.
+            try:
+                if age_key.startswith('ssh'):
+                    pyrage.ssh.Recipient.from_str(age_key)
+                else:
+                    pyrage.x25519.Recipient.from_str(age_key)
+            except pyrage.RecipientError as e:
+                raise InvalidAGEKeyError(age_key_name) from e
+
+        for provider in _OAUTH_PROVIDERS:
+            client_id_key = f"{provider}_CLIENT_ID"
+            client_secret_key = f"{provider}_CLIENT_SECRET"
+            if not (config.get(client_id_key) and config.get(client_secret_key)):
+                # OAuth registration and the login template use secret presence
+                # to tell whether the provider is enabled.
+                config.pop(client_id_key, None)
+                config.pop(client_secret_key, None)
+                advisory("%s and/or %s not configured. SSO from %s will not be enabled.",
+                         client_id_key, client_secret_key, provider)
 
     def add_component(self, component: GenEdComponent) -> None:
         # Register component identity/metadata
@@ -328,7 +303,7 @@ class GenEdAppBuilder:
         shortname = app.config.get("SYSTEM_MODEL_SHORTNAME")
         if not shortname:
             # Not configured (e.g., a CLI command running without a full
-            # server environment); _report_config handles this for servers.
+            # server environment); _validate_config handles this for servers.
             return
 
         try:

@@ -5,6 +5,7 @@
 import sys
 
 import click
+from flask.cli import FlaskGroup
 
 # These commands manage the database and do not serve requests, so they may
 # run without the application secrets and optional integrations configured.
@@ -16,13 +17,12 @@ _COMMANDS_WITHOUT_SERVER_CONFIG = frozenset({
 })
 
 
-def in_flask_cli() -> bool:
-    """Return True when Flask's CLI is creating the app (e.g., `flask migrate`).
-
-    False for servers (waitress, `app.run()`) and for tests or other code that
-    calls the app factory directly.
-    """
-    return click.get_current_context(silent=True) is not None
+def _flask_context() -> click.Context | None:
+    """Find the active context only if the root command is Flask's CLI."""
+    ctx = click.get_current_context(silent=True)
+    if ctx is not None and isinstance(ctx.find_root().command, FlaskGroup):
+        return ctx
+    return None
 
 
 def _command_from_argv() -> str | None:
@@ -33,66 +33,45 @@ def _command_from_argv() -> str | None:
     and their values to find the command token.
     """
     args = iter(sys.argv[1:])
-    command: str | None = None
-    skip_value = False
     for arg in args:
-        if skip_value:
-            skip_value = False
-            continue
         if arg in ('-A', '--app', '-e', '--env-file'):
-            skip_value = True
-            continue
-        if arg.startswith(('--app=', '--env-file=', '-A', '-e')) and arg not in ('-A', '-e'):
-            continue
-        if arg.startswith('-'):
-            continue
-        command = arg
-        break
-    return command
+            next(args, None)
+        elif arg in ('-h', '--help'):
+            return None
+        elif arg == '--':
+            return next(args, None)
+        elif not arg.startswith('-'):
+            return arg
+    return None
 
 
-def _command_name() -> str | None:
-    """Return the active top-level Flask command, if one can be determined."""
-    ctx = click.get_current_context(silent=True)
-    if ctx is None:
-        return None
+def _command_name(ctx: click.Context) -> str | None:
+    if ctx.parent is None:
+        # Flask loads the app while looking up app-defined commands, before
+        # Click has created the subcommand context.
+        return _command_from_argv()
 
-    # In the command callback (including tests using CliRunner), the command
-    # context is available and is more reliable than process argv.
-    command_contexts: list[click.Context] = []
-    while ctx is not None:
-        if ctx.parent is not None:
-            command_contexts.append(ctx)
+    # For built-in commands like `flask run`, Flask loads the app in the
+    # command callback and Click already knows the command name.
+    while ctx.parent.parent is not None:
         ctx = ctx.parent
-    if command_contexts:
-        return command_contexts[-1].info_name
-
-    # Flask's CLI loads the app while resolving the command, before the
-    # command-specific context exists.
-    return _command_from_argv()
+    return ctx.info_name
 
 
 def is_command(name: str) -> bool:
-    """Return True when Flask's CLI is creating the app to run the given command.
+    """Return True if Flask's CLI is loading the app for the named command."""
+    ctx = _flask_context()
+    return ctx is not None and _command_name(ctx) == name
 
-    Flask loads the app before creating the command context, so that case is
-    read from argv (e.g., `flask [--app app] migrate`).
+
+def requires_server_config() -> bool:
+    """Exempt only Flask's management commands and top-level help.
+
+    Flask loads the app for top-level help to list app-defined commands. An
+    unrelated Click context is not enough to opt out of server validation.
     """
-    return in_flask_cli() and _command_name() == name
-
-
-def is_serving() -> bool:
-    """Return True when this process is meant to serve requests.
-
-    That includes servers started outside the CLI (e.g., waitress, `app.run()`)
-    and CLI commands that are not explicitly allowed to run without server
-    configuration. Help requests and invocations without a command are exempt:
-    Flask loads the app to list its commands, but these invocations do not serve
-    requests or run management actions.
-    """
-    if not in_flask_cli():
+    ctx = _flask_context()
+    if ctx is None:
         return True
-    command = _command_name()
-    if command is None or any(arg in ('-h', '--help') for arg in sys.argv[1:]):
-        return False
-    return command not in _COMMANDS_WITHOUT_SERVER_CONFIG
+    command = _command_name(ctx)
+    return command is not None and command not in _COMMANDS_WITHOUT_SERVER_CONFIG

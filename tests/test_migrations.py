@@ -9,15 +9,15 @@ from collections.abc import Generator
 from pathlib import Path
 from typing import Any, cast
 
-import click
 import pytest
 from click.testing import CliRunner
 from flask import Flask
+from flask.cli import FlaskGroup
 
 import codehelp
+from gened import db_admin
 from gened.db import get_db
 from gened.db_admin import init_db
-from gened.migrate import running_migrate_command
 
 MIGRATION_FILENAME = '20261125--learning-contexts--refactor.sql'
 PRECEDING_MIGRATION_FILENAME = '20260605--unify-contexts-and-tutors.sql'
@@ -109,35 +109,26 @@ def _apply_pending_migration(app: Flask) -> None:
     assert MIGRATION_FILENAME in result.output
 
 
-def test_running_migrate_command_detection(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Startup DB initialization is skipped only for `flask migrate`."""
-    detected: dict[str, bool] = {}
+def test_migrate_skips_startup_db_setup(migration_app: Flask, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Loading the app for `flask migrate` does not touch existing views."""
+    def fail_if_rebuilding() -> None:
+        pytest.fail('Rebuilt views during app startup for migrate')
 
-    @click.group()
-    def cli() -> None:
-        pass
+    monkeypatch.setattr(db_admin, 'rebuild_views', fail_if_rebuilding)
+    monkeypatch.setenv('FLASK_RUN_FROM_CLI', 'true')  # restore Flask's env change after the test
+    args = ['migrate', '--help']
+    monkeypatch.setattr(sys, 'argv', ['flask', *args])
+    group = FlaskGroup(
+        create_app=lambda: codehelp.create_app(
+            test_config={'TESTING': True, 'DATABASE': migration_app.config['DATABASE']},
+            instance_path=Path(migration_app.instance_path),
+        ),
+        load_dotenv=False,
+    )
 
-    @cli.command('migrate')
-    def migrate_cmd() -> None:
-        detected['running'] = running_migrate_command()
-
-    @cli.command('routes')
-    def routes_cmd() -> None:
-        detected['running'] = running_migrate_command()
-
-    runner = CliRunner()
-
-    monkeypatch.setattr(sys, 'argv', ['flask', 'migrate', '--auto'])
-    assert runner.invoke(cli, ['migrate']).exit_code == 0
-    assert detected['running'] is True
-
-    monkeypatch.setattr(sys, 'argv', ['flask', 'routes'])
-    assert runner.invoke(cli, ['routes']).exit_code == 0
-    assert detected['running'] is False
-
-    # Outside of the Flask CLI (e.g., waitress or tests), there is no click context.
-    monkeypatch.setattr(sys, 'argv', ['flask', 'migrate'])
-    assert running_migrate_command() is False
+    result = CliRunner().invoke(group, args)
+    assert result.exit_code == 0, result.exception
+    assert '--auto' in result.output
 
 
 def test_migration_runs_after_unified_config_migration(migration_app: Flask) -> None:
