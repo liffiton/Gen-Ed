@@ -15,6 +15,33 @@ from gened.tables import Col, DataTableSpec, NumCol, ResponseCol, TimeCol, UserC
 TABLE_NAME = 'code_queries'
 DISPLAY_NAME = 'Code Queries'
 
+
+def record_context_string(context_str: str) -> int:
+    """ Ensure a context string is recorded in the context_strings
+        table, and return its row ID.
+    """
+    db = get_db()
+    # Add the context string to the context_strings table, but if it's a duplicate, just get the row ID of the existing one.
+    # The "UPDATE SET id=id" is a no-op, but it allows the "RETURNING" to work in case of a conflict as well.
+    cur = db.execute("INSERT INTO context_strings (ctx_str) VALUES (?) ON CONFLICT DO UPDATE SET id=id RETURNING id", [context_str])
+    context_string_id = cur.fetchone()['id']
+    assert isinstance(context_string_id, int)
+    return context_string_id
+
+
+def _delete_orphaned_context_strings() -> None:
+    """Delete context strings that no query references any more."""
+    db = get_db()
+    db.execute("""
+        DELETE FROM context_strings
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM code_queries AS q
+            WHERE q.context_string_id = context_strings.id
+        )
+    """)
+
+
 def gen_query_charts(filters: Filters) -> list[ChartData]:
     """ Generate chart data for CodeHelp query charts.
     Filter using same filters as set in the admin interface
@@ -149,6 +176,8 @@ class QueriesDeletionHandler:
             WHERE user_id = ?
         """, [user_id])
 
+        _delete_orphaned_context_strings()
+
     @staticmethod
     def delete_class_data(class_id: int) -> None:
         """Delete/Anonymize personal data for a class while preserving non-personal data for analysis."""
@@ -173,3 +202,5 @@ class QueriesDeletionHandler:
                 SELECT id FROM roles WHERE class_id = ?
             )
         """, [class_id])
+
+        _delete_orphaned_context_strings()

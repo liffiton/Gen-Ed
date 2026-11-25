@@ -6,7 +6,7 @@ from pathlib import Path
 
 from flask.app import Flask
 
-from components import language_help, paper_ideas, tutors
+from components import language_help, learning_contexts, paper_ideas, tutors
 from gened.base import GenEdAppBuilder
 
 
@@ -33,6 +33,7 @@ def create_app(test_config: dict[str, str] | None = None, instance_path: Path | 
 
     # create the base application
     builder = GenEdAppBuilder(__name__, app_config, instance_path)
+    builder.add_component(learning_contexts.gened_component)
     builder.add_component(tutors.gened_component)
     builder.add_component(paper_ideas.gened_component)
     builder.add_component(language_help.gened_component)

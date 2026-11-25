@@ -20,10 +20,9 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from components.code_contexts import (
+from components.learning_contexts import (
     ContextConfig,
     contexts_config_table,
-    record_context_string,
 )
 from gened.access import (
     admin_required,
@@ -38,7 +37,7 @@ from gened.llm import LLM, with_llm
 from gened.testing.mocks import mock_async_completion
 
 from . import prompts
-from .data import queries_data_source
+from .data import queries_data_source, record_context_string
 
 MAX_INPUT_LEN = 50_000
 

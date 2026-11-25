@@ -9,7 +9,7 @@ from sqlite3 import Row
 import pytest
 from flask import Flask
 
-from components.code_contexts.data import ITEM_TYPE as CONTEXT_ITEM_TYPE
+from components.learning_contexts.data import ITEM_TYPE as CONTEXT_ITEM_TYPE
 from gened.db import get_db
 from tests.conftest import AppClient
 
@@ -26,8 +26,8 @@ def test_create_context_saves_to_db(app: Flask, instructor: AppClient) -> None:
     """Tests that creating a context saves its name and config to the database."""
     response = instructor.post('/instructor/config/table/context/create', data={
         'name': 'Test Context',
-        'tools': 'ABC',
         'details': 'XYZ',
+        'guidance': 'ABC',
         'avoid': '123',
     })
 
@@ -36,8 +36,8 @@ def test_create_context_saves_to_db(app: Flask, instructor: AppClient) -> None:
     config = json.loads(context['config'])
     assert config == {
         'name': 'Test Context',
-        'tools': 'ABC',
         'details': 'XYZ',
+        'guidance': 'ABC',
         'avoid': '123',
     }
 
@@ -53,8 +53,8 @@ def test_update_context_saves_changes_to_db(app: Flask, instructor: AppClient) -
 
     response = instructor.post(f'/instructor/config/table/context/update/{context_id}', data={
         'name': 'Updated Context',
-        'tools': 'ABC',
         'details': 'XYZ',
+        'guidance': 'ABC',
         'avoid': '123',
     })
     assert response.status_code == 302  # Redirect after successful update
@@ -67,19 +67,10 @@ def test_update_context_saves_changes_to_db(app: Flask, instructor: AppClient) -
         config = json.loads(updated_context['config'])
         assert config == {
             'name': 'Updated Context',
-            'tools': 'ABC',
             'details': 'XYZ',
+            'guidance': 'ABC',
             'avoid': '123',
         }
-
-
-def test_context_new_form_has_expected_fields(instructor: AppClient) -> None:
-    """The context edit form exposes all configurable fields."""
-    response = instructor.get('/instructor/config/table/context/new')
-    assert response.status_code == 200
-    assert re.search(r'<input\b[^>]*\bname="name"', response.text)
-    for field in ('tools', 'details', 'avoid'):
-        assert re.search(rf'<textarea\b[^>]*\bname="{field}"', response.text)
 
 
 def test_delete_context_removes_from_db(app: Flask, instructor: AppClient) -> None:
@@ -196,7 +187,26 @@ def test_context_edit_view(instructor: AppClient) -> None:
     assert 'Python2' in response.text
     assert 'details2' in response.text
     assert 'avoid2' in response.text
+    assert re.search(r'<textarea\b[^>]*\bname="guidance"', response.text)
     assert 'Python1' not in response.text
     assert 'Python3' not in response.text
     assert 'avoid1' not in response.text
     assert 'avoid3' not in response.text
+
+
+def test_context_edit_view_populates_hidden_instructions(app: Flask, instructor: AppClient) -> None:
+    """The edit form repopulates details, general guidance, and avoid terms."""
+    instructor.post('/instructor/config/table/context/create', data={
+        'name': 'Edit Hidden',
+        'details': 'Visible details',
+        'guidance': 'Hidden guidance',
+        'avoid': 'avoid-one\navoid-two',
+    })
+    context = _get_context_by_name(app, 'Edit Hidden')
+
+    response = instructor.get(f'/instructor/config/table/context/edit/{context["id"]}')
+    assert response.status_code == 200
+    assert 'Visible details' in response.text
+    assert 'Hidden guidance' in response.text
+    assert 'avoid-one' in response.text
+    assert 'avoid-two' in response.text

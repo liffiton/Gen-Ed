@@ -4,7 +4,7 @@
 
 import msgspec
 
-from components.code_contexts import ContextConfig
+from components.learning_contexts import ContextConfig
 from gened.auth import get_auth
 from gened.db import get_db
 

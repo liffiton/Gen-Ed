@@ -21,14 +21,14 @@ VALUES
 
 INSERT INTO config_items (id, class_id, item_type, name, class_order, available, config)
 VALUES
-    (1, 1, 'context', 'default', 0, '0001-01-01', '{"tools": "Python\r\nC++\r\nOCaml", "avoid": "sum()\r\neval()\r\nzfill()\r\n+=\r\n"}'),
-    (2, 2, 'context', 'default', 0, '0001-01-01', '{"tools": "Python", "avoid": ""}'),
-    (3, 3, 'context', 'default', 0, '0001-01-01', '{"tools": "Python", "details": "details3", "avoid": ""}'),
-    (4, 4, 'context', 'default', 0, '0001-01-01', '{"tools": "Python", "avoid": ""}'),
+    (1, 1, 'context', 'default', 0, '0001-01-01', '{"name": "default", "details": "**Environment and tools:** Python; C++; OCaml", "guidance": "", "avoid": "sum()\r\neval()\r\nzfill()\r\n+=\r\n"}'),
+    (2, 2, 'context', 'default', 0, '0001-01-01', '{"name": "default", "details": "**Environment and tools:** Python", "guidance": "", "avoid": ""}'),
+    (3, 3, 'context', 'default', 0, '0001-01-01', '{"name": "default", "details": "**Environment and tools:** Python\n\ndetails3", "guidance": "", "avoid": ""}'),
+    (4, 4, 'context', 'default', 0, '0001-01-01', '{"name": "default", "details": "**Environment and tools:** Python", "guidance": "", "avoid": ""}'),
     -- contexts for testuser's class:
-    (5, 2, 'context', 'default1', 0, '0001-02-03', '{"tools": "Python1", "avoid": "avoid1"}'),
-    (6, 2, 'context', 'default2', 1, '0004-05-06', '{"tools": "Python2", "details": "details2", "avoid": "avoid2"}'),
-    (7, 2, 'context', 'default3', 2, '0007-08-09', '{"tools": "Python3", "avoid": "avoid3"}');
+    (5, 2, 'context', 'default1', 0, '0001-02-03', '{"name": "default1", "details": "**Environment and tools:** Python1", "guidance": "", "avoid": "avoid1"}'),
+    (6, 2, 'context', 'default2', 1, '0004-05-06', '{"name": "default2", "details": "**Environment and tools:** Python2\n\ndetails2", "guidance": "", "avoid": "avoid2"}'),
+    (7, 2, 'context', 'default3', 2, '0007-08-09', '{"name": "default3", "details": "**Environment and tools:** Python3", "guidance": "", "avoid": "avoid3"}');
 
 INSERT INTO classes_lti (class_id, lti_consumer_id, lti_context_id)
 VALUES

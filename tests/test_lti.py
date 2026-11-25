@@ -285,13 +285,13 @@ def test_lti_content_select_page(app: Flask, client: AppClient) -> None:
         db = get_db()
         future_id = db.execute(
             "INSERT INTO config_items (class_id, item_type, name, class_order, available, config) VALUES (?, ?, ?, ?, ?, ?)",
-            [1, 'context', 'future', 10, '2999-01-01', '{"tools":"","details":"","avoid":""}'],
+            [1, 'context', 'future', 10, '2999-01-01', '{"name":"future","details":"","guidance":"","avoid":""}'],
         ).lastrowid
         # add a context hidden by the instructor (sentinel available date); it must
         # be flagged as hidden, not "not yet available" with the far-future date
         hidden_id = db.execute(
             "INSERT INTO config_items (class_id, item_type, name, class_order, available, config) VALUES (?, ?, ?, ?, ?, ?)",
-            [1, 'context', 'hidden_ctx', 11, '9999-12-31', '{"tools":"","details":"","avoid":""}'],
+            [1, 'context', 'hidden_ctx', 11, '9999-12-31', '{"name":"hidden_ctx","details":"","guidance":"","avoid":""}'],
         ).lastrowid
         # add a focused tutor; it must appear under its share link
         tutor_id = db.execute(
@@ -506,7 +506,7 @@ def test_lti_deep_link_not_yet_available(app: Flask, client: AppClient) -> None:
         db = get_db()
         future_id = db.execute(
             "INSERT INTO config_items (class_id, item_type, name, class_order, available, config) VALUES (?, ?, ?, ?, ?, ?)",
-            [1, 'context', 'future', 10, '2999-01-01', '{"tools":"","details":"","avoid":""}'],
+            [1, 'context', 'future', 10, '2999-01-01', '{"name":"future","details":"","guidance":"","avoid":""}'],
         ).lastrowid
         db.commit()
     uri, headers, body = lti.generate_launch_request(

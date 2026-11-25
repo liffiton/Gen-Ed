@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 from flask import Flask, url_for
 
-from components.code_contexts.data import ITEM_TYPE as CONTEXT_ITEM_TYPE
+from components.learning_contexts.data import ITEM_TYPE as CONTEXT_ITEM_TYPE
 from gened.db import get_db
 from tests.conftest import AppClient
 
@@ -232,6 +232,13 @@ def test_delete_class_full_process(app: Flask, instructor: AppClient) -> None:
         for context in contexts:
             assert context['name'].startswith('[deleted]'), "Context names should be anonymized"
             assert context['config'] == '{}', "Context configs should be emptied"
+
+        # Check context string retention: strings shared with another class remain.
+        remaining_strings = {
+            row['id']
+            for row in db.execute("SELECT id FROM context_strings WHERE id IN (1, 2)").fetchall()
+        }
+        assert remaining_strings == {1, 2}
 
         # Check user last_class_id updates
         verify_row_count(

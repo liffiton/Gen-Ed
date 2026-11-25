@@ -36,5 +36,5 @@ In this way, you can gain insight into where they are struggling at each point i
 Additionally, you might identify students whose usage is not effective (e.g., repeatedly submitting ineffective queries or demonstrating overreliance), and reach out to them directly to provide guidance or a nudge.
 
 Instructors and TAs should sample CodeHelp's responses in each section of the course to spot and mitigate issues.
-For example, if CodeHelp suggests a technique, function, or concept that does not fit the design of your course, you can add that to the avoid set in the the relevant [context](contexts) to produce more appropriate responses to similar queries in the future.
+For example, if CodeHelp suggests a technique, function, or concept that does not fit the design of your course, you can add that to the "Terms and concepts to avoid" area of the relevant [context](contexts) to produce more appropriate responses to similar queries in the future.
 

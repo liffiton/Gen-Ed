@@ -23,6 +23,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <div class="field is-horizontal">
           <div class="field-label is-normal">
             <label class="label" for="name">Name <span title="required">*</span></label>
+            <p class="help-text">A short label students use to choose this context.</p>
           </div>
           <div class="field-body">
             <div class="field">
@@ -35,30 +36,14 @@ SPDX-License-Identifier: AGPL-3.0-only
 
         <div class="field is-horizontal">
           <div class="field-label is-normal">
-            <label class="label" for="tools">Environment and tools</label>
-            <p class="help-text">Languages, libraries, and/or frameworks that students are learning or using in this context.</p>
-            <p class="help-text">Write one per line.</p>
-          </div>
-          <div class="field-body">
-            <div class="field">
-              <div class="control">
-                <textarea class="textarea" name="tools" id="tools" rows=5>{{ item.tools }}</textarea>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="field is-horizontal">
-          <div class="field-label is-normal">
             <label class="label" for="details">Details</label>
-            <p class="help-text">Additional important details for this context.  This could include assignment specifications, module learning goals, or other guidance for the language model.</p>
-            <p class="help-text">You can use markdown formatting.</p>
+            <p class="help-text">Information about this context for the language model, such as the course level, relevant topics, or assignment specifications.  You can use markdown formatting.</p>
             <p class="help-text">This will be shown to students.</p>
           </div>
           <div class="field-body">
             <div class="field">
               <div class="control">
-                <textarea class="textarea" name="details" id="details" rows=10>{{ item.details }}</textarea>
+                <textarea class="textarea" name="details" id="details" rows=6>{{ item.details }}</textarea>
               </div>
             </div>
           </div>
@@ -66,16 +51,28 @@ SPDX-License-Identifier: AGPL-3.0-only
 
         <div class="field is-horizontal">
           <div class="field-label is-normal">
-            <label class="label" for="avoid">Keywords to Avoid</label>
-            <p class="help-text">Keywords and concepts you want the system to avoid in responses.</p>
-            <p class="help-text">Be careful!  Writing "sum" could avoid discussing summation at all, while "sum()" will avoid just the sum function.</p>
-            <p class="help-text">Write one per line.</p>
-            <p class="help-text">This will <em>not</em> be shown to students.</p>
+            <label class="label">Additional instructions<br>(not shown to students)</label>
+            <p class="help-text">These are sent to the language model but are not shown to students.</p>
           </div>
           <div class="field-body">
             <div class="field">
-              <div class="control">
-                <textarea class="textarea is-family-monospace" name="avoid" id="avoid" rows=5>{{ item.avoid }}</textarea>
+              <div class="box">
+                <div class="field">
+                  <label class="label" for="guidance">General guidance</label>
+                  <p class="help-text">General instructions for how the language model should respond in this context.  You can use markdown formatting.</p>
+                  <div class="control">
+                    <textarea class="textarea" name="guidance" id="guidance" rows=4>{{ item.guidance }}</textarea>
+                  </div>
+                </div>
+
+                <div class="field mt-4">
+                  <label class="label" for="avoid">Terms and concepts to avoid</label>
+                  <p class="help-text">Terms and concepts the language model should not mention in its responses.  Write one per line.</p>
+                  <p class="help-text">Be specific: a broad term may prevent the model from discussing an entire topic.</p>
+                  <div class="control">
+                    <textarea class="textarea" name="avoid" id="avoid" rows=4>{{ item.avoid }}</textarea>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

@@ -20,7 +20,7 @@ from flask import (
 )
 from werkzeug.wrappers.response import Response
 
-from components.code_contexts import (
+from components.learning_contexts import (
     ContextConfig,
     contexts_config_table,
 )

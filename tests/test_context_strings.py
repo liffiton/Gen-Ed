@@ -4,8 +4,8 @@
 
 from flask import Flask
 
-from components.code_contexts.data import record_context_string
-from gened.data_deletion import delete_class_data
+from components.code_queries.data import record_context_string
+from gened.data_deletion import delete_class_data, delete_user_data
 from gened.db import get_db
 
 
@@ -78,3 +78,49 @@ def test_context_deletion_removes_only_class_context_strings(app: Flask) -> None
         assert shared in remaining
         # A string referenced by a query without a class is also preserved.
         assert orphan_referenced in remaining
+
+
+def test_user_deletion_removes_only_orphaned_context_strings(app: Flask) -> None:
+    """Deleting a user removes only strings no remaining query references."""
+    with app.app_context():
+        db = get_db()
+        user_only = record_context_string('user-only-context')
+        shared = record_context_string('user-shared-context')
+
+        # user 13 has role 6 in class 2.
+        # The shared string is also referenced by user 11's query.
+        query_ids = []
+        for context_string_id, user_id, role_id in (
+            (user_only, 13, 6),
+            (shared, 13, 6),
+            (shared, 11, 4),
+        ):
+            cur = db.execute(
+                "INSERT INTO code_queries (context_name, context_string_id, code, error, issue, user_id, role_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                ['ctx', context_string_id, 'code', 'error', 'issue', user_id, role_id],
+            )
+            assert cur.lastrowid is not None
+            if user_id == 13:
+                query_ids.append(cur.lastrowid)
+        db.commit()
+
+        delete_user_data(13)
+
+        remaining = {
+            row['id']
+            for row in db.execute(
+                "SELECT id FROM context_strings WHERE id IN (?, ?)",
+                [user_only, shared],
+            ).fetchall()
+        }
+        # The user-only string is removed; the shared string remains.
+        assert user_only not in remaining
+        assert shared in remaining
+
+        # All of the deleted user's queries have their context string nulled.
+        placeholders = ','.join('?' * len(query_ids))
+        rows = db.execute(
+            f"SELECT context_string_id FROM code_queries WHERE id IN ({placeholders})",
+            query_ids,
+        ).fetchall()
+        assert all(row['context_string_id'] is None for row in rows)

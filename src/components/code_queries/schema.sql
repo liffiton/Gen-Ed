@@ -2,7 +2,17 @@
 --
 -- SPDX-License-Identifier: AGPL-3.0-only
 
+-- Code queries reference context strings, so drop the queries table before the
+-- context strings table to avoid a dangling foreign key.
 DROP TABLE IF EXISTS code_queries;
+DROP TABLE IF EXISTS context_strings;
+
+-- Context strings are recorded for deduplication of rendered prompt strings.
+CREATE TABLE context_strings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ctx_str TEXT NOT NULL UNIQUE
+);
+
 CREATE TABLE code_queries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     query_time DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,

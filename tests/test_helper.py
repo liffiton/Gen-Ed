@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import re
+
 import pytest
 from flask import Flask
 
@@ -47,7 +49,7 @@ def test_saved_context(client: AppClient, context_name: str) -> None:
     assert f"selected>{context_name}" in response.text
 
 
-def test_context_description_shows_tools_and_details_but_hides_avoid(client: AppClient) -> None:
+def test_context_description_shows_details_but_hides_avoid(client: AppClient) -> None:
     """The student-facing context description omits the instructor's avoid terms."""
     client.login()
     response = client.get('/classes/switch/2')
@@ -58,6 +60,26 @@ def test_context_description_shows_tools_and_details_but_hides_avoid(client: App
     assert 'Python2' in response.text
     assert 'details2' in response.text
     assert 'avoid2' not in response.text
+
+
+def test_context_description_empty_for_whitespace_details(app: Flask, client: AppClient) -> None:
+    """Whitespace-only details produce no student-facing description."""
+    client.login()
+    response = client.get('/classes/switch/2')
+    assert response.status_code == 302
+
+    with app.app_context():
+        db = get_db()
+        db.execute(
+            "INSERT INTO config_items (class_id, item_type, name, class_order, available, config) VALUES (?, ?, ?, ?, ?, ?)",
+            [2, 'context', 'blank_context', 3, '0001-01-01', '{"name":"blank_context","details":"   ","guidance":"","avoid":""}'],
+        )
+        db.commit()
+
+    response = client.get('/help/')
+    assert response.status_code == 200
+    assert 'blank_context' in response.text
+    assert re.search(r'"blank_context":\s*""', response.text)
 
 
 def test_query_records_rendered_context(app: Flask, client: AppClient) -> None:
@@ -92,7 +114,7 @@ def test_query_records_rendered_context(app: Flask, client: AppClient) -> None:
     assert 'details2' in context_string
     assert 'avoid2' in context_string
     assert 'Environment and tools' in context_string
-    assert 'Keywords and concepts to avoid' in context_string
+    assert 'Terms and concepts to avoid' in context_string
 
 
 @pytest.mark.parametrize(('username', 'password'), [

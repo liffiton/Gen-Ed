@@ -7,9 +7,9 @@ from collections.abc import Iterator
 import pytest
 from flask import Flask, session
 
-from components.code_contexts.config_table import contexts_config_table
-from components.code_contexts.data import ITEM_TYPE as CONTEXT_ITEM_TYPE
-from components.code_contexts.model import ContextConfig
+from components.learning_contexts.config_table import contexts_config_table
+from components.learning_contexts.data import ITEM_TYPE as CONTEXT_ITEM_TYPE
+from components.learning_contexts.model import ContextConfig
 from gened.auth import AUTH_SESSION_KEY
 from gened.class_config.types import ConfigShareLink, ConfigTable
 from gened.component_registry import get_share_link_by_key, register_component
@@ -49,7 +49,7 @@ def test_get_items_available_only_filters_by_date() -> None:
     db = get_db()
     db.execute(
         "INSERT INTO config_items (class_id, item_type, name, class_order, available, config) VALUES (?, ?, ?, ?, ?, ?)",
-        [2, CONTEXT_ITEM_TYPE, 'future_context', 10, '9999-12-31', '{"tools":"","details":"","avoid":""}'],
+        [2, CONTEXT_ITEM_TYPE, 'future_context', 10, '9999-12-31', '{"name":"future_context","details":"","guidance":"","avoid":""}'],
     )
 
     # get_items() without filter should return 5
@@ -70,8 +70,8 @@ def test_get_item_by_name_returns_context() -> None:
     assert isinstance(ctx_item, ContextConfig)
     assert ctx_item.name == 'default2'
     assert ctx_item.row_id == 6
-    assert ctx_item.tools == 'Python2'
-    assert ctx_item.details == 'details2'
+    assert ctx_item.details == '**Environment and tools:** Python2\n\ndetails2'
+    assert ctx_item.guidance == ''
     assert ctx_item.avoid == 'avoid2'
 
 
@@ -82,7 +82,7 @@ def test_get_item_by_name_returns_none_for_wrong_class() -> None:
     db = get_db()
     db.execute(
         "INSERT INTO config_items (class_id, item_type, name, class_order, available, config) VALUES (?, ?, ?, ?, ?, ?)",
-        [1, CONTEXT_ITEM_TYPE, 'class1_only', 0, '0001-01-01', '{"tools":"","details":"","avoid":""}'],
+        [1, CONTEXT_ITEM_TYPE, 'class1_only', 0, '0001-01-01', '{"name":"class1_only","details":"","guidance":"","avoid":""}'],
     )
 
     result = contexts_config_table.get_item_by_name('class1_only')

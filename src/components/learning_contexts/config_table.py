@@ -13,7 +13,7 @@ from .model import ContextConfig
 context_config_help = Environment(autoescape=True).from_string("""\
   <p>Contexts provide additional information to the LLM for each query a student makes.  You can have a single default context that is always used, or you can create separate contexts for individual assignments or modules.  If multiple contexts are available, students will be able to select from them when making queries.</p>
   {% if ctx.item_data | length == 0 %}
-    <p class="has-text-danger">While not strictly required, we recommend defining at least one context to specify the language(s), frameworks, and/or libraries in use in this class.</p>
+    <p class="has-text-danger">While not strictly required, we recommend defining at least one context that describes the topics, tools, methodologies, etc. that are used or relevant in this class.</p>
   {% endif %}
   {# Link to the 'contexts.md' docs page if it exists #}
   {% if 'contexts' in docs_pages %}

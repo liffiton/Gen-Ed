@@ -332,4 +332,4 @@ def test_inquiry_chat_uses_selected_context(app: Flask, client: AppClient, monke
     assert 'details2' in system_prompt
     assert 'avoid2' in system_prompt
     assert 'Environment and tools' in system_prompt
-    assert 'Keywords and concepts to avoid' in system_prompt
+    assert 'Terms and concepts to avoid' in system_prompt
