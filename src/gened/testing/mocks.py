@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import asyncio
-import datetime
+import datetime as dt
 import time
 from collections.abc import Awaitable, Callable
 from typing import Any
@@ -27,7 +27,7 @@ def _create_dummy_completion() -> ChatCompletion:
                 ),
             )
         ],
-        created=int(datetime.datetime.now(tz=datetime.UTC).timestamp()),
+        created=int(dt.datetime.now(tz=dt.UTC).timestamp()),
     )
 
 

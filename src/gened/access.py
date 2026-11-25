@@ -65,7 +65,7 @@ def check_one_access_control(control: AccessControl) -> bool:  # noqa: PLR0911 -
         case RequireExperiment(name=name):
             return name in auth.class_experiments or auth.is_admin  # admins are allowed to access any experiment anywhere
         case RequireComponent(name=name, feature=feature):
-            from .component_registry import get_component_registry  # noqa: PLC0415, I001 - import moved here to avoid a messy circular import issue
+            from .component_registry import get_component_registry  # noqa: PLC0415 - import moved here to avoid a messy circular import issue
             component = get_component_registry().get(name)
             return component is not None and component.is_available() and component.is_enabled(feature=feature)
 
